@@ -144,7 +144,7 @@ const Merchant: React.FC = () => {
             </div>
             <div className="mt-12">
                 <table className="w-full table-auto text-sm text-left overflow-x-scroll">
-                    <thead className="bg-gray-50 text-gray-600 font-medium border-b">
+                    <thead className="bg-yellow-800 text-white font-medium border-b">
                         <tr>
                             <th className="py-3 px-3 sm:px-6">Product Name</th>
                             <th className="py-3 px-3 sm:px-6">Description</th>
@@ -161,7 +161,7 @@ const Merchant: React.FC = () => {
                                 <td className="px-3 py-2 sm:px-1 sm:py-4">
                                     <button
                                         onClick={() => handlePay(selectedMerchant)}
-                                        className="py-2 px-3 font-medium text-indigo-600 hover:text-indigo-500 duration-150 hover:bg-gray-50 rounded-lg mb-2 sm:mb-0"
+                                        className="py-2 px-3 font-medium text-yellow-800 hover:text-indigo-500 duration-150 hover:bg-gray-50 rounded-lg mb-2 sm:mb-0"
                                     >
                                         Pay
                                     </button>

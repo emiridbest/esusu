@@ -50,7 +50,7 @@ return (
                             <div className="sm:ml-6 sm:flex sm:space-x-1">
                                 <Link
                                     href="/"
-                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-medium text-gray-900"
+                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-small text-gray-900"
                                 >
                                     Home
                                 </Link>
@@ -59,7 +59,7 @@ return (
                             <div className="hidden sm:ml-6 sm:flex sm:space-x-2">
                                 <Link
                                     href="/simple"
-                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-medium text-gray-900"
+                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-small text-gray-900"
                                 >
                                     Simple Saver
                                 </Link>
@@ -68,7 +68,7 @@ return (
                             <div className="hidden sm:ml-6 sm:flex sm:space-x-2">
                                 <Link
                                     href="/pay"
-                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-medium text-gray-900"
+                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-small text-gray-900"
                                 >
                                     Pay Bills
                                 </Link>
@@ -77,7 +77,7 @@ return (
                             <div className="hidden sm:ml-6 sm:flex sm:space-x-2">
                                 <Link
                                     href="/blogs"
-                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-medium text-gray-900"
+                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-small text-gray-900"
                                 >
                                     Blog
                                 </Link>
@@ -86,7 +86,7 @@ return (
                             <div className="hidden sm:ml-6 sm:flex sm:space-x-2">
                                 <Link
                                     href="/faq"
-                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-medium text-gray-900"
+                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-small text-gray-900"
                                 >
                                     FAQ
                                 </Link>
@@ -95,7 +95,7 @@ return (
                             <div className="hidden sm:ml-6 sm:flex sm:space-x-2">
                                 <Link
                                     href="/testimonials"
-                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-medium text-gray-900"
+                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-small text-gray-900"
                                 >
                                     Testimonials
                                 </Link>
@@ -104,19 +104,19 @@ return (
                             <div className="hidden sm:ml-6 sm:flex sm:space-x-2">
                                 <Link
                                     href="/contact"
-                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-medium text-gray-900"
+                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-small text-gray-900"
                                 >
                                     Contact
                                 </Link>
                                 <Link
                                     href="/invest"
-                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-medium text-gray-900"
+                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-small text-gray-900"
                                 >
                                     Invest
                                 </Link>
                                 <Link
                                     href="/jobs"
-                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-medium text-gray-900"
+                                    className="inline-flex items-center border-b-2 border-black px-1 pt-1 text-sm font-small text-gray-900"
                                 >
                                     Jobs
                                 </Link>
@@ -132,7 +132,7 @@ return (
                         <Disclosure.Button
                             as="a"
                             href="/"
-                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-medium text-black"
+                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-small text-black"
                         >
                             Home
                         </Disclosure.Button>
@@ -141,7 +141,7 @@ return (
                         <Disclosure.Button
                             as="a"
                             href="/simple"
-                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-medium text-black"
+                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-small text-black"
                         >
                             Simple Saver
                         </Disclosure.Button>
@@ -150,7 +150,7 @@ return (
                         <Disclosure.Button
                             as="a"
                             href="/pay"
-                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-medium text-black"
+                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-small text-black"
                         >
                             Pay Bills
                         </Disclosure.Button>
@@ -159,7 +159,7 @@ return (
                         <Disclosure.Button
                             as="a"
                             href="/blogs"
-                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-medium text-black"
+                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-small text-black"
                         >
                             Blog
                         </Disclosure.Button>
@@ -168,7 +168,7 @@ return (
                         <Disclosure.Button
                             as="a"
                             href="faq"
-                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-medium text-black"
+                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-small text-black"
                         >
                             FAQ
                         </Disclosure.Button>
@@ -177,7 +177,7 @@ return (
                         <Disclosure.Button
                             as="a"
                             href="/jobs"
-                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-medium text-black"
+                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-small text-black"
                         >
                             Jobs
                         </Disclosure.Button>
@@ -186,7 +186,7 @@ return (
                         <Disclosure.Button
                             as="a"
                             href="/testimonials"
-                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-medium text-black"
+                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-small text-black"
                         >
                             Testimonials
                         </Disclosure.Button>
@@ -195,7 +195,7 @@ return (
                         <Disclosure.Button
                             as="a"
                             href="/contact"
-                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-medium text-black"
+                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-small text-black"
                         >
                             Contact Us
                         </Disclosure.Button>
@@ -204,7 +204,7 @@ return (
                         <Disclosure.Button
                             as="a"
                             href="/invest"
-                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-medium text-black"
+                            className="block border-l-4 border-black py-2 pl-3 pr-4 text-base font-small text-black"
                         >
                             Invest
                         </Disclosure.Button>

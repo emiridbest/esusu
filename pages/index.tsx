@@ -120,7 +120,7 @@ const Esusu: React.FC = () => {
         <div className="max-w-screen-xl mx-auto px-4 md:px-8">
             <div className="mt-12">
                 <div className="max-w-lg mt-4">
-                    <h3 className="text-gray-800 text-xl font-bold sm:text-2xl ">
+                    <h3 className="text-gray-600 text-xl font-bold sm:text-2xl ">
                         Available Campaigns
                     </h3>
                     <p className="text-gray-600 mt-2">
@@ -129,48 +129,43 @@ const Esusu: React.FC = () => {
                 </div>
                 <button
                     onClick={handleCreateCampaign}
-                    className="py-2 px-3 font-medium text-white hover:text-white bg-black hover:bg-blue duration-150 hover:bg-gray-50 rounded-lg"
+                    className="py-2 px-3 my-4 font-medium text-white hover:text-white bg-black hover:bg-blue duration-150 hover:bg-gray-50 rounded-lg"
                 >
                     Add Campaign
                 </button>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Campaign</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">cUSD</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Users</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Total</th>
-                                <th className="px-6 py-3"></th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200 text-sm">
-                            {/* Campaign rows */}
-                            {campaigns.map((selectedCampaign, index) => (
-                                <tr key={index}>
-                                    {/* Campaign data cells */}
-                                    <td className="px-6 py-4 whitespace-nowrap">{selectedCampaign[0]}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{selectedCampaign[1]}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{selectedCampaign[2].toString()}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">{selectedCampaign[6]}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">{selectedCampaign[7].toString}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <button
-                                            onClick={() => handleCampaignDetails(selectedCampaign)}
-                                            className="text-indigo-600 hover:text-indigo-900"
-                                        >
-                                            See Details
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                </div><div className="overflow-x-auto">
+                <div className="overflow-x-hidden">
+    <table className="w-full table-auto text-sm text-left">
+        <thead className="bg-yellow-800 text-white">
+            <tr>
+                <th className="px-5 py-3 text-left text-xs font-medium">Campaign</th>
+                <th className="px-5 py-3 text-left text-xs font-medium">Description</th>
+                <th className="px-5 py-3 text-left text-xs font-medium">cUSD</th>
+                <th className="px-5 py-3 text-left text-xs font-medium hidden sm:table-cell">Users</th>
+                <th className="px-5 py-3 text-left text-xs font-medium hidden sm:table-cell">Total</th>
+                <th className="px-5 py-3"></th>
+            </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+            {/* Campaign rows */}
+            {campaigns.map((selectedCampaign, index) => (
+                <tr key={index} className={index % 2 === 0 ? 'bg-gray-100' : 'bg-white'}>
+                    {/* Campaign data cells */}
+                    <td className="px-5 py-4 whitespace-wrap">{selectedCampaign[0]}</td>
+                    <td className="px-5 py-4 whitespace-wrap sm:max-w-[15rem] sm:whitespace-normal sm:line-clamp-3">{selectedCampaign[1]}</td>
+                    <td className="px-5 py-4 whitespace-wrap">{selectedCampaign[2].toString()}</td>
+                    <td className="px-5 py-4 whitespace-wrap hidden sm:table-cell">{selectedCampaign[6]}</td>
+                    <td className="px-5 py-4 whitespace-wrap hidden sm:table-cell">{selectedCampaign[7].toString()}</td>
+                    <td className="px-5 py-4 whitespace-wrap">
+                        <button onClick={() => handleCampaignDetails(selectedCampaign)} className="text-yellow-600 hover:text-indigo-900">See Details</button>
+                    </td>
+                </tr>
+            ))}
+        </tbody>
+    </table>
+</div>
 
-
-            </div>
+</div>
 
             {/* Campaign modal */}
             {campaignModalOpen && (
