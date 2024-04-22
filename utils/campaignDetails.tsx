@@ -3,17 +3,17 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { Campaign } from '@/pages/index';
 
 interface CampaignDetailsModalProps {
-    campaign?: Campaign;
+    campaign: Campaign;
     onContribute: (address: string, amount: number) => void;
     onClose: () => void;
     onJoinCampaign: (id: number, tokenAddress: string, userName: string) => void;
 }
 
 const CampaignDetailsModal: React.FC<CampaignDetailsModalProps> = ({ campaign, onContribute, onClose, onJoinCampaign }) => {
-    const [amount, setAmount] = useState<number>(campaign ? campaign.contributionAmount : 0);
-        const [address, setAddress] = useState("0x765DE816845861e75A25fCA122bb6898B8B1282a");
+    const [amount, setAmount] = useState<number>(campaign?.contributionAmount);
+    const [address, setAddress] = useState("0x765DE816845861e75A25fCA122bb6898B8B1282a");
     const [userName, setUserName] = useState<string>("");
-    const [id, setId] = useState<number>(campaign ? campaign.contributionAmount : 0);
+    const [id, setId] = useState<number>(campaign?.id);
 
     const handleContribute = () => {
         if (amount) {
@@ -23,7 +23,7 @@ const CampaignDetailsModal: React.FC<CampaignDetailsModalProps> = ({ campaign, o
     };
 
     const handleJoin = () => {
-        if (address && userName) {
+        if (address && userName && id) {
             onJoinCampaign(id, address, userName);
             onClose();
         }
@@ -54,17 +54,16 @@ const CampaignDetailsModal: React.FC<CampaignDetailsModalProps> = ({ campaign, o
                             </svg>
                         </Dialog.Close>
                     </div>
-                    <div className="max-w-sm mx-auto space-y-3 text-center">
+                    <div className="max-w-sm mx-auto space-y-1 text-center">
                         <Dialog.Title className="text-lg font-medium text-gray-800">
-                            {campaign ? campaign.name : 0}
+                            {campaign[0]}
                         </Dialog.Title>
-                        <p className="text-sm text-gray-600">Description: {campaign ? campaign.description : 0}</p>
-                        <p className="text-sm text-gray-600">Contribution Amount: {campaign ? campaign.contributionAmount : 0}</p>
-                        <p className="text-sm text-gray-600">Payout Interval: {campaign ? campaign.payoutInterval : 0}</p>
-                        <p className="text-sm text-gray-600">Total Contributions: {campaign ? campaign?.totalContributions : 0}</p>
-                        <p className="text-sm text-gray-600">Monthly Contribution: {campaign ? campaign?.monthlyContribution : 0}</p>
-                        <p className="text-sm text-gray-600">Last Payout Block: {campaign ? campaign.lastPayoutBlock : 0}</p>
-                        <p className="text-sm text-gray-600">User Names: {campaign ? campaign.userName : 0}</p>
+                        <p className="px-6 text-center text-xs font-medium text-gray-600 tracking-wider">{campaign[1]}</p>
+                        <p className="px-6 py-1 text-center text-xs font-medium text-gray-600 tracking-wider">Contribution Amount: {campaign[2]}</p>
+                        <p className="px-6 py-1 text-center text-xs font-medium text-gray-600 tracking-wider">Payout Interval: {campaign[3]}</p>
+                        <p className="px-6 py-3 text-center text-xs font-medium text-gray-600 tracking-wider">Total Contributions: {campaign[4]}</p>
+                        <p className="px-6 py-3 text-center text-xs font-medium text-gray-600 tracking-wider">Last Payout Block: {campaign[5]}</p>
+                        <p className="px-6 py-3 text-center text-xs font-medium text-gray-600 tracking-wider">User Names: {campaign[6]}</p>
                         <input
                             type="text"
                             value={address}

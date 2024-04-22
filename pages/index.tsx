@@ -11,8 +11,7 @@ export interface Campaign {
     payoutInterval: number;
     lastPayoutBlock: number;
     totalContributions: number;
-    monthlyContribution: number;
-    userName: string;
+    userName: [string];
     id: number;
 }
 
@@ -73,7 +72,7 @@ const Esusu: React.FC = () => {
 
     const handleCampaignDetails = (selectedCampaign: Campaign) => {
         setCampaignDetailsModalOpen(true);
-        setSelectedCampaign(selectedCampaign); // Set the selected campaign in state
+        setSelectedCampaign(selectedCampaign);
     };
 
     useEffect(() => {
@@ -135,31 +134,31 @@ const Esusu: React.FC = () => {
                     Add Campaign
                 </button>
                 <div className="overflow-x-auto">
-                    <table className="items-center gap-x-12 sm:px-4 md:px-0 lg:flex">
-                        <thead className="bg-gray-50 text-gray-600 font-medium border-b">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
                             <tr>
-                                <th className="py-3 px-3 sm:px-6">Campaign</th>
-                                <th className="py-3 px-3 sm:px-6">Description</th>
-                                <th className="py-3 px-3 sm:px-6 hidden sm:table-cell">Contribution Amount</th>
-                                <th className="py-3 px-3 sm:px-6 hidden sm:table-cell">Total Contribution</th>
-                                <th className="py-3 px-3 sm:px-6 hidden sm:table-cell">Joined Users</th>
-                                <th className="py-3 px-3 sm:px-6">Actions</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Campaign</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">cUSD</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Users</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Total</th>
+                                <th className="px-6 py-3"></th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y">
+                        <tbody className="bg-white divide-y divide-gray-200 text-sm">
                             {/* Campaign rows */}
                             {campaigns.map((selectedCampaign, index) => (
                                 <tr key={index}>
                                     {/* Campaign data cells */}
-                                    <td>{selectedCampaign[0]}</td>
-                                    <td>{selectedCampaign[1]}</td>
-                                    <td>{selectedCampaign[2]}</td>
-                                    <td>{selectedCampaign[3]}</td>
-                                    <td>{selectedCampaign[6]}</td>
-                                    <td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{selectedCampaign[0]}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{selectedCampaign[1]}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{selectedCampaign[2].toString()}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">{selectedCampaign[6]}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">{selectedCampaign[7].toString}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
                                         <button
                                             onClick={() => handleCampaignDetails(selectedCampaign)}
-                                            className="py-2 px-3 font-medium text-indigo-600 hover:text-indigo-500 duration-150 hover:bg-gray-50 rounded-lg"
+                                            className="text-indigo-600 hover:text-indigo-900"
                                         >
                                             See Details
                                         </button>
@@ -169,6 +168,7 @@ const Esusu: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+
 
             </div>
 
@@ -180,14 +180,15 @@ const Esusu: React.FC = () => {
                     campaign={undefined}
                 />
             )}
-            {campaignDetailsModalOpen && (
+            {campaignDetailsModalOpen && selectedCampaign && (
                 <CampaignDetailsModal
                     onClose={() => setCampaignDetailsModalOpen(false)}
                     onContribute={contribute}
                     onJoinCampaign={(id: number, tokenAddress: string, userName: string) => joinCampaign(id, tokenAddress, userName)}
                     campaign={selectedCampaign}
-                    />
+                />
             )}
+
 
         </div>
     );
