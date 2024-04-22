@@ -1,21 +1,40 @@
-import React from 'react';
+import React, { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Campaign } from '@/pages/index';
 
 interface CampaignDetailsModalProps {
-    campaign: Campaign | undefined;
-    onContribute: () => void;
+    campaign?: Campaign;
+    onContribute: (address: string, amount: number) => void;
     onClose: () => void;
+    onJoinCampaign: (id: number, tokenAddress: string, userName: string) => void;
 }
 
-const CampaignDetailsModal: React.FC<CampaignDetailsModalProps> = ({ campaign, onContribute, onClose }) => {
+const CampaignDetailsModal: React.FC<CampaignDetailsModalProps> = ({ campaign, onContribute, onClose, onJoinCampaign }) => {
+    const [amount, setAmount] = useState<number>(campaign ? campaign.contributionAmount : 0);
+        const [address, setAddress] = useState("0x765DE816845861e75A25fCA122bb6898B8B1282a");
+    const [userName, setUserName] = useState<string>("");
+    const [id, setId] = useState<number>(campaign ? campaign.contributionAmount : 0);
+
+    const handleContribute = () => {
+        if (amount) {
+            onContribute(address, amount);
+            onClose();
+        }
+    };
+
+    const handleJoin = () => {
+        if (address && userName) {
+            onJoinCampaign(id, address, userName);
+            onClose();
+        }
+    };
+
     return (
         <Dialog.Root open={true} onOpenChange={(isOpen) => !isOpen && onClose()}>
             <Dialog.Overlay className="fixed inset-0 bg-black opacity-30" />
 
             <Dialog.Content
-                className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
-                    bg-white rounded-md shadow-lg p-6 max-w-3xl mx-auto"
+                className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-md shadow-lg p-6 max-w-3xl mx-auto"
                 draggable
             >
                 <div className="bg-white rounded-md shadow-lg px-4 py-6">
@@ -36,16 +55,38 @@ const CampaignDetailsModal: React.FC<CampaignDetailsModalProps> = ({ campaign, o
                         </Dialog.Close>
                     </div>
                     <div className="max-w-sm mx-auto space-y-3 text-center">
-                        <Dialog.Title className="text-lg font-medium text-gray-800 ">
-                            {campaign?.name}
+                        <Dialog.Title className="text-lg font-medium text-gray-800">
+                            {campaign ? campaign.name : 0}
                         </Dialog.Title>
-                        <p className="text-sm text-gray-600">{campaign?.description}</p>
-                        <p className="text-sm text-gray-600">Contribution Amount: {campaign?.contributionAmount}</p>
-                        <p className="text-sm text-gray-600">Payout Interval: {campaign?.payoutInterval}</p>
-                        <p className="text-sm text-gray-600">Total Contributions: {campaign?.totalContributions}</p>
-                        {/* Add other campaign information here */}
+                        <p className="text-sm text-gray-600">Description: {campaign ? campaign.description : 0}</p>
+                        <p className="text-sm text-gray-600">Contribution Amount: {campaign ? campaign.contributionAmount : 0}</p>
+                        <p className="text-sm text-gray-600">Payout Interval: {campaign ? campaign.payoutInterval : 0}</p>
+                        <p className="text-sm text-gray-600">Total Contributions: {campaign ? campaign?.totalContributions : 0}</p>
+                        <p className="text-sm text-gray-600">Monthly Contribution: {campaign ? campaign?.monthlyContribution : 0}</p>
+                        <p className="text-sm text-gray-600">Last Payout Block: {campaign ? campaign.lastPayoutBlock : 0}</p>
+                        <p className="text-sm text-gray-600">User Names: {campaign ? campaign.userName : 0}</p>
+                        <input
+                            type="text"
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
+                            placeholder="Token Address"
+                            className="w-full mt-3 py-3 px-4 bg-gray-100 text-sm text-center border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-600"
+                        />
+                        <input
+                            type="text"
+                            value={userName}
+                            onChange={(e) => setUserName(e.target.value)}
+                            placeholder="Your Name"
+                            className="w-full mt-3 py-3 px-4 bg-gray-100 text-sm text-center border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-600"
+                        />
                         <button
-                            onClick={onContribute}
+                            onClick={handleJoin}
+                            className="w-full mt-3 py-3 px-4 bg-black font-medium text-sm text-center text-white bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 rounded-lg ring-offset-2 ring-indigo-600 focus:ring-2"
+                        >
+                            Join Campaign
+                        </button>
+                        <button
+                            onClick={handleContribute}
                             className="w-full mt-3 py-3 px-4 bg-black font-medium text-sm text-center text-white bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 rounded-lg ring-offset-2 ring-indigo-600 focus:ring-2"
                         >
                             Contribute

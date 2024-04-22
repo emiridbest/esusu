@@ -41,10 +41,10 @@ return (
                             <div className="flex items-center">
                                 <Image
                                     className="block h-18 w-auto sm:block lg:block"
-                                    src="/miniSafe.png"
-                                    width="150"
-                                    height="180"
-                                    alt="MiniSafe Logo"
+                                    src="/esusu.png"
+                                    width="120"
+                                    height="120"
+                                    alt="Esusu Logo"
                                 />
                             </div>
                             <div className="sm:ml-6 sm:flex sm:space-x-1">

@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { contractAddress, abi } from '@/utils/esusu';
-import { BrowserProvider, Contract, parseEther } from 'ethers';
+import { BrowserProvider, Contract, VoidSigner, parseEther } from 'ethers';
 import CampaignModal from '@/utils/campaign';
 import CampaignDetailsModal from '@/utils/campaignDetails';
 export interface Campaign {
+    [x: string]: any;
     name: string;
     description: string;
     contributionAmount: number;
@@ -11,12 +12,13 @@ export interface Campaign {
     lastPayoutBlock: number;
     totalContributions: number;
     monthlyContribution: number;
-    address: string;
     userName: string;
+    id: number;
 }
 
 const Esusu: React.FC = () => {
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+    const [selectedCampaign, setSelectedCampaign] = useState<Campaign>();
     const [campaignModalOpen, setCampaignModalOpen] = useState(false);
     const [campaignDetailsModalOpen, setCampaignDetailsModalOpen] = useState(false);
     const getCampaigns = useCallback(async () => {
@@ -35,7 +37,7 @@ const Esusu: React.FC = () => {
                 const formattedCampaigns: Campaign[] = [];
                 for (const campaignIdBN of campaignIds) {
                     const campaignId = parseInt(campaignIdBN);
-                    const item = campaignId - 1;
+                    const item = campaignId;
                     const campaignDetail = await contract.getCampaignDetails(item);
                     formattedCampaigns.push({ ...campaignDetail, key: item });
                 }
@@ -68,9 +70,12 @@ const Esusu: React.FC = () => {
             setCampaignModalOpen(false);
         }
     };
-    const handleCampaignDetails = () => {
+
+    const handleCampaignDetails = (selectedCampaign: Campaign) => {
         setCampaignDetailsModalOpen(true);
+        setSelectedCampaign(selectedCampaign); // Set the selected campaign in state
     };
+
     useEffect(() => {
         getCampaigns();
     }, [getCampaigns]);
@@ -88,9 +93,27 @@ const Esusu: React.FC = () => {
 
             let parsedAmount = parseEther(contributionAmount.toString());
             let tx = await contract.contribute(address, parsedAmount, { gasLimit: 500000 });
-            await tx.await();
         } catch (error) {
             console.error("Error contributing to campaign:", error);
+        }
+    };
+    const joinCampaign = async (id: number, tokenAddress: string, userName: string) => {
+        try {
+            let accounts = await window.ethereum.request({
+                method: "eth_requestAccounts",
+            });
+
+            let userAddress = accounts[0];
+            const provider = new BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner(userAddress);
+            const contract = new Contract(contractAddress, abi, signer);
+
+            let tx = await contract.joinCampaign(id, tokenAddress, userName, { gasLimit: 500000 });
+            await tx.wait();
+            // You may want to update the list of campaigns after joining a campaign
+            getCampaigns();
+        } catch (error) {
+            console.error("Error joining campaign:", error);
         }
     };
 
@@ -112,40 +135,40 @@ const Esusu: React.FC = () => {
                     Add Campaign
                 </button>
                 <div className="overflow-x-auto">
-    <table className="items-center gap-x-12 sm:px-4 md:px-0 lg:flex">
-        <thead className="bg-gray-50 text-gray-600 font-medium border-b">
-            <tr>
-                <th className="py-3 px-3 sm:px-6">Campaign</th>
-                <th className="py-3 px-3 sm:px-6">Description</th>
-                <th className="py-3 px-3 sm:px-6 hidden sm:table-cell">Contribution Amount</th>
-                <th className="py-3 px-3 sm:px-6 hidden sm:table-cell">Total Contribution</th>
-                <th className="py-3 px-3 sm:px-6 hidden sm:table-cell">Joined Users</th>
-                <th className="py-3 px-3 sm:px-6">Actions</th>
-            </tr>
-        </thead>
-        <tbody className="divide-y">
-            {/* Campaign rows */}
-            {campaigns.map((selectedCampaign, index) => (
-                <tr key={index}>
-                    {/* Campaign data cells */}
-                    <td>{selectedCampaign.name}</td>
-                    <td>{selectedCampaign.description}</td>
-                    <td>{selectedCampaign.contributionAmount}</td>
-                    <td>{selectedCampaign.totalContributions}</td>
-                    <td>{selectedCampaign.userName}</td>
-                    <td>
-                        <button
-                            onClick={() => handleCampaignDetails()}
-                            className="py-2 px-3 font-medium text-indigo-600 hover:text-indigo-500 duration-150 hover:bg-gray-50 rounded-lg"
-                        >
-                            See Details
-                        </button>
-                    </td>
-                </tr>
-            ))}
-        </tbody>
-    </table>
-</div>
+                    <table className="items-center gap-x-12 sm:px-4 md:px-0 lg:flex">
+                        <thead className="bg-gray-50 text-gray-600 font-medium border-b">
+                            <tr>
+                                <th className="py-3 px-3 sm:px-6">Campaign</th>
+                                <th className="py-3 px-3 sm:px-6">Description</th>
+                                <th className="py-3 px-3 sm:px-6 hidden sm:table-cell">Contribution Amount</th>
+                                <th className="py-3 px-3 sm:px-6 hidden sm:table-cell">Total Contribution</th>
+                                <th className="py-3 px-3 sm:px-6 hidden sm:table-cell">Joined Users</th>
+                                <th className="py-3 px-3 sm:px-6">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                            {/* Campaign rows */}
+                            {campaigns.map((selectedCampaign, index) => (
+                                <tr key={index}>
+                                    {/* Campaign data cells */}
+                                    <td>{selectedCampaign[0]}</td>
+                                    <td>{selectedCampaign[1]}</td>
+                                    <td>{selectedCampaign[2]}</td>
+                                    <td>{selectedCampaign[3]}</td>
+                                    <td>{selectedCampaign[6]}</td>
+                                    <td>
+                                        <button
+                                            onClick={() => handleCampaignDetails(selectedCampaign)}
+                                            className="py-2 px-3 font-medium text-indigo-600 hover:text-indigo-500 duration-150 hover:bg-gray-50 rounded-lg"
+                                        >
+                                            See Details
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
             </div>
 
@@ -160,10 +183,12 @@ const Esusu: React.FC = () => {
             {campaignDetailsModalOpen && (
                 <CampaignDetailsModal
                     onClose={() => setCampaignDetailsModalOpen(false)}
-                    onContribute={function (): void {
-                        throw new Error('Function not implemented.');
-                    }} campaign={undefined} />
+                    onContribute={contribute}
+                    onJoinCampaign={(id: number, tokenAddress: string, userName: string) => joinCampaign(id, tokenAddress, userName)}
+                    campaign={selectedCampaign}
+                    />
             )}
+
         </div>
     );
 };

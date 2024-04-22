@@ -27,6 +27,7 @@ contract EsusuSmartContract is ERC20 {
         uint256 withdrawIndex;
         mapping(address => bool) joinedUsers;
         mapping(address => string) userName;
+        uint256 id;
     }
 
     struct Staking {
@@ -248,7 +249,8 @@ contract EsusuSmartContract is ERC20 {
             uint256,
             uint256,
             uint256,
-            string memory
+            string memory,
+            uint256
         )
     {
         Campaign storage campaign = campaigns[campaignId];
@@ -259,7 +261,8 @@ contract EsusuSmartContract is ERC20 {
             campaign.payoutInterval,
             campaign.lastPayoutBlock,
             campaign.totalContributions,
-            campaign.userName[msg.sender]
+            campaign.userName[msg.sender],
+            campaign.id
         );
     }
 
