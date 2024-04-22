@@ -136,7 +136,7 @@ const Esusu: React.FC = () => {
                 </div><div className="overflow-x-auto">
                 <div className="overflow-x-hidden">
     <table className="w-full table-auto text-sm text-left">
-        <thead className="bg-yellow-800 text-white">
+        <thead className="bg-black text-white">
             <tr>
                 <th className="px-5 py-3 text-left text-xs font-medium">Campaign</th>
                 <th className="px-5 py-3 text-left text-xs font-medium">Description</th>

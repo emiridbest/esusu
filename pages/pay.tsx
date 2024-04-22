@@ -144,7 +144,7 @@ const Merchant: React.FC = () => {
             </div>
             <div className="mt-12">
                 <table className="w-full table-auto text-sm text-left overflow-x-scroll">
-                    <thead className="bg-yellow-800 text-white font-medium border-b">
+                    <thead className="bg-black text-white font-medium border-b">
                         <tr>
                             <th className="py-3 px-3 sm:px-6">Product Name</th>
                             <th className="py-3 px-3 sm:px-6">Description</th>
