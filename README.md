@@ -14,12 +14,12 @@ The dApp is a 3 in 1 solution to solving issues related to financial inclusion a
 
 ### Features of Esusu Thrift Contribution
 - Create and manage campaigns
-- Join existing campaigns =. To join a campaign, users must `stake` an `contributionAmount` * 5 so that they can be held accountable.
-- On `stakin`, users earn 5 EST tokens
+- Join existing campaigns => To join a campaign, users must `stake` (`contributionAmount` * 5) so that they can be held accountable.
+- On `staking`, users earn 5 `EST` tokens
 - Contribute funds to campaigns
 - View campaign details such as description, contribution amount, payout interval, total contributions, and more
 - Track last payout block and user participation
-- - When any user cannot meet the contribution responsibility for the month, the `defaultpayment` contribution is triggerred so the  `contributionAmount`  is deducted from the staked amount and also a penalty of 1 EST token.
+- When any user cannot meet the contribution responsibility for the month, the `defaultpayment` contribution is triggerred so the  `contributionAmount`  is deducted from the staked amount and also a penalty of 1 `EST` token.
 
 ### Technologies Used
 - **Frontend**: Next.js, Tailwind CSS, Typescript
@@ -47,7 +47,7 @@ The dApp is a 3 in 1 solution to solving issues related to financial inclusion a
 ### Usage
 - Create an account or connect your Celo Minipay wallet.
 - Go to the `site tester` in mini pay and enter http://esusu-one.vercel.app
-  - **Esusu thrift**
+- **Esusu thrift**
 - Explore available campaigns or create your own.
 - Join campaigns to start contributing funds.
 - Track campaign progress and participate in payouts.
