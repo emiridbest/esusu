@@ -28,7 +28,7 @@ The dApp is a 3 in 1 solution to solving issues related to financial inclusion a
 - **Deployment**: Celo Mainnet
 -  **Contract Address**: 0xf9d3f0cde68a24d4da3a1c9dd31952d85855c691
 -  **Tokens**: `EST` Esusu Tokens as reward for staking  and `MST` MiniSafe Token as reward for locking up funds.
-- **Sourcify Verification Link**: https://repo.sourcify.dev/contracts/full_match/42220/0xf9D3F0cdE68A24d4da3a1c9dD31952D85855C691/
+- **Sourcify Verification Link**: https://repo.sourcify.dev/contracts/full_match/42220/0xf9D3F0cdE68A24d4da3a1c9dD31952D85855C691/sources/
 ### Setup Instructions
 1. Clone the repository:
    ```
