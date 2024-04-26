@@ -15,6 +15,7 @@ The dApp is a 3 in 1 solution to solving issues related to financial inclusion a
 
 
 
+![image](https://github.com/emiridbest/esusu/assets/6362475/10465297-a106-4d8c-a124-34340e849bce)
 
 
 
