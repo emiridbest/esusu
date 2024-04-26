@@ -11,6 +11,12 @@ The dApp is a 3 in 1 solution to solving issues related to financial inclusion a
 
 ![image](https://github.com/emiridbest/esusu/assets/6362475/be3da0ba-5da9-47ea-a1eb-f3dd886485ef)
 
+![image](https://github.com/emiridbest/esusu/assets/6362475/c2af695b-d8b2-4713-b8fa-703b10fdc5dc)
+
+
+
+
+
 
 ### Features of Esusu Thrift Contribution
 - Create and manage campaigns
@@ -24,7 +30,7 @@ The dApp is a 3 in 1 solution to solving issues related to financial inclusion a
 ### Technologies Used
 - **Frontend**: Next.js, Tailwind CSS, Typescript
 - **Backend**: Solidity, Ethereum blockchain
-- **Smart Contracts**: Web3.js, ethers.js
+- **Smart Contracts**: Ethers.js
 - **Deployment**: Celo Mainnet
 -  **Contract Address**: 0xf9d3f0cde68a24d4da3a1c9dd31952d85855c691
 -  **Tokens**: `EST` Esusu Tokens as reward for staking  and `MST` MiniSafe Token as reward for locking up funds.
