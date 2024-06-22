@@ -10,6 +10,7 @@ import Layout from "../components/Layout";
 import "../styles/globals.css";
 
 
+
 const { chains, publicClient } = configureChains(
   [Celo, Alfajores],
   [publicProvider()]
@@ -29,7 +30,7 @@ const wagmiConfig = createConfig({
 function App({ Component, pageProps }: AppProps) {
   return (
     <WagmiConfig config={wagmiConfig}>
-      <RainbowKitProvider chains={chains} appInfo={appInfo} coolMode={true}>
+      <RainbowKitProvider chains={chains} appInfo={appInfo} coolMode={true} showRecentTransactions={true}>
         <Layout>
           <Component {...pageProps} />
         </Layout>
