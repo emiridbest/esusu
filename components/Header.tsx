@@ -22,7 +22,7 @@ export default function Header() {
     const handleSearchIconClick = () => {
         setSearchVisible(true);
     };
-    return (
+       return (
         <Disclosure as="nav" className="bg-gypsum border-b border-black">
             {({ open }) => (
                 <>
