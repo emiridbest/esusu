@@ -1,0 +1,222 @@
+<?xml version="1.0" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="464pt" height="871pt" viewBox="0.00 0.00 464.44 871.00">
+<g id="graph0" class="graph" transform="translate(-623.8324478407769,1439.2366269846711) scale(2.2068674800839188)" data-name="G">
+
+<polygon fill="#2e3e56" stroke="none" points="-4,4 -4,-867 460.44,-867 460.44,4 -4,4" style=""/>
+<g id="clust1" class="cluster" data-name="clusterEsusuSmartContract">
+
+<path fill="#445773" stroke="#445773" d="M20,-147C20,-147 436.44,-147 436.44,-147 442.44,-147 448.44,-153 448.44,-159 448.44,-159 448.44,-706 448.44,-706 448.44,-712 442.44,-718 436.44,-718 436.44,-718 20,-718 20,-718 14,-718 8,-712 8,-706 8,-706 8,-159 8,-159 8,-153 14,-147 20,-147" style=""/>
+<text text-anchor="middle" x="228.22" y="-701.4" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">EsusuSmartContract</text>
+</g>
+<g id="clust2" class="cluster" data-name="clusterIERC20">
+
+<path fill="#3b4b63" stroke="#e8726d" stroke-dasharray="5,2" d="M282.4,-8C282.4,-8 397.3,-8 397.3,-8 403.3,-8 409.3,-14 409.3,-20 409.3,-20 409.3,-127 409.3,-127 409.3,-133 403.3,-139 397.3,-139 397.3,-139 282.4,-139 282.4,-139 276.4,-139 270.4,-133 270.4,-127 270.4,-127 270.4,-20 270.4,-20 270.4,-14 276.4,-8 282.4,-8" style=""/>
+<text text-anchor="middle" x="339.85" y="-122.4" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IERC20</text>
+</g>
+<g id="clust3" class="cluster" data-name="cluster_01">
+
+<polygon fill="#2e3e56" stroke="black" points="36.63,-726 36.63,-855 374.85,-855 374.85,-726 36.63,-726" style=""/>
+<text text-anchor="middle" x="205.74" y="-838.4" font-family="Times,serif" font-size="14.00" style="">Legend</text>
+</g>
+<!-- EsusuSmartContract.&lt;Constructor&gt; -->
+<g id="node1" class="node" pointer-events="visible" data-name="EsusuSmartContract.&lt;Constructor&gt;">
+
+<ellipse fill="#ff9797" stroke="#ff9797" stroke-width="3" cx="109.63" cy="-667" rx="67.55" ry="18" style=""/>
+<text text-anchor="middle" x="109.63" y="-662.8" font-family="Times,serif" font-size="14.00" style="">&lt;Constructor&gt;</text>
+</g>
+<!-- EsusuSmartContract._mint -->
+<g id="node12" class="node" pointer-events="visible" data-name="EsusuSmartContract._mint">
+
+<ellipse fill="#edad56" stroke="#edad56" stroke-width="3" cx="339.85" cy="-609" rx="33.64" ry="18" style=""/>
+<text text-anchor="middle" x="339.85" y="-604.8" font-family="Times,serif" font-size="14.00" style="">_mint</text>
+</g>
+<!-- EsusuSmartContract.&lt;Constructor&gt;&#45;&gt;EsusuSmartContract._mint -->
+<g id="edge1" class="edge" data-name="EsusuSmartContract.&lt;Constructor&gt;-&gt;EsusuSmartContract._mint">
+
+<path fill="none" stroke="#1bc6a6" stroke-width="2" d="M161.28,-654.13C201.63,-643.87 257.5,-629.67 295.73,-619.96" style=""/>
+<polygon fill="#1bc6a6" stroke="#1bc6a6" stroke-width="2" points="296.21,-623.45 305.04,-617.59 294.49,-616.66 296.21,-623.45" style=""/>
+</g>
+<!-- EsusuSmartContract.decimals -->
+<g id="node13" class="node" pointer-events="visible" data-name="EsusuSmartContract.decimals">
+
+<ellipse fill="#edad56" stroke="#edad56" stroke-width="3" cx="339.85" cy="-667" rx="45.22" ry="18" style=""/>
+<text text-anchor="middle" x="339.85" y="-662.8" font-family="Times,serif" font-size="14.00" style="">decimals</text>
+</g>
+<!-- EsusuSmartContract.&lt;Constructor&gt;&#45;&gt;EsusuSmartContract.decimals -->
+<g id="edge2" class="edge" data-name="EsusuSmartContract.&lt;Constructor&gt;-&gt;EsusuSmartContract.decimals">
+
+<path fill="none" stroke="#1bc6a6" stroke-width="2" d="M178.49,-667C210.91,-667 249.32,-667 280.43,-667" style=""/>
+<polygon fill="#1bc6a6" stroke="#1bc6a6" stroke-width="2" points="280.24,-670.5 290.24,-667 280.24,-663.5 280.24,-670.5" style=""/>
+</g>
+<!-- EsusuSmartContract.onlyOwner -->
+<g id="node2" class="node" pointer-events="visible" data-name="EsusuSmartContract.onlyOwner">
+
+<polygon fill="#edad56" stroke="#1bc6a6" stroke-width="3" points="168.58,-601.54 168.58,-616.46 134.05,-627 85.21,-627 50.68,-616.46 50.68,-601.54 85.21,-591 134.05,-591 168.58,-601.54" style=""/>
+<polygon fill="none" stroke="#1bc6a6" stroke-width="3" points="172.57,-598.58 172.57,-619.42 134.64,-631 84.62,-631 46.69,-619.42 46.69,-598.58 84.62,-587 134.64,-587 172.57,-598.58" style=""/>
+<text text-anchor="middle" x="109.63" y="-604.8" font-family="Times,serif" font-size="14.00" style="">onlyOwner</text>
+</g>
+<!-- EsusuSmartContract.contribute -->
+<g id="node3" class="node" pointer-events="visible" data-name="EsusuSmartContract.contribute">
+
+<ellipse fill="#ffbdb9" stroke="#ffbdb9" stroke-width="3" cx="109.63" cy="-551" rx="50.38" ry="18" style=""/>
+<text text-anchor="middle" x="109.63" y="-546.8" font-family="Times,serif" font-size="14.00" style="">contribute</text>
+</g>
+<!-- EsusuSmartContract.contribute&#45;&gt;EsusuSmartContract._mint -->
+<g id="edge6" class="edge" data-name="EsusuSmartContract.contribute-&gt;EsusuSmartContract._mint">
+
+<path fill="none" stroke="#1bc6a6" stroke-width="2" d="M152.75,-561.71C193.31,-572.01 254.38,-587.53 295.39,-597.95" style=""/>
+<polygon fill="#1bc6a6" stroke="#1bc6a6" stroke-width="2" points="294.45,-601.33 305.01,-600.4 296.18,-594.54 294.45,-601.33" style=""/>
+</g>
+<!-- EsusuSmartContract.IERC20 -->
+<g id="node14" class="node" pointer-events="visible" data-name="EsusuSmartContract.IERC20">
+
+<ellipse fill="#edad56" stroke="#edad56" stroke-width="3" cx="339.85" cy="-551" rx="42.88" ry="18" style=""/>
+<text text-anchor="middle" x="339.85" y="-546.8" font-family="Times,serif" font-size="14.00" style="">IERC20</text>
+</g>
+<!-- EsusuSmartContract.contribute&#45;&gt;EsusuSmartContract.IERC20 -->
+<g id="edge3" class="edge" data-name="EsusuSmartContract.contribute-&gt;EsusuSmartContract.IERC20">
+
+<path fill="none" stroke="#1bc6a6" stroke-width="2" d="M159.03,-545.36C195.78,-543.95 246.33,-543.88 284.47,-545.15" style=""/>
+<polygon fill="#1bc6a6" stroke="#1bc6a6" stroke-width="2" points="284.25,-548.64 294.38,-545.54 284.52,-541.65 284.25,-548.64" style=""/>
+</g>
+<!-- EsusuSmartContract.contribute&#45;&gt;EsusuSmartContract.IERC20 -->
+<g id="edge4" class="edge" data-name="EsusuSmartContract.contribute-&gt;EsusuSmartContract.IERC20">
+
+<path fill="none" stroke="#1bc6a6" stroke-width="2" d="M159.03,-556.64C195.78,-558.05 246.33,-558.12 284.47,-556.85" style=""/>
+<polygon fill="#1bc6a6" stroke="#1bc6a6" stroke-width="2" points="284.52,-560.35 294.38,-556.46 284.25,-553.36 284.52,-560.35" style=""/>
+</g>
+<!-- IERC20.transferFrom -->
+<g id="node16" class="node" pointer-events="visible" data-name="IERC20.transferFrom">
+
+<ellipse fill="#edad56" stroke="#edad56" stroke-width="3" cx="339.85" cy="-88" rx="61.41" ry="18" style=""/>
+<text text-anchor="middle" x="339.85" y="-83.8" font-family="Times,serif" font-size="14.00" style="">transferFrom</text>
+</g>
+<!-- EsusuSmartContract.contribute&#45;&gt;IERC20.transferFrom -->
+<g id="edge5" class="edge" data-name="EsusuSmartContract.contribute-&gt;IERC20.transferFrom">
+
+<path fill="none" stroke="white" stroke-width="2" d="M160.49,-547.41C176.45,-543.72 192.69,-536.78 203.26,-524 257.44,-458.45 192.64,-214.13 239.26,-143 249.73,-127.03 266.5,-115.28 283.31,-106.83" style=""/>
+<polygon fill="white" stroke="white" stroke-width="2" points="284.51,-110.13 292.13,-102.77 281.58,-103.77 284.51,-110.13" style=""/>
+</g>
+<!-- EsusuSmartContract.createCampaign -->
+<g id="node4" class="node" pointer-events="visible" data-name="EsusuSmartContract.createCampaign">
+
+<ellipse fill="#ffbdb9" stroke="#ffbdb9" stroke-width="3" cx="109.63" cy="-497" rx="73.55" ry="18" style=""/>
+<text text-anchor="middle" x="109.63" y="-492.8" font-family="Times,serif" font-size="14.00" style="">createCampaign</text>
+</g>
+<!-- EsusuSmartContract.joinCampaign -->
+<g id="node5" class="node" pointer-events="visible" data-name="EsusuSmartContract.joinCampaign">
+
+<ellipse fill="#ffbdb9" stroke="brown" stroke-width="3" cx="109.63" cy="-443" rx="65.51" ry="18" style=""/>
+<text text-anchor="middle" x="109.63" y="-438.8" font-family="Times,serif" font-size="14.00" style="">joinCampaign</text>
+</g>
+<!-- EsusuSmartContract.withdraw -->
+<g id="node6" class="node" pointer-events="visible" data-name="EsusuSmartContract.withdraw">
+
+<ellipse fill="#ffbdb9" stroke="#ffbdb9" stroke-width="3" cx="109.63" cy="-335" rx="47.52" ry="18" style=""/>
+<text text-anchor="middle" x="109.63" y="-330.8" font-family="Times,serif" font-size="14.00" style="">withdraw</text>
+</g>
+<!-- EsusuSmartContract.rotateWithdrawalIndex -->
+<g id="node7" class="node" pointer-events="visible" data-name="EsusuSmartContract.rotateWithdrawalIndex">
+
+<ellipse fill="#edad56" stroke="#edad56" stroke-width="3" cx="339.85" cy="-335" rx="100.68" ry="18" style=""/>
+<text text-anchor="middle" x="339.85" y="-330.8" font-family="Times,serif" font-size="14.00" style="">rotateWithdrawalIndex</text>
+</g>
+<!-- EsusuSmartContract.withdraw&#45;&gt;EsusuSmartContract.rotateWithdrawalIndex -->
+<g id="edge8" class="edge" data-name="EsusuSmartContract.withdraw-&gt;EsusuSmartContract.rotateWithdrawalIndex">
+
+<path fill="none" stroke="#1bc6a6" stroke-width="2" d="M158.47,-335C177.99,-335 201.47,-335 224.94,-335" style=""/>
+<polygon fill="#1bc6a6" stroke="#1bc6a6" stroke-width="2" points="224.92,-338.5 234.92,-335 224.92,-331.5 224.92,-338.5" style=""/>
+</g>
+<!-- IERC20.transfer -->
+<g id="node17" class="node" pointer-events="visible" data-name="IERC20.transfer">
+
+<ellipse fill="#edad56" stroke="#edad56" stroke-width="3" cx="339.85" cy="-34" rx="40.55" ry="18" style=""/>
+<text text-anchor="middle" x="339.85" y="-29.8" font-family="Times,serif" font-size="14.00" style="">transfer</text>
+</g>
+<!-- EsusuSmartContract.withdraw&#45;&gt;IERC20.transfer -->
+<g id="edge7" class="edge" data-name="EsusuSmartContract.withdraw-&gt;IERC20.transfer">
+
+<path fill="none" stroke="white" stroke-width="2" d="M157.73,-331.65C174.39,-328.06 191.83,-321.14 203.26,-308 276.07,-224.3 165.66,-144.01 239.26,-61 250.91,-47.86 268.24,-40.83 285.19,-37.15" style=""/>
+<polygon fill="white" stroke="white" stroke-width="2" points="285.73,-40.6 294.99,-35.46 284.54,-33.71 285.73,-40.6" style=""/>
+</g>
+<!-- EsusuSmartContract.stake -->
+<g id="node8" class="node" pointer-events="visible" data-name="EsusuSmartContract.stake">
+
+<ellipse fill="#f2c383" stroke="#f2c383" stroke-width="3" cx="109.63" cy="-389" rx="30.76" ry="18" style=""/>
+<text text-anchor="middle" x="109.63" y="-384.8" font-family="Times,serif" font-size="14.00" style="">stake</text>
+</g>
+<!-- EsusuSmartContract.stake&#45;&gt;EsusuSmartContract.IERC20 -->
+<g id="edge10" class="edge" data-name="EsusuSmartContract.stake-&gt;EsusuSmartContract.IERC20">
+
+<path fill="none" stroke="#1bc6a6" stroke-width="2" d="M140.52,-393.78C159.46,-397.72 183.93,-404.59 203.26,-416 250.59,-443.95 293.39,-492.18 317.74,-522.79" style=""/>
+<polygon fill="#1bc6a6" stroke="#1bc6a6" stroke-width="2" points="314.79,-524.7 323.7,-530.43 320.31,-520.39 314.79,-524.7" style=""/>
+</g>
+<!-- EsusuSmartContract.transferFrom -->
+<g id="node15" class="node" pointer-events="visible" data-name="EsusuSmartContract.transferFrom">
+
+<ellipse fill="#edad56" stroke="#edad56" stroke-width="3" cx="339.85" cy="-389" rx="61.41" ry="18" style=""/>
+<text text-anchor="middle" x="339.85" y="-384.8" font-family="Times,serif" font-size="14.00" style="">transferFrom</text>
+</g>
+<!-- EsusuSmartContract.stake&#45;&gt;EsusuSmartContract.transferFrom -->
+<g id="edge9" class="edge" data-name="EsusuSmartContract.stake-&gt;EsusuSmartContract.transferFrom">
+
+<path fill="none" stroke="#1bc6a6" stroke-width="2" d="M141.41,-389C172.77,-389 222.58,-389 264.33,-389" style=""/>
+<polygon fill="#1bc6a6" stroke="#1bc6a6" stroke-width="2" points="264.25,-392.5 274.25,-389 264.25,-385.5 264.25,-392.5" style=""/>
+</g>
+<!-- EsusuSmartContract.stake&#45;&gt;IERC20.transferFrom -->
+<g id="edge11" class="edge" data-name="EsusuSmartContract.stake-&gt;IERC20.transferFrom">
+
+<path fill="none" stroke="white" stroke-width="2" d="M141.76,-388.11C162.21,-385.8 187.93,-379.3 203.26,-362 268.67,-288.17 182.38,-223.59 239.26,-143 250.32,-127.33 267.31,-115.64 284.15,-107.16" style=""/>
+<polygon fill="white" stroke="white" stroke-width="2" points="285.37,-110.45 292.96,-103.06 282.42,-104.1 285.37,-110.45" style=""/>
+</g>
+<!-- EsusuSmartContract.updatePayoutInterval -->
+<g id="node9" class="node" pointer-events="visible" data-name="EsusuSmartContract.updatePayoutInterval">
+
+<ellipse fill="#ffbdb9" stroke="#ffbdb9" stroke-width="3" cx="109.63" cy="-281" rx="93.76" ry="18" style=""/>
+<text text-anchor="middle" x="109.63" y="-276.8" font-family="Times,serif" font-size="14.00" style="">updatePayoutInterval</text>
+</g>
+<!-- EsusuSmartContract.getAllCampaigns -->
+<g id="node10" class="node" pointer-events="visible" data-name="EsusuSmartContract.getAllCampaigns">
+
+<ellipse fill="#ffbdb9" stroke="#ffbdb9" stroke-width="3" cx="109.63" cy="-227" rx="78.75" ry="18" style=""/>
+<text text-anchor="middle" x="109.63" y="-222.8" font-family="Times,serif" font-size="14.00" style="">getAllCampaigns</text>
+</g>
+<!-- EsusuSmartContract.getCampaignDetails -->
+<g id="node11" class="node" pointer-events="visible" data-name="EsusuSmartContract.getCampaignDetails">
+
+<ellipse fill="#ffbdb9" stroke="#ffbdb9" stroke-width="3" cx="109.63" cy="-173" rx="89.76" ry="18" style=""/>
+<text text-anchor="middle" x="109.63" y="-168.8" font-family="Times,serif" font-size="14.00" style="">getCampaignDetails</text>
+</g>
+<!-- key -->
+<g id="node18" class="node" pointer-events="visible" data-name="key">
+
+<polygon fill="#edad56" stroke="none" stroke-width="3" points="174.63,-822 44.63,-822 44.63,-734 174.63,-734 174.63,-822" style=""/>
+<text text-anchor="start" x="94.27" y="-803.4" font-family="Times,serif" font-size="14.00" style="">Internal Call</text>
+<text text-anchor="start" x="90.38" y="-783.4" font-family="Times,serif" font-size="14.00" style="">External Call</text>
+<text text-anchor="start" x="67.83" y="-763.4" font-family="Times,serif" font-size="14.00" style="">Defined Contract</text>
+<text text-anchor="start" x="54.23" y="-743.4" font-family="Times,serif" font-size="14.00" style="">Undefined Contract</text>
+</g>
+<!-- key2 -->
+<g id="node19" class="node" pointer-events="visible" data-name="key2">
+
+<polygon fill="#edad56" stroke="none" stroke-width="3" points="366.85,-822 312.85,-822 312.85,-734 366.85,-734 366.85,-822" style=""/>
+<text text-anchor="start" x="329.85" y="-803.4" font-family="Times,serif" font-size="14.00" style="">   </text>
+<text text-anchor="start" x="329.85" y="-783.4" font-family="Times,serif" font-size="14.00" style="">   </text>
+<polygon fill="#445773" stroke="none" points="327.85,-758 327.85,-778 352.85,-778 352.85,-758 327.85,-758" style=""/>
+<text text-anchor="start" x="329.85" y="-763.4" font-family="Times,serif" font-size="14.00" style="">   </text>
+<polygon fill="none" stroke="#e8726d" points="329.85,-740 329.85,-756 350.85,-756 350.85,-740 329.85,-740" style=""/>
+</g>
+<!-- key&#45;&gt;key2 -->
+<g id="edge12" class="edge" data-name="key-&gt;key2">
+
+<path fill="none" stroke="#1bc6a6" stroke-width="2" d="M167.63,-808C233.97,-808 253.67,-808 314.18,-808" style=""/>
+<polygon fill="#1bc6a6" stroke="#1bc6a6" stroke-width="2" points="313.82,-811.5 323.82,-808 313.82,-804.5 313.82,-811.5" style=""/>
+</g>
+<!-- key&#45;&gt;key2 -->
+<g id="edge13" class="edge" data-name="key-&gt;key2">
+
+<path fill="none" stroke="white" stroke-width="2" d="M167.63,-788C233.97,-788 253.67,-788 314.18,-788" style=""/>
+<polygon fill="white" stroke="white" stroke-width="2" points="313.82,-791.5 323.82,-788 313.82,-784.5 313.82,-791.5" style=""/>
+</g>
+</g>
+</svg>

@@ -54,7 +54,7 @@ contract EsusuSmartContract is ERC20 {
 
     constructor() ERC20("EsusuToken", "EST") {
         owner = msg.sender;
-        _mint(address(this), 21000000 * (10 ** uint256(decimals())));
+        _mint(address(this), 21000000 * (10**uint256(decimals())));
     }
 
     modifier onlyOwner() {
@@ -131,10 +131,10 @@ contract EsusuSmartContract is ERC20 {
         address tokenAddress,
         string memory userName // Add userName parameter
     ) external payable {
-        // require(!stakings[msg.sender].isStaking, "Already staking");
-        // check if campaigId is valid
+       // require(!stakings[msg.sender].isStaking, "Already staking");
+       // check if campaigId is valid
         Campaign storage campaign = campaigns[campaignId];
-        require(campaignId < campaignCounter, "Invalid campaign ID");
+    require(campaignId < campaignCounter, "Invalid campaign ID");
 
         require(
             campaign.totalContributions < stakingRequirementMultiplier,
@@ -145,8 +145,8 @@ contract EsusuSmartContract is ERC20 {
                 tokenAddress == CUSD_TOKEN_ADDRESS,
             "Unsupported token"
         );
-        // call stake function(commented off due to the high amount needed to fully function)
-        // stake( campaignId, contributionAmount);
+// call stake function(commented off due to the high amount needed to fully function)
+// stake( campaignId, contributionAmount); 
         // Update campaign state
         campaign.joinedUsers[msg.sender] = true;
         // Map user's name to their msg.sender
@@ -239,9 +239,7 @@ contract EsusuSmartContract is ERC20 {
         return campaignIds;
     }
 
-    function getCampaignDetails(
-        uint256 campaignId
-    )
+    function getCampaignDetails(uint256 campaignId)
         external
         view
         returns (
@@ -267,4 +265,6 @@ contract EsusuSmartContract is ERC20 {
             campaign.id
         );
     }
+
+    
 }
