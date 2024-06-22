@@ -5,15 +5,17 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useConnect } from "wagmi";
 import { InjectedConnector } from "wagmi/connectors/injected";
-import { useRouter } from "next/router";
 import Link from "next/link";
+import { useRouter } from "next/router";
+
 export default function Header() {
     const [searchVisible, setSearchVisible] = useState(false); // State for search visibility
     const [searchValue, setSearchValue] = useState('');
     const { connect } = useConnect({
         connector: new InjectedConnector(),
     });
-const router = useRouter();
+    const router = useRouter();
+
     useEffect(() => {
         connect();
     }, []);
