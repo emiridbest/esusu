@@ -44,7 +44,7 @@ const CampaignDetailsPage: React.FC = () => {
         }
     }, [id, fetchCampaignDetails]);
 
-    const handleContribute = async (campaignData: any, campaignId: string,) => {
+    const handleContribute = async (campaignData: any, campaignId: string) => {
         try {
             const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
             const userAddress = accounts[0];
@@ -68,7 +68,6 @@ const CampaignDetailsPage: React.FC = () => {
             const signer = await provider.getSigner(userAddress);
             const contract = new Contract(contractAddress, abi, signer);
             const tokenAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
-
             const tx = await contract.joinCampaign(parseInt(campaignId), tokenAddress, userName, { gasLimit: 500000 });
             await tx.wait();
             fetchCampaignDetails(campaignId);
@@ -131,13 +130,13 @@ const CampaignDetailsPage: React.FC = () => {
                                     className="w-full mt-3 py-3 px-4 bg-gray-100 text-sm text-center border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-600"
                                 />
                                 <button
-                                    onClick={()=>handleJoin}
+                                    onClick={()=>handleJoin(campaignData[7], userName)}
                                     className="w-full mt-3 py-3 px-4 font-medium text-sm text-center bg-prosperity text-black hover:bg-gypsum active:bg-green-900 rounded-lg ring-offset-2 ring-indigo-600 focus:ring-2"
                                 >
                                     Join Campaign
                                 </button>
                                 <button
-                                    onClick={()=>handleContribute}
+                                    onClick={()=>handleContribute(campaignData[7], campaignData[7])}
                                     className="w-full mt-3 py-3 px-4 font-medium text-sm text-center bg-prosperity text-black hover:bg-gypsum active:bg-green-900 rounded-lg ring-offset-2 ring-indigo-600 focus:ring-2"
                                 >
                                     Contribute

@@ -6,11 +6,13 @@ import { abi, contractAddress } from '@/utils/pay';
 
 const PayMerchant: React.FC = () => {
     const router = useRouter();
-    const { address, merchant } = router.query;
+    const { merchant } = router.query;
+    const merchantData = merchant ? JSON.parse(merchant as string) : [];
 
     const [amount, setAmount] = useState<number | string>('');
     const [merchantDetails, setMerchantDetails] = useState<any>([]);
     const [transactionStatus, setTransactionStatus] = useState<string>('');
+    const [address] = useState(merchantData[3]);
 
     useEffect(() => {
         if (merchant) {
@@ -99,7 +101,7 @@ const PayMerchant: React.FC = () => {
                 </div>
             </form>
             <button
-                onClick={handleSendPayment}
+                onClick={()=>handleSendPayment()}
                 className="py-3 px-6 bg-black text-white rounded-md w-full hover:bg-prosperity hover:text-black transition duration-300"
             >
                 {transactionStatus === 'Processing...' ? 'Processing...' : 'Pay Now'}
