@@ -13,13 +13,6 @@ const ModifyMerchant: React.FC = () => {
     const [description, setDescription] = useState(merchantData[2]);
     const [address, setAddress] = useState(merchantData[3]);
 
-    useEffect(() => {
-        if (merchantData) {
-            setName(merchantData.name);
-            setDescription(merchantData.description);
-            setAddress(merchantData.address);
-        }
-    }, [merchantData]);
 
     const handleModifyMerchant = async () => {
         if (!name || !description || !address) return;
@@ -90,9 +83,9 @@ const ModifyMerchant: React.FC = () => {
                         />
                     </div>
                     <button
-                        onClick={handleModifyMerchant}
-                        className="py-2 px-4 bg-black text-white rounded"
-                    >
+                        onClick={()=>handleModifyMerchant()}
+                        className="py-3 px-6 bg-black text-white rounded-md w-full hover:bg-prosperity hover:text-black transition duration-300"
+                        >
                         Save Changes
                     </button>
                 </div>

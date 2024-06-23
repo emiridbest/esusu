@@ -81,7 +81,7 @@ const AddMerchant: React.FC = () => {
             />
           </div>
           <button
-            onClick={handleAddMerchant}
+            onClick={()=>handleAddMerchant()}
             className="py-3 px-6 bg-black text-white rounded-md w-full hover:bg-prosperity hover:text-black transition duration-300"
           >
             Add Merchant

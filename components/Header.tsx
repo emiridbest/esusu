@@ -119,14 +119,6 @@ export default function Header() {
                                 </Link>
                             </div>
 
-                            <div className="hidden sm:ml-6 sm:flex sm:space-x-2 hover:bg-prosperity px-3 py-2 rounded-md">
-                                <Link
-                                    href="/blogs"
-                                    className="inline-flex items-center border-b-1 border-black px-1 pt-1 text-sm font-small text-gray-900"
-                                >
-                                    Blog
-                                </Link>
-                            </div>
 
                             <div className="relative inline-block text-left">
                                 <div>
@@ -164,6 +156,9 @@ export default function Header() {
                                             </p>
                                             <p onClick={() => router.push('/jobs')}
                                                 className="block px-4 py-2 text-sm text-black hover:bg-prosperity">Jobs
+                                            </p>
+                                            <p onClick={() => router.push('/blogs')}
+                                                className="block px-4 py-2 text-sm text-black hover:bg-prosperity">Blog
                                             </p>
                                         </div>
                                     </div>
