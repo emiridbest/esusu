@@ -10,13 +10,15 @@ import Link from "next/link";
 export default function Header() {
     const [searchVisible, setSearchVisible] = useState(false); // State for search visibility
     const [searchValue, setSearchValue] = useState('');
+
     const { connect } = useConnect({
         connector: new InjectedConnector(),
     });
-const router = useRouter();
+
     useEffect(() => {
         connect();
     }, []);
+    const router = useRouter();
     const handleSearchIconClick = () => {
         setSearchVisible(true);
     };
