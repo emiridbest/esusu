@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { contractAddress, abi } from '../../utils/pay';
 import { BrowserProvider, Contract } from "ethers";
+import { ArrowLeftCircleIcon } from '@heroicons/react/24/outline';
 
 const ModifyMerchant: React.FC = () => {
     const router = useRouter();
     const { merchant } = router.query;
-    const merchantData = merchant ? JSON.parse(merchant as string) : null;
+    const merchantData = merchant ? JSON.parse(merchant as string) : [];
 
-    const [name, setName] = useState(merchantData?.name || "");
-    const [description, setDescription] = useState(merchantData?.description || "");
-    const [address, setAddress] = useState(merchantData?.address || "");
+    const [name, setName] = useState(merchantData[1]);
+    const [description, setDescription] = useState(merchantData[2]);
+    const [address, setAddress] = useState(merchantData[3]);
 
     useEffect(() => {
         if (merchantData) {
@@ -42,40 +43,60 @@ const ModifyMerchant: React.FC = () => {
             }
         }
     };
+    const handleReturnHome = () => {
+        router.push('/utilityBills');
+    };
 
     return (
         <div className="max-w-screen-md mx-auto p-4">
-            <h2 className="text-2xl font-bold mb-4">Modify Merchant</h2>
-            <div className="mb-4">
-                <input
-                    className="w-full p-2 border rounded"
-                    placeholder="Merchant Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+
+            <div className='flex justify-start mb-4'>
+                <ArrowLeftCircleIcon
+                    onClick={handleReturnHome}
+                    className="h-8 w-8 text-black hover:text-gray-700 cursor-pointer"
                 />
             </div>
-            <div className="mb-4">
-                <input
-                    className="w-full p-2 border rounded"
-                    placeholder="Merchant Description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                />
+            <div className="flex flex-col overflow-scroll justify-between p-4 border rounded-lg shadow-md">
+
+                <div className="m-4 text-sm">
+
+                    <h2 className="text-2xl font-bold mb-4">Modify Merchant</h2>
+                    <div className="mb-4">
+                        <h2 className="text-xs font-light">Modify name of merchant</h2>
+
+                        <input
+                            className="w-full p-2 border rounded"
+                            placeholder="Merchant Name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <h2 className="text-xs font-light">Modify description of utility</h2>
+                        <input
+                            className="w-full p-2 border rounded"
+                            placeholder="Merchant Description"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <h2 className="text-xs font-light">Modify wallet address of merchant</h2>
+                        <input
+                            className="w-full p-2 border rounded"
+                            placeholder="Wallet Address"
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
+                        />
+                    </div>
+                    <button
+                        onClick={handleModifyMerchant}
+                        className="py-2 px-4 bg-black text-white rounded"
+                    >
+                        Save Changes
+                    </button>
+                </div>
             </div>
-            <div className="mb-4">
-                <input
-                    className="w-full p-2 border rounded"
-                    placeholder="Wallet Address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                />
-            </div>
-            <button
-                onClick={handleModifyMerchant}
-                className="py-2 px-4 bg-black text-white rounded"
-            >
-                Save Changes
-            </button>
         </div>
     );
 };

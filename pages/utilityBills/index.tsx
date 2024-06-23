@@ -3,7 +3,6 @@ import { useRouter } from 'next/router';
 import { contractAddress, abi } from '../../utils/pay';
 import { BrowserProvider, Contract } from "ethers";
 import { PlusCircleIcon } from '@heroicons/react/24/outline';
-
 interface Merchant {
     [x: string]: any;
     id: number;
@@ -48,19 +47,19 @@ const Merchants: React.FC = () => {
     }, [getMerchants]);
 
     const handleAddMerchant = () => {
-        router.push('/addMerchant');
+        router.push('./utilityBills/merchantPage');
     };
 
     const handleModifyMerchant = (merchant: Merchant) => {
         router.push({
-            pathname: './utilityBills/modifyMerchant',
+            pathname: '/utilityBills/modifyMerchant',
             query: { merchant: JSON.stringify(merchant) },
         });
     };
 
     const handlePayMerchant = (merchant: Merchant) => {
         router.push({
-            pathname: './utilityBills/payMerchant',
+            pathname: '/utilityBills/payMerchant',
             query: { merchant: JSON.stringify(merchant), address: merchant.address },
         });
     };
@@ -88,7 +87,7 @@ const Merchants: React.FC = () => {
                         <tr>
                             <th className="px-5 py-3 text-left  font-medium">Product Name</th>
                             <th className="px-5 py-3 text-left  font-medium">Description</th>
-                            <th className="hidden">Address</th>
+                            <th className="hidden lg:block px-5 py-3 text-left  font-medium">Address</th>
                             <th className="px-5 py-3 text-left  font-medium">Actions</th>
                         </tr>
                     </thead>
@@ -97,17 +96,17 @@ const Merchants: React.FC = () => {
                             <tr key={index}>
                                 <td className="px-5 py-3 text-left ">{merchant[1]}</td>
                                 <td className="px-5 py-3 text-left ">{merchant[2]}</td>
-                                <td className="hidden">{merchant[3]}</td>
+                                <td className="hidden lg:block px-5 py-3 text-left  font-medium">{merchant[3]}</td>
                                 <td className="px-3 py-2 sm:px-1 sm:py-4">
                                 <button
                                         onClick={() => handlePayMerchant(merchant)}
-                                        className="bg-black text-white py-2 px-4 border rounded hover:bg-gray-100 mr-2"
+                                        className="bg-black text-white py-2 px-4 border rounded hover:bg-prosperity hover:text-black mr-2"
                                     >
                                         Proceed
                                     </button>
                                     <button
                                         onClick={() => handleModifyMerchant(merchant)}
-                                        className="bg-black text-white py-2 px-4 rounded hover:bg-wood"
+                                        className="bg-black text-white py-2 px-4 rounded hover:bg-prosperity hover:text-black"
                                     >
                                         Modify
                                     </button>
