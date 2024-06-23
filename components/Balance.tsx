@@ -41,7 +41,7 @@ const Balance: React.FC = () => {
 
     useEffect(() => {
         getCUSDBalance();
-    }, []);
+    }, [getCUSDBalance]);
 
     const toggleBalanceDetails = () => {
         setShowBalanceDetails(!showBalanceDetails);

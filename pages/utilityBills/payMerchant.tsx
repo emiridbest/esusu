@@ -100,7 +100,7 @@ const PayMerchant: React.FC = () => {
             </form>
             <button
                 onClick={handleSendPayment}
-                className="py-3 px-6 bg-black text-white rounded-md w-full hover:bg-gray-800 transition duration-300"
+                className="py-3 px-6 bg-black text-white rounded-md w-full hover:bg-prosperity hover:text-black transition duration-300"
             >
                 {transactionStatus === 'Processing...' ? 'Processing...' : 'Pay Now'}
             </button>

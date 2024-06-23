@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { contractAddress, abi } from '../../utils/pay';
 import { BrowserProvider, Contract } from 'ethers';
+import { ArrowLeftCircleIcon } from '@heroicons/react/24/outline';
 
 const AddMerchant: React.FC = () => {
   const [name, setName] = useState('');
@@ -33,39 +34,60 @@ const AddMerchant: React.FC = () => {
     }
   };
 
+  const handleReturnHome = () => {
+    router.push('/utilityBills');
+  };
+
+
   return (
     <div className="max-w-screen-md mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-4">Add New Merchant</h2>
-      <div className="mb-4">
-        <input
-          className="w-full p-2 border rounded"
-          placeholder="Merchant Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+      <div className='flex justify-start mb-4'>
+        <ArrowLeftCircleIcon
+          onClick={handleReturnHome}
+          className="h-8 w-8 text-black hover:text-gray-700 cursor-pointer"
         />
       </div>
-      <div className="mb-4">
-        <input
-          className="w-full p-2 border rounded"
-          placeholder="Merchant Description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
+      <div className="flex flex-col overflow-scroll justify-between p-4 border rounded-lg shadow-md">
+
+        <div className="m-4 text-sm">
+
+          <h2 className="text-2xl font-bold mb-4">Add New Merchant</h2>
+          <div className="mb-4">
+          <h2 className="text-xs font-light">Input the name of merchant</h2>
+
+            <input
+              className="w-full p-2 border rounded"
+              placeholder="Merchant Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div className="mb-4">
+          <h2 className="text-xs font-light">Add description for this billing</h2>
+            <input
+              className="w-full p-2 border rounded"
+              placeholder="Merchant Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+          <div className="mb-4">
+          <h2 className="text-xs font-light">all payment goes into this wallet please double check</h2>
+            <input
+              className="w-full p-2 border rounded"
+              placeholder="Wallet Address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
+          </div>
+          <button
+            onClick={handleAddMerchant}
+            className="py-3 px-6 bg-black text-white rounded-md w-full hover:bg-prosperity hover:text-black transition duration-300"
+          >
+            Add Merchant
+          </button>
+        </div>
       </div>
-      <div className="mb-4">
-        <input
-          className="w-full p-2 border rounded"
-          placeholder="Wallet Address"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-        />
-      </div>
-      <button
-        onClick={handleAddMerchant}
-        className="py-2 px-4 bg-black text-white rounded"
-      >
-        Add Merchant
-      </button>
     </div>
   );
 };
