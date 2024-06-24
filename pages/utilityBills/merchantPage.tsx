@@ -3,6 +3,8 @@ import { useRouter } from 'next/router';
 import { contractAddress, abi } from '../../utils/pay';
 import { BrowserProvider, Contract } from 'ethers';
 import { ArrowLeftCircleIcon } from '@heroicons/react/24/outline';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const AddMerchant: React.FC = () => {
   const [name, setName] = useState('');
@@ -28,8 +30,11 @@ const AddMerchant: React.FC = () => {
         await tx.wait();
 
         router.push('/merchants');
+        toast.success("Merchant successfully added");
       } catch (error) {
         console.error('Error adding merchant:', error);
+        toast.error("Failed to add merchant");
+
       }
     }
   };
@@ -41,6 +46,7 @@ const AddMerchant: React.FC = () => {
 
   return (
     <div className="max-w-screen-md mx-auto p-4">
+      <ToastContainer />
       <div className='flex justify-start mb-4'>
         <ArrowLeftCircleIcon
           onClick={handleReturnHome}

@@ -4,7 +4,8 @@ import { useRouter } from 'next/router';
 import { contractAddress, abi } from '@/utils/esusu';
 import { BrowserProvider, Contract, parseEther } from 'ethers';
 import { Campaign } from './index';
-
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const CampaignDetailsPage: React.FC = () => {
     const router = useRouter();
@@ -55,8 +56,11 @@ const CampaignDetailsPage: React.FC = () => {
           const tx =  await contract.contribute(tokenAddress, parseFloat(campaignData[2].toString()), { gasLimit: 500000 });
             await tx.wait();
             fetchCampaignDetails(campaignId);
+            toast.success("Contribution sent succesfully");
         } catch (error) {
             console.error("Error contributing to campaign:", error);
+            toast.error("Contribution failed");
+
         }
     };
 
@@ -71,8 +75,11 @@ const CampaignDetailsPage: React.FC = () => {
             const tx = await contract.joinCampaign(parseInt(campaignId), tokenAddress, userName, { gasLimit: 500000 });
             await tx.wait();
             fetchCampaignDetails(campaignId);
+            toast.success("Succesfully joined a campaign");
         } catch (error) {
             console.error("Error joining campaign:", error);
+            toast.success("Failed to join a campaign");
+
         }
     };
 
@@ -95,6 +102,7 @@ const CampaignDetailsPage: React.FC = () => {
 
     return (
         <div className="container mx-auto p-4 lg:p-0">
+            <ToastContainer />
             <div className="flex flex-1 flex-col  text-sm ">
 
                 <div className='flex justify-start'>
@@ -131,7 +139,7 @@ const CampaignDetailsPage: React.FC = () => {
                                 />
                                 <button
                                     onClick={()=>handleJoin(campaignData[7], userName)}
-                                    className="w-full mt-3 py-3 px-4 font-medium text-sm text-center bg-prosperity text-black hover:bg-gypsum active:bg-green-900 rounded-lg ring-offset-2 ring-indigo-600 focus:ring-2"
+                                    className="w-full mt-3 py-3 px-4 font-medium text-sm text-center bg-prosperity text-black hover:bg-gypsum  rounded-lg ring-offset-2 ring-indigo-600 focus:ring-2"
                                 >
                                     Join Campaign
                                 </button>

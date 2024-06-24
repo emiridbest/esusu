@@ -3,6 +3,8 @@ import { useRouter } from 'next/router';
 import { BrowserProvider, Contract, parseEther } from "ethers";
 import { ArrowLeftCircleIcon } from '@heroicons/react/24/outline';
 import { abi, contractAddress } from '@/utils/pay';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const PayMerchant: React.FC = () => {
     const router = useRouter();
@@ -43,9 +45,12 @@ const PayMerchant: React.FC = () => {
 
                 setTransactionStatus('Payment Successful');
                 setTimeout(() => router.push('/utilityBills'), 3000);
+                toast.success("Payment sent successfully");
             } catch (error) {
                 console.error("Error sending payment:", error);
                 setTransactionStatus('Payment Failed');
+                toast.error("Payment failed");
+
             }
         }
     };
@@ -56,6 +61,7 @@ const PayMerchant: React.FC = () => {
 
     return (
         <div className="max-w-screen-md mx-auto p-4">
+            <ToastContainer />
             <div className='flex justify-start mb-4'>
                 <ArrowLeftCircleIcon
                     onClick={handleReturnHome}
