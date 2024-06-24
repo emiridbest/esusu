@@ -120,7 +120,7 @@ export default function Header() {
                             </div>
 
 
-                            <div className="relative inline-block text-left">
+                            <div className="hidden sm:ml-6 sm:flex sm:space-x-2 hover:bg-prosperity px-3 py-2 rounded-md">
                                 <div>
                                     <button
                                         type="button"
