@@ -12,7 +12,7 @@ module.exports = {
         "prosperity": "#FFD600",
         "forest": "#476520",
         /** base */
-        "gypsum": "#FFFFFF",
+        "gypsum": "#FAFFE7",
         "sand": "#E7E3D4",
         "wood": "#655947",
         "fig": "#1E002B",

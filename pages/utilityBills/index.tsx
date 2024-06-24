@@ -100,13 +100,13 @@ const Merchants: React.FC = () => {
                                 <td className="px-3 py-2 sm:px-1 sm:py-4">
                                 <button
                                         onClick={() => handlePayMerchant(merchant)}
-                                        className="bg-black text-white py-2 px-4 border rounded hover:bg-prosperity hover:text-black mr-2"
+                                        className="bg-prosperity text-black py-2 px-4 border rounded hover:bg-black hover:text-white mr-2"
                                     >
                                         Proceed
                                     </button>
                                     <button
                                         onClick={() => handleModifyMerchant(merchant)}
-                                        className="bg-black text-white py-2 px-4 rounded hover:bg-prosperity hover:text-black"
+                                        className="hidden"
                                     >
                                         Modify
                                     </button>
