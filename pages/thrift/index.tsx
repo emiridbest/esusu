@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { contractAddress, abi } from '@/utils/esusu';
 import { BrowserProvider, Contract, parseEther } from 'ethers';
 import { PlusCircleIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
+import TransactionList from '@/components/TransactionList';
 
 export interface Campaign {
     [x: string]: any;
@@ -131,6 +132,7 @@ const Thrift: React.FC = () => {
                     </div>
                 </div>
             )}
+            <TransactionList />
         </div>
     );
 };

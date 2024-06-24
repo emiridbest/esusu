@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { contractAddress, abi } from '../../utils/pay';
 import { BrowserProvider, Contract } from "ethers";
 import { PlusCircleIcon } from '@heroicons/react/24/outline';
+import TransactionList from '@/components/TransactionList';
 interface Merchant {
     [x: string]: any;
     id: number;
@@ -116,6 +117,7 @@ const Merchants: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+            <TransactionList />
         </div>
     );
 };

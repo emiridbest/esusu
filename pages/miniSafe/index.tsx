@@ -4,6 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { contractAddress, abi } from '../../utils/abi';
 import { BrowserProvider, Contract, parseEther, formatUnits } from "ethers";
 import { CurrencyDollarIcon, CurrencyEuroIcon, CurrencyPoundIcon } from "@heroicons/react/24/outline";
+import TransactionList from '@/components/TransactionList';
 
 const Loader = ({ alt }: { alt?: boolean }) => (
   <div className={`loader ${alt ? 'loader-alt' : ''}`}>Loading...</div>
@@ -107,7 +108,7 @@ export default function Home() {
       } catch (error) {
         console.error("Error approving spend:", error);
         setIsApproved(false);
-        toast.error('Approval failed!'); 
+        toast.error('Approval failed!');
       }
     }
     setIsApproving(false);
@@ -241,7 +242,7 @@ export default function Home() {
 
   return (
     <div className="container mx-auto p-4 lg:p-0">
-            <ToastContainer />
+      <ToastContainer />
       <div className="flex flex-col lg:flex-row text-sm ">
         <aside className="w-full lg:w-1/3 p-4">
           <div className="bg-gradient-to-br from-gypsum to-gray-50 bg-opacity-75 backdrop-filter backdrop-blur-lg border border-gray-300 rounded-lg shadow-lg">
@@ -331,10 +332,15 @@ export default function Home() {
                 onClick={handleBreakLock}
                 className="w-full bg-prosperity shadow text-black py-2 rounded-md hover:bg-black hover:text-white transition"
               >
-                Breaklock            </button>
+                Breaklock
+              </button>
             </div>
           </div>
         </main>
+        <aside className="w-full lg:w-1/3 p-4 border rounded-md">
+          <TransactionList />
+
+          </aside>
       </div>
     </div>
   );
