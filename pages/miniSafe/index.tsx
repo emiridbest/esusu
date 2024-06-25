@@ -2,29 +2,31 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { contractAddress, abi } from '../../utils/abi';
-import { BrowserProvider, Contract, parseEther, formatUnits } from "ethers";
+import { BrowserProvider, Contract, formatUnits } from "ethers";
 import { CurrencyDollarIcon, CurrencyEuroIcon, CurrencyPoundIcon } from "@heroicons/react/24/outline";
 import TransactionList from '@/components/TransactionList';
+import { BigNumber } from 'alchemy-sdk';
+import { parseEther } from "viem";
 
 const Loader = ({ alt }: { alt?: boolean }) => (
   <div className={`loader ${alt ? 'loader-alt' : ''}`}>Loading...</div>
 );
 
+
 export default function Home() {
   const cUsdTokenAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
   const celoAddress = "0x0000000000000000000000000000000000000000";
 
-  const [depositAmount, setDepositAmount] = useState<number>(0);
-  const [withdrawAmount, setWithdrawAmount] = useState<number>(0);
-  const [celoBalance, setCeloBalance] = useState<string>('');
-  const [cusdBalance, setCusdBalance] = useState<string>('');
-  const [tokenBalance, setTokenBalance] = useState<string>('');
-  const [selectedToken, setSelectedToken] = useState<string>('cUSD');
-  const [isApproved, setIsApproved] = useState<boolean>(false);
-  const [isApproving, setIsApproving] = useState<boolean>(false);
-  const [isWaitingTx, setIsWaitingTx] = useState<boolean>(false);
-  const [buttonText, setButtonText] = useState<string>('Approve');
-
+  const [depositAmount, setDepositAmount] = useState(0);
+  const [withdrawAmount, setWithdrawAmount] = useState(0);
+  const [celoBalance, setCeloBalance] = useState('');
+  const [cusdBalance, setCusdBalance] = useState('');
+  const [tokenBalance, setTokenBalance] = useState('');
+  const [selectedToken, setSelectedToken] = useState('cUSD');
+  const [isApproved, setIsApproved] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [isWaitingTx, setIsWaitingTx] = useState(false);
+  const [buttonText, setButtonText] = useState('Approve');
 
   const getBalance = useCallback(async () => {
     if (window.ethereum) {
@@ -85,86 +87,102 @@ export default function Home() {
   };
 
   const approveSpend = async (event: React.FormEvent) => {
+    event.preventDefault();
     setIsApproving(true);
+
     if (window.ethereum) {
-      let accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
-
-      let userAddress = accounts[0];
-      const provider = new BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner(userAddress);
-      const contract = new Contract(contractAddress, abi, signer);
-      const depositValue = parseEther(depositAmount.toString());
-      const gasLimit = parseInt("600000");
-
       try {
-        let tx = await contract.approve(cUsdTokenAddress, depositValue, { gasLimit });
-        setButtonText('Approving...');
-        await tx.wait();
-        setIsApproved(true);
-        setButtonText('Deposit');
-        toast.success('Approval successful!');
+        let accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        let userAddress = accounts[0];
+
+        const provider = new BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner(userAddress);
+
+        // Ensure depositAmount is valid
+        if (!depositAmount || isNaN(Number(depositAmount)) || Number(depositAmount) <= 0) {
+          toast.error('Invalid deposit amount');
+          setIsApproving(false);
+          return;
+        }
+
+        const depositValue = parseEther(depositAmount.toString());
+        const gasLimit = parseInt("600000");
+
+        const tokenAddress = selectedToken === 'cUSD' ? cUsdTokenAddress : celoAddress;
+        const tokenAbi = [
+          "function allowance(address owner, address spender) view returns (uint256)",
+          "function approve(address spender, uint256 amount) returns (bool)"
+        ];
+        const tokenContract = new Contract(tokenAddress, tokenAbi, signer);
+
+        const allowance = await tokenContract.allowance(userAddress, contractAddress);
+        const allowanceBigNumber = BigNumber.from(allowance);
+
+        if (allowanceBigNumber.gte(depositValue)) {
+          setIsApproved(true);
+          toast.success('Already approved!');
+        } else {
+          let tx = await tokenContract.approve(contractAddress, depositValue, { gasLimit });
+          setButtonText('Approving...');
+          await tx.wait();
+          setIsApproved(true);
+          toast.success('Approval successful!');
+        }
       } catch (error) {
         console.error("Error approving spend:", error);
         setIsApproved(false);
         toast.error('Approval failed!');
       }
+    } else {
+      toast.error('Ethereum object not found');
     }
+
     setIsApproving(false);
   };
 
-  const handleDeposit = async (event: React.FormEvent) => {
+
+  const handleDeposit = async (event: React.FormEvent, selectedToken: string, depositAmount: number) => {
     event.preventDefault();
     if (!depositAmount || !selectedToken) return;
-
     setIsWaitingTx(true);
+    try {
+      if (window.ethereum) {
+        let accounts = await window.ethereum.request({
+          method: "eth_requestAccounts",
+        });
 
-    if (selectedToken === 'cUSD' && !isApproved) {
-      await approveSpend(event);
-      if (!isApproved) {
-        console.error('Token approval failed');
-        setIsWaitingTx(false);
-        return;
-      }
-    }
+        let userAddress = accounts[0];
+        const provider = new BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner(userAddress);
+        const contract = new Contract(contractAddress, abi, signer);
+        const depositValue = parseEther(depositAmount.toString());
+        const gasLimit = parseInt("6000000");
 
-    if (window.ethereum) {
-      let accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
-
-      let userAddress = accounts[0];
-      const provider = new BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner(userAddress);
-      const contract = new Contract(contractAddress, abi, signer);
-      const depositValue = parseEther(depositAmount.toString());
-      const gasLimit = parseInt("600000");
-
-      try {
         let tx;
-        if (selectedToken === 'CELO') {
-          tx = await contract.deposit(celoAddress, depositValue, { gasLimit });
-        } else if (selectedToken === 'cUSD') {
+        if (selectedToken === 'cUSD') {
           tx = await contract.deposit(cUsdTokenAddress, depositValue, { gasLimit });
+
         }
-        await tx.wait();
-        console.log('Deposit successful');
-        getBalance();
-        getTokenBalance();
-        setDepositAmount(0);
-        setIsApproved(false);
-        setButtonText('Approve');
-        toast.success('Deposit successful!');
-      } catch (error) {
-        console.error("Error making deposit:", error);
-        toast.error('Deposit failed!');
-        setButtonText('Approve');
-        getBalance();
-        getTokenBalance();
-        setDepositAmount(0);
-        setIsApproved(false);
+        else if (selectedToken === 'CELO') {
+          tx = await contract.deposit(celoAddress, depositValue, { gasLimit });
+        }
+        const receipt = await tx.wait();
+
+        if (receipt.status === 1) {
+          console.log('Deposit successful');
+          getBalance();
+          getTokenBalance();
+          setDepositAmount(0);
+          setIsApproved(false);
+          toast.success('Deposit successful!');
+        } else {
+          console.error('Transaction failed:', receipt);
+          toast.error('Deposit failed!');
+        }
       }
+    } catch (error) {
+      console.error("Error making deposit:", error);
+      toast.error('Deposit failed!');
     }
 
     setIsWaitingTx(false);
@@ -187,13 +205,13 @@ export default function Home() {
       const gasLimit = parseInt("600000");
 
       try {
+        let tx;
         if (selectedToken === 'CELO') {
-          let tx = await contract.withdraw(celoAddress, withdrawValue, { gasLimit });
-          await tx.wait();
+          tx = await contract.withdraw(celoAddress, withdrawValue, { gasLimit });
         } else if (selectedToken === 'cUSD') {
-          let tx = await contract.withdraw(cUsdTokenAddress, withdrawValue, { gasLimit });
-          await tx.wait();
+          tx = await contract.withdraw(cUsdTokenAddress, withdrawValue, { gasLimit });
         }
+        await tx.wait();
         getBalance();
         getTokenBalance();
         setWithdrawAmount(0);
@@ -218,13 +236,13 @@ export default function Home() {
       const gasLimit = parseInt("600000");
 
       try {
+        let tx;
         if (selectedToken === 'CELO') {
-          let tx = await contract.breakTimelock(celoAddress, { gasLimit });
-          await tx.wait();
+          tx = await contract.breakTimelock(celoAddress, { gasLimit });
         } else if (selectedToken === 'cUSD') {
-          let tx = await contract.breakTimelock(cUsdTokenAddress, { gasLimit });
-          await tx.wait();
+          tx = await contract.breakTimelock(cUsdTokenAddress, { gasLimit });
         }
+        await tx.wait();
         getBalance();
         getTokenBalance();
         toast.success('Timelock broken successfully!');
@@ -281,24 +299,37 @@ export default function Home() {
           <div className="bg-gypsum p-6 rounded-lg shadow-md mb-4 bg-gradient-to-br from-gypsum to-gray-50 bg-opacity-75 backdrop-filter backdrop-blur-lg border border-gray-300 rounded-lg shadow-lg">
             <div className="bg-gypsum p-6 rounded-lg shadow-md mb-4 bg-gradient-to-br from-gypsum to-gray-50 bg-opacity-75 backdrop-filter backdrop-blur-lg border border-gray-300 rounded-lg shadow-lg">
               <h3 className="text-sm font-semibold text-black mb-2">Deposit</h3>
-              <form onSubmit={handleDeposit}>
+              <form
+                className="mb-4">
                 <div className="mb-4">
                   <label className="text-sm font-light text-gray-500 mb-2" htmlFor="deposit-amount">Amount</label>
                   <label className="flex text-xs font-light text-gray-500 mb-2" htmlFor="deposit-amount">Approve amount before depositing...</label>
                   <input
-                    id="deposit-amount"
+                    type="number"
+                    step="0.01"
                     value={depositAmount}
                     onChange={(e) => setDepositAmount(Number(e.target.value))}
-                    className="w-full border border-gray-300 p-2 rounded-md"
-                    type="text"
-                    placeholder="Amount to deposit"
+                    className="border rounded px-4 py-2 w-full mb-2 text-black"
                   />
                 </div>
                 <button
-                  type="submit"
-                  className="w-full bg-prosperity shadow text-black py-2 rounded-md hover:bg-black hover:text-white transition"
+                  disabled={isApproved}
+                  onClick={(e) => approveSpend(e)}
+                  className={`${!isApproved
+                    ? "text-black/100 bg-prosperity hover:bg-black hover:text-white"
+                    : "bg-black/10 cursor-not-allowed text-white"
+                    } inline-flex w-full text-black items-center justify-center rounded-md p-2 mb-2 `}                >
+                  {isApproving ? <Loader alt /> : "Approve"}
+                </button>
+                <button
+                  disabled={!isApproved}
+                  onClick={(e) => handleDeposit(e, selectedToken, depositAmount)}
+                  className={`${isApproved
+                    ? "text-black/100 bg-prosperity hover:bg-black hover:text-white"
+                    : "bg-black/10 cursor-not-allowed text-white hover:bg-black e"
+                    } inline-flex w-full items-center justify-center rounded-md p-2`}
                 >
-                  {isWaitingTx ? <Loader alt /> : buttonText}
+                  {isWaitingTx ? <Loader alt /> : "Deposit"}
                 </button>
               </form>
             </div>
@@ -340,7 +371,7 @@ export default function Home() {
         <aside className="w-full lg:w-1/3 p-4 border rounded-md">
           <TransactionList />
 
-          </aside>
+        </aside>
       </div>
     </div>
   );
