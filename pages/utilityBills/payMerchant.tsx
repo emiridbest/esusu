@@ -112,11 +112,6 @@ const PayMerchant: React.FC = () => {
             >
                 {transactionStatus === 'Processing...' ? 'Processing...' : 'Pay Now'}
             </button>
-            {transactionStatus && (
-                <p className={`mt-4 text-center ${transactionStatus === 'Payment Successful' ? 'text-green-500' : 'text-red-500'}`}>
-                    {transactionStatus}
-                </p>
-            )}
         </div>
     );
 };
