@@ -78,7 +78,7 @@ const CampaignDetailsPage: React.FC = () => {
             toast.success("Succesfully joined a campaign");
         } catch (error) {
             console.error("Error joining campaign:", error);
-            toast.success("Failed to join a campaign");
+            toast.error("Failed to join a campaign");
 
         }
     };
@@ -139,13 +139,13 @@ const CampaignDetailsPage: React.FC = () => {
                                 />
                                 <button
                                     onClick={()=>handleJoin(campaignData[7], userName)}
-                                    className="w-full mt-3 py-3 px-4 font-medium text-sm text-center bg-prosperity text-black hover:bg-gypsum  rounded-lg ring-offset-2 ring-indigo-600 focus:ring-2"
+                                    className="w-full mt-3 py-3 px-4 font-medium text-sm text-center bg-prosperity text-black hover:bg-black hover:text-white  rounded-lg ring-offset-2 ring-indigo-600 focus:ring-2"
                                 >
                                     Join Campaign
                                 </button>
                                 <button
                                     onClick={()=>handleContribute(campaignData[7], campaignData[7])}
-                                    className="w-full mt-3 py-3 px-4 font-medium text-sm text-center bg-prosperity text-black hover:bg-gypsum active:bg-green-900 rounded-lg ring-offset-2 ring-indigo-600 focus:ring-2"
+                                    className="w-full mt-3 py-3 px-4 font-medium text-sm text-center bg-prosperity text-black hover:bg-black  hover:text-white rounded-lg ring-offset-2 ring-indigo-600 focus:ring-2"
                                 >
                                     Contribute
                                 </button>

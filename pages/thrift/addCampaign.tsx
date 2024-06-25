@@ -97,7 +97,7 @@ const CampaignPage: React.FC<CampaignPageProps> = ({ onCreateCampaign, campaign 
 
                         <button
                             onClick={() => handleCreateCampaign()}
-                            className="w-full py-3 bg-prosperity text-black  rounded-md hover:bg-sky focus:outline-none focus:ring-2 focus:ring-prosperity focus:ring-opacity-50"
+                            className="w-full py-3 bg-prosperity text-black  rounded-md hover:bg-black hover:text-white focus:outline-none focus:ring-2 focus:ring-prosperity focus:ring-opacity-50"
                             disabled={isSubmitting}
                         >
                             {isSubmitting ? 'Creating...' : 'Create Campaign'}
