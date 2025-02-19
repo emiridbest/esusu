@@ -1,21 +1,93 @@
-// @ts-nocheck
-import { createToolParameters } from "@goat-sdk/core";
-import { z } from "zod";
+import * as _goat_sdk_core from '@goat-sdk/core';
+import { z } from 'zod';
 
-export class GetQuoteParameters extends createToolParameters(
-    z.object({
-        chainId: z.number().describe("The chain ID"),
-        tokenIn: z.string().describe("The input token address"),
-        tokenOut: z.string().describe("The output token address"),
-        order: z
-            .object({
-                type: z.enum(["deposit", "withdraw"]),
-                amount: z.string().describe("amount in basis points (e.g., 1000000 for 1 USDC)"),
-            })
-            .describe("Order details"),
-        slippagePercentage: z.number().describe("Maximum allowed slippage (e.g., 0.5 for 0.5%)"),
-        takerAddress: z.string().optional().describe("Esusu contract address"),
-    }),
-) {}
+// Base Parameter Types
+declare const DepositParameters_base: _goat_sdk_core.ToolParametersStatic<z.ZodObject<{
+    tokenAddress: z.ZodString;
+    amount: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    tokenAddress: string;
+    amount: string;
+}, {
+    tokenAddress: string;
+    amount: string;
+}>>;
 
-export class ExecuteSwapParameters extends GetQuoteParameters {}
+declare const WithdrawParameters_base: _goat_sdk_core.ToolParametersStatic<z.ZodObject<{
+    tokenAddress: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    tokenAddress: string;
+}, {
+    tokenAddress: string;
+}>>;
+
+declare const GetBalanceParameters_base: _goat_sdk_core.ToolParametersStatic<z.ZodObject<{
+    account: z.ZodString;
+    tokenAddress: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    account: string;
+    tokenAddress: string;
+}, {
+    account: string;
+    tokenAddress: string;
+}>>;
+
+declare const SetUplinerParameters_base: _goat_sdk_core.ToolParametersStatic<z.ZodObject<{
+    upliner: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    upliner: string;
+}, {
+    upliner: string;
+}>>;
+
+declare const BreakTimelockParameters_base: _goat_sdk_core.ToolParametersStatic<z.ZodObject<{
+    tokenAddress: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    tokenAddress: string;
+}, {
+    tokenAddress: string;
+}>>;
+
+declare const GetDownlinersParameters_base: _goat_sdk_core.ToolParametersStatic<z.ZodObject<{
+    upliner: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    upliner: string;
+}, {
+    upliner: string;
+}>>;
+
+declare const TimeSinceDepositParameters_base: _goat_sdk_core.ToolParametersStatic<z.ZodObject<{
+    depositor: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    depositor: string;
+}, {
+    depositor: string;
+}>>;
+
+// Parameter Classes
+declare class DepositParameters extends DepositParameters_base {}
+declare class WithdrawParameters extends WithdrawParameters_base {}
+declare class GetBalanceParameters extends GetBalanceParameters_base {}
+declare class SetUplinerParameters extends SetUplinerParameters_base {}
+declare class BreakTimelockParameters extends BreakTimelockParameters_base {}
+declare class GetDownlinersParameters extends GetDownlinersParameters_base {}
+declare class TimeSinceDepositParameters extends TimeSinceDepositParameters_base {}
+
+// Token Constants
+export const CELO_TOKEN_ADDRESS = "0x471EcE3750Da237f93B8E339c536989b8978a438";
+export const CUSD_TOKEN_ADDRESS = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
+
+// Exports
+export {
+    DepositParameters,
+    DepositParameters as DepositCeloParameters,
+    DepositParameters as DepositCusdParameters,
+    WithdrawParameters,
+    WithdrawParameters as WithdrawCeloParameters,
+    WithdrawParameters as WithdrawCusdParameters,
+    GetBalanceParameters,
+    SetUplinerParameters,
+    BreakTimelockParameters,
+    GetDownlinersParameters,
+    TimeSinceDepositParameters,
+};
