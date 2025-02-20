@@ -1,7 +1,7 @@
 import { Abi } from "viem";
 
 export const contractAddress = "0xD7154A32280c31a510BF248CE35F2627162227b4";
-export const abi:Abi = [
+export const abi = [
 	{
 	  "type": "constructor",
 	  "inputs": [],
