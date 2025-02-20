@@ -1,7 +1,8 @@
-import { type Chain, PluginBase } from "@goat-sdk/core";
+import { PluginBase, Chain } from "@goat-sdk/core";
+import { EVMWalletClient } from "@goat-sdk/wallet-evm";
 import { EsusuService } from "./esusu.service";
 
-export class EsusuPlugin extends PluginBase {
+export class EsusuPlugin extends PluginBase<EVMWalletClient> {
     constructor() {
         super("esusu", [new EsusuService()]);
     }
@@ -9,6 +10,4 @@ export class EsusuPlugin extends PluginBase {
     supportsChain = (chain: Chain) => chain.type === "evm";
 }
 
-export function esusu() {
-    return new EsusuPlugin();
-}
+export const esusu = () => new EsusuPlugin();
