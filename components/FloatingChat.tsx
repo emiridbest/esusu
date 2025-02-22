@@ -4,6 +4,7 @@ import { MessageCircle, X } from "lucide-react";
 import { Button } from "./ui/button";
 import Chat from "./Chat";
 
+
 export default function FloatingChat() {
   const [isOpen, setIsOpen] = useState(false);
 
