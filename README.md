@@ -1,6 +1,11 @@
 
 ## ESUSU
 
+## Proof-of-Ship Update
+- Building EsusuSDK so users can interact with the Smart Contracts via chat
+
+
+
 ### Overview
 ESUSU is a decentralized application (DApp) built on the Celo Mainnet  that facilitates stablecoin contributions through a collective savings model known as Esusu in many African communities. The DApp allows users to create and join campaigns, contribute funds, and track campaign details transparently on the blockchain.
 
@@ -33,7 +38,8 @@ The dApp is a 3 in 1 solution to solving issues related to financial inclusion a
 - **Backend**: Solidity, Ethereum blockchain
 - **Smart Contracts**: Ethers.js
 - **Deployment**: Celo Mainnet
--  **Contract Address**: 0xf9d3f0cde68a24d4da3a1c9dd31952d85855c691
+-  **ESUSU THRIFT Contract Address**: 0xf9d3f0cde68a24d4da3a1c9dd31952d85855c691
+-  **ESUSU PIGGY BOX Contract Address**: 0xD7154A32280c31a510BF248CE35F2627162227b4
 -  **Tokens**: `EST` Esusu Tokens as reward for staking  and `MST` MiniSafe Token as reward for locking up funds.
 - **Sourcify Verification Link**: https://repo.sourcify.dev/contracts/full_match/42220/0xf9D3F0cdE68A24d4da3a1c9dD31952D85855C691/sources/
 ### Setup Instructions
