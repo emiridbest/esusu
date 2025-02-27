@@ -93,7 +93,9 @@ Detailed description of the work you did during the contest
 
 Emiri Udogwu  - [GitHub](https://github.com/emiridbest/)
 
-
+## Next Step
+        - Migrate project to newer versions of NextJS
+        - Consider uding just the React framework
 
 ### Overview
 ESUSU is a decentralized application (DApp) built on the Celo Mainnet  that facilitates stablecoin contributions through a collective savings model known as Esusu in many African communities. The DApp allows users to create and join campaigns, contribute funds, and track campaign details transparently on the blockchain.
