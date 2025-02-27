@@ -6,7 +6,8 @@
 # Project Name:
 ## Esusu
 
-Save as a community, Grow as one.
+Save as a community, Grow as one. 
+AI agent assisted savings.
 
 
 ## Former Participation in Celo Hackathons
