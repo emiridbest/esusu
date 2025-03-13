@@ -169,9 +169,6 @@ Contributions are welcome! Please follow the standard GitHub flow:
 ### License
 This project is licensed under the [MIT License](LICENSE).
 
-### TO DO
-- Fully implement the `stake()` logic
-
 
 ![1](https://github.com/emiridbest/esusu/assets/6362475/d7c54cc5-3c23-433d-a935-3d09975102c7)
 
