@@ -40,7 +40,7 @@ const Layout: FC<Props> = ({ children }) => {
   return (
     <ThemeContext.Provider value={{ darkMode, toggleTheme }}>
       <div className={`${darkMode ? 'dark' : ''} transition-colors duration-300`}>
-        <div className="min-h-screen bg-gradient-radial from-white via-gray-50 to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-black">
+        <div className="min-h-screen bg-gradient-radial from-white via-gray-50 to-gray-100 dark:from-black dark:via-black dark:to-black">
           <Header />
           <button 
             onClick={toggleTheme}
