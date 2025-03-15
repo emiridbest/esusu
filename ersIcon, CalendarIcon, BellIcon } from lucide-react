@@ -1,0 +1,284 @@
+[33mcommit b5e4f845acadbd66ad349a480ad8ec0b82009e92[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfrontend[m[33m)[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Sat Mar 15 18:01:41 2025 +0000
+
+    Feat(ui): implemented shadcn ui styles
+
+[33mcommit 5ca0e7fc3fd369e0d17bd649ad36f45c39451399[m[33m ([m[1;31morigin/frontend[m[33m)[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Fri Mar 14 23:23:28 2025 +0000
+
+    feat: hero section redesign
+
+[33mcommit 8e221d45f03a73cc76901bdaa19a46a6ad4253aa[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Thu Mar 13 23:40:02 2025 +0000
+
+    footer, header redesign with shadcn/UI styling
+
+[33mcommit b2877bb73eaa0869a8d23856996d7276cc3721cb[m[33m ([m[1;31morigin/tests[m[33m, [m[1;31morigin/backend[m[33m)[m
+Author: emiridbest <Udogwuemiri@gmail.com>
+Date:   Thu Feb 27 21:49:49 2025 +0000
+
+    Update README.md
+
+[33mcommit ef9ee6229eca83af9cc75fcdeab2d821cd5d4991[m
+Author: emiridbest <Udogwuemiri@gmail.com>
+Date:   Thu Feb 27 21:48:31 2025 +0000
+
+    Update README.md
+
+[33mcommit 7b06a583ace61e76c4c0f525a4a487121b2163bd[m
+Author: emiridbest <Udogwuemiri@gmail.com>
+Date:   Wed Feb 26 20:12:48 2025 +0000
+
+    Update README.md
+
+[33mcommit 68b2b6ef062ee24a4751cd5cf27789b3dfcea210[m
+Author: emiridbest <Udogwuemiri@gmail.com>
+Date:   Wed Feb 26 10:54:52 2025 +0000
+
+    Update README.md
+
+[33mcommit 341cbfa0ee1ae358140b25b61e2f8e4ffc2ad59b[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Sun Feb 23 22:34:22 2025 +0000
+
+    README.md
+
+[33mcommit 31f4465b4c969289ee8801e180e442f52a2dfaf0[m
+Merge: c18e63d 891e1ad
+Author: emiridbest <Udogwuemiri@gmail.com>
+Date:   Sun Feb 23 21:07:24 2025 +0000
+
+    Merge pull request #1 from emiridbest/chat-agent
+    
+    Chat agent
+
+[33mcommit 891e1ad951e7a0c079908adf38888140a48eb642[m[33m ([m[1;31morigin/chat-agent[m[33m)[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Sat Feb 22 23:54:46 2025 +0000
+
+    folder fixes
+
+[33mcommit 4882ddb0d6cb30f18dde7a07af30755271598be1[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Fri Feb 21 23:31:20 2025 +0000
+
+    frontend integration
+
+[33mcommit 22dfc4c9b4916d41c7603ce9a3a7546bf03054ba[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Thu Feb 20 22:26:58 2025 +0000
+
+    deposit
+
+[33mcommit 08611fb7266369350dca1ef694ebb9ec34d80171[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Wed Feb 19 23:40:50 2025 +0000
+
+    chat plugin
+
+[33mcommit 5ef7fbaa6c54fe214e04efd8ba79e0049acec3b8[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Tue Feb 18 23:50:15 2025 +0000
+
+    agent init
+
+[33mcommit 24a5c1f804ca7dc600ab6227f410dadabc7f9731[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Tue Feb 18 23:47:17 2025 +0000
+
+    agent .env fix
+
+[33mcommit 9f6595768d7b784a75194c79bee0f0167fb6fe54[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Tue Feb 18 23:45:32 2025 +0000
+
+    agent init
+
+[33mcommit c18e63dbe4f45e010f26e55ea54c3aedc8838895[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Wed Jul 24 06:55:54 2024 +0100
+
+    minutes
+
+[33mcommit 24b480cd7824ba873b2d7615a77d91fcd2179603[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Wed Jul 24 05:09:20 2024 +0100
+
+    withdraw
+
+[33mcommit fa680fc273765720e0e60e5a14df368c6ee9900f[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Tue Jun 25 06:38:14 2024 +0100
+
+    add
+
+[33mcommit 9e665863a326c81c1793d75a5119ef574b610b0c[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Tue Jun 25 02:04:29 2024 +0100
+
+    add
+
+[33mcommit d770978462a15aa17467b46b7893b8c9af1d6a18[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Tue Jun 25 01:40:20 2024 +0100
+
+    add
+
+[33mcommit 287989de2926e9750370c5f00337d627ac02fdd9[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Tue Jun 25 01:13:05 2024 +0100
+
+    addThrift
+
+[33mcommit ceecc17848fafbe89f74fc24c7c7ddae5bb0b29a[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Mon Jun 24 23:07:55 2024 +0100
+
+    activity
+
+[33mcommit cbe8ba8794ae9ec624bd15ba0b452a55ef7395c5[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Mon Jun 24 21:23:37 2024 +0100
+
+    white
+
+[33mcommit ce2fc3cbdfeac237376ab01e34879ec16880ce97[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Mon Jun 24 21:22:00 2024 +0100
+
+    noModify
+
+[33mcommit df4582ed7425b79361e537cbaa78813d35ab92b6[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Mon Jun 24 21:13:18 2024 +0100
+
+    white
+
+[33mcommit 7bb456baffb843ece7a7963a5ac994c9fa536e30[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Mon Jun 24 08:10:50 2024 +0100
+
+    amen again
+
+[33mcommit 3afe5a410995cbd06b5daf6c5ff7751e8824de09[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Sun Jun 23 22:35:12 2024 +0100
+
+    amen
+
+[33mcommit 4f1342c96c51bc2baaaa9b95c2c86204f50bff24[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Sun Jun 23 15:54:32 2024 +0100
+
+    modify
+
+[33mcommit 9f3dad2cd2b13e48b4b543c415168eeb16ef96db[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Sun Jun 23 04:18:25 2024 +0100
+
+    viemx2
+
+[33mcommit 3e722cdf3d39762c8581ce341483f1b259a70be0[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Sun Jun 23 04:04:25 2024 +0100
+
+    extra3
+
+[33mcommit 22d3f10c83c493bba78e0cd6153421737679828c[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Sun Jun 23 03:48:16 2024 +0100
+
+    extra2
+
+[33mcommit f40230032de1daf50a61788021878759cc7e46f2[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Sat Jun 22 23:04:07 2024 +0100
+
+    dao1
+
+[33mcommit 4142d1554bf111f80353b355cd8194143aad4a03[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Sat Jun 22 23:02:01 2024 +0100
+
+    dao1
+
+[33mcommit d8e953d1a031a6a3a0714e72c6cbc450b25ad2c5[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Sat Jun 22 22:14:12 2024 +0100
+
+    dao
+
+[33mcommit a2793978024fc0af3fd8c24f9e75bdb18999c12c[m
+Author: emiridbest <Udogwuemiri@gmail.com>
+Date:   Fri Apr 26 14:10:48 2024 +0100
+
+    Update README.md
+
+[33mcommit 6f2daa119b218258ba225d41682e462eecb11b08[m
+Author: emiridbest <Udogwuemiri@gmail.com>
+Date:   Fri Apr 26 14:00:10 2024 +0100
+
+    Update README.md
+
+[33mcommit 9591ae77aca08093a52cdbaefd2f463a5de9b344[m
+Author: emiridbest <Udogwuemiri@gmail.com>
+Date:   Tue Apr 23 13:11:59 2024 +0100
+
+    Update README.md
+
+[33mcommit 6b4419249438f00a4148fbddd472e1df061d2390[m
+Author: emiridbest <Udogwuemiri@gmail.com>
+Date:   Tue Apr 23 13:09:25 2024 +0100
+
+    Update README.md
+
+[33mcommit 26ccf9ac6d0f3cabb2bc33903bd33452741b8cd6[m
+Author: emiridbest <Udogwuemiri@gmail.com>
+Date:   Tue Apr 23 12:30:59 2024 +0100
+
+    Update README.md
+
+[33mcommit 4684e69657390f79a3a030dd4b1cece2b0939502[m
+Author: emiridbest <Udogwuemiri@gmail.com>
+Date:   Tue Apr 23 06:00:51 2024 +0100
+
+    Update README.md
+
+[33mcommit 185aa0685bb75aea88635d9f680de2ea02228ee3[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Mon Apr 22 18:21:16 2024 +0100
+
+    new2
+
+[33mcommit d2e64db8762c49950556e987058aaf5b890ea09a[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Mon Apr 22 18:14:39 2024 +0100
+
+    new1
+
+[33mcommit 42a02541c0b077dec62a97782e0234a9c5e2153e[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Mon Apr 22 16:27:19 2024 +0100
+
+    new
+
+[33mcommit bc39179155aaf4d5c7d7f8327abbdd6b139c465c[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Mon Apr 22 06:34:22 2024 +0100
+
+    final
+
+[33mcommit b9f6c9ff803fa04282d2f253270d028345922934[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Mon Apr 22 04:10:55 2024 +0100
+
+    new
+
+[33mcommit a46672ff596a31c14dae3afd4b3a80df131046cb[m
+Author: emiridbest <udogwuemiri@gmail.com>
+Date:   Sat Apr 20 22:11:00 2024 +0100
+
+    first commit
