@@ -134,7 +134,7 @@ const UtilityBills: React.FC = () => {
           className="mt-16 flex items-center text-gray-400 dark:text-gray-500"
         >
           <CalendarIcon className="h-4 w-4 mr-2" />
-          <span>Expected launch: Q3 2023</span>
+          <span>Expected launch: Q3 2025</span>
         </motion.div>
       </motion.div>
     </div>
