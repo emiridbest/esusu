@@ -76,9 +76,9 @@ const Section = ({
       "max-w-screen-lg mx-auto",
       glassBg && "glass-card p-8"
     )}>
-      <div className={`flex flex-col ${reverse ? 'lg:flex-row-reverse' : 'lg:flex-row'} items-center gap-8`}>
+      <div className={`flex flex-col ${reverse ? 'lg:flex-row-reverse' : 'lg:flex-row'} items-center gap-8 `}>
         <motion.figure 
-          className="lg:w-1/2"
+          className="lg:w-1/2 "
           initial={{ opacity: 0, x: reverse ? -30 : 30 }}
           whileInView={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.7 }}
@@ -172,8 +172,8 @@ const Hero: React.FC = () => {
               <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
                 Simple, secure, and social way to save and grow your wealth in the digital economy.
               </p>
-              
-              <div className="flex flex-wrap gap-4">
+            
+              <div className="flex flex-wrap gap-4 ">
                 <Button 
                   size="lg" 
                   className="bg-primary hover:bg-primary/90 text-white"
@@ -253,7 +253,7 @@ const Hero: React.FC = () => {
             </p>
           </motion.header>
           
-          <div className="flex flex-wrap -mx-4">
+            <div className="flex flex-wrap -mx-4">
             {features.map((feature, index) => (
               <FeatureCard 
                 key={index} 
@@ -270,7 +270,7 @@ const Hero: React.FC = () => {
         description="Access Esusu anywhere, anytime. Swap tokens in a tap. Send crypto like a text message. Manage your finances on the go with our intuitive mobile experience."
         image="/earn.png"
         glassBg
-        accentColor="from-primary/20 to-indigo-500/10"
+        accentColor="from-primary/20 to-indigo-500/10 "
       >
         <Button 
           className="mt-6"
