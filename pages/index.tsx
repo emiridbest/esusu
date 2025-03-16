@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import TransactionList from '../components/TransactionList';
 import Balance from '@/components/Balance';
 import Hero from '@/components/Hero';
-import Links from '@/components/Links';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -147,13 +146,6 @@ const Esusu: React.FC = () => {
             <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md">
               <CardContent className="pt-6">
                 <Hero />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="links" className="mt-4">
-            <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md">
-              <CardContent className="pt-6">
-                <Links />
               </CardContent>
             </Card>
           </TabsContent>
