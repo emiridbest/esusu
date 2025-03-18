@@ -50,7 +50,7 @@ const UtilityBills: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mb-10"
         >
-          We're working on bringing you seamless utility bill payments directly from your wallet. Stay tuned for updates!
+          We are working on bringing you seamless utility bill payments directly from your wallet. Stay tuned for updates!
         </motion.p>
 
         <motion.div 
