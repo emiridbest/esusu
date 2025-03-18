@@ -1,191 +1,270 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import { Disclosure } from "@headlessui/react";
-import { MagnifyingGlassIcon, BellAlertIcon } from "@heroicons/react/24/outline";
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import { useConnect } from "wagmi";
-import { InjectedConnector } from "wagmi/connectors/injected";
+import { useState, useEffect, useRef, useContext } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import Image from "next/image";
+import { useConnect } from "wagmi";
+import { InjectedConnector } from "wagmi/connectors/injected";
+import { 
+  MagnifyingGlassIcon, 
+  BellAlertIcon,
+  ChevronDownIcon,
+  Bars3Icon,
+  XMarkIcon 
+} from "@heroicons/react/24/outline";
+import { ThemeContext } from "./Layout";
+import { cn } from "@/lib/utils";
+import { 
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle
+} from "@/components/ui/navigation-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuGroup,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export default function Header() {
-    const [searchVisible, setSearchVisible] = useState(false); // State for search visibility
-    const [searchValue, setSearchValue] = useState('');
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const { darkMode } = useContext(ThemeContext);
 
-    const { connect } = useConnect({
-        connector: new InjectedConnector(),
-    });
+  const { connect } = useConnect({
+    connector: new InjectedConnector(),
+  });
 
-    useEffect(() => {
-        connect();
-    }, []);
-    const router = useRouter();
-    const handleSearchIconClick = () => {
-        setSearchVisible(true);
+  useEffect(() => {
+    connect();
+  }, []);
+
+  const handleSearchIconClick = () => {
+    setSearchVisible(true);
+  };
+
+  const handleClickOutside = (event: MouseEvent) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      setIsOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
     };
-    const handleClickOutside = (event: MouseEvent) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-            setIsOpen(false);
-        }
-    };
-    useEffect(() => {
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        } else {
-            document.removeEventListener('mousedown', handleClickOutside);
-        }
+  }, [isOpen]);
 
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isOpen]);
+  // Navigation links
+  const navLinks = [
+    { title: "Simple Saver", href: "/miniSafe" },
+    { title: "Thrift", href: "/thrift" },
+    { title: "Pay Bills", href: "/utilityBills" },
+  ];
 
-    return (
-        <Disclosure as="nav" className="bg-gypsum border-b border-black">
-            {({ open }) => (
-                <>
-                 <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-2">
-                        <div className="relative flex h-16 items-center justify-between">
-                            <div className="flex items-center">
-                                <Image
-                                    className=" cursor-pointer"
-                                    src="/esusu.png"
-                                    width="120"
-                                    height="120"
-                                    alt="EsusuLogo"
-                                    onClick={() => router.push('/')}
-                                />
-                            </div>
-                            <div className="ml-auto flex items-center space-x-4">
-                                {searchVisible ? (
-                                    <div className="relative">
-                                        <input
-                                            className="border-2 border-black bg-gypsum text-black h-10 px-5 pr-16 rounded-lg text-sm focus:outline-none"
-                                            type="search"
-                                            name="search"
-                                            placeholder="Search for orders here"
-                                            value={searchValue}
-                                            onChange={(e) => setSearchValue(e.target.value)}
-                                        />
-                                        <button
-                                            type="submit"
-                                            className="absolute right-0 top-0 mt-2 mr-2"
-                                        >
-                                            <MagnifyingGlassIcon className="h-6 text-black text-gypsum transition" />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div
-                                        className="text-snow hover:text-snow cursor-pointer"
-                                        onClick={handleSearchIconClick}
-                                    >
-                                        <MagnifyingGlassIcon className="text-black h-6 sm:hidden" />
-                                    </div>
-                                )}
-                            </div>
-                            <div className="mx-4 sm:hidden">
-                                <BellAlertIcon className="h-6 text-black" />
-                            </div>
+  // About menu items
+  const aboutMenuItems = [
+    { title: "FAQ", href: "/faq" },
+    { title: "Testimonials", href: "/testimonials" },
+    { title: "Contact", href: "/contact" },
+    { title: "Invest", href: "/invest" },
+    { title: "Jobs", href: "/jobs" },
+    { title: "Blog", href: "/blogs" },
+  ];
 
-                            <div className="hidden sm:ml-6 sm:flex sm:space-x-2 hover:bg-prosperity px-3 py-2 rounded-md">
-                                <Link
-                                    onClick={() => router.push('/miniSafe')}
-                                    className="inline-flex items-center border-b-1 border-black px-1 pt-1 text-sm font-small text-gray-900"
-                                    href={""}
-                                >
-                                    Simple Saver
-                                </Link>
-                            </div>
+  return (
+    <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/80 dark:bg-black/80 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+      <div className="container mx-auto px-4">
+        <div className="h-16 flex items-center justify-between">
+          {/* Logo */}
+          <div className="flex items-center">
+            <Image
+              className="cursor-pointer transition-all duration-300 hover:scale-105"
+              src="/esusu.png"
+              width="120"
+              height="120"
+              alt="EsusuLogo"
+              onClick={() => router.push('/')}
+            />
+          </div>
 
-                            <div className="hidden sm:ml-6 sm:flex sm:space-x-2 hover:bg-prosperity px-3 py-2 rounded-md">
-                                <Link
-                                    onClick={() => router.push('/thrift')}
-                                    className="inline-flex items-center border-b-1 border-black px-1 pt-1 text-sm font-small text-gray-900"
-                                    href={""}
-                                >
-                                    Thrift
-                                </Link>
-                            </div>
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-1">
+            <NavigationMenu>
+              <NavigationMenuList>
+                {navLinks.map((link) => (
+                  <NavigationMenuItem key={link.title}>
+                    <Link href={link.href} legacyBehavior passHref>
+                      <NavigationMenuLink 
+                        className={cn(
+                          navigationMenuTriggerStyle(),
+                          "bg-transparent hover:bg-primary/10 hover:text-primary transition-all duration-300",
+                          router.pathname === link.href && "text-primary border-b-2 border-primary"
+                        )}
+                      >
+                        {link.title}
+                      </NavigationMenuLink>
+                    </Link>
+                  </NavigationMenuItem>
+                ))}
 
-                            <div className="hidden sm:ml-6 sm:flex sm:space-x-2 hover:bg-prosperity px-3 py-2 rounded-md">
-                                <Link
-                                    onClick={() => router.push('/utilityBills')}
-                                    className="inline-flex items-center border-b-1 border-black px-1 pt-1 text-sm font-small text-gray-900"
-                                    href={""}
-                                >
-                                    Pay Bills
-                                </Link>
-                            </div>
+                <NavigationMenuItem>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        className="h-9 gap-1 hover:bg-primary/10 hover:text-primary"
+                      >
+                        About Us
+                        <ChevronDownIcon className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent 
+                      className="w-56 glass-card" 
+                      align="end" 
+                      sideOffset={8}
+                    >
+                      <DropdownMenuGroup>
+                        {aboutMenuItems.map((item) => (
+                          <DropdownMenuItem 
+                            key={item.title} 
+                            className="cursor-pointer hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary"
+                            onClick={() => router.push(item.href)}
+                          >
+                            {item.title}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+          </div>
 
+          {/* Search & Notification */}
+          <div className="flex items-center space-x-4">
+            <div className="relative">
+              {searchVisible ? (
+                <div className="flex items-center glass-card rounded-full pr-2">
+                  <Input
+                    className="border-none bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                    type="search"
+                    placeholder="Search for orders here"
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                  />
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-8 w-8 text-gray-500 hover:text-primary hover:bg-transparent"
+                  >
+                    <MagnifyingGlassIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  onClick={handleSearchIconClick}
+                  className="hover:bg-primary/10 hover:text-primary"
+                >
+                  <MagnifyingGlassIcon className="h-5 w-5" />
+                </Button>
+              )}
+            </div>
 
-                            <div className="hidden sm:ml-6 sm:flex sm:space-x-2 hover:bg-prosperity px-3 py-2 rounded-md">
-                                <div>
-                                    <button
-                                        type="button"
-                                        className="inline-flex justify-center w-full mx-2 px-3 py-2 bg-gypsum text-sm  text-black hover:bg-prosperity focus:outline-none"
-                                        onClick={() => setIsOpen(!isOpen)}                                    >
-                                        About Us
-                                        <svg
-                                            className="-mr-1 ml-2 h-5 w-5"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 20 20"
-                                            fill="currentColor"
-                                            aria-hidden="true"
-                                        >
-                                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                                        </svg>
-                                    </button>
-                                </div>
+            <Button 
+              size="icon" 
+              variant="ghost"
+              className="hover:bg-primary/10 hover:text-primary relative"
+            >
+              <BellAlertIcon className="h-5 w-5" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"></span>
+            </Button>
 
-                                {isOpen && (
-                                    <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-gypsum cursor-pointer  ring-1 ring-black ring-opacity-5">
-                                        <div className="py-1">
-                                            <p onClick={() => router.push('/faq')}
-                                                className="block px-4 py-2 text-sm text-black hover:bg-prosperity">FAQ
-                                            </p>
-                                            <p onClick={() => router.push('/testimonials')}
-                                                className="block px-4 py-2 text-sm text-black hover:bg-prosperity">Testimonials
-                                            </p>
-                                            <p onClick={() => router.push('/contact')}
-                                                className="block px-4 py-2 text-sm text-black hover:bg-prosperity">Contact
-                                            </p>
-
-                                            <p onClick={() => router.push('/invest')} className="block px-4 py-2 text-sm text-black hover:bg-prosperity">Invest
-                                            </p>
-                                            <p onClick={() => router.push('/jobs')}
-                                                className="block px-4 py-2 text-sm text-black hover:bg-prosperity">Jobs
-                                            </p>
-                                            <p onClick={() => router.push('/blogs')}
-                                                className="block px-4 py-2 text-sm text-black hover:bg-prosperity">Blog
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+            {/* Mobile menu */}
+            <div className="md:hidden">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button size="icon" variant="ghost" className="hover:bg-primary/10">
+                    <Bars3Icon className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="glass-card w-[80%]">
+                  <div className="flex flex-col space-y-4 mt-8">
+                    <Link 
+                      href="/" 
+                      className={cn(
+                        "py-2 px-4 rounded-lg transition-all duration-300",
+                        router.pathname === "/" 
+                          ? "bg-primary/10 text-primary border-l-2 border-primary" 
+                          : "hover:bg-primary/10 hover:text-primary"
+                      )}
+                    >
+                      Home
+                    </Link>
+                    
+                    {navLinks.map((link) => (
+                      <Link 
+                        key={link.title}
+                        href={link.href} 
+                        className={cn(
+                          "py-2 px-4 rounded-lg transition-all duration-300",
+                          router.pathname === link.href 
+                            ? "bg-primary/10 text-primary border-l-2 border-primary" 
+                            : "hover:bg-primary/10 hover:text-primary"
+                        )}
+                      >
+                        {link.title}
+                      </Link>
+                    ))}
+                    
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                      <h3 className="px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        About Us
+                      </h3>
+                      <div className="mt-2 pl-4">
+                        {aboutMenuItems.map((item) => (
+                          <Link 
+                            key={item.title}
+                            href={item.href} 
+                            className="py-2 px-4 block hover:bg-primary/10 hover:text-primary rounded-lg transition-all duration-300"
+                          >
+                            {item.title}
+                          </Link>
+                        ))}
+                      </div>
                     </div>
-
-                    <Disclosure.Panel className="sm:hidden">
-                        <div className="space-y-1 pt-2 pb-4">
-                            <Disclosure.Button
-                                as="a"
-                                href="/"
-                                className="block border-l-4 border-black px-5 text-base font-small text-black"
-                            >
-                                Home
-                            </Disclosure.Button>
-                        </div>
-                    </Disclosure.Panel>
-                </>
-            )}
-        </Disclosure>
-    );
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
 }
 
 declare global {
-    interface Window {
-        ethereum: any;
-    }
+  interface Window {
+    ethereum: any;
+  }
 }
