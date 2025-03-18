@@ -118,7 +118,7 @@ const Thrift: React.FC = () => {
                   </svg>
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Regular Contributions</h3>
-                <p className="text-gray-600 dark:text-gray-400">Make consistent payments into your group's pool</p>
+                <p className="text-gray-600 dark:text-gray-400">Make consistent payments into your group pool</p>
               </div>
             </CardContent>
           </Card>
