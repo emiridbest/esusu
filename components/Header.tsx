@@ -183,7 +183,7 @@ export default function Header() {
                   size="icon" 
                   variant="ghost" 
                   onClick={handleSearchIconClick}
-                  className="hover:bg-primary/10 hover:text-primary"
+                  className="hover:bg-primary/10 text-black/80 dark:text-primary hover:text-primary"
                 >
                   <MagnifyingGlassIcon className="h-5 w-5" />
                 </Button>
@@ -193,7 +193,7 @@ export default function Header() {
             <Button 
               size="icon" 
               variant="ghost"
-              className="hover:bg-primary/10 hover:text-primary relative"
+              className="hover:bg-primary/10 hover:text-primary relative text-black/80 dark:text-primary"
             >
               <BellAlertIcon className="h-5 w-5" />
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"></span>
@@ -203,12 +203,12 @@ export default function Header() {
             <div className="md:hidden">
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button size="icon" variant="ghost" className="hover:bg-primary/10">
-                    <Bars3Icon className="h-5 w-5" />
+                  <Button size="icon" variant="ghost" className=" text-black/80 dark:text-primary hover:bg-primary/10">
+                    <Bars3Icon className="color-black/50 h-5 w-5" />
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="right" className="glass-card w-[80%]">
-                  <div className="flex flex-col space-y-4 mt-8 text-gray-500">
+                  <div className="flex flex-col space-y-4 mt-8 dark:text-gray-500">
                     <Link 
                       href="/" 
                       className={cn(
