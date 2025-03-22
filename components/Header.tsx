@@ -114,7 +114,7 @@ export default function Header() {
                       <NavigationMenuLink 
                         className={cn(
                           navigationMenuTriggerStyle(),
-                          "bg-transparent hover:bg-primary/10 hover:text-primary transition-all duration-300",
+                          "dark:text-primary hover:bg-primary/10 hover:text-primary transition-all duration-300",
                           router.pathname === link.href && "text-primary border-b-2 border-primary"
                         )}
                       >
@@ -129,7 +129,7 @@ export default function Header() {
                     <DropdownMenuTrigger asChild>
                       <Button 
                         variant="ghost" 
-                        className="h-9 gap-1 hover:bg-primary/10 hover:text-primary"
+                        className="h-9 gap-1 hover:bg-primary/10 text-black hover:text-primary"
                       >
                         About Us
                         <ChevronDownIcon className="h-4 w-4" />
