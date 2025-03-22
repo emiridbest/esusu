@@ -92,7 +92,7 @@ const Balance: React.FC = () => {
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="bg-primary/10 rounded-full p-2">
+            <div className="bg-black dark:bg-primary/10 rounded-full p-2">
               <WalletIcon className="h-5 w-5 text-primary" />
             </div>
             <h2 className="font-medium text-gray-900 dark:text-white">Wallet Balance</h2>
@@ -102,7 +102,7 @@ const Balance: React.FC = () => {
               variant="ghost"
               size="icon"
               onClick={toggleBalanceDetails}
-              className="h-8 w-8 rounded-full"
+              className="bg-black dark:bg-primary/10 h-8 w-8 rounded-full"
             >
               {showBalanceDetails ? (
                 <EyeOffIcon className="h-4 w-4" />
@@ -119,7 +119,7 @@ const Balance: React.FC = () => {
               onClick={handleRefresh}
               disabled={refreshing}
               className={cn(
-                "h-8 w-8 rounded-full",
+                "bg-black dark:bg-primary/10 h-8 w-8 rounded-full",
                 refreshing && "animate-spin"
               )}
             >
