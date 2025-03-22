@@ -208,7 +208,7 @@ export default function Header() {
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="right" className="glass-card w-[80%]">
-                  <div className="flex flex-col space-y-4 mt-8">
+                  <div className="flex flex-col space-y-4 mt-8 text-gray-500">
                     <Link 
                       href="/" 
                       className={cn(
