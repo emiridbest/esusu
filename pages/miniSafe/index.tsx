@@ -462,7 +462,7 @@ export default function MiniSafe() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="lg:col-span-2"
         >
-          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border-gray-100 dark:border-gray-700 overflow-hidden">
+          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border-gray-100 dark:border-gray-700 overflow-hidden text-gray-900 dark:text-white">
             <CardHeader className="pb-2">
               <CardTitle>Vault Operations</CardTitle>
               <CardDescription>Deposit, withdraw or break timelocks</CardDescription>
@@ -484,7 +484,7 @@ export default function MiniSafe() {
                         <h3 className="text-base font-medium">Deposit {selectedToken}</h3>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                        Deposited assets are locked for 30 days. You will earn EST tokens as rewards during this period.
+                        Deposited assets are locked over time. You will earn EST tokens as rewards during this period.
                       </p>
                       <div className="space-y-4">
                         <div className="space-y-2">
@@ -557,7 +557,11 @@ export default function MiniSafe() {
                       <ul className="text-sm space-y-2 text-gray-600 dark:text-gray-300">
                         <li className="flex items-start">
                           <div className="mr-2 mt-1 bg-primary/20 text-primary h-4 w-4 rounded-full flex items-center justify-center text-xs">1</div>
-                          <span>Your assets are locked in a smart contract for 30 days</span>
+                          <span>Your assets are locked in a smart contract</span>
+                        </li>
+                        <li className="flex items-start">
+                          <div className="mr-2 mt-1 bg-primary/20 text-primary h-4 w-4 rounded-full flex items-center justify-center text-xs">1</div>
+                          <span>Withdrawal window is between 28th to 30th day monthly </span>
                         </li>
                         <li className="flex items-start">
                           <div className="mr-2 mt-1 bg-primary/20 text-primary h-4 w-4 rounded-full flex items-center justify-center text-xs">2</div>
@@ -589,7 +593,7 @@ export default function MiniSafe() {
                         </div>
                         <Progress value={(30 - lockTimeRemaining) / 30 * 100} className="h-2" />
                         <p className="text-xs text-gray-500 mt-2">
-                          You can withdraw without penalty after the lock period ends
+                          You can withdraw without penalty during withdrawal window
                         </p>
                       </div>
 
@@ -634,7 +638,7 @@ export default function MiniSafe() {
                       </div>
 
                       <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                        Use your EST tokens to break the timelock and withdraw your funds before the lock period ends. This will consume your EST tokens.
+                        Use your EST tokens to break the timelock and withdraw your funds outside withdrawal window. This will consume your EST tokens.
                       </p>
 
                       <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md p-3 mb-4">
