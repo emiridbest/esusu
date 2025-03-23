@@ -37,12 +37,7 @@ import {
   LoaderCircleIcon
 } from "lucide-react";
 
-const Loader = () => (
-  <div className="flex items-center justify-center">
-    <LoaderCircleIcon className="h-5 w-5 animate-spin text-primary mr-2" />
-    <span>Processing...</span>
-  </div>
-);
+
 
 export default function MiniSafe() {
   const cUsdTokenAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
@@ -333,7 +328,7 @@ export default function MiniSafe() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border-gray-100 dark:border-gray-700 overflow-hidden h-full">
+          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border-gray-100 dark:border-gray-700 overflow-hidden h-full dark:text-white">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/70 via-primary/40 to-primary/10"></div>
             <CardHeader className="pb-2">
               <CardTitle className="text-xl flex items-center">
@@ -366,7 +361,7 @@ export default function MiniSafe() {
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400">CELO Balance</div>
                       <Badge variant="outline" className="text-xs">Stablecoin</Badge>
                     </div>
-                    <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 rounded-md p-3">
+                    <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
                       <div className="flex items-center">
                         <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mr-2">
                           <CoinsIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
@@ -382,7 +377,7 @@ export default function MiniSafe() {
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400">cUSD Balance</div>
                       <Badge variant="outline" className="text-xs">Stablecoin</Badge>
                     </div>
-                    <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 rounded-md p-3">
+                    <div className="flex items-center justify-between  bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
                       <div className="flex items-center">
                         <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-2">
                           <CoinsIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -396,7 +391,7 @@ export default function MiniSafe() {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400">EST Tokens</div>
-                      <Badge className="bg-primary/20 text-primary hover:bg-primary/30 text-xs">Reward Token</Badge>
+                      <Badge className="bg-black text-primary hover:bg-black/70 text-xs">Reward Token</Badge>
                     </div>
                     <div className="flex items-center justify-between bg-gradient-to-r from-primary/10 to-transparent rounded-md p-3">
                       <div className="flex items-center">
@@ -447,13 +442,13 @@ export default function MiniSafe() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2 text-xs"
+                className="h-7 px-2 text-xs text-gray-500"
                 onClick={() => {
                   getBalance();
                   getTokenBalance();
                 }}
               >
-                <RefreshCwIcon className="h-3 w-3 mr-1" />
+                <RefreshCwIcon className="h-3 w-3 mr-1 text-gray-500" />
                 Refresh
               </Button>
             </CardFooter>
