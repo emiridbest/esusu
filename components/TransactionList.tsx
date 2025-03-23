@@ -178,8 +178,8 @@ const TransactionList: React.FC = () => {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-xl font-semibold flex items-center">
-              <span className="h-4 w-1 bg-primary mr-3 rounded-full"></span>
+            <CardTitle className="text-xl font-semibold flex items-center dark:text-white/70">
+              <span className="h-4 w-1 bg-primary mr-3 rounded-ful"></span>
               Transaction History
             </CardTitle>
             <CardDescription>
