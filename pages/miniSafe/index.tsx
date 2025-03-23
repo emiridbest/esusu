@@ -21,13 +21,13 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Icons
-import { 
-  WalletIcon, 
-  ArrowUpIcon, 
-  ArrowDownIcon, 
-  LockIcon, 
-  UnlockIcon, 
-  CoinsIcon, 
+import {
+  WalletIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  LockIcon,
+  UnlockIcon,
+  CoinsIcon,
   ClockIcon,
   ShieldIcon,
   RefreshCwIcon,
@@ -126,7 +126,7 @@ export default function MiniSafe() {
       toast.error('Please enter a valid amount');
       return;
     }
-    
+
     setIsApproving(true);
 
     if (window.ethereum) {
@@ -178,7 +178,7 @@ export default function MiniSafe() {
       toast.error('Please enter an amount and select a token');
       return;
     }
-    
+
     setIsWaitingTx(true);
     try {
       if (window.ethereum) {
@@ -225,7 +225,7 @@ export default function MiniSafe() {
       toast.error('Please select a token');
       return;
     }
-    
+
     setIsWaitingTx(true);
     if (window.ethereum) {
       try {
@@ -310,7 +310,7 @@ export default function MiniSafe() {
   return (
     <div className="container mx-auto px-4 py-8">
       <ToastContainer position="bottom-right" theme="colored" />
-      
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -325,7 +325,7 @@ export default function MiniSafe() {
           Deposit your assets into a secure, time-locked vault and earn rewards. Break the timelock early using EST tokens.
         </p>
       </motion.div>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Balance Card */}
         <motion.div
@@ -342,7 +342,7 @@ export default function MiniSafe() {
               </CardTitle>
               <CardDescription>Manage your secured assets</CardDescription>
             </CardHeader>
-            
+
             <CardContent className="space-y-4">
               {isLoading ? (
                 <>
@@ -376,7 +376,7 @@ export default function MiniSafe() {
                       <div className="text-xl font-bold">{formatBalance(celoBalance)}</div>
                     </div>
                   </div>
-                  
+
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400">cUSD Balance</div>
@@ -392,7 +392,7 @@ export default function MiniSafe() {
                       <div className="text-xl font-bold">{formatBalance(cusdBalance)}</div>
                     </div>
                   </div>
-                  
+
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400">EST Tokens</div>
@@ -410,7 +410,7 @@ export default function MiniSafe() {
                   </div>
                 </>
               )}
-              
+
               <div className="pt-2">
                 <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Select token</div>
                 <Select
@@ -426,7 +426,7 @@ export default function MiniSafe() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               {parseFloat(cusdBalance) > 0 && (
                 <Alert className="bg-primary/5 border-primary/20">
                   <div className="flex items-start">
@@ -438,15 +438,15 @@ export default function MiniSafe() {
                 </Alert>
               )}
             </CardContent>
-            
+
             <CardFooter className="border-t border-gray-100 dark:border-gray-700 pt-4 flex items-center justify-between text-xs text-gray-500">
               <div className="flex items-center">
                 <ClockIcon className="h-3 w-3 mr-1" />
                 <span>Updated just now</span>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="h-7 px-2 text-xs"
                 onClick={() => {
                   getBalance();
@@ -459,7 +459,7 @@ export default function MiniSafe() {
             </CardFooter>
           </Card>
         </motion.div>
-        
+
         {/* Operations Panel */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -472,7 +472,7 @@ export default function MiniSafe() {
               <CardTitle>Vault Operations</CardTitle>
               <CardDescription>Deposit, withdraw or break timelocks</CardDescription>
             </CardHeader>
-            
+
             <CardContent>
               <Tabs defaultValue="deposit">
                 <TabsList className="grid grid-cols-3 mb-6">
@@ -480,7 +480,7 @@ export default function MiniSafe() {
                   <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
                   <TabsTrigger value="breaklock">Break Lock</TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="deposit">
                   <div className="space-y-6">
                     <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
@@ -494,47 +494,66 @@ export default function MiniSafe() {
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Amount</label>
-                          <Input 
+                          <Input
                             type="number"
-                            value={depositAmount || ''} 
+                            value={depositAmount || ''}
                             onChange={(e) => setDepositAmount(Number(e.target.value))}
                             placeholder={`Enter ${selectedToken} amount`}
                             min="0"
                             step="0.01"
                           />
-                          <p className="text-xs text-gray-500">Approve amount before depositing</p>
+                          {selectedToken === 'cUSD' && (
+                            <p className="text-xs text-gray-500">Approve amount before depositing</p>
+                          )}
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-3">
-                          <Button
-                            variant={isApproved ? "outline" : "default"}
-                            onClick={approveSpend}
-                            disabled={isApproved || isApproving}
-                          >
-                            {isApproving ? (
-                              <LoaderCircleIcon className="h-4 w-4 animate-spin mr-2" />
-                            ) : isApproved ? (
-                              <CheckCircleIcon className="h-4 w-4 mr-2" />
-                            ) : null}
-                            {isApproved ? 'Approved' : 'Approve'}
-                          </Button>
-                          
-                          <Button
-                            onClick={handleDeposit}
-                            disabled={!isApproved || isWaitingTx}
-                            className={!isApproved ? "opacity-50 cursor-not-allowed" : ""}
-                          >
-                            {isWaitingTx ? (
-                              <LoaderCircleIcon className="h-4 w-4 animate-spin mr-2" />
-                            ) : (
-                              <ArrowDownIcon className="h-4 w-4 mr-2" />
-                            )}
-                            Deposit
-                          </Button>
+                          {selectedToken === 'cUSD' ? (
+                            <>
+                              <Button
+                                variant={isApproved ? "outline" : "default"}
+                                onClick={approveSpend}
+                                disabled={isApproved || isApproving}
+                              >
+                                {isApproving ? (
+                                  <LoaderCircleIcon className="h-4 w-4 animate-spin mr-2" />
+                                ) : isApproved ? (
+                                  <CheckCircleIcon className="h-4 w-4 mr-2" />
+                                ) : null}
+                                {isApproved ? 'Approved' : 'Approve'}
+                              </Button>
+
+                              <Button
+                                onClick={handleDeposit}
+                                disabled={!isApproved || isWaitingTx}
+                                className={!isApproved ? "opacity-50 cursor-not-allowed" : ""}
+                              >
+                                {isWaitingTx ? (
+                                  <LoaderCircleIcon className="h-4 w-4 animate-spin mr-2" />
+                                ) : (
+                                  <ArrowDownIcon className="h-4 w-4 mr-2" />
+                                )}
+                                Deposit
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              onClick={handleDeposit}
+                              disabled={isWaitingTx}
+                              className="col-span-2"
+                            >
+                              {isWaitingTx ? (
+                                <LoaderCircleIcon className="h-4 w-4 animate-spin mr-2" />
+                              ) : (
+                                <ArrowDownIcon className="h-4 w-4 mr-2" />
+                              )}
+                              Deposit {selectedToken}
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="bg-primary/5 p-4 rounded-lg">
                       <h4 className="font-medium mb-2 flex items-center">
                         <InfoIcon className="h-4 w-4 mr-2 text-primary" />
@@ -557,7 +576,7 @@ export default function MiniSafe() {
                     </div>
                   </div>
                 </TabsContent>
-                
+
                 <TabsContent value="withdraw">
                   <div className="space-y-6">
                     <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
@@ -565,7 +584,7 @@ export default function MiniSafe() {
                         <ArrowUpIcon className="h-5 w-5 text-blue-500 mr-2" />
                         <h3 className="text-base font-medium">Withdraw {selectedToken}</h3>
                       </div>
-                      
+
                       <div className="mb-6">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-medium">Lock time remaining</span>
@@ -578,7 +597,7 @@ export default function MiniSafe() {
                           You can withdraw without penalty after the lock period ends
                         </p>
                       </div>
-                      
+
                       <Button
                         onClick={handleWithdraw}
                         disabled={lockTimeRemaining > 0 || isWaitingTx}
@@ -591,7 +610,7 @@ export default function MiniSafe() {
                         )}
                         {lockTimeRemaining > 0 ? 'Locked' : 'Withdraw All'}
                       </Button>
-                      
+
                       {lockTimeRemaining > 0 && (
                         <p className="text-center text-sm text-red-500 mt-3">
                           <AlertCircleIcon className="h-4 w-4 inline mr-1" />
@@ -599,7 +618,7 @@ export default function MiniSafe() {
                         </p>
                       )}
                     </div>
-                    
+
                     <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
                       <div className="flex items-start">
                         <InfoIcon className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2 mt-0.5" />
@@ -610,7 +629,7 @@ export default function MiniSafe() {
                     </Alert>
                   </div>
                 </TabsContent>
-                
+
                 <TabsContent value="breaklock">
                   <div className="space-y-6">
                     <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
@@ -618,11 +637,11 @@ export default function MiniSafe() {
                         <UnlockIcon className="h-5 w-5 text-amber-500 mr-2" />
                         <h3 className="text-base font-medium">Break Timelock</h3>
                       </div>
-                      
+
                       <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                         Use your EST tokens to break the timelock and withdraw your funds before the lock period ends. This will consume your EST tokens.
                       </p>
-                      
+
                       <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md p-3 mb-4">
                         <div className="flex items-start">
                           <div className="mr-3 mt-0.5">
@@ -633,16 +652,16 @@ export default function MiniSafe() {
                             <p className="text-xs text-gray-600 dark:text-gray-300">
                               You need <span className="font-bold">15 EST</span> tokens to break this timelock
                             </p>
-                            
+
                             <div className="mt-2 flex items-center justify-between">
                               <span className="text-xs">Your balance:</span>
                               <span className="text-xs font-medium">{tokenBalance} EST</span>
                             </div>
-                            <Progress 
-                              value={Math.min((parseInt(tokenBalance) / 15) * 100, 100)} 
-                              className="h-1.5 mt-1" 
+                            <Progress
+                              value={Math.min((parseInt(tokenBalance) / 15) * 100, 100)}
+                              className="h-1.5 mt-1"
                             />
-                            
+
                             <p className="mt-2 text-xs">
                               {parseInt(tokenBalance) >= 15 ? (
                                 <span className="text-green-600 dark:text-green-400">
@@ -659,7 +678,7 @@ export default function MiniSafe() {
                           </div>
                         </div>
                       </div>
-                      
+
                       <Button
                         variant="default"
                         onClick={handleBreakLock}
@@ -690,7 +709,7 @@ export default function MiniSafe() {
           </Card>
         </motion.div>
       </div>
-                        
+
       {/* Transaction History */}
       <div className="mt-8">
         <TransactionList />
