@@ -1,198 +1,133 @@
+# Esusu: Decentralized Community Savings on Celo
 
-## ESUSU
+![Esusu Logo](https://github.com/user-attachments/assets/c1e4d15e-d400-477f-a302-98ba9e40135d)
 
-## Proof-of-Ship Update
-- Building EsusuSDK so users can interact with the Smart Contracts via chat
-# Project Name:
-## Esusu
+## Overview
 
-Save as a community, Grow as one. 
-AI agent assisted savings.
+Esusu is a decentralized application (DApp) built on the Celo Mainnet that modernizes traditional community savings systems. It enables financial inclusion through a 3-in-1 solution that combines collaborative savings, personal finance management, and bill payment capabilities.
 
+## Features
 
-## Former Participation in Celo Hackathons
+### 1. Thrift Contribution System(Coming soon)
+- Users join campaigns where they contribute funds monthly
+- Each month, one participant receives the pooled contributions
+- Provides access to bulk capital without traditional borrowing
+- Smart contracts ensure transparency and secure fund distribution
 
-    Link to hackathon submissions
-    https://github.com/emiridbest/esusu
+### 2. MiniSafe Box (Time-locked Savings)
+- Personal savings with customizable time-locking
+- Earn MST (MiniSafe Tokens) as rewards for maintaining locked savings
+- Incentivizes financial discipline and long-term planning
 
-## Esusu Logo
+### 3. Bill Payment System(Coming soon)
+- Pay utility bills directly through the platform
+- Make charitable donations to various projects
+- Low-cost transactions using Celo's efficient blockchain
 
-![esusu](https://github.com/user-attachments/assets/c1e4d15e-d400-477f-a302-98ba9e40135d)
+## Problem Statement
 
+Financial exclusion remains a significant challenge across developing economies, particularly in Africa. Limited banking access and weakening savings culture, exacerbated by economic pressures and increased impulse spending, have created barriers to financial stability. Traditional community savings systems (like Esusu) face trust and efficiency challenges, while formal banking remains inaccessible to many.
 
-Link to Video: [Here](https://youtu.be/41HFfpRT5mc)
+## Our Solution
 
-Link to Presentation: [Here](https://www.canva.com/design/DAGDFgtRRjg/rbi6dJBYbt1rEjKQW0tWgQ/view?utm_content=DAGDFgtRRjg&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=ha4a02222aa)
+Esusu bridges traditional community savings practices with blockchain technology to create a secure, transparent financial platform that:
+- Preserves cultural financial traditions while eliminating trust issues
+- Enables financial discipline through smart contract enforcement
+- Provides accessible financial tools via mobile devices with minimal bandwidth requirements
+- Promotes community cooperation through decentralized technology
 
-Link to Github Repo: [Here](https://github.com/emiridbest/esusu)
+## Technology Stack
 
-The goal for this Proof of Ship:
+- **Frontend**: Next.js, Tailwind CSS, Shadcn UI components, TypeScript
+- **Blockchain**: Celo Mainnet
+- **Smart Contracts**: Solidity, Foundry
+- **Development Framework**: Celo Composer
+- **Data Storage**: MongoDB
+- **SDK**: Goat SDK
 
-    Build a new full-stack dApp from scratch using MERN, to deepen my knowledge of backend programming.
-    Experiment the use of AI agents on the full-stack dApp
-    Document journey on Farcaster
-    Consider adding them as features into Esusu
-    Test out ideas for the Agentathon hackathon
-    Also consider Ethglobal AI Agent hackathon and Safe Agentathon => Implemented DCA and streaming of funds via agents
+## Contract Information
 
-What are you planning to achieve? Be as detailed as possible. Try to break it down into weekly milestones.
-Detailed description of the work you did during the contest
+- **Current Esusu Piggy Box Contract**: `0x4f2823A3AACa8eA1B427ABC5750Ccb3D4E8C4AC7`
+- **Former Contract**: `0xD7154A32280c31a510BF248CE35F2627162227b4`
+- **Token**: MST (MiniSafe Token) - Rewards for locking up funds
 
-        1. February 2 - February 6 : AI Agent Research. Fullstack application(Soccer game)
-        2. February 6 - February 13: AI Agent Research. Ethglobal. Open source contribution to Coinbase
-        3. Februaru 12 - February 15: Safe Agenthathon
-        4. February 15 - February 23: Building and testing Esusu AI Agent
+## Recent Achievements (Proof of Ship Season 2)
 
-## Personal Proof of Ship Scorecard
-![esusu](https://github.com/user-attachments/assets/2f616ae4-63a5-4776-b55b-babc88ed878d)
+| Date | Milestone |
+|------|-----------|
+| Mar 2-14 | AI Agent Research for trading capabilities |
+| Mar 8-23 | Frontend redesign and implementation |
+| Mar 15-25 | Community building and user feedback collection |
+| Mar 20-25 | UI improvements based on user feedback |
+| Mar 20 | Smart contract update to fix redundancy in Breaktimelock functionality |
 
+## Roadmap (Next Month)
 
-    Link to PR for Agent Chat => https://github.com/emiridbest/esusu/pull/1#event-16422778549
-    Link to PR for open source contribution => https://github.com/coinbase/agentkit/pull/346#issuecomment-2667201044
+- [ ] Update smart contract to production state
+- [ ] Integrate with Aave protocol
+- [ ] Implement Gooddollar deposits
+- [ ] Incorporate Gooddollar identity verification
+- [ ] Complete smart contract audit
+- [ ] Expand community reach
 
-## Problem Esusu is Solving
+## Getting Started
 
-    The growing trend of poor savings habits
-    Also fragmentation of web3 banking services
-    Increasing bad debts/poor debt repayment rate
+### Prerequisites
+- Node.js and Yarn installed
+- Minipay wallet
 
-    
-## Solution Esusu is Bringing
+### Installation
 
-    Pool community savings dashboard
-    Individual Savings infrastructure
-    Utility bills payment 
-    AI enhanced blockchain services
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/emiridbest/esusu.git
+   cd esusu
+   ```
 
-## Framework Used for Building Esusu
+2. Install dependencies:
+   ```bash
+   yarn install
+   ```
 
-    Celo Composer
-    NextJS
-    Foundry
-    MongoDB
-    Goat SDK    
+3. Start the development server:
+   ```bash
+   yarn run dev
+   ```
 
-## General Feedback
+4. Visit `http://localhost:3000` in your browser to view the application.
 
-    While building a DCA-implementing agent, I realised Celo wasnt fully supported
-    Also, Polymarket isn't supported at all by Celo
-    Deploying a fullstack fronend for an agent is quite problematic especially with older versions of celo_composer on which Esusu is currently on.
-    
+### Mobile Access
 
-## Deployed Contract Addresses on Celo
+To access the app via Celo Minipay wallet:
+1. Open the Minipay app
+2. Navigate to the `site tester` feature
+3. Enter `http://esusu-one.vercel.app`
 
-    Esusu Celo mainnet => 0xD7154A32280c31a510BF248CE35F2627162227b4
+## Screenshots
 
-
-
-## Link To PR
-
-- Esusu AI Agent PR => https://github.com/emiridbest/esusu/pull/1#event-16422778549
-- Open source contribution PR => https://github.com/coinbase/agentkit/pull/346#issuecomment-2667201044
+<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+    <img src="https://github.com/emiridbest/esusu/assets/6362475/d7c54cc5-3c23-433d-a935-3d09975102c7" alt="Dashboard" width="45%">
+    <img src="https://github.com/emiridbest/esusu/assets/6362475/b30de746-c2db-4a43-a976-2c00eea408f3" alt="Savings Interface" width="45%">
+    <img src="https://github.com/emiridbest/esusu/assets/6362475/0c958d2d-b537-45f1-91d8-3b6c4c883011" alt="Campaign Creation" width="45%">
+    <img src="https://github.com/emiridbest/esusu/assets/6362475/4b27f0c8-4a3c-4b7c-b17d-c8b8fc3879e2" alt="Transaction History" width="45%">
+    <img src="https://github.com/emiridbest/esusu/assets/6362475/12111a40-8c3f-4039-9167-b4e02c0bed2f" alt="User Profile" width="45%">
+    <img src="https://github.com/emiridbest/esusu/assets/6362475/478530fd-0568-41b5-9485-78ad207f3465" alt="Bill Payment" width="45%">
+</div>
 
 ## Team
 
-Emiri Udogwu  - [GitHub](https://github.com/emiridbest/)
+**Emiri Udogwu** - Lead Developer - [GitHub](https://github.com/emiridbest/)
 
-## Next Step
-        - Migrate project to newer versions of NextJS
-        - Consider uding just the React framework
+## Contributing
 
-### Overview
-ESUSU is a decentralized application (DApp) built on the Celo Mainnet  that facilitates stablecoin contributions through a collective savings model known as Esusu in many African communities. The DApp allows users to create and join campaigns, contribute funds, and track campaign details transparently on the blockchain.
+Contributions are welcome! Please follow these steps:
 
-The dApp is a 3 in 1 solution to solving issues related to financial inclusion and poor savings trend. the sectios are 
-- Esusu thrift contribution => % users joibn a contribution campaign where they pool their funds evrymonth for 5 months . For every month a unique user takes home the total contribution giving everyone access to `bulk money` which naturally the couldnt have saved up. This also elemintaes the need to borrow money for fundung big projects.
-- Esusu piggy box => Funds are locked up over time so that users no longer have access to them. They earn `MST` tokens for locking up funds but loss these tokens if the decide to break the lock.
-- Esusu pay bills => users can pay for their utility and also make donations to their various projects.
-
-![image](https://github.com/emiridbest/esusu/assets/6362475/be3da0ba-5da9-47ea-a1eb-f3dd886485ef)
-
-![image](https://github.com/emiridbest/esusu/assets/6362475/c2af695b-d8b2-4713-b8fa-703b10fdc5dc)
-
-
-
-![image](https://github.com/emiridbest/esusu/assets/6362475/10465297-a106-4d8c-a124-34340e849bce)
-
-
-
-### Features of Esusu Thrift Contribution
-- Create and manage campaigns
-- Join existing campaigns => To join a campaign, users must `stake` (`contributionAmount` * 5) so that they can be held accountable.
-- On `staking`, users earn 5 `EST` tokens
-- Contribute funds to campaigns
-- View campaign details such as description, contribution amount, payout interval, total contributions, and more
-- Track last payout block and user participation
-- When any user cannot meet the contribution responsibility for the month, the `defaultpayment` contribution is triggerred so the  `contributionAmount`  is deducted from the staked amount and also a penalty of 1 `EST` token.
-
-### Technologies Used
-- **Frontend**: Next.js, Tailwind CSS, Typescript
-- **Backend**: Solidity, Ethereum blockchain
-- **Smart Contracts**: Ethers.js
-- **Deployment**: Celo Mainnet
--  **ESUSU THRIFT Contract Address**: 0xf9d3f0cde68a24d4da3a1c9dd31952d85855c691
--  **ESUSU PIGGY BOX Contract Address**: 0xD7154A32280c31a510BF248CE35F2627162227b4
--  **Tokens**: `EST` Esusu Tokens as reward for staking  and `MST` MiniSafe Token as reward for locking up funds.
-- **Sourcify Verification Link**: https://repo.sourcify.dev/contracts/full_match/42220/0xf9D3F0cdE68A24d4da3a1c9dD31952D85855C691/sources/
-### Setup Instructions
-1. Clone the repository:
-   ```
-   git clone https://github.com/emiridbest/esusu.git
-   ```
-2. Install dependencies:
-   ```
-   yarn install
-   ```
-3. Start the development server:
-   ```
-   yarn run dev
-   ```
-4. Visit `http://localhost:3000` in your browser to view the application.
-
-### Usage
-- Create an account or connect your Celo Minipay wallet.
-- Go to the `site tester` in mini pay and enter http://esusu-one.vercel.app
-- **Esusu thrift**
-- Explore available campaigns or create your own.
-- Join campaigns to start contributing funds.
-- Track campaign progress and participate in payouts.
-
-### Contributing
-Contributions are welcome! Please follow the standard GitHub flow:
 1. Fork the repository
-2. Create a new branch (`git checkout -b feature/<feature-name>`)
-3. Make your changes
-4. Commit your changes (`git commit -am 'Add new feature'`)
-5. Push to the branch (`git push origin feature/<feature-name>`)
-6. Create a new Pull Request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-### License
+## License
+
 This project is licensed under the [MIT License](LICENSE).
-
-
-![1](https://github.com/emiridbest/esusu/assets/6362475/d7c54cc5-3c23-433d-a935-3d09975102c7)
-
-![2](https://github.com/emiridbest/esusu/assets/6362475/b30de746-c2db-4a43-a976-2c00eea408f3)
-
-![3](https://github.com/emiridbest/esusu/assets/6362475/0c958d2d-b537-45f1-91d8-3b6c4c883011)
-![4](https://github.com/emiridbest/esusu/assets/6362475/4b27f0c8-4a3c-4b7c-b17d-c8b8fc3879e2)
-
-![5](https://github.com/emiridbest/esusu/assets/6362475/12111a40-8c3f-4039-9167-b4e02c0bed2f)
-
-
-![6](https://github.com/emiridbest/esusu/assets/6362475/478530fd-0568-41b5-9485-78ad207f3465)
-
-
-![8](https://github.com/emiridbest/esusu/assets/6362475/ef36d162-66fc-49d0-a43c-fe9a45081532)
-
-
-![9](https://github.com/emiridbest/esusu/assets/6362475/1a28931f-c967-4463-9ee8-0710e7114e7c)
-
-
-![10](https://github.com/emiridbest/esusu/assets/6362475/0e1d0a9e-c1fd-4997-ab42-d0dcfb69df43)
-
-
-
-
-
----
