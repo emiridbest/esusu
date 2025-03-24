@@ -15,9 +15,9 @@ import { useLocation } from "react-router-dom"
 import { useAccount } from "wagmi"
 import { useIdentitySDK } from "@goodsdks/identity-sdk"
 
-import { VerifyButton } from "./components/VerifyButton"
-import { IdentityCard } from "./components/IdentityCard"
-import { SigningModal } from "./components/SigningModal"
+import { VerifyButton } from "@/components/VerifyButton"
+import { IdentityCard } from "@/components/IdentityCard"
+import { SigningModal } from "@/components/SigningModal"
 
 const tamaguiConfig = createTamagui(config)
 
