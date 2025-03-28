@@ -599,7 +599,7 @@ export default function MiniSafe() {
 
                       <Button
                         onClick={handleWithdraw}
-                        disabled={lockTimeRemaining > 0 || isWaitingTx}
+                        disabled={new Date().getDate() < 27 || isWaitingTx}
                         className="w-full"
                       >
                         {isWaitingTx ? (
@@ -607,10 +607,10 @@ export default function MiniSafe() {
                         ) : (
                           <ArrowUpIcon className="h-4 w-4 mr-2" />
                         )}
-                        {lockTimeRemaining > 0 ? 'Locked' : 'Withdraw All'}
+                        {new Date().getDate() < 27  ? 'Locked' : 'Withdraw All'}
                       </Button>
 
-                      {lockTimeRemaining > 0 && (
+                      {new Date().getDate() < 27  && (
                         <p className="text-center text-sm text-red-500 mt-3">
                           <AlertCircleIcon className="h-4 w-4 inline mr-1" />
                           Your funds are still locked. Use Break Lock to withdraw early.
