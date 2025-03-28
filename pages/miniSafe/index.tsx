@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, JSX } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { contractAddress, abi } from '../../utils/abi';
@@ -588,12 +588,16 @@ export default function MiniSafe() {
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-medium">Lock time remaining</span>
                           <span className="text-sm">
-                            {lockTimeRemaining} days left
+                            {/* Show 0 days left if today is day 28 or later */}
+                            {new Date().getDate() >= 28 ? '0 days left' : `${28 - new Date().getDate()} days left`}
                           </span>
                         </div>
-                        <Progress value={(30 - lockTimeRemaining) / 30 * 100} className="h-2" />
+                        <Progress
+                          value={new Date().getDate() >= 28 ? 100 : (new Date().getDate() / 28) * 100}
+                          className="h-2"
+                        />
                         <p className="text-xs text-gray-500 mt-2">
-                          You can withdraw without penalty during withdrawal window
+                          You can withdraw without penalty during withdrawal window (days 28-30)
                         </p>
                       </div>
 
@@ -607,10 +611,10 @@ export default function MiniSafe() {
                         ) : (
                           <ArrowUpIcon className="h-4 w-4 mr-2" />
                         )}
-                        {new Date().getDate() < 27  ? 'Locked' : 'Withdraw All'}
+                        {new Date().getDate() < 27 ? 'Locked' : 'Withdraw All'}
                       </Button>
 
-                      {new Date().getDate() < 27  && (
+                      {new Date().getDate() < 27 && (
                         <p className="text-center text-sm text-red-500 mt-3">
                           <AlertCircleIcon className="h-4 w-4 inline mr-1" />
                           Your funds are still locked. Use Break Lock to withdraw early.
