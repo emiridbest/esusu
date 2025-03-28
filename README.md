@@ -26,7 +26,8 @@ Esusu is a decentralized application (DApp) built on the Celo Mainnet that moder
 
 ## Problem Statement
 
-Financial exclusion remains a significant challenge across developing economies, particularly in Africa. Limited banking access and a weakening savings culture, exacerbated by economic pressures and increased impulse spending, have created barriers to financial stability. Traditional community savings systems (like Esusu) face trust and efficiency challenges, while formal banking remains inaccessible to many.
+Financial exclusion remains a significant challenge across developing economies, particularly in Africa. Limited banking access and weakening savings culture, exacerbated by economic pressures and increased impulse spending, have created barriers to financial stability. Traditional community savings systems (like Esusu) face trust and efficiency challenges, while formal banking remains inaccessible to many.
+
 
 ## Our Solution
 
@@ -129,5 +130,6 @@ Contributions are welcome! Please follow these steps:
 5. Open a Pull Request
 
 ## License
+
 
 This project is licensed under the [MIT License](LICENSE).
