@@ -42,6 +42,7 @@ import {
 export default function MiniSafe() {
   const cUsdTokenAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
   const celoAddress = "0x0000000000000000000000000000000000000000";
+  const goodDollarAddress = "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A"
 
   const [depositAmount, setDepositAmount] = useState(0);
   const [withdrawAmount, setWithdrawAmount] = useState(0);
@@ -55,7 +56,6 @@ export default function MiniSafe() {
   const [isWaitingTx, setIsWaitingTx] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [interestRate] = useState(5); // 5% APY for visualization
-  const [lockTimeRemaining, setLockTimeRemaining] = useState(30); // Mock remaining days
 
   const getBalance = useCallback(async () => {
     if (window.ethereum) {
@@ -141,7 +141,7 @@ export default function MiniSafe() {
         const depositValue = parseEther(depositAmount.toString());
         const gasLimit = parseInt("600000");
 
-        const tokenAddress = selectedToken === 'cUSD' ? cUsdTokenAddress : celoAddress;
+        const tokenAddress = selectedToken === 'cUSD' ? cUsdTokenAddress : goodDollarAddress;
         const tokenAbi = [
           "function allowance(address owner, address spender) view returns (uint256)",
           "function approve(address spender, uint256 amount) returns (bool)"
@@ -200,6 +200,8 @@ export default function MiniSafe() {
           tx = await contract.deposit(cUsdTokenAddress, depositValue, { gasLimit });
         } else if (selectedToken === 'CELO') {
           tx = await contract.deposit(celoAddress, depositValue, { gasLimit });
+        } else if (selectedToken === 'G$') {
+          tx = await contract.deposit(goodDollarAddress, depositValue, { gasLimit });
         }
         const receipt = await tx.wait();
 
@@ -246,6 +248,8 @@ export default function MiniSafe() {
           tx = await contract.withdraw(celoAddress, { gasLimit });
         } else if (selectedToken === 'cUSD') {
           tx = await contract.withdraw(cUsdTokenAddress, { gasLimit });
+        } else if( selectedToken === 'G$') {
+          tx = await contract.withdraw(goodDollarAddress, { gasLimit });
         }
         await tx.wait();
         getBalance();
@@ -365,7 +369,7 @@ export default function MiniSafe() {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400">CELO Balance</div>
-                      <Badge variant="outline" className="text-xs">Stablecoin</Badge>
+                      <Badge variant="outline" className="text-xs">Native Coin</Badge>
                     </div>
                     <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
                       <div className="flex items-center">
@@ -400,8 +404,8 @@ export default function MiniSafe() {
                     </div>
                     <div className="flex items-center justify-between  bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
                       <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-2">
-                          <CoinsIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-2">
+                          <CoinsIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                         </div>
                         <span className="font-medium">G$</span>
                       </div>
@@ -439,7 +443,7 @@ export default function MiniSafe() {
                   <SelectContent>
                     <SelectItem value="cUSD">cUSD</SelectItem>
                     <SelectItem value="CELO">CELO</SelectItem>
-                    <SelectItem value="CELO">G$</SelectItem>
+                    <SelectItem value="G$">G$</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -610,10 +614,11 @@ export default function MiniSafe() {
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-medium">Lock time remaining</span>
                           <span className="text-sm">
-                            {lockTimeRemaining} days left
-                          </span>
+                          {new Date().getDate() >= 28 && new Date().getDate() <= 31 ? 0 : Math.max(28 - new Date().getDate(), 0)} days left                          </span>
                         </div>
-                        <Progress value={(30 - lockTimeRemaining) / 30 * 100} className="h-2" />
+                        
+                        <Progress value={Math.max(((28 - new Date().getDate()) / 28) * 100, 0)} 
+                        className="h-2" />
                         <p className="text-xs text-gray-500 mt-2">
                           You can withdraw without penalty during withdrawal window
                         </p>
@@ -621,7 +626,7 @@ export default function MiniSafe() {
 
                       <Button
                         onClick={handleWithdraw}
-                        disabled={lockTimeRemaining > 0 || isWaitingTx}
+                        disabled={new Date().getDate() < 28 || isWaitingTx}
                         className="w-full"
                       >
                         {isWaitingTx ? (
@@ -629,10 +634,10 @@ export default function MiniSafe() {
                         ) : (
                           <ArrowUpIcon className="h-4 w-4 mr-2" />
                         )}
-                        {lockTimeRemaining > 0 ? 'Locked' : 'Withdraw All'}
+                        {new Date().getDate() < 28 ? 'Locked' : 'Withdraw All'}
                       </Button>
 
-                      {lockTimeRemaining > 0 && (
+                      {new Date().getDate() < 28 && (
                         <p className="text-center text-sm text-red-500 mt-3">
                           <AlertCircleIcon className="h-4 w-4 inline mr-1" />
                           Your funds are still locked. Use Break Lock to withdraw early.
