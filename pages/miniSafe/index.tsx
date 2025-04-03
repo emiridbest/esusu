@@ -73,19 +73,17 @@ export default function MiniSafe() {
         const balanceStruct = await contract.balances(userAddress);
         if (balanceStruct && balanceStruct.celoBalance !== undefined) {
           const celoBalanceBigInt = formatUnits(balanceStruct.celoBalance, 18);
-          const celoBalanceBigNumber = BigNumber.from(celoBalanceBigInt);
-          const celoBalanceString = celoBalanceBigNumber.toString();
-          setCeloBalance(celoBalanceString.toString());
+          setCeloBalance(celoBalanceBigInt);
 
           const cUsdBalance = await contract.getBalance(userAddress, cUsdTokenAddress);
           if (cUsdBalance !== undefined) {
             const cUsdBalanceBigInt = formatUnits(cUsdBalance, 18);
-            setCusdBalance(cUsdBalanceBigInt.toString());
+            setCusdBalance(cUsdBalanceBigInt);
           }
           const goodDollarBalance = await contract.getBalance(userAddress, goodDollarAddress);
           if (goodDollarBalance !== undefined) {
             const goodDollarBalanceBigInt = formatUnits(goodDollarBalance, 18);
-            setGoodDollarBalance(goodDollarBalanceBigInt.toString());
+            setGoodDollarBalance(goodDollarBalanceBigInt);
           }
         }
       } catch (error) {
