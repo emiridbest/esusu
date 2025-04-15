@@ -6,7 +6,9 @@
         "dev": "next dev",
         "build": "next build",
         "start": "next start",
-        "lint": "next lint"
+        "lint": "next lint",
+        "test": "jest",
+        "test:watch": "jest --watch"
     },
     "dependencies": {
         "@ai-sdk/google": "^1.1.2",
@@ -88,12 +90,17 @@
         "zod": "^3.24.1"
     },
     "devDependencies": {
+        "@testing-library/jest-dom": "^6.6.3",
+        "@testing-library/react": "^16.3.0",
+        "@types/jest": "^29.5.14",
         "@types/node": "^20",
         "@types/react": "^19",
         "@types/react-dom": "^19",
         "autoprefixer": "^10.4.14",
         "eslint": "^8.40.0",
         "eslint-config-next": "^13.4.2",
+        "jest": "^29.7.0",
+        "jest-environment-jsdom": "^29.7.0",
         "postcss": "^8.4.23",
         "tailwindcss": "^3.3.2",
         "typescript": "^5.0.4"
