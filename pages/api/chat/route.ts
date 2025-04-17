@@ -8,12 +8,12 @@ require("dotenv").config();
 import { streamText } from 'ai';
 
 import { esusu } from "@/agent/dist";
-
-const account = privateKeyToAccount(process.env.WALLET_PRIVATE_KEY as `0x${string}`);
+const OPENAI_API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+const account = privateKeyToAccount(process.env.NEXT_PUBLIC_WALLET_PRIVATE_KEY as `0x${string}`);
 
 const walletClient = createWalletClient({
     account: account,
-    transport: http(process.env.RPC_PROVIDER_URL),
+    transport: http(process.env.NEXT_PUBLIC_RPC_PROVIDER_URL),
     chain: celo,
 });
 
@@ -21,17 +21,14 @@ const walletClient = createWalletClient({
 export async function POST(req: Request) {
     const { messages } = await req.json();
     const tools = await getOnChainTools({
-                // @ts-ignore
-
+        // @ts-ignore
         wallet: viem(walletClient),
         plugins: [esusu()],
     });
 
-
-
     const result = streamText({
         model: openai("gpt-4o-mini"),
-        system: "You are a helpful agent that performs onchain transactions like sending celo,cusd, implement dolar-cost-averaging using balmy protocol, tokens etc and provides onchain advice based on data given",
+        system: "You are a helpful agent that performs onchain transactions like depositing celo,cusd on the Esusu contract as well as educate users and answer queries.",
         tools: tools,
         maxSteps: 20,
         messages,
