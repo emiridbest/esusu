@@ -1,7 +1,6 @@
 import { FC, ReactNode, useState, useEffect, createContext } from "react";
 import Footer from "./Footer";
 import Header from "./Header";
-import FloatingChat from "./FloatingChat";
 import { Moon, Sun } from "lucide-react";
 
 export const ThemeContext = createContext({
@@ -58,7 +57,6 @@ const Layout: FC<Props> = ({ children }) => {
               {children}
             </div>
           </main>
-          <FloatingChat />
           <Footer />
         </div>
       </div>

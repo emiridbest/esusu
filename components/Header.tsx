@@ -76,6 +76,7 @@ export default function Header() {
     { title: "Simple Saver", href: "/miniSafe" },
     { title: "Thrift", href: "/thrift" },
     { title: "Pay Bills", href: "/utilityBills" },
+    { title: "Chat", href: "/chat" },
   ];
 
   // About menu items

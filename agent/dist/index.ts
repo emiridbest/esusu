@@ -1,1 +1,1 @@
-export { esusu } from './esusu.plugin';
+export { esusu, EsusuPlugin } from "./esusu.plugin";

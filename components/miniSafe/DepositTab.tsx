@@ -37,14 +37,16 @@ const DepositTab: React.FC = () => {
         </p>
         <div className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Amount</label>
+            <label htmlFor="amount-input" className="text-sm font-medium">Amount</label>
             <Input
+              id="amount-input"
               type="number"
               value={depositAmount || ''}
               onChange={(e) => setDepositAmount(Number(e.target.value))}
               placeholder={`Enter ${selectedToken} amount`}
               min="0"
               step="0.01"
+              aria-label="Amount"
             />
             {selectedToken === 'cUSD' && (
               <p className="text-xs text-gray-500">Approve amount before depositing</p>
@@ -69,8 +71,7 @@ const DepositTab: React.FC = () => {
 
                 <Button
                   onClick={handleDeposit}
-                  disabled={!isApproved || isWaitingTx}
-                  className={!isApproved ? "opacity-50 cursor-not-allowed" : ""}
+                  disabled={!isApproved || isWaitingTx || depositAmount <= 0}
                 >
                   {isWaitingTx ? (
                     <LoaderCircleIcon className="h-4 w-4 animate-spin mr-2" />
@@ -83,7 +84,7 @@ const DepositTab: React.FC = () => {
             ) : (
               <Button
                 onClick={handleDeposit}
-                disabled={isWaitingTx}
+                disabled={isWaitingTx || depositAmount <= 0}
                 className="col-span-2"
               >
                 {isWaitingTx ? (

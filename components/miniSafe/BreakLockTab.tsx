@@ -46,8 +46,8 @@ const BreakLockTab: React.FC = () => {
             </div>
             <div>
               <h4 className="text-sm font-medium mb-1">Required EST Tokens</h4>
-              <p className="text-xs text-gray-600 dark:text-gray-300">
-                You need <span className="font-bold">{requiredEstTokens} EST</span> tokens to break this timelock
+              <p className="text-xs text-gray-600 dark:text-gray-300" data-testid="required-tokens-text">
+                You need {requiredEstTokens} EST tokens to break this timelock
               </p>
 
               <div className="mt-2 flex items-center justify-between">
