@@ -1,6 +1,6 @@
 "use client";
 import React from 'react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { RocketIcon, BellIcon, CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
