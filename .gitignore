@@ -11,6 +11,16 @@
 # next.js
 /.next/
 /out/
+# Add more specific rules for Next.js cache and build files
+/frontend/.next/
+/frontend/out/
+/backend/.next/
+/backend/out/
+# Specifically exclude large cache files
+**/.next/cache/
+**/.next/cache/webpack/
+**/.next/**/*.pack
+**/.next/**/*.pack.old
 
 # production
 /build
