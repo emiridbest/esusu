@@ -1,9 +1,0 @@
-{
-  "/_not-found/page": "app/_not-found/page.js",
-  "/api/chat/route": "app/api/chat/route.js",
-  "/chat/page": "app/chat/page.js",
-  "/miniSafe/page": "app/miniSafe/page.js",
-  "/utilityBills/page": "app/utilityBills/page.js",
-  "/thrift/page": "app/thrift/page.js",
-  "/page": "app/page.js"
-}
