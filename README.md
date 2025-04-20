@@ -52,50 +52,93 @@ Esusu bridges traditional community savings practices with blockchain technology
 - **Former Contract**: `0xD7154A32280c31a510BF248CE35F2627162227b4`
 - **Token**: MST (MiniSafe Token) - Rewards for locking up funds
 
-## Recent Achievements (Proof of Ship Season 2)
+```
+esusu/
+├── frontend/            # Next.js 15 frontend application
+│   ├── app/             # App Router components and routes
+│   ├── components/      # Reusable React components
+│   ├── public/          # Static assets
+│   └── ...
+├── backend/             # Next.js 15 backend API server
+│   ├── app/             # API routes
+│   └── ...
+└── ...
+```
 
-| Date | Milestone |
-|------|-----------|
-| Mar 2-14 | AI Agent Research for trading capabilities |
-| Mar 8-23 | Frontend redesign and implementation |
-| Mar 15-25 | Community building and user feedback collection |
-| Mar 20-25 | UI improvements based on user feedback |
-| Mar 20 | Smart contract update to fix redundancy in Breaktimelock functionality |
+## Features
 
-## Roadmap (Next Month)
-
-- [ ] Update smart contract to production state
-- [ ] Integrate with Aave protocol
-- [ ] Implement Gooddollar deposits
-- [ ] Incorporate Gooddollar identity verification
-- [ ] Complete smart contract audit
-- [ ] Expand community reach
+- **Mini Safe**: Secure savings feature
+- **Thrift**: Group savings feature
+- **Chat Assistant**: AI-powered assistant for performing onchain transactions
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js and Yarn installed
-- Minipay wallet
+
+- Node.js 18.17.0 or later
+- npm or yarn
 
 ### Installation
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/emiridbest/esusu.git
-   cd esusu
-   ```
+1. Install dependencies for both frontend and backend:
 
-2. Install dependencies:
-   ```bash
-   yarn install
-   ```
+```bash
+npm run install:all
+```
 
-3. Start the development server:
-   ```bash
-   yarn run dev
-   ```
+### Running the Application
 
-4. Visit `http://localhost:3000` in your browser to view the application.
+To run both the frontend and backend simultaneously:
+
+```bash
+npm run dev
+```
+
+This will start:
+- Frontend on http://localhost:3000
+- Backend on http://localhost:3001
+
+### Environment Setup
+
+1. Configure your frontend environment variables in `frontend/.env`:
+```
+NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+2. Configure your backend environment variables in `backend/.env`:
+```
+PORT=3001
+OPENAI_API_KEY=your_openai_api_key_here
+WALLET_PRIVATE_KEY=your_wallet_private_key_here
+RPC_PROVIDER_URL=your_rpc_provider_url_here
+```
+
+## Building for Production
+
+To build both applications for production:
+
+```bash
+npm run build
+```
+
+To start the production builds:
+
+```bash
+npm run start
+```
+
+## Technologies Used
+
+- Next.js 15
+- React 18
+- TypeScript
+- Tailwind CSS
+- OpenAI SDK
+- Viem for Blockchain Interactions
+- GOAT SDK for Web3 Integration
+
+
 
 ### Mobile Access
 

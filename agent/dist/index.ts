@@ -1,1 +1,0 @@
-export { esusu } from './esusu.plugin';
