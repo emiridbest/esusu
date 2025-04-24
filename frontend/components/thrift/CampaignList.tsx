@@ -136,7 +136,7 @@ export function CampaignList() {
       <Card className="w-full">
         <CardContent className="pt-6">
           <div className="text-center p-8">
-            <p>You haven't joined any thrift groups yet. Create one to get started!</p>
+            <p>You have not joined any thrift groups yet. Create one to get started!</p>
           </div>
         </CardContent>
       </Card>
@@ -217,7 +217,7 @@ export function CampaignList() {
                 />
               </div>
               <p className="text-sm text-gray-500">
-                Anyone with this link can request to join your thrift group. You'll need to approve their request.
+                Anyone with this link can request to join your thrift group. You will need to approve their request.
               </p>
             </div>
           </div>
@@ -239,7 +239,7 @@ export function CampaignList() {
             <DialogTitle>Join Thrift Group</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="mb-4">You're joining: <strong>{selectedCampaign?.name}</strong></p>
+            <p className="mb-4">You are joining: <strong>{selectedCampaign?.name}</strong></p>
             <p className="text-sm text-gray-500 mb-6">
               Monthly contribution: {selectedCampaign?.contributionAmount} cUSD
             </p>
