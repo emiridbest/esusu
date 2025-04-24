@@ -116,7 +116,7 @@ export function UserCampaigns() {
       <Card className="w-full">
         <CardContent className="pt-6">
           <div className="text-center p-8">
-            <p>You haven't joined any thrift groups yet. Create one to get started!</p>
+            <p>You have not joined any thrift groups yet. Create one to get started!</p>
           </div>
         </CardContent>
       </Card>
