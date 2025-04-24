@@ -83,7 +83,7 @@ export default function CampaignDetailsPage() {
     };
     
     loadMembers();
-  }, [campaign]);
+  }, [campaign, getCampaignMembers]);
   
   // Open join dialog if join=true in URL and not already a member
   useEffect(() => {
@@ -214,7 +214,7 @@ export default function CampaignDetailsPage() {
       <div className="container mx-auto px-4 py-10">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Thrift Group Not Found</h1>
-          <p className="mb-6">The thrift group you are looking for does not exist or you don't have access to it.</p>
+          <p className="mb-6">The thrift group you are looking for does not exist or you do not have access to it.</p>
           <Button onClick={() => router.push('/thrift')} className="flex items-center gap-2">
             <ArrowLeftIcon className="h-4 w-4" />
             Back to Thrift Groups
@@ -435,7 +435,7 @@ export default function CampaignDetailsPage() {
             <DialogTitle>Join Thrift Group</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="mb-4">You're requesting to join: <strong>{campaign.name}</strong></p>
+            <p className="mb-4">You are requesting to join: <strong>{campaign.name}</strong></p>
             <p className="text-sm text-gray-500 mb-6">
               Monthly contribution: {campaign.contributionAmount} cUSD
             </p>
@@ -561,7 +561,7 @@ export default function CampaignDetailsPage() {
                 />
               </div>
               <p className="text-sm text-gray-500">
-                Anyone with this link can request to join your thrift group. You'll need to approve their request.
+                Anyone with this link can request to join your thrift group. You will need to approve their request.
               </p>
             </div>
           </div>

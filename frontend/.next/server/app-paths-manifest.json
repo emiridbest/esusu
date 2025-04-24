@@ -1,9 +1,13 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
   "/api/chat/route": "app/api/chat/route.js",
+  "/api/exchange_rate/route": "app/api/exchange_rate/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/chat/page": "app/chat/page.js",
+  "/page": "app/page.js",
   "/miniSafe/page": "app/miniSafe/page.js",
-  "/utilityBills/page": "app/utilityBills/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/thrift/[id]/page": "app/thrift/[id]/page.js",
+  "/thrift/join/[id]/page": "app/thrift/join/[id]/page.js",
   "/thrift/page": "app/thrift/page.js",
-  "/page": "app/page.js"
+  "/utilityBills/page": "app/utilityBills/page.js"
 }

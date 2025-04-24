@@ -65,7 +65,8 @@ export default function Chat() {
     useEffect(() => {
         console.log("Chat component mounted");
         console.log("Initial messages:", messages);
-    }, []);
+    
+    }, );
 
     return (
         <div className="flex h-full">
