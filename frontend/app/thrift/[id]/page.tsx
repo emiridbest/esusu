@@ -24,9 +24,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
 export default function CampaignDetailsPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id;
   const searchParams = useSearchParams();
-  const isJoinRequest = searchParams.get('join') === 'true';
+  const isJoinRequest = searchParams?.get('join') === 'true';
   const router = useRouter();
   const campaignId = typeof id === 'string' ? parseInt(id) : -1;
   
@@ -57,16 +58,14 @@ export default function CampaignDetailsPage() {
       return;
     }
     
-    // If not found in user campaigns, check all campaigns
-    // In a real application, you might need to fetch this specific campaign if it's not in the user's list
+
     foundCampaign = allCampaigns.find(c => c.id === campaignId);
     if (foundCampaign) {
       setCampaign(foundCampaign);
       return;
     }
     
-    // If we still don't have a campaign and the user is connected, we might need to fetch it
-    // This would require an additional API endpoint or contract call to get a specific campaign by ID
+
   }, [campaignId, userCampaigns, allCampaigns]);
   
   // Load campaign members
