@@ -1,4 +1,3 @@
-// filepath: c:\Users\ADMIN\Documents\Emiri\esusu\context\miniSafe\MiniSafeContext.tsx
 import React, { createContext, useState, useCallback, useContext, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { contractAddress, abi } from '@/utils/abi';
