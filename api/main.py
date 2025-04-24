@@ -5,6 +5,6 @@ app = create_app()
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    app.logger.info('Starting TradingML application')
+    app.logger.info('Esusu Exchange Rate API application')
     app.logger.info(f'Registered routes: {[r.rule for r in app.url_map.iter_rules()]}')
-    app.run(debug=True)
+    app.run(debug=False)
