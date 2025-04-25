@@ -40,7 +40,8 @@ def create_app():
             "version": "1.0.0",
             "endpoints": [
                 "/api/ping",
-                "/api/exchange-rate"
+                "/api/exchange-rate",
+                "/api/stock-data",
             ]
         })
     
