@@ -1,3 +1,4 @@
+import { convert } from '@/app/api/exchange_rate/route';
 // Format currency with the appropriate symbol
 export function formatCurrency(amount: number, currency: string = 'NGN'): string {
   if (isNaN(amount)) return '0.00';
@@ -11,32 +12,28 @@ export function formatCurrency(amount: number, currency: string = 'NGN'): string
   return formatter.format(amount);
 }
 
+// Fetch exchange rate from our API endpoint
+async function fetchExchangeRate(currency: string): Promise<number> {
+  try {
+    const rate = await convert({ base_currency: currency }); 
+    return rate;
+  } catch (error) {
+    console.error('Error fetching exchange rate:', error);
+    return 0; 
+  }
+}
+
 // Convert between currencies using the live exchange rate
 export const convertNairaToUSD = async (
   amountNGN: number, 
-  includeFee: boolean = false
 ): Promise<number> => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/exchange-rate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ base_currency: 'NGN' })
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const exchangeRateData = await response.json();
-    const rate = includeFee ? exchangeRateData.padded_rate : exchangeRateData.rate;
-
-    return amountNGN / rate;
+    const rate = await fetchExchangeRate('NGN=X');
+    const amountUSD = amountNGN/rate
+    return amountUSD;
   } catch (error) {
     console.error('Error converting currency:', error);
-    const fallbackRate = includeFee ? 1550.01 : 1550.00;
-    return amountNGN / fallbackRate;
+    return 0;
   }
 };
 
@@ -45,23 +42,13 @@ export const convertUSDToNaira = async (
   amountUSD: number
 ): Promise<number> => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/exchange-rate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ base_currency: 'NGN' })
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const exchangeRateData = await response.json();
-    return amountUSD * exchangeRateData.rate;
+    const rate = await fetchExchangeRate('NGN=X');
+    const amountNGN = amountUSD * rate;
+    return amountNGN;
   } catch (error) {
     console.error('Error converting currency:', error);
-    return amountUSD * 1550.00;
+    // return nothing
+    return 0;    
   }
 };
 
@@ -72,7 +59,7 @@ export async function displayDualPrice(
   includeFee: boolean = false
 ): Promise<{ nairaDisplay: string, cryptoDisplay: string, cryptoAmount: number }> {
   // Convert NGN to USD equivalent
-  const cryptoAmount = await convertNairaToUSD(amountNGN, includeFee);
+  const cryptoAmount = await convertNairaToUSD(amountNGN);
   
   return {
     nairaDisplay: formatCurrency(amountNGN, 'NGN'),
@@ -106,7 +93,7 @@ export async function calculateTransactionTotal(
   const gasFeeUSD = 0.01;
   
   // Convert the base amount
-  const baseAmount = await convertNairaToUSD(amountNGN, false);
+  const baseAmount = await convertNairaToUSD(amountNGN);
   
   // Calculate total including gas fee
   const totalWithFee = baseAmount + gasFeeUSD;
