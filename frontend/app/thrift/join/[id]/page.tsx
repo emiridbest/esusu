@@ -4,7 +4,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useThrift } from '@/context/thrift/ThriftContext';
 
 export default function JoinCampaignRedirect() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id;
   const router = useRouter();
   const { loading } = useThrift();
   

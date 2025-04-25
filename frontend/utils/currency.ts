@@ -1,4 +1,4 @@
-import { convert } from '@/app/api/exchange_rate/route';
+import { convert } from '@/app/api/exchange_rate/index'; // Adjust the import path as necessary
 // Format currency with the appropriate symbol
 export function formatCurrency(amount: number, currency: string = 'NGN'): string {
   if (isNaN(amount)) return '0.00';
@@ -13,7 +13,7 @@ export function formatCurrency(amount: number, currency: string = 'NGN'): string
 }
 
 // Fetch exchange rate from our API endpoint
-async function fetchExchangeRate(currency: string): Promise<number> {
+async function fetchExchangeRate(currency: string) {
   try {
     const rate = await convert({ base_currency: currency }); 
     return rate;
