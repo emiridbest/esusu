@@ -1,58 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server';
-
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { base_currency } = body;
-    
-    // Validate that base_currency is provided
-    if (!base_currency) {
-      return NextResponse.json({
-        error: 'Missing required parameter',
-        message: 'base_currency is required',
-        status: 'error'
-      }, { status: 400 });
-    }
-    
-    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
-        
-    try {
-      const response = await fetch(`${apiUrl}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ base_currency })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Backend response:', data);
-      return NextResponse.json(data);
-      
-    } catch (apiError: any) {
-      console.error('Backend API error details:', {
-        status: apiError.status,
-        message: apiError.message
-      });
-      
-      return NextResponse.json({
-        error: 'Exchange rate service unavailable',
-        status: 'error',
-        timestamp: new Date().toISOString()
-      }, { status: 503 });
-    }
-    
-  } catch (error) {
-    console.error('Error in exchange_rate API route:', error);
-    return NextResponse.json({
-      rate: 1560.0,
-      padded_rate: 1560.01,
-      timestamp: new Date().toISOString(),
-      with_fee: `Fallback rate with 0.01 USD gas fee padding`
-    });
-  }
+export interface RateParams {
+  base_currency: string;
 }
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+export const convert = async (params: RateParams) => {
+  try {
+    // retrive data from backend and filter out the last value
+    const response = await fetch(`${API_BASE_URL}/api/exchange-rate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+
+    const rate = data && data.rate ? data.rate : 0;
+    console.log('API Response:', rate);
+
+    return rate;
+  } catch (error) {
+    console.error('API Error:', error);
+    throw error;
+  }
+};  
