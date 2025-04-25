@@ -1,11 +1,13 @@
 import pandas as pd
 import yfinance as yf
 import time
-from typing import Dict, Any
+import requests
+import json
+from typing import Dict, Any, Union
 
-def fetch_exchange_rate(symbol: str, base_currency: str = "USD", retries: int = 3) -> pd.DataFrame:
+def fetch_exchange_rate(symbol: str, interval: str = "1h", timeframe: str = "1M") -> Dict[str, Any]:
     """
-    Fetch currency exchange rate data.
+    Fetch currency exchange rate data with fallback options.
     
     Parameters:
         symbol (str): Currency symbol (e.g., 'NGN', 'EUR')
@@ -13,47 +15,31 @@ def fetch_exchange_rate(symbol: str, base_currency: str = "USD", retries: int = 
         retries (int): Number of retry attempts if rate limited
     
     Returns:
-        pd.DataFrame: Historical exchange rate data
+        Dict[str, Any]: Exchange rate data with rate and timestamp
     """
+    # Try Yahoo Finance first
     try:
-        # Calculate date ranges
         end_date = pd.Timestamp.now()
-        start_date = (end_date - pd.Timedelta(days=30)).strftime('%Y-%m-%d')
+
+            
+        start_date = (end_date - pd.Timedelta(days=10)).strftime('%Y-%m-%d')
         
-        # Format the symbol properly for currency pairs
-        if len(symbol) == 3 and symbol.isalpha():
-            formatted_symbol = f"{symbol}=X"
-        else:
-            formatted_symbol = symbol
+        data = yf.download(
+            symbol,
+            start=start_date,
+            end=end_date.strftime('%Y-%m-%d'),
+            interval="1D",
+        )
         
-        # Implement retry with exponential backoff
-        for attempt in range(retries):
-            try:
-                data = yf.download(
-                    formatted_symbol,
-                    start=start_date,
-                    end=end_date.strftime('%Y-%m-%d'),
-                    progress=False
-                )
-                
-                if data.empty:
-                    raise Exception(f"No data found for symbol {formatted_symbol}")
-                
-                # Clean up multi-level columns if present
-                if isinstance(data.columns, pd.MultiIndex):
-                    data.columns = data.columns.get_level_values(0)
-                
-                data = data.dropna()
-                return data
-                
-            except Exception as e:
-                if "Rate limited" in str(e) and attempt < retries - 1:
-                    # Wait before retrying (exponential backoff)
-                    wait_time = 2 ** attempt
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    raise
+        if data.empty:
+            raise Exception(f"No data found for symbol {symbol} ")
         
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.get_level_values(0)
+        data = data.dropna()
+
+        return data["close"].iloc[-1]
+    
     except Exception as e:
-        raise Exception(f"Error fetching exchange rate for {symbol}: {str(e)}")
+        raise Exception(f"Error fetching {interval} data for {symbol}: {str(e)}")
+        
