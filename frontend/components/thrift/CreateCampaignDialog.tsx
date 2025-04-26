@@ -70,18 +70,7 @@ export function CreateCampaignDialog() {
     setContributionAmount('');
   };
   
-  const connectWallet = async () => {
-    if (typeof window !== 'undefined' && window.ethereum) {
-      try {
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
-      } catch (error) {
-        console.error("Failed to connect wallet:", error);
-      }
-    } else {
-      alert("Please install MetaMask or another Ethereum wallet to use this feature");
-    }
-  };
-  
+
   return (
     <>
       <Button 
@@ -93,7 +82,7 @@ export function CreateCampaignDialog() {
       </Button>
       
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] dark:text-white">
           <DialogHeader>
             <DialogTitle>Create New Thrift Group</DialogTitle>
           </DialogHeader>
@@ -102,7 +91,7 @@ export function CreateCampaignDialog() {
               {!connected ? (
                 <div className="text-center">
                   <p className="mb-4">Connect your wallet to create a thrift group</p>
-                  <Button onClick={connectWallet}>Connect Wallet</Button>
+                  <Button className='rounded-full dark:bg-primary'> Please Connect Wallet</Button>
                 </div>
               ) : (
                 <>
