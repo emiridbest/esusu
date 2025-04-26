@@ -82,7 +82,7 @@ export function CreateCampaignDialog() {
       </Button>
       
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[500px] dark:text-white">
+        <DialogContent className="sm:max-w-[500px] dark:text-white rounded-lg">
           <DialogHeader>
             <DialogTitle>Create New Thrift Group</DialogTitle>
           </DialogHeader>
@@ -141,7 +141,7 @@ export function CreateCampaignDialog() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
+            <Button variant="outline" className="rounded-full" onClick={() => {
               setOpen(false);
               resetForm();
             }}>
@@ -149,6 +149,7 @@ export function CreateCampaignDialog() {
             </Button>
             <Button 
               onClick={handleSubmit} 
+               className="mb-2 rounded-full"
               disabled={loading || !connected || !name || !description || !contributionAmount}
             >
               {loading ? 'Creating...' : 'Create Group'}
