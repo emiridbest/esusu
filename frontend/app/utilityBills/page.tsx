@@ -29,15 +29,15 @@ const UtilityBills: React.FC = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="mobile-data" onValueChange={handleTabChange}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="mobile-data" className="w-full">
-                <Smartphone className="mr-2" /> Mobile Data
+          <TabsList className="grid w-full grid-cols-3 gap-1">
+          <TabsTrigger value="mobile-data" className="w-full">
+                <Smartphone className="mr-2" /> Data
               </TabsTrigger>
               <TabsTrigger value="cable-subscription" className="w-full">
-                <Tv className="mr-2" /> Cable Subscription
+                <Tv className="mr-2" /> Cable
               </TabsTrigger>
               <TabsTrigger value="electricity-bill" className="w-full">
-                <Zap className="mr-2" /> Electricity Bill
+                <Zap className="mr-2" /> Electricity
               </TabsTrigger>
             </TabsList>
 
