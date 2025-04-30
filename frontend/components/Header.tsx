@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useConnect } from "wagmi";
+import { useConnect, useAccount } from "wagmi";
 import { InjectedConnector } from "wagmi/connectors/injected";
 import { 
   MagnifyingGlassIcon, 
@@ -43,13 +43,22 @@ export default function Header() {
 
   const { darkMode } = useContext(ThemeContext);
 
+  const { isConnected } = useAccount();
+  
   const { connect } = useConnect({
     connector: new InjectedConnector(),
   });
 
   useEffect(() => {
-    connect();
-  }, [connect]);
+    // Only attempt to connect if not already connected
+    if (!isConnected) {
+      try {
+        connect();
+      } catch (error) {
+        console.error("Connection error:", error);
+      }
+    }
+  }, [connect, isConnected]); 
 
   const handleSearchIconClick = () => {
     setSearchVisible(true);
@@ -79,16 +88,16 @@ export default function Header() {
     { title: "Thrift", href: "/thrift" },
     { title: "Pay Bills", href: "/utilityBills" },
     { title: "Chat", href: "/chat" },
+
   ];
 
   // About menu items
   const aboutMenuItems = [
-    { title: "FAQ", href: "/faq" },
-    { title: "Testimonials", href: "/testimonials" },
-    { title: "Contact", href: "/contact" },
-    { title: "Invest", href: "/invest" },
-    { title: "Jobs", href: "/jobs" },
     { title: "Blog", href: "/blogs" },
+    { title: "Contact Us", href: "/contact" },
+    { title: "FAQ", href: "/faq" },
+    { title: "Jobs", href: "/jobs" },
+    { title: "Testimonials", href: "/testimonials" },
   ];
 
   return (
@@ -148,8 +157,10 @@ export default function Header() {
                         {aboutMenuItems.map((item) => (
                           <DropdownMenuItem 
                             key={item.title} 
-                            className="cursor-pointer hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary"
-                            onClick={() => router.push(item.href)}
+                            className={cn(
+                              "cursor-pointer hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary",
+                              pathname === item.href && "text-primary border-b-2 border-primary"
+                            )}
                           >
                             {item.title}
                           </DropdownMenuItem>
