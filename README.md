@@ -142,8 +142,8 @@ npm run start
 
 ### Mobile Access
 
-To access the app via Celo Minipay wallet:
-1. Open the Minipay app
+To access the app via Celo MiniPay wallet:
+1. Open the MiniPay app
 2. Navigate to the `site tester` feature
 3. Enter `http://esusu-one.vercel.app`
 
