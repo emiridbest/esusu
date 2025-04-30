@@ -8,7 +8,7 @@ Esusu is a decentralized application (DApp) built on the Celo Mainnet that moder
 
 ## Features
 
-### 1. Thrift Contribution System(Coming soon)
+### 1. Thrift Contribution System
 - Users join campaigns where they contribute funds monthly
 - Each month, one participant receives the pooled contributions
 - Provides access to bulk capital without traditional borrowing
@@ -19,7 +19,7 @@ Esusu is a decentralized application (DApp) built on the Celo Mainnet that moder
 - Earn MST (MiniSafe Tokens) as rewards for maintaining locked savings
 - Incentivizes financial discipline and long-term planning
 
-### 3. Bill Payment System(Coming soon)
+### 3. Bill Payment System
 - Pay utility bills directly through the platform
 - Make charitable donations to various projects
 - Low-cost transactions using Celo's efficient blockchain
