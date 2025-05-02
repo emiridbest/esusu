@@ -1,116 +1,173 @@
 "use client";
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useEffect, useState, Suspense } from "react"
 import { useAccount } from 'wagmi';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useIdentitySDK } from "@goodsdks/identity-sdk"
+import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
-export default function ProfilePage() {
+import { VerifyButton } from "@/components/profile/VerifyButton"
+import { IdentityCard } from "@/components/profile/IdentityCard"
+import { SigningModal } from "@/components/profile/SigningModal"
+import UserInfoTabs from "@/components/profile/UserInfoTabs";
+
+function ProfileContent() {
   const { isConnected, address } = useAccount();
   const router = useRouter();
+  const [isSigningModalOpen, setIsSigningModalOpen] = useState(false)
+  const [isVerified, setIsVerified] = useState<boolean | undefined>(false)
+  const [isWhitelisted, setIsWhitelisted] = useState<boolean | undefined>(
+    undefined,
+  )
+  const [loadingWhitelist, setLoadingWhitelist] = useState<boolean | undefined>(
+    undefined,
+  )
 
-  if (!isConnected) {
-    return (
-      <div className="container mx-auto px-4 py-10">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Profile</h1>
-          <p className="mb-6">Please connect your wallet to view your profile.</p>
-          <Button onClick={() => router.push('/')}>
-            Return to Home
-          </Button>
-        </div>
-      </div>
-    );
+  const searchParams = useSearchParams();
+  const [connectedAccount, setConnectedAccount] = useState<string | undefined>(
+    undefined,
+  )
+  const identitySDK = useIdentitySDK("development")
+
+  useEffect(() => {
+    const verified = searchParams?.get("verified");
+
+    if (verified === "true") {
+      setIsVerified(true)
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    const checkWhitelistStatus = async () => {
+      if (address && isWhitelisted === undefined) {
+        try {
+          setLoadingWhitelist(true)
+          setConnectedAccount(address)
+          const { isWhitelisted } =
+            (await identitySDK?.getWhitelistedRoot(address)) ?? {}
+
+          setIsWhitelisted(isWhitelisted)
+          setIsVerified(isWhitelisted ?? false)
+        } catch (error) {
+          console.error("Error checking whitelist:", error)
+        } finally {
+          setLoadingWhitelist(false)
+        }
+      }
+    }
+
+    if (address !== connectedAccount || !address) {
+      setConnectedAccount(address)
+      setIsWhitelisted(undefined)
+      setIsVerified(undefined)
+      checkWhitelistStatus()
+    }
+  }, [address, identitySDK, connectedAccount, isWhitelisted])
+
+  const handleVerificationSuccess = () => {
+    setIsVerified(true)
   }
 
   return (
-    <div className="container mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold mb-6">My Profile</h1>
-      
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Account Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="flex flex-col">
-              <span className="text-sm text-gray-500">Wallet Address</span>
-              <span className="font-mono">{address}</span>
+    <div className="flex flex-col items-center p-6 bg-[#F7FAFC] min-h-screen">
+      <div className="max-w-xl w-full flex flex-col items-center">
+        <h1 className="text-2xl font-bold text-center mb-4">
+          GoodDollar Identity Verification
+        </h1>
+
+        {/* User Interaction Section */}
+        <Card className="w-full">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center justify-center mb-4">
+              {!isConnected ? (
+                <p className="text-red-500 mb-4">
+                  Please connect your wallet to proceed.
+                </p>
+              ) : <UserInfoTabs />}
             </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Tabs defaultValue="activity">
-        <TabsList className="mb-6">
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-          <TabsTrigger value="thrift">Thrift Groups</TabsTrigger>
-          <TabsTrigger value="miniSafe">MiniSafe</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="activity">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-500">Your recent transaction history will appear here.</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="thrift">
-          <Card>
-            <CardHeader>
-              <CardTitle>My Thrift Groups</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-4">
-                <p className="text-gray-500">Your thrift groups will appear here.</p>
-                <Button 
-                  onClick={() => router.push('/thrift')}
-                  className="w-fit"
-                >
-                  View All Thrift Groups
-                </Button>
+
+            {isConnected && loadingWhitelist ? (
+              <div className="flex justify-center my-4">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="miniSafe">
-          <Card>
-            <CardHeader>
-              <CardTitle>My MiniSafe</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-4">
-                <p className="text-gray-500">Your MiniSafe information will appear here.</p>
-                <Button 
-                  onClick={() => router.push('/miniSafe')}
-                  className="w-fit"
-                >
-                  Go to MiniSafe
-                </Button>
+            ) : null}
+
+            {isConnected &&
+              !loadingWhitelist &&
+              (isVerified || isWhitelisted) && (
+                <div className="flex flex-col items-center">
+                  <IdentityCard />
+                  <p className="mt-4 text-green-600">
+                    You are successfully verified and/or whitelisted.
+                  </p>
+                </div>
+              )}
+
+            {isConnected &&
+            !loadingWhitelist &&
+            !isVerified &&
+            !isWhitelisted ? (
+              <div className="flex flex-col items-center gap-3">
+                <VerifyButton
+                  onVerificationSuccess={handleVerificationSuccess}
+                />
+                <p className="text-sm text-gray-500">
+                  You need to verify your identity via GoodDollar to continue.
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-500">Account settings will be available soon.</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        {/* Help Section */}
+        <div className="flex flex-col items-center justify-center mt-6 text-gray-500">
+          <p className="text-sm">
+            Need help? Visit our docs:{" "}
+            <Link 
+              href="https://docs.gooddollar.org"
+              className="text-blue-600 hover:underline"
+              target="_blank"
+            >
+              GoodDollar Docs
+            </Link>
+            .
+          </p>
+          <p className="text-sm">
+            Or join our Developer Communities at:{" "}
+            <Link 
+              href="https://ubi.gd/GoodBuildersDiscord"
+              className="text-blue-600 hover:underline"
+              target="_blank"
+            >
+              GoodBuilders Discord
+            </Link>
+            .
+          </p>
+        </div>
+      </div>
+
+      <SigningModal
+        open={isSigningModalOpen}
+        onClose={() => setIsSigningModalOpen(false)}
+      />
     </div>
-  );
+  )
+}
+
+function ProfileLoading() {
+  return (
+    <div className="flex justify-center items-center h-screen">
+      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+    </div>
+  )
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<ProfileLoading />}>
+      <ProfileContent />
+    </Suspense>
+  )
 }

@@ -17,6 +17,7 @@
         "install:backend": "cd backend && npm install"
     },
     "devDependencies": {
+        "@types/node": "^22.15.3",
         "concurrently": "^8.2.2"
     },
     "dependencies": {

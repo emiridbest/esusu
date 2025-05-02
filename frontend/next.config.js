@@ -1,10 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable App Router
   experimental: {
-    serverActions: true,
-  },
-  // Configure environment variables to be available on the client
+    serverActions: true
+    },
   env: {
     BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:3001',
   },

@@ -6,7 +6,7 @@ import {
   UserIcon 
 } from "@heroicons/react/24/outline";
 import { useContext } from "react";
-import { ThemeContext } from "@/app/layout";
+import { ThemeContext } from "@/components/ThemeProvider";
 import { cn } from "@/lib/utils";
 import { useRouter, usePathname } from "next/navigation";
 

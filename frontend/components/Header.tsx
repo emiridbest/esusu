@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect, useRef, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -11,7 +12,7 @@ import {
   Bars3Icon,
   XMarkIcon 
 } from "@heroicons/react/24/outline";
-import { ThemeContext } from "@/app/layout";
+import { ThemeContext } from "@/components/ThemeProvider";
 import { cn } from "@/lib/utils";
 import { 
   NavigationMenu,
@@ -97,7 +98,6 @@ export default function Header() {
     { title: "Contact Us", href: "/contact" },
     { title: "FAQ", href: "/faq" },
     { title: "Jobs", href: "/jobs" },
-    { title: "Testimonials", href: "/testimonials" },
   ];
 
   return (
