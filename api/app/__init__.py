@@ -36,7 +36,7 @@ def create_app():
     @app.route('/')
     def index():
         return jsonify({
-            "name": "Tradi API",
+            "name": "Esusu API",
             "version": "1.0.0",
             "endpoints": [
                 "/api/ping",

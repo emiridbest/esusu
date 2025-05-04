@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 
 interface FaqItem {
@@ -8,28 +10,28 @@ interface FaqItem {
 
 const faqsList: FaqItem[] = [
   {
-    q: "What are some random questions to ask?",
-    a: "That's exactly the reason we created this random question generator. There are hundreds of random questions to choose from so you're able to find the perfect random question.",
+    q: "How does the savings feature work?",
+    a: "Our savings feature allows you to set money aside regularly. You can create different saving goals, schedule automatic deposits, and track your progress toward your financial targets. Interest is calculated daily and credited to your account monthly.",
     href: "javascript:void(0)",
   },
   {
-    q: "Do you include common questions?",
-    a: "This generator doesn't include most common questions. The thought is that you can come up with common questions on your own so most of the questions in this generator.",
+    q: "What is a Breaktime Lock and how does it protect my savings?",
+    a: "A Breaktime Lock is our unique feature that helps you commit to your savings goals. When activated, it prevents withdrawals from your savings for a predetermined period that you choose. This helps build discipline and ensures you don't touch your savings until you've reached your target.",
     href: "javascript:void(0)",
   },
   {
-    q: "Can I use this for 21 questions?",
-    a: "Yes! there are two ways that you can use this question generator depending on what you're after. You can indicate that you want 21 questions generated.",
+    q: "How can I withdraw funds from my account?",
+    a: "You can withdraw funds through our app by navigating to the 'Withdraw' section. Simply enter the amount you wish to withdraw and select your preferred payment method. Standard withdrawals typically process within 1-2 business days, while express withdrawals may be available within hours.",
     href: "javascript:void(0)",
   },
   {
-    q: "Are these questions for girls or for boys?",
-    a: "The questions in this generator are gender neutral and can be used to ask either male or females (or any other gender the person identifies with).",
+    q: "Can I pay utility bills through the app?",
+    a: "Yes! Our app supports payments for various utility bills including electricity, water, internet, cable TV, and more. You can schedule one-time payments or set up recurring payments to ensure your bills are always paid on time.",
     href: "javascript:void(0)",
   },
   {
-    q: "What do you wish you had more talent doing?",
-    a: "If you've been searching for a way to get random questions, you've landed on the correct webpage. We created the Random Question Generator to ask you as many random questions as your heart desires.",
+    q: "What are the fees associated with using the app?",
+    a: "We strive to keep our fees transparent and minimal. Basic savings accounts have no monthly fees. Premium features like express withdrawals and certain utility bill payments may incur small service charges. Check our fee schedule in the app for detailed information.",
     href: "javascript:void(0)",
   },
 ];
@@ -43,7 +45,7 @@ const FaqSection: React.FC = () => {
             How can we help?
           </h3>
           <p className="text-gray-600">
-            Everything you need to know about the product. Can’t find the answer you’re looking for? feel free to{" "}
+            Everything you need to know about our savings and payment services. Can not find the answer you are looking for? feel free to{" "}
             <a
               className='text-indigo-600 font-semibold whitespace-nowrap'
               href='javascript:void(0)'>
@@ -57,7 +59,7 @@ const FaqSection: React.FC = () => {
               </svg>
               <input
                 type="text"
-                placeholder="Enter your email"
+                placeholder="Search for answers"
                 className="w-full pl-12 pr-3 py-2 text-gray-500 bg-transparent outline-none border focus:border-indigo-600 shadow-sm rounded-lg"
               />
             </div>

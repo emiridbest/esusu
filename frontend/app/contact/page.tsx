@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
@@ -9,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowRightIcon, MessageSquareIcon, PhoneIcon, MapPinIcon } from 'lucide-react';
 
-const Contact: React.FC = () => {
+export default function Contact() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Form handling form submission
@@ -31,6 +33,7 @@ const Contact: React.FC = () => {
           </p>
         </motion.div>
 
+        {/* Main contact section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -40,14 +43,10 @@ const Contact: React.FC = () => {
           >
             <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-transparent z-10"></div>
             <Image
-              src="" // To be replaced
+              src="https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&auto=format&fit=crop&w=774&q=80"
               alt="Customer support"
               fill
               className="object-cover"
-              onError={(e) => {
-                // Fallback image since ours  isn't available
-                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&auto=format&fit=crop&w=774&q=80";
-              }}
             />
             
             <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/70 to-transparent z-20">
@@ -149,7 +148,7 @@ const Contact: React.FC = () => {
                 </TabsContent>
                 
                 <TabsContent value="visit">
-                  <CardContent className="hidden pt-4">
+                  <CardContent className="pt-4">
                     <div className="bg-primary/5 p-4 rounded-lg mb-4">
                       <div className="flex items-start space-x-4">
                         <div className="bg-primary/10 p-2 rounded-full">
@@ -233,6 +232,4 @@ const Contact: React.FC = () => {
       </div>
     </section>
   );
-};
-
-export default Contact;
+}
