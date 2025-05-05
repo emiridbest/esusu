@@ -51,7 +51,7 @@ Esusu bridges traditional community savings practices with blockchain technology
 - **Current Esusu Piggy Box Contract**: `0x4f2823A3AACa8eA1B427ABC5750Ccb3D4E8C4AC7`
 - **Former Contract**: `0xD7154A32280c31a510BF248CE35F2627162227b4`
 - **Token**: MST (MiniSafe Token) - Rewards for locking up funds
-
+Full Contract Repo: https://github.com/emiridbest/esusu-contracts/
 ```
 esusu/
 ├── frontend/            # Next.js 15 frontend application
