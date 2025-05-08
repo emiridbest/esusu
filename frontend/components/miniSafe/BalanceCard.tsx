@@ -22,7 +22,7 @@ import {
 const BalanceCard: React.FC = () => {
   const {
     celoBalance,
-    cusdBalance,
+    usdcBalance,
     goodDollarBalance,
     tokenBalance,
     selectedToken,
@@ -91,7 +91,7 @@ const BalanceCard: React.FC = () => {
                   </div>
                   <span className="font-medium">cUSD</span>
                 </div>
-                <div className="text-xl font-bold">{formatBalance(cusdBalance)}</div>
+                <div className="text-xl font-bold">{formatBalance(usdcBalance)}</div>
               </div>
             </div>
 
@@ -146,7 +146,7 @@ const BalanceCard: React.FC = () => {
           </Select>
         </div>
 
-        {parseFloat(cusdBalance) > 0 && (
+        {parseFloat(usdcBalance) > 0 && (
           <Alert className="bg-primary/5 border-primary/20">
             <div className="flex items-start">
               <InfoIcon className="h-5 w-5 text-primary mr-2 mt-0.5" />
