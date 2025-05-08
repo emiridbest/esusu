@@ -47,7 +47,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const UsdcTokenAddress = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
   const celoAddress = "0x471EcE3750Da237f93B8E339c536989b8978a438";
   const goodDollarAddress = "0x471EcE3750Da237f93B8E339c536989b8978a438"; //"0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A";
-  
+
   // State values
   const [depositAmount, setDepositAmount] = useState(0);
   const [withdrawAmount, setWithdrawAmount] = useState(0);
