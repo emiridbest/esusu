@@ -17,9 +17,8 @@ export default function ProfilePage() {
         <Tabs defaultValue="activity">
           <TabsList className="mb-6">
             <TabsTrigger value="activity">Activity</TabsTrigger>
-            <TabsTrigger value="thrift">Thrift Groups</TabsTrigger>
+            <TabsTrigger value="thrift">Groups</TabsTrigger>
             <TabsTrigger value="miniSafe">MiniSafe</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
           
           <TabsContent value="activity">
