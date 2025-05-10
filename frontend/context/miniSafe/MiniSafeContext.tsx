@@ -7,18 +7,18 @@ import { BigNumber } from 'alchemy-sdk';
 
 interface MiniSafeContextType {
   // Token addresses
-  UsdcTokenAddress: string;
-  celoAddress: string;
-  goodDollarAddress: string;
-  
+  usdcAddress: string;
+  cusdAddress: string;
+  usdtAddress: string;
+
   // State values
   depositAmount: number;
   setDepositAmount: (amount: number) => void;
   withdrawAmount: number;
   setWithdrawAmount: (amount: number) => void;
-  celoBalance: string;
+  cusdBalance: string;
   usdcBalance: string;
-  goodDollarBalance: string;
+  usdtBalance: string;
   tokenBalance: string;
   selectedToken: string;
   setSelectedToken: (token: string) => void;
@@ -28,7 +28,7 @@ interface MiniSafeContextType {
   isWaitingTx: boolean;
   isLoading: boolean;
   interestRate: number;
-  
+
   // Functions
   getBalance: () => Promise<void>;
   getTokenBalance: () => Promise<void>;
@@ -44,16 +44,16 @@ const MiniSafeContext = createContext<MiniSafeContextType | undefined>(undefined
 
 export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Token addresses
-  const UsdcTokenAddress = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
-  const celoAddress = "0x471EcE3750Da237f93B8E339c536989b8978a438";
-  const goodDollarAddress = "0x471EcE3750Da237f93B8E339c536989b8978a438"; //"0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A";
+  const usdcAddress = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
+  const cusdAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
+  const usdtAddress = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e";
 
   // State values
   const [depositAmount, setDepositAmount] = useState(0);
   const [withdrawAmount, setWithdrawAmount] = useState(0);
-  const [celoBalance, setCeloBalance] = useState('');
+  const [cusdBalance, setcusdBalance] = useState('');
   const [usdcBalance, setUsdcBalance] = useState('');
-  const [goodDollarBalance, setGoodDollarBalance] = useState('');
+  const [usdtBalance, setusdtBalance] = useState('');
   const [tokenBalance, setTokenBalance] = useState('');
   const [selectedToken, setSelectedToken] = useState('USDC');
   const [isApproved, setIsApproved] = useState(false);
@@ -75,24 +75,21 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const signer = await provider.getSigner(userAddress);
         const contract = new Contract(contractAddress, abi, signer);
 
-        const balanceStruct = await contract.balances(userAddress);
-        if (balanceStruct && balanceStruct.celoBalance !== undefined) {
-          const celoBalanceBigInt = formatUnits(balanceStruct.celoBalance, 18);
-          setCeloBalance(celoBalanceBigInt);
-
-          const usdcBalance = await contract.getTokenBalance(UsdcTokenAddress);
-          if (usdcBalance !== undefined) {
-            const usdcBalanceBigInt = formatUnits(usdcBalance, 18);
-            setUsdcBalance(usdcBalanceBigInt);
-          }
-          const goodDollarBalance = await contract.getBalance(goodDollarAddress);
-          if (goodDollarBalance !== undefined) {
-            const goodDollarBalanceBigInt = formatUnits(goodDollarBalance, 18);
-            setGoodDollarBalance(goodDollarBalanceBigInt);
-          }
+        const cusdBalance = await contract.getBalance(userAddress, cusdAddress);
+        if (cusdBalance !== undefined) {
+          const cusdBalanceBigInt = formatUnits(cusdBalance);
+          setcusdBalance(cusdBalanceBigInt);
         }
-      } catch (error) {
-       return;
+        const usdcBalance = await contract.getBalance(userAddress, usdcAddress);
+        if (usdcBalance !== undefined) {
+          const usdcBalanceBigInt = formatUnits(usdcBalance);
+          setUsdcBalance(usdcBalanceBigInt);
+        }
+        const usdtBalance = await contract.getBalance(userAddress, usdtAddress);
+        if (usdtBalance !== undefined) {
+          const usdtBalanceBigInt = formatUnits(usdtBalance);
+          setusdtBalance(usdtBalanceBigInt);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -120,7 +117,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.error("Error fetching token balance:", error);
         // be silent for now 
         return;
-       // toast.error("Error fetching token balance");
+        // toast.error("Error fetching token balance");
       }
     }
   }, []);
@@ -148,7 +145,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const depositValue = parseEther(depositAmount.toString());
         const gasLimit = parseInt("600000");
 
-        const tokenAddress = selectedToken === 'USDC' ? UsdcTokenAddress : goodDollarAddress;
+        const tokenAddress = selectedToken === 'USDC' ? usdcAddress : usdtAddress;
         const tokenAbi = [
           "function allowance(address owner, address spender) view returns (uint256)",
           "function approve(address spender, uint256 amount) returns (bool)"
@@ -204,11 +201,11 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         toast.info('Processing deposit...');
         let tx;
         if (selectedToken === 'USDC') {
-          tx = await contract.depositToAave(UsdcTokenAddress, depositValue, { gasLimit });
-        } else if (selectedToken === 'CELO') {
-          tx = await contract.depositToAave(celoAddress, depositValue, { gasLimit });
-        } else if (selectedToken === 'G$') {
-          tx = await contract.depositToAave(goodDollarAddress, depositValue, { gasLimit });
+          tx = await contract.depositToAave(usdcAddress, depositValue, { gasLimit });
+        } else if (selectedToken === 'CUSD') {
+          tx = await contract.depositToAave(cusdAddress, depositValue, { gasLimit });
+        } else if (selectedToken === 'USDT') {
+          tx = await contract.depositToAave(usdtAddress, depositValue, { gasLimit });
         }
         const receipt = await tx.wait();
 
@@ -251,12 +248,12 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         toast.info('Processing withdrawal...');
         let tx;
-        if (selectedToken === 'CELO') {
-          tx = await contract.withdrawFromAave(celoAddress, { gasLimit });
+        if (selectedToken === 'CUSD') {
+          tx = await contract.withdrawFromAave(cusdAddress, { gasLimit });
         } else if (selectedToken === 'USDC') {
-          tx = await contract.withdrawFromAave(UsdcTokenAddress, { gasLimit });
-        } else if( selectedToken === 'G$') {
-          tx = await contract.withdrawFromAave(goodDollarAddress, { gasLimit });
+          tx = await contract.withdrawFromAave(usdcAddress, { gasLimit });
+        } else if (selectedToken === 'USDT') {
+          tx = await contract.withdrawFromAave(usdtAddress, { gasLimit });
         }
         await tx.wait();
         getBalance();
@@ -288,12 +285,12 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         toast.info('Processing timelock break...');
         let tx;
-        if (selectedToken === 'CELO') {
-          tx = await contract.breakTimelock(celoAddress, { gasLimit });
+        if (selectedToken === 'CUSD') {
+          tx = await contract.breakTimelock(cusdAddress, { gasLimit });
         } else if (selectedToken === 'USDC') {
-          tx = await contract.breakTimelock(UsdcTokenAddress, { gasLimit });
-        } else if (selectedToken === 'G$') {
-          tx = await contract.breakTimelock(goodDollarAddress, { gasLimit });
+          tx = await contract.breakTimelock(usdcAddress, { gasLimit });
+        } else if (selectedToken === 'USDT') {
+          tx = await contract.breakTimelock(usdtAddress, { gasLimit });
         }
         await tx.wait();
         getBalance();
@@ -323,18 +320,18 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const value = {
     // Token addresses
-    UsdcTokenAddress,
-    celoAddress,
-    goodDollarAddress,
-    
+    usdcAddress,
+    cusdAddress,
+    usdtAddress,
+
     // State values
     depositAmount,
     setDepositAmount,
     withdrawAmount,
     setWithdrawAmount,
-    celoBalance,
-    usdcBalance, 
-    goodDollarBalance,
+    cusdBalance,
+    usdcBalance,
+    usdtBalance,
     tokenBalance,
     selectedToken,
     setSelectedToken,
@@ -344,7 +341,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     isWaitingTx,
     isLoading,
     interestRate,
-    
+
     // Functions
     getBalance,
     getTokenBalance,

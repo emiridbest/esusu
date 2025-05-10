@@ -21,9 +21,9 @@ import {
 
 const BalanceCard: React.FC = () => {
   const {
-    celoBalance,
+    cusdBalance,
     usdcBalance,
-    goodDollarBalance,
+    usdtBalance,
     tokenBalance,
     selectedToken,
     handleTokenChange,
@@ -65,7 +65,7 @@ const BalanceCard: React.FC = () => {
           <>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">CELO Balance</div>
+                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">CUSD Balance</div>
                 <Badge variant="outline" className="text-xs">Native Coin</Badge>
               </div>
               <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
@@ -73,9 +73,9 @@ const BalanceCard: React.FC = () => {
                   <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mr-2">
                     <CoinsIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   </div>
-                  <span className="font-medium">CELO</span>
+                  <span className="font-medium">CUSD</span>
                 </div>
-                <div className="text-xl font-bold">{formatBalance(celoBalance)}</div>
+                <div className="text-xl font-bold">{formatBalance(cusdBalance)}</div>
               </div>
             </div>
 
@@ -89,7 +89,7 @@ const BalanceCard: React.FC = () => {
                   <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-2">
                     <CoinsIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
                   </div>
-                  <span className="font-medium">cUSD</span>
+                  <span className="font-medium">USDC</span>
                 </div>
                 <div className="text-xl font-bold">{formatBalance(usdcBalance)}</div>
               </div>
@@ -97,7 +97,7 @@ const BalanceCard: React.FC = () => {
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">G$ Balance</div>
+                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">USDT Balance</div>
                 <Badge variant="outline" className="text-xs">Stablecoin</Badge>
               </div>
               <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
@@ -105,9 +105,9 @@ const BalanceCard: React.FC = () => {
                   <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-2">
                     <CoinsIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <span className="font-medium">G$</span>
+                  <span className="font-medium">USDT</span>
                 </div>
-                <div className="text-xl font-bold">{formatBalance(goodDollarBalance)}</div>
+                <div className="text-xl font-bold">{formatBalance(usdtBalance)}</div>
               </div>
             </div>
 
@@ -140,8 +140,8 @@ const BalanceCard: React.FC = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="cUSD">cUSD</SelectItem>
-              <SelectItem value="CELO">CELO</SelectItem>
-              <SelectItem value="G$">G$</SelectItem>
+              <SelectItem value="CUSD">CUSD</SelectItem>
+              <SelectItem value="USDT">USDT</SelectItem>
             </SelectContent>
           </Select>
         </div>
