@@ -214,11 +214,11 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         toast.info('Processing deposit...');
         let tx;
         if (selectedToken === 'USDC') {
-          tx = await contract.depositToAave(usdcAddress, depositValue, { gasLimit });
+          tx = await contract.deposit(usdcAddress, depositValue, { gasLimit });
         } else if (selectedToken === 'CUSD') {
-          tx = await contract.depositToAave(cusdAddress, depositValue, { gasLimit });
+          tx = await contract.deposit(cusdAddress, depositValue, { gasLimit });
         } else if (selectedToken === 'USDT') {
-          tx = await contract.depositToAave(usdtAddress, depositValue, { gasLimit });
+          tx = await contract.deposit(usdtAddress, depositValue, { gasLimit });
         }
         const receipt = await tx.wait();
 
@@ -262,11 +262,11 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         toast.info('Processing withdrawal...');
         let tx;
         if (selectedToken === 'CUSD') {
-          tx = await contract.withdrawFromAave(cusdAddress, { gasLimit });
+          tx = await contract.withdraw(cusdAddress, { gasLimit });
         } else if (selectedToken === 'USDC') {
-          tx = await contract.withdrawFromAave(usdcAddress, { gasLimit });
+          tx = await contract.withdraw(usdcAddress, { gasLimit });
         } else if (selectedToken === 'USDT') {
-          tx = await contract.withdrawFromAave(usdtAddress, { gasLimit });
+          tx = await contract.withdraw(usdtAddress, { gasLimit });
         }
         await tx.wait();
         getBalance();
