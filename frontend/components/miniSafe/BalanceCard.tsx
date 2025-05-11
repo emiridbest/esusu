@@ -66,7 +66,7 @@ const BalanceCard: React.FC = () => {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <div className="text-sm font-medium text-gray-500 dark:text-gray-400">CUSD Balance</div>
-                <Badge variant="outline" className="text-xs">Native Coin</Badge>
+                <Badge variant="outline" className="text-xs">Stablecoin</Badge>
               </div>
               <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
                 <div className="flex items-center">
@@ -81,7 +81,7 @@ const BalanceCard: React.FC = () => {
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">cUSD Balance</div>
+                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">USDC Balance</div>
                 <Badge variant="outline" className="text-xs">Stablecoin</Badge>
               </div>
               <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
@@ -139,8 +139,8 @@ const BalanceCard: React.FC = () => {
               <SelectValue placeholder="Select token" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="cUSD">cUSD</SelectItem>
               <SelectItem value="CUSD">CUSD</SelectItem>
+              <SelectItem value="USDC">USDC</SelectItem>
               <SelectItem value="USDT">USDT</SelectItem>
             </SelectContent>
           </Select>
