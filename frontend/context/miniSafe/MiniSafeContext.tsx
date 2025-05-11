@@ -126,6 +126,19 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSelectedToken(value);
   };
 
+  const getTokenAddress = (token: string) => {
+    switch (token) {
+      case 'USDC':
+        return usdcAddress;
+      case 'CUSD':
+        return cusdAddress;
+      case 'USDT':
+        return usdtAddress;
+      default:
+        return usdcAddress;
+    }
+  };
+
   const approveSpend = async () => {
     if (!depositAmount || isNaN(Number(depositAmount)) || Number(depositAmount) <= 0) {
       toast.error('Please enter a valid amount');
@@ -145,7 +158,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const depositValue = parseEther(depositAmount.toString());
         const gasLimit = parseInt("600000");
 
-        const tokenAddress = selectedToken === 'USDC' ? usdcAddress : usdtAddress;
+        const tokenAddress = getTokenAddress(selectedToken);
         const tokenAbi = [
           "function allowance(address owner, address spender) view returns (uint256)",
           "function approve(address spender, uint256 amount) returns (bool)"
@@ -201,11 +214,11 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         toast.info('Processing deposit...');
         let tx;
         if (selectedToken === 'USDC') {
-          tx = await contract.depositToAave(usdcAddress, depositValue, { gasLimit });
+          tx = await contract.deposit(usdcAddress, depositValue, { gasLimit });
         } else if (selectedToken === 'CUSD') {
-          tx = await contract.depositToAave(cusdAddress, depositValue, { gasLimit });
+          tx = await contract.deposit(cusdAddress, depositValue, { gasLimit });
         } else if (selectedToken === 'USDT') {
-          tx = await contract.depositToAave(usdtAddress, depositValue, { gasLimit });
+          tx = await contract.deposit(usdtAddress, depositValue, { gasLimit });
         }
         const receipt = await tx.wait();
 
@@ -249,11 +262,11 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         toast.info('Processing withdrawal...');
         let tx;
         if (selectedToken === 'CUSD') {
-          tx = await contract.withdrawFromAave(cusdAddress, { gasLimit });
+          tx = await contract.withdraw(cusdAddress, { gasLimit });
         } else if (selectedToken === 'USDC') {
-          tx = await contract.withdrawFromAave(usdcAddress, { gasLimit });
+          tx = await contract.withdraw(usdcAddress, { gasLimit });
         } else if (selectedToken === 'USDT') {
-          tx = await contract.withdrawFromAave(usdtAddress, { gasLimit });
+          tx = await contract.withdraw(usdtAddress, { gasLimit });
         }
         await tx.wait();
         getBalance();
