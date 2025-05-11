@@ -126,6 +126,19 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSelectedToken(value);
   };
 
+  const getTokenAddress = (token: string) => {
+    switch (token) {
+      case 'USDC':
+        return usdcAddress;
+      case 'CUSD':
+        return cusdAddress;
+      case 'USDT':
+        return usdtAddress;
+      default:
+        return usdcAddress;
+    }
+  };
+
   const approveSpend = async () => {
     if (!depositAmount || isNaN(Number(depositAmount)) || Number(depositAmount) <= 0) {
       toast.error('Please enter a valid amount');
@@ -145,7 +158,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const depositValue = parseEther(depositAmount.toString());
         const gasLimit = parseInt("600000");
 
-        const tokenAddress = selectedToken === 'USDC' ? usdcAddress : usdtAddress;
+        const tokenAddress = getTokenAddress(selectedToken);
         const tokenAbi = [
           "function allowance(address owner, address spender) view returns (uint256)",
           "function approve(address spender, uint256 amount) returns (bool)"
