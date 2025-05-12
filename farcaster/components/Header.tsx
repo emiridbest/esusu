@@ -88,10 +88,7 @@ export default function Header() {
 
   // About menu items
   const aboutMenuItems = [
-    { title: "Blog", href: "/blogs" },
     { title: "Contact Us", href: "/contact" },
-    { title: "FAQ", href: "/faq" },
-    { title: "Jobs", href: "/jobs" },
   ];
 
   // Function to format address for display
