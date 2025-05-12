@@ -24,14 +24,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const load = async () => {
+      try {
       const frameContext = await sdk.context;
       if (!frameContext) {
+        console.warn("No frame context available");
+
         return;
       }
 
       setContext(frameContext as unknown as FrameContext);
       setIsSDKLoaded(true);
+      sdk.actions.ready({});
+    }
+    catch (error) {
+      console.error("Error loading SDK context:", error);
+    }
     };
+    // Check if the SDK is already loaded
     
     if (sdk && !isSDKLoaded) {
       load();
