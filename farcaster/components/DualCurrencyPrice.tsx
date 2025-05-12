@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { displayDualPrice, calculateTransactionTotal } from '@/utils/currency';
+import { displayDualPrice, calculateTransactionTotal } from '../utils/currency';
 import { motion } from 'framer-motion';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '../components/ui/skeleton';
 
 interface DualCurrencyPriceProps {
   amountNGN: number;

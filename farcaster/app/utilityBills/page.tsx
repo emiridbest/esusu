@@ -4,13 +4,13 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { PhoneIcon, Smartphone, Zap, Tv, WalletIcon, CreditCard, Loader2 } from 'lucide-react';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
-import CableSubscriptionForm from '@/components/utilityBills/CableSubscriptionForm';
-import ElectricityBillForm from '@/components/utilityBills/ElectricityBillForm';
-import MobileDataForm from '@/components/utilityBills/MobileDataForm';
-import { UtilityProvider } from '@/context/utilityProvider/UtilityContext';
+import CableSubscriptionForm from '../../components/utilityBills/CableSubscriptionForm';
+import ElectricityBillForm from '../../components/utilityBills/ElectricityBillForm';
+import MobileDataForm from '../../components/utilityBills/MobileDataForm';
+import { UtilityProvider } from '../../context/utilityProvider/UtilityContext';
 const UtilityBills: React.FC = () => {
   const router = useRouter();
   const [selectedTab, setSelectedTab] = useState('mobile-data');
