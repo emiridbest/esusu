@@ -18,7 +18,11 @@ const nextConfig = {
           },
           {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'ALLOWALL',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://*.farcaster.xyz https://*.warpcast.com https://*.farcaster.network https://*.frames.deploy-preview-6754.frame.far.quest *;",
           },
           {
             key: 'X-XSS-Protection',
