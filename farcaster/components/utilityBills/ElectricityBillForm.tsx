@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import DualCurrencyPrice from '@/components/DualCurrencyPrice';
-import { parseAmount } from '@/utils/currency';
+import DualCurrencyPrice from '../../components/DualCurrencyPrice';
+import { parseAmount } from '../../utils/currency';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useUtility } from '@/context/utilityProvider/UtilityContext';
-import { ELECTRICITY_PROVIDERS } from '@/context/utilityProvider/electricity';
-import { TOKENS } from '@/context/utilityProvider/tokens';
-import { Button } from "@/components/ui/button";
+import { useUtility } from '../../context/utilityProvider/UtilityContext';
+import { ELECTRICITY_PROVIDERS } from '../../context/utilityProvider/electricity';
+import { TOKENS } from '../../context/utilityProvider/tokens';
+import { Button } from "../../components/ui/button";
 import {
   Form,
   FormControl,
@@ -18,17 +18,17 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
+} from "../../components/ui/form";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+} from "../../components/ui/select";
+import { Input } from "../../components/ui/input";
+import { Card, CardContent } from "../../components/ui/card";
+import { useToast } from "../../hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
