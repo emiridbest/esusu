@@ -1,10 +1,9 @@
 import { ReactNode } from "react";
-import { AppProvider } from "@/app/providers";
-import Footer from "@/components/Footer";
-import Header from "@/components/Header";
-import FloatingChat from "@/components/FloatingChat";
-import { ThemeProvider } from "@/components/ThemeProvider";
-import "@/styles/globals.css";
+import { AppProvider } from "../app/providers";
+import Footer from "../components/Footer";
+import Header from "../components/Header";
+import { ThemeProvider } from "../components/ThemeProvider";
+import "./globals.css";
 
 export default function RootLayout({
   children,
@@ -23,7 +22,6 @@ export default function RootLayout({
                   {children}
                 </div>
               </main>
-              <FloatingChat />
               <Footer />
             </div>
           </AppProvider>
