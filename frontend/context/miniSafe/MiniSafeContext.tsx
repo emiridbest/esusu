@@ -1,9 +1,17 @@
 import React, { createContext, useState, useCallback, useContext, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { contractAddress, abi } from '@/utils/abi';
-import { BrowserProvider, Contract, formatUnits } from "ethers";
+import { BrowserProvider, Contract, ethers, formatUnits, Interface } from "ethers";
 import { parseEther } from "viem";
 import { BigNumber } from 'alchemy-sdk';
+import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
+import { Celo } from '@celo/rainbowkit-celo/chains';
+import { createWalletClient, custom } from 'viem'
+//Divvi Integration
+const dataSuffix = getDataSuffix({
+  consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
+  providers: ['0x5f0a55FaD9424ac99429f635dfb9bF20c3360Ab8', '0x6226ddE08402642964f9A6de844ea3116F0dFc7e'],
+})
 
 interface MiniSafeContextType {
   // Token addresses
@@ -138,33 +146,26 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return usdcAddress;
     }
   };
-
   const approveSpend = async () => {
     if (!depositAmount || isNaN(Number(depositAmount)) || Number(depositAmount) <= 0) {
       toast.error('Please enter a valid amount');
       return;
     }
-
     setIsApproving(true);
-
     if (window.ethereum) {
       try {
         let accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
         let userAddress = accounts[0];
-
         const provider = new BrowserProvider(window.ethereum);
         const signer = await provider.getSigner(userAddress);
-
         const depositValue = parseEther(depositAmount.toString());
         const gasLimit = parseInt("600000");
-
         const tokenAddress = getTokenAddress(selectedToken);
         const tokenAbi = [
           "function allowance(address owner, address spender) view returns (uint256)",
           "function approve(address spender, uint256 amount) returns (bool)"
         ];
         const tokenContract = new Contract(tokenAddress, tokenAbi, signer);
-
         const allowance = await tokenContract.allowance(userAddress, contractAddress);
         const allowanceBigNumber = BigNumber.from(allowance);
 
@@ -173,210 +174,237 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           toast.success('Already approved!');
         } else {
           toast.info('Approving transaction...');
-          let tx = await tokenContract.approve(contractAddress, depositValue, { gasLimit });
+
+          // Correctly encode the approve function with parameters
+          const approveInterface = new Interface(tokenAbi);
+          const approveData = approveInterface.encodeFunctionData("approve", [
+            contractAddress,
+            depositValue
+          ]);
+
+          // Append the data suffix to the approve call data
+          const dataWithSuffix = approveData + dataSuffix;
+
+          // Send the transaction with the properly encoded data
+          const tx = await signer.sendTransaction({
+            to: tokenAddress,
+            data: dataWithSuffix,
+            gasLimit: gasLimit
+          });
+
           await tx.wait();
-          setIsApproved(true);
-          toast.success('Approval successful!');
+
+          try {
+            await submitReferral({
+              txHash: tx.hash as `0x${string}`,
+              chainId: Celo.id 
+            });
+
+            setIsApproved(true);
+            toast.success('Approval successful!');
+          } catch (referralError) {
+            console.error("Error submitting referral:", referralError);
+            // Still set approved since the transaction succeeded
+            setIsApproved(true);
+            toast.success('Approval successful, but referral tracking failed');
+          }
         }
       } catch (error) {
         console.error("Error approving spend:", error);
-        setIsApproved(false);
         toast.error('Approval failed!');
       } finally {
         setIsApproving(false);
       }
-    } else {
-      toast.error('Ethereum object not found');
-      setIsApproving(false);
     }
   };
 
-  const handleDeposit = async () => {
-    if (!depositAmount || !selectedToken) {
-      toast.error('Please enter an amount and select a token');
-      return;
-    }
 
-    setIsWaitingTx(true);
-    try {
-      if (window.ethereum) {
-        let accounts = await window.ethereum.request({
-          method: "eth_requestAccounts",
-        });
+          const handleDeposit = async () => {
+            if (!depositAmount || !selectedToken) {
+              toast.error('Please enter an amount and select a token');
+              return;
+            }
 
-        let userAddress = accounts[0];
-        const provider = new BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner(userAddress);
-        const contract = new Contract(contractAddress, abi, signer);
-        const depositValue = parseEther(depositAmount.toString());
-        const gasLimit = parseInt("6000000");
+            setIsWaitingTx(true);
+            try {
+              if (window.ethereum) {
+                let accounts = await window.ethereum.request({
+                  method: "eth_requestAccounts",
+                });
 
-        toast.info('Processing deposit...');
-        let tx;
-        if (selectedToken === 'USDC') {
-          tx = await contract.deposit(usdcAddress, depositValue, { gasLimit });
-        } else if (selectedToken === 'CUSD') {
-          tx = await contract.deposit(cusdAddress, depositValue, { gasLimit });
-        } else if (selectedToken === 'USDT') {
-          tx = await contract.deposit(usdtAddress, depositValue, { gasLimit });
-        }
-        const receipt = await tx.wait();
+                let userAddress = accounts[0];
+                const provider = new BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner(userAddress);
+                const contract = new Contract(contractAddress, abi, signer);
+                const depositValue = parseEther(depositAmount.toString());
+                const gasLimit = parseInt("6000000");
 
-        if (receipt.status === 1) {
-          getBalance();
-          getTokenBalance();
-          setDepositAmount(0);
-          setIsApproved(false);
-          toast.success('Deposit successful!');
-        } else {
-          toast.error('Deposit failed!');
-        }
-      }
-    } catch (error) {
-      console.error("Error making deposit:", error);
-      toast.error('Deposit failed!');
-    } finally {
-      setIsWaitingTx(false);
-    }
-  };
+                toast.info('Processing deposit...');
+                let tx;
+                if (selectedToken === 'USDC') {
+                  tx = await contract.deposit(usdcAddress, depositValue, { gasLimit });
+                } else if (selectedToken === 'CUSD') {
+                  tx = await contract.deposit(cusdAddress, depositValue, { gasLimit });
+                } else if (selectedToken === 'USDT') {
+                  tx = await contract.deposit(usdtAddress, depositValue, { gasLimit });
+                }
+                const receipt = await tx.wait();
 
-  const handleWithdraw = async () => {
-    if (!selectedToken) {
-      toast.error('Please select a token');
-      return;
-    }
+                if (receipt.status === 1) {
+                  getBalance();
+                  getTokenBalance();
+                  setDepositAmount(0);
+                  setIsApproved(false);
+                  toast.success('Deposit successful!');
+                } else {
+                  toast.error('Deposit failed!');
+                }
+              }
+            } catch (error) {
+              console.error("Error making deposit:", error);
+              toast.error('Deposit failed!');
+            } finally {
+              setIsWaitingTx(false);
+            }
+          };
 
-    setIsWaitingTx(true);
-    if (window.ethereum) {
-      try {
-        let accounts = await window.ethereum.request({
-          method: "eth_requestAccounts",
-        });
+          const handleWithdraw = async () => {
+            if (!selectedToken) {
+              toast.error('Please select a token');
+              return;
+            }
 
-        let userAddress = accounts[0];
-        const provider = new BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner(userAddress);
-        const contract = new Contract(contractAddress, abi, signer);
-        const gasLimit = parseInt("600000");
+            setIsWaitingTx(true);
+            if (window.ethereum) {
+              try {
+                let accounts = await window.ethereum.request({
+                  method: "eth_requestAccounts",
+                });
 
-        toast.info('Processing withdrawal...');
-        let tx;
-        if (selectedToken === 'CUSD') {
-          tx = await contract.withdraw(cusdAddress, { gasLimit });
-        } else if (selectedToken === 'USDC') {
-          tx = await contract.withdraw(usdcAddress, { gasLimit });
-        } else if (selectedToken === 'USDT') {
-          tx = await contract.withdraw(usdtAddress, { gasLimit });
-        }
-        await tx.wait();
-        getBalance();
-        getTokenBalance();
-        setWithdrawAmount(0);
-        toast.success('Withdrawal successful!');
-      } catch (error) {
-        console.error("Error making withdrawal:", error);
-        toast.error('Withdrawal failed!');
-      } finally {
-        setIsWaitingTx(false);
-      }
-    }
-  };
+                let userAddress = accounts[0];
+                const provider = new BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner(userAddress);
+                const contract = new Contract(contractAddress, abi, signer);
+                const gasLimit = parseInt("600000");
 
-  const handleBreakLock = async () => {
-    setIsWaitingTx(true);
-    if (window.ethereum) {
-      try {
-        let accounts = await window.ethereum.request({
-          method: "eth_requestAccounts",
-        });
+                toast.info('Processing withdrawal...');
+                let tx;
+                if (selectedToken === 'CUSD') {
+                  tx = await contract.withdraw(cusdAddress, { gasLimit });
+                } else if (selectedToken === 'USDC') {
+                  tx = await contract.withdraw(usdcAddress, { gasLimit });
+                } else if (selectedToken === 'USDT') {
+                  tx = await contract.withdraw(usdtAddress, { gasLimit });
+                }
+                await tx.wait();
+                getBalance();
+                getTokenBalance();
+                setWithdrawAmount(0);
+                toast.success('Withdrawal successful!');
+              } catch (error) {
+                console.error("Error making withdrawal:", error);
+                toast.error('Withdrawal failed!');
+              } finally {
+                setIsWaitingTx(false);
+              }
+            }
+          };
 
-        let userAddress = accounts[0];
-        const provider = new BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner(userAddress);
-        const contract = new Contract(contractAddress, abi, signer);
-        const gasLimit = parseInt("600000");
+          const handleBreakLock = async () => {
+            setIsWaitingTx(true);
+            if (window.ethereum) {
+              try {
+                let accounts = await window.ethereum.request({
+                  method: "eth_requestAccounts",
+                });
 
-        toast.info('Processing timelock break...');
-        let tx;
-        if (selectedToken === 'CUSD') {
-          tx = await contract.breakTimelock(cusdAddress, { gasLimit });
-        } else if (selectedToken === 'USDC') {
-          tx = await contract.breakTimelock(usdcAddress, { gasLimit });
-        } else if (selectedToken === 'USDT') {
-          tx = await contract.breakTimelock(usdtAddress, { gasLimit });
-        }
-        await tx.wait();
-        getBalance();
-        getTokenBalance();
-        toast.success('Timelock broken successfully!');
-      } catch (error) {
-        console.error("Error breaking timelock:", error);
-        toast.error('Error breaking timelock');
-      } finally {
-        setIsWaitingTx(false);
-      }
-    }
-  };
+                let userAddress = accounts[0];
+                const provider = new BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner(userAddress);
+                const contract = new Contract(contractAddress, abi, signer);
+                const gasLimit = parseInt("600000");
 
-  useEffect(() => {
-    getBalance();
-    getTokenBalance();
-  }, [getBalance, getTokenBalance]);
+                toast.info('Processing timelock break...');
+                let tx;
+                if (selectedToken === 'CUSD') {
+                  tx = await contract.breakTimelock(cusdAddress, { gasLimit });
+                } else if (selectedToken === 'USDC') {
+                  tx = await contract.breakTimelock(usdcAddress, { gasLimit });
+                } else if (selectedToken === 'USDT') {
+                  tx = await contract.breakTimelock(usdtAddress, { gasLimit });
+                }
+                await tx.wait();
+                getBalance();
+                getTokenBalance();
+                toast.success('Timelock broken successfully!');
+              } catch (error) {
+                console.error("Error breaking timelock:", error);
+                toast.error('Error breaking timelock');
+              } finally {
+                setIsWaitingTx(false);
+              }
+            }
+          };
 
-  const formatBalance = (balance: string, decimals = 2) => {
-    const balanceNumber = parseFloat(balance);
-    if (isNaN(balanceNumber)) {
-      return "0.00";
-    }
-    return balanceNumber.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  };
+          useEffect(() => {
+            getBalance();
+            getTokenBalance();
+          }, [getBalance, getTokenBalance]);
 
-  const value = {
-    // Token addresses
-    usdcAddress,
-    cusdAddress,
-    usdtAddress,
+          const formatBalance = (balance: string, decimals = 2) => {
+            const balanceNumber = parseFloat(balance);
+            if (isNaN(balanceNumber)) {
+              return "0.00";
+            }
+            return balanceNumber.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+          };
 
-    // State values
-    depositAmount,
-    setDepositAmount,
-    withdrawAmount,
-    setWithdrawAmount,
-    cusdBalance,
-    usdcBalance,
-    usdtBalance,
-    tokenBalance,
-    selectedToken,
-    setSelectedToken,
-    isApproved,
-    setIsApproved,
-    isApproving,
-    isWaitingTx,
-    isLoading,
-    interestRate,
+          const value = {
+            // Token addresses
+            usdcAddress,
+            cusdAddress,
+            usdtAddress,
 
-    // Functions
-    getBalance,
-    getTokenBalance,
-    handleTokenChange,
-    approveSpend,
-    handleDeposit,
-    handleWithdraw,
-    handleBreakLock,
-    formatBalance,
-  };
+            // State values
+            depositAmount,
+            setDepositAmount,
+            withdrawAmount,
+            setWithdrawAmount,
+            cusdBalance,
+            usdcBalance,
+            usdtBalance,
+            tokenBalance,
+            selectedToken,
+            setSelectedToken,
+            isApproved,
+            setIsApproved,
+            isApproving,
+            isWaitingTx,
+            isLoading,
+            interestRate,
 
-  return (
-    <MiniSafeContext.Provider value={value}>
-      {children}
-    </MiniSafeContext.Provider>
-  );
-};
+            // Functions
+            getBalance,
+            getTokenBalance,
+            handleTokenChange,
+            approveSpend,
+            handleDeposit,
+            handleWithdraw,
+            handleBreakLock,
+            formatBalance,
+          };
 
-export const useMiniSafe = (): MiniSafeContextType => {
-  const context = useContext(MiniSafeContext);
-  if (context === undefined) {
-    throw new Error('useMiniSafe must be used within a MiniSafeProvider');
-  }
-  return context;
-};
+          return (
+            <MiniSafeContext.Provider value={value}>
+              {children}
+            </MiniSafeContext.Provider>
+          );
+        };
+
+        export const useMiniSafe = (): MiniSafeContextType => {
+          const context = useContext(MiniSafeContext);
+          if (context === undefined) {
+            throw new Error('useMiniSafe must be used within a MiniSafeProvider');
+          }
+          return context;
+        };
