@@ -6,7 +6,7 @@ import { BrowserProvider, Contract, ethers, formatUnits, Interface, parseEther }
 import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
 import { BigNumber } from 'alchemy-sdk';
 import { Celo } from '@celo/rainbowkit-celo/chains';
-import { contractAddress, abi } from '../../utils/abi';
+import { contractAddress } from '../../utils/abi'; //placeholder for your contract address and ABI
 
 
 
