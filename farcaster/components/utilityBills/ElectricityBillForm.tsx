@@ -7,8 +7,9 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useUtility } from '../../context/utilityProvider/UtilityContext';
-import { ELECTRICITY_PROVIDERS } from '../../context/utilityProvider/electricity';
 import { TOKENS } from '../../context/utilityProvider/tokens';
+import CountrySelector from './CountrySelector';
+
 import { Button } from "../../components/ui/button";
 import {
   Form,
@@ -30,8 +31,12 @@ import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { useToast } from "../../hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { ElectricityProvider, fetchElectricityProviders } from '../../services/utility/utilityServices';
 
 const formSchema = z.object({
+  country: z.string({
+    required_error: "Please select a country.",
+  }),
   meterNumber: z.string().min(1, {
     message: "Meter number is required.",
   }),
@@ -41,9 +46,6 @@ const formSchema = z.object({
   amount: z.string().min(1, {
     message: "Amount is required.",
   }),
-  meterType: z.enum(['prepaid', 'postpaid'], {
-    required_error: "Please select a meter type.",
-  }),
   paymentToken: z.string({
     required_error: "Please select a payment token.",
   }),
@@ -52,28 +54,61 @@ const formSchema = z.object({
 export default function ElectricityBillForm() {
   const { toast } = useToast();
   const [amount, setAmount] = useState<number>(0);
-  
-  const { 
-    selectedToken, 
-    setSelectedToken, 
+  const [providers, setProviders] = useState<ElectricityProvider[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const {
+    selectedToken,
+    setSelectedToken,
     isProcessing,
-    setIsProcessing, 
-    handleTransaction 
+    setIsProcessing,
+    handleTransaction
   } = useUtility();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      country: '',
       meterNumber: '',
       provider: '',
       amount: '',
-      meterType: 'prepaid',
       paymentToken: 'cusd',
     },
   });
 
   const watchAmount = form.watch("amount");
   const watchPaymentToken = form.watch("paymentToken");
+  const watchCountry = form.watch("country");
+  const watchProvider = form.watch("provider");
+
+   // Fetch network providers when country changes
+   useEffect(() => {
+     const getProviders = async () => {
+       if (watchCountry) {
+         setIsLoading(true);
+         form.setValue("provider", "");
+         
+         try {
+           const provider = await fetchElectricityProviders(watchCountry);
+           console.log("Fetched providers:", provider);
+           setProviders(provider);
+         } catch (error) {
+           console.error("Error fetching mobile operators:", error);
+           toast({
+             title: "Error",
+             description: "Failed to load network providers. Please try again.",
+             variant: "destructive",
+           });
+         } finally {
+           setIsLoading(false);
+         }
+       }
+     };
+     
+     getProviders();
+   }, [watchCountry, form, toast]);
+  
+
 
   // Update amount when amount changes
   useEffect(() => {
@@ -91,12 +126,9 @@ export default function ElectricityBillForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsProcessing(true);
-    
+
     try {
-      const providerName = ELECTRICITY_PROVIDERS.find(
-        provider => provider.id === values.provider
-      )?.name || '';
-      
+
       const success = await handleTransaction({
         type: 'electricity',
         amount: values.amount,
@@ -104,8 +136,7 @@ export default function ElectricityBillForm() {
         recipient: values.meterNumber,
         metadata: {
           providerId: values.provider,
-          provider: providerName,
-          meterType: values.meterType
+          provider: providers,
         }
       });
 
@@ -114,7 +145,7 @@ export default function ElectricityBillForm() {
           title: "Payment Successful",
           description: `Your electricity bill payment for ${values.meterNumber} was successful.`,
         });
-        
+
         // Reset the form
         form.reset();
         setAmount(0);
@@ -138,24 +169,53 @@ export default function ElectricityBillForm() {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
+          name="country"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Country</FormLabel>
+              <FormControl>
+                <CountrySelector
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              </FormControl>
+              <FormDescription>
+                Select the country for the electricity service.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="provider"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Electricity Provider</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                disabled={isLoading || providers.length === 0}
+              >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select electricity provider" />
+                    <SelectValue placeholder={providers.length === 0 ? "Select a country first" : "Select electricity provider"} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {ELECTRICITY_PROVIDERS.map((provider) => (
+                  {providers.map((provider) => (
                     <SelectItem key={provider.id} value={provider.id}>
                       {provider.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {isLoading && <div className="text-sm text-gray-500 mt-1 flex items-center">
+                <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading providers...
+              </div>}
+              <FormDescription>
+                {providers.length === 0 && "Please select a country first to see available providers"}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -180,37 +240,15 @@ export default function ElectricityBillForm() {
 
         <FormField
           control={form.control}
-          name="meterType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Meter Type</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select meter type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="prepaid">Prepaid</SelectItem>
-                  <SelectItem value="postpaid">Postpaid</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
           name="amount"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Amount (₦)</FormLabel>
+              <FormLabel>Amount </FormLabel>
               <FormControl>
-                <Input 
+                <Input
                   type="number"
-                  placeholder="Enter amount" 
-                  {...field} 
+                  placeholder="Enter amount"
+                  {...field}
                 />
               </FormControl>
               <FormDescription>
@@ -257,7 +295,7 @@ export default function ElectricityBillForm() {
                   Payment Amount:
                 </div>
                 <DualCurrencyPrice
-                  amountNGN={amount}
+                  amount={amount}
                   stablecoin={selectedToken}
                   showTotal={true}
                 />

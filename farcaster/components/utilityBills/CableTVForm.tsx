@@ -27,40 +27,40 @@ import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { useToast } from "../../hooks/use-toast"
 import { Loader2 } from "lucide-react";
-import CountrySelector from '../utilityBills/CountrySelector';
+import CountrySelector from './CountrySelector';
 import { TOKENS } from '../../context/utilityProvider/tokens';
 import { 
-  fetchMobileOperators, 
-  fetchDataPlans, 
-  verifyPhoneNumber,
-  type NetworkOperator,
-  type DataPlan
+  fetchCableProviders, 
+  fetchCablePackages, 
+  verifySubscriberID,
+  type CableProvider,
+  type CablePackage
 } from '../../services/utility/utilityServices';
 
 const formSchema = z.object({
   country: z.string({
     required_error: "Please select a country.",
   }),
-  phoneNumber: z.string().min(10, {
-    message: "Phone number must be at least 10 digits.",
+  subscriberId: z.string().min(5, {
+    message: "Subscriber ID must be at least 5 characters.",
   }),
-  network: z.string({
-    required_error: "Please select a network provider.",
+  provider: z.string({
+    required_error: "Please select a provider.",
   }),
   plan: z.string({
-    required_error: "Please select a data plan.",
+    required_error: "Please select a subscription plan.",
   }),
   paymentToken: z.string({
     required_error: "Please select a payment token.",
   }),
 });
 
-export default function MobileDataForm() {
+export default function CableTVForm() {
   const { toast } = useToast();
   const [selectedPrice, setSelectedPrice] = useState(0);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [networks, setNetworks] = useState<NetworkOperator[]>([]);
-  const [availablePlans, setAvailablePlans] = useState<DataPlan[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [providers, setProviders] = useState<CableProvider[]>([]);
+  const [availablePlans, setAvailablePlans] = useState<CablePackage[]>([]);
   const { 
     selectedToken, 
     setSelectedToken, 
@@ -72,35 +72,35 @@ export default function MobileDataForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      country: "NG", // Default to Nigeria
-      phoneNumber: "",
-      network: "",
+      country: "", 
+      subscriberId: "",
+      provider: "",
       plan: "",
       paymentToken: "cusd",
     },
   });
   
   const watchCountry = form.watch("country");
-  const watchNetwork = form.watch("network");
+  const watchProvider = form.watch("provider");
   const watchPlan = form.watch("plan");
   const watchPaymentToken = form.watch("paymentToken");
 
-  // Fetch network providers when country changes
+  // Fetch cable TV providers when country changes
   useEffect(() => {
-    const getNetworks = async () => {
+    const getProviders = async () => {
       if (watchCountry) {
         setIsLoading(true);
-        form.setValue("network", "");
+        form.setValue("provider", "");
         form.setValue("plan", "");
         
         try {
-          const operators = await fetchMobileOperators(watchCountry);
-          setNetworks(operators);
+          const CableProviders = await fetchCableProviders(watchCountry);
+          setProviders(CableProviders);
         } catch (error) {
-          console.error("Error fetching mobile operators:", error);
+          console.error("Error fetching cable TV providers:", error);
           toast({
             title: "Error",
-            description: "Failed to load network providers. Please try again.",
+            description: "Failed to load cable TV providers. Please try again.",
             variant: "destructive",
           });
         } finally {
@@ -109,25 +109,24 @@ export default function MobileDataForm() {
       }
     };
     
-    getNetworks();
+    getProviders();
   }, [watchCountry, form, toast]);
 
-  // Fetch data plans when network changes
+  // Fetch subscription plans when provider changes
   useEffect(() => {
-    const getDataPlans = async () => {
-      if (watchNetwork && watchCountry) {
+    const getPlans = async () => {
+      if (watchProvider && watchCountry) {
         setIsLoading(true);
         form.setValue("plan", "");
         
         try {
-          const plans = await fetchDataPlans(watchNetwork, watchCountry);
+          const plans = await fetchCablePackages(watchProvider, watchCountry);
           setAvailablePlans(plans);
-          console.log("Available Plans: ", plans);
         } catch (error) {
-          console.error("Error fetching data plans:", error);
+          console.error("Error fetching cable TV plans:", error);
           toast({
             title: "Error",
-            description: "Failed to load data plans. Please try again.",
+            description: "Failed to load subscription plans. Please try again.",
             variant: "destructive",
           });
         } finally {
@@ -138,8 +137,8 @@ export default function MobileDataForm() {
       }
     };
     
-    getDataPlans();
-  }, [watchNetwork, watchCountry, form, toast]);
+    getPlans();
+  }, [watchProvider, watchCountry, form, toast]);
 
   // Update price when plan changes
   useEffect(() => {
@@ -165,45 +164,45 @@ export default function MobileDataForm() {
     setIsProcessing(true);
     
     try {
-      // First verify the phone number with the selected network
-      const verificationResult = await verifyPhoneNumber(
-        values.phoneNumber, 
-        values.network,
+      // First verify the subscriber ID with the selected provider
+      const verificationResult = await verifySubscriberID(
+        values.subscriberId, 
+        values.provider,
         values.country
       );
       
       if (!verificationResult.verified) {
-        throw new Error(verificationResult.message || 'Phone number verification failed');
+        throw new Error(verificationResult.message || 'Subscriber ID verification failed');
       }
       
       const selectedPlan = availablePlans.find(plan => plan.id === values.plan);
-      const networkName = networks.find(net => net.id === values.network)?.name || '';
+      const providerName = providers.find(p => p.id === values.provider)?.name || '';
       
       const success = await handleTransaction({
-        type: 'data',
+        type: 'cable',
         amount: selectedPrice.toString(),
         token: values.paymentToken,
-        recipient: values.phoneNumber,
+        recipient: values.subscriberId,
         metadata: {
           countryCode: values.country,
-          networkId: values.network,
+          providerId: values.provider,
           planId: values.plan,
           planName: selectedPlan?.name || '',
-          network: networkName
+          provider: providerName
         }
       });
 
       if (success) {
         toast({
           title: "Payment Successful",
-          description: `Your mobile data purchase for ${values.phoneNumber} was successful.`,
+          description: `Your cable TV subscription for ${values.subscriberId} was successful.`,
         });
         
         // Reset the form but keep the country
         form.reset({
           ...form.getValues(),
-          phoneNumber: "",
-          network: "",
+          subscriberId: "",
+          provider: "",
           plan: "",
         });
         setSelectedPrice(0);
@@ -238,7 +237,7 @@ export default function MobileDataForm() {
                 />
               </FormControl>
               <FormDescription>
-                Select the country for the mobile data service.
+                Select the country for the cable TV service.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -247,15 +246,15 @@ export default function MobileDataForm() {
 
         <FormField
           control={form.control}
-          name="phoneNumber"
+          name="subscriberId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Phone Number</FormLabel>
+              <FormLabel>Subscriber ID / Smart Card Number</FormLabel>
               <FormControl>
-                <Input placeholder="Enter phone number" {...field} />
+                <Input placeholder="Enter subscriber ID" {...field} />
               </FormControl>
               <FormDescription>
-                Enter the phone number to recharge.
+                Enter your subscriber ID or smart card number.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -264,20 +263,20 @@ export default function MobileDataForm() {
 
         <FormField
           control={form.control}
-          name="network"
+          name="provider"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Network Provider</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || networks.length === 0}>
+              <FormLabel>Cable TV Provider</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || providers.length === 0}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select network provider" />
+                    <SelectValue placeholder="Select cable TV provider" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {networks.map((network) => (
-                    <SelectItem key={network.id} value={network.id}>
-                      {network.name}
+                  {providers.map((provider) => (
+                    <SelectItem key={provider.id} value={provider.id}>
+                      {provider.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -295,15 +294,15 @@ export default function MobileDataForm() {
           name="plan"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Data Plan</FormLabel>
+              <FormLabel>Subscription Plan</FormLabel>
               <Select 
                 onValueChange={field.onChange} 
                 value={field.value} 
-                disabled={isLoading || !watchNetwork || availablePlans.length === 0}
+                disabled={isLoading || !watchProvider || availablePlans.length === 0}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select data plan" />
+                    <SelectValue placeholder="Select subscription plan" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>

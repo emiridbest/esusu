@@ -6,7 +6,6 @@ import { parseEther } from "viem";
 import { BigNumber } from 'alchemy-sdk';
 import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
 import { Celo } from '@celo/rainbowkit-celo/chains';
-import { createWalletClient, custom } from 'viem'
 //Divvi Integration
 const dataSuffix = getDataSuffix({
   consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
