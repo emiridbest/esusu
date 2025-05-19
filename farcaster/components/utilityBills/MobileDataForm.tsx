@@ -5,7 +5,6 @@ import { parseAmount } from '../../utils/currency';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { networks, dataPlans } from '../../context/utilityProvider/mobileData';
 import { Button } from "../../components/ui/button";
 import { useUtility } from '../../context/utilityProvider/UtilityContext';
 import {
@@ -28,12 +27,22 @@ import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { useToast } from "../../hooks/use-toast"
 import { Loader2 } from "lucide-react";
-
+import CountrySelector from '../utilityBills/CountrySelector';
 import { TOKENS } from '../../context/utilityProvider/tokens';
+import { 
+  fetchMobileOperators, 
+  fetchDataPlans, 
+  verifyPhoneNumber,
+  type NetworkOperator,
+  type DataPlan
+} from '../../services/utility/utilityServices';
 
 const formSchema = z.object({
-  phoneNumber: z.string().min(11, {
-    message: "Phone number must be at least 11 digits.",
+  country: z.string({
+    required_error: "Please select a country.",
+  }),
+  phoneNumber: z.string().min(10, {
+    message: "Phone number must be at least 10 digits.",
   }),
   network: z.string({
     required_error: "Please select a network provider.",
@@ -49,7 +58,9 @@ const formSchema = z.object({
 export default function MobileDataForm() {
   const { toast } = useToast();
   const [selectedPrice, setSelectedPrice] = useState(0);
-  const [availablePlans, setAvailablePlans] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [networks, setNetworks] = useState<NetworkOperator[]>([]);
+  const [availablePlans, setAvailablePlans] = useState<DataPlan[]>([]);
   const { 
     selectedToken, 
     setSelectedToken, 
@@ -61,33 +72,90 @@ export default function MobileDataForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      country: "NG", // Default to Nigeria
       phoneNumber: "",
       network: "",
       plan: "",
       paymentToken: "cusd",
     },
   });
+  
+  const watchCountry = form.watch("country");
   const watchNetwork = form.watch("network");
   const watchPlan = form.watch("plan");
   const watchPaymentToken = form.watch("paymentToken");
 
-  // Update available plans when network changes
+  // Fetch network providers when country changes
   useEffect(() => {
-    if (watchNetwork) {
-      setAvailablePlans(dataPlans.filter(plan => plan.network === watchNetwork));
-      form.setValue("plan", "");
-    }
-  }, [watchNetwork, form]);
+    const getNetworks = async () => {
+      if (watchCountry) {
+        setIsLoading(true);
+        form.setValue("network", "");
+        form.setValue("plan", "");
+        
+        try {
+          const operators = await fetchMobileOperators(watchCountry);
+          setNetworks(operators);
+        } catch (error) {
+          console.error("Error fetching mobile operators:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load network providers. Please try again.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    getNetworks();
+  }, [watchCountry, form, toast]);
+
+  // Fetch data plans when network changes
+  useEffect(() => {
+    const getDataPlans = async () => {
+      if (watchNetwork && watchCountry) {
+        setIsLoading(true);
+        form.setValue("plan", "");
+        
+        try {
+          const plans = await fetchDataPlans(watchNetwork, watchCountry);
+          setAvailablePlans(plans);
+          console.log("Available Plans: ", plans);
+        } catch (error) {
+          console.error("Error fetching data plans:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load data plans. Please try again.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setAvailablePlans([]);
+      }
+    };
+    
+    getDataPlans();
+  }, [watchNetwork, watchCountry, form, toast]);
 
   // Update price when plan changes
   useEffect(() => {
     if (watchPlan) {
-      const selectedPlan = dataPlans.find(plan => plan.id === watchPlan);
-      setSelectedPrice(selectedPlan ? parseAmount(selectedPlan.price) : 0);
+      const selectedPlan = availablePlans.find(plan => plan.id === watchPlan);
+      if (selectedPlan) {
+        // Parse the price string to get the numeric value
+        const priceValue = selectedPlan.price.replace(/[^0-9.]/g, '');
+        setSelectedPrice(parseAmount(priceValue));
+      } else {
+        setSelectedPrice(0);
+      }
     } else {
       setSelectedPrice(0);
     }
-  }, [watchPlan]);
+  }, [watchPlan, availablePlans]);
 
   useEffect(() => {
     setSelectedToken(watchPaymentToken);
@@ -97,7 +165,18 @@ export default function MobileDataForm() {
     setIsProcessing(true);
     
     try {
-      const selectedPlan = dataPlans.find(plan => plan.id === values.plan);
+      // First verify the phone number with the selected network
+      const verificationResult = await verifyPhoneNumber(
+        values.phoneNumber, 
+        values.network,
+        values.country
+      );
+      
+      if (!verificationResult.verified) {
+        throw new Error(verificationResult.message || 'Phone number verification failed');
+      }
+      
+      const selectedPlan = availablePlans.find(plan => plan.id === values.plan);
       const networkName = networks.find(net => net.id === values.network)?.name || '';
       
       const success = await handleTransaction({
@@ -106,6 +185,7 @@ export default function MobileDataForm() {
         token: values.paymentToken,
         recipient: values.phoneNumber,
         metadata: {
+          countryCode: values.country,
           networkId: values.network,
           planId: values.plan,
           planName: selectedPlan?.name || '',
@@ -119,8 +199,13 @@ export default function MobileDataForm() {
           description: `Your mobile data purchase for ${values.phoneNumber} was successful.`,
         });
         
-        // Reset the form
-        form.reset();
+        // Reset the form but keep the country
+        form.reset({
+          ...form.getValues(),
+          phoneNumber: "",
+          network: "",
+          plan: "",
+        });
         setSelectedPrice(0);
       } else {
         throw new Error("Transaction failed");
@@ -132,12 +217,34 @@ export default function MobileDataForm() {
         description: error instanceof Error ? error.message : "There was an error processing your payment. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsProcessing(false);
     }
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="country"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Country</FormLabel>
+              <FormControl>
+                <CountrySelector 
+                  value={field.value} 
+                  onChange={field.onChange}
+                />
+              </FormControl>
+              <FormDescription>
+                Select the country for the mobile data service.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="phoneNumber"
@@ -161,7 +268,7 @@ export default function MobileDataForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Network Provider</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || networks.length === 0}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select network provider" />
@@ -175,6 +282,9 @@ export default function MobileDataForm() {
                   ))}
                 </SelectContent>
               </Select>
+              {isLoading && <div className="text-sm text-gray-500 mt-1 flex items-center">
+                <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading providers...
+              </div>}
               <FormMessage />
             </FormItem>
           )}
@@ -186,7 +296,11 @@ export default function MobileDataForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Data Plan</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!watchNetwork}>
+              <Select 
+                onValueChange={field.onChange} 
+                value={field.value} 
+                disabled={isLoading || !watchNetwork || availablePlans.length === 0}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select data plan" />
@@ -200,6 +314,9 @@ export default function MobileDataForm() {
                   ))}
                 </SelectContent>
               </Select>
+              {isLoading && <div className="text-sm text-gray-500 mt-1 flex items-center">
+                <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading plans...
+              </div>}
               <FormMessage />
             </FormItem>
           )}
@@ -213,7 +330,7 @@ export default function MobileDataForm() {
               <FormLabel>Payment Token</FormLabel>
               <Select
                 onValueChange={field.onChange}
-                defaultValue={field.value}
+                value={field.value}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -244,7 +361,7 @@ export default function MobileDataForm() {
                   Payment Amount:
                 </div>
                 <DualCurrencyPrice
-                  amountNGN={selectedPrice}
+                  amount={selectedPrice}
                   stablecoin={selectedToken}
                   showTotal={true}
                 />
