@@ -1,11 +1,12 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { displayDualPrice, calculateTransactionTotal } from '../utils/currency';
 import { motion } from 'framer-motion';
 import { Skeleton } from '../components/ui/skeleton';
+import { useUtility } from '../context/utilityProvider/UtilityContext';
+import { formatCurrency, parseAmount } from '../utils/currency';
 
 interface DualCurrencyPriceProps {
-  amountNGN: number;
+  amount: number | string;
   stablecoin?: string;
   includeGasFee?: boolean;
   showTotal?: boolean;
@@ -13,52 +14,76 @@ interface DualCurrencyPriceProps {
 }
 
 export default function DualCurrencyPrice({
-  amountNGN,
+  amount,
   stablecoin = 'cUSD',
   includeGasFee = false,
   showTotal = false,
   className = ''
 }: DualCurrencyPriceProps) {
+  const { countryData, convertCurrency } = useUtility();
   const [loading, setLoading] = useState(true);
-  const [nairaDisplay, setNairaDisplay] = useState('');
+  const [localDisplay, setLocalDisplay] = useState('');
   const [cryptoDisplay, setCryptoDisplay] = useState('');
   const [totalDisplay, setTotalDisplay] = useState('');
   const [gasFeeDisplay, setGasFeeDisplay] = useState('');
+  const [usdEquivalent, setUsdEquivalent] = useState(0);
 
   useEffect(() => {
     const fetchPrices = async () => {
+      if (!amount) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
+        const parsedAmount = parseAmount(amount);
+        const currencyCode = countryData?.currency.code || 'NGN';
+        
+        // Format the local currency amount
+        setLocalDisplay(formatCurrency(parsedAmount, currencyCode));
+        
+        // Convert local currency to USD
+        let usdAmount;
+        try {
+          usdAmount = await convertCurrency(
+            parsedAmount.toString(), 
+            currencyCode, 
+            'USD'
+          );
+          setUsdEquivalent(usdAmount);
+        } catch (error) {
+          console.error('Error converting to USD:', error);
+          setUsdEquivalent(0);
+          throw error;
+        }
+        
+        setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
+        
         if (showTotal) {
-          const { 
-            nairaDisplay, 
-            cryptoDisplay, 
-            totalDisplay,
-            gasFeeUSD
-          } = await calculateTransactionTotal(amountNGN, stablecoin);
+          // Standard gas fee in USD
+          const gasFeeUSD = 0.01;
+          const totalWithFee = usdAmount + gasFeeUSD;
           
-          setNairaDisplay(nairaDisplay);
-          setCryptoDisplay(cryptoDisplay);
-          setTotalDisplay(totalDisplay);
-          setGasFeeDisplay(`$${gasFeeUSD.toFixed(2)}`);
-        } else {
-          const { 
-            nairaDisplay, 
-            cryptoDisplay 
-          } = await displayDualPrice(amountNGN, stablecoin, includeGasFee);
-          
-          setNairaDisplay(nairaDisplay);
-          setCryptoDisplay(cryptoDisplay);
+          setGasFeeDisplay(`${stablecoin} ${gasFeeUSD.toFixed(2)}`);
+          setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
         }
       } catch (error) {
         console.error('Error fetching price data:', error);
+        setLocalDisplay(formatCurrency(parseAmount(amount), countryData?.currency.code || 'NGN'));
+        setCryptoDisplay(`${stablecoin} 0.00`);
+        
+        if (showTotal) {
+          setGasFeeDisplay(`${stablecoin} 0.01`);
+          setTotalDisplay(`${stablecoin} 0.01`);
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchPrices();
-  }, [amountNGN, stablecoin, includeGasFee, showTotal]);
+  }, [amount, stablecoin, includeGasFee, showTotal, countryData, convertCurrency]);
 
   if (loading) {
     return (
@@ -79,7 +104,7 @@ export default function DualCurrencyPrice({
         className="space-y-1"
       >
         <div className="text-base font-medium dark:text-white">
-          {nairaDisplay}
+          {localDisplay}
         </div>
         <div className="text-sm text-gray-600 dark:text-gray-400">
           ≈ {cryptoDisplay}
