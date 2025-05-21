@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-import { getOperatorsByCountry } from './api'
 
 // Reloadly API configuration
 const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL;
@@ -76,18 +74,18 @@ async function getAccessToken(): Promise<string> {
 
 /**
  * Get exchange rate from Reloadly FX API
- * @param sourceCurrency Source currency code
+ * @param base_currency Source currency code
  * @param targetCurrency Target currency code
  * @returns Exchange rate
  */
-async function getExchangeRate(sourceCurrency: string, targetCurrency: string): Promise<number> {
+async function getExchangeRate(base_currency: string, targetCurrency: string): Promise<number> {
   // Same currency, rate is 1
-  if (sourceCurrency === targetCurrency) {
+  if (base_currency === targetCurrency) {
     return 1;
   }
 
   // Check cache first
-  const cacheKey = `${sourceCurrency}-${targetCurrency}`;
+  const cacheKey = `${base_currency}-${targetCurrency}`;
   const cachedRate = rateCache.get(cacheKey);
   if (cachedRate && (Date.now() - cachedRate.timestamp < RATE_CACHE_DURATION)) {
     return cachedRate.rate;
@@ -97,22 +95,26 @@ async function getExchangeRate(sourceCurrency: string, targetCurrency: string): 
     const token = await getAccessToken();
     const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
     const fxEndpoint = isSandbox ? SANDBOX_FX_API : FX_API_ENDPOINT;
-    // Use the rates endpoint to get exchange rates
-    // Get operator ID for the user's country
-    console.log('Fetching operators for source currency:', sourceCurrency);
-    const operators = await getOperatorsByCountry(sourceCurrency);
-    
+    let operator;
+    if(base_currency === "ng") {
+      operator = 341
+    } else if (base_currency === "gh") {
+      operator = 643
+    } else if (base_currency === "ke") {
+      operator = 265
+    } else if (base_currency === "ug") {
+      operator = 1152
+    } else {
+      return 0;
+    }
     const options = {
       method: 'POST',
       headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/com.reloadly.topups-v1+json',
-      Authorization: `Bearer ${token}`
+        'Content-Type': 'application/json',
+        Accept: 'application/com.reloadly.topups-v1+json',
+        Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify({
-      operatorId: operators,
-      amount: 1
-      })
+      body: JSON.stringify({operatorId: operator, amount: 1})
     };
     
     fetch(fxEndpoint, options)
@@ -196,12 +198,12 @@ export async function convertFromUSD(
 /**
  * Convert local currency to USD
  * @param amount Amount in local currency
- * @param sourceCurrency Source local currency code
+ * @param base_currency Source local currency code
  * @returns Converted amount in USD
  */
 export async function convertToUSD(
   amount: number | string,
-  sourceCurrency: string
+  base_currency: string
 ): Promise<number> {
   try {
     const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -210,12 +212,12 @@ export async function convertToUSD(
       throw new Error('Invalid amount for currency conversion');
     }
     
-    if (sourceCurrency === 'USD') {
+    if (base_currency === 'USD') {
       return numericAmount;
     }
 
     // Get exchange rate from local currency to USD
-    const rate = await getExchangeRate(sourceCurrency, 'USD');
+    const rate = await getExchangeRate(base_currency, 'USD');
     
     // Calculate converted amount
     const convertedAmount = numericAmount / rate;
