@@ -4,22 +4,29 @@ import { getOperatorsByCountry } from '../../../../../services/utility/api';
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const country = searchParams.get('country');
-
   if (!country) {
     return NextResponse.json({ error: 'Country code is required' }, { status: 400 });
   }
-
   try {
-    const operators: any  = await getOperatorsByCountry(country);
-    
+    // Ensure country code is properly formatted
+    const sanitizedCountry = country.trim().toLowerCase();
 
+    const operators: any = await getOperatorsByCountry(sanitizedCountry);
+
+    if (!Array.isArray(operators)) {
+      console.error('Invalid response format from API:', operators);
+      return NextResponse.json({
+        error: 'Invalid response from operator service',
+        details: 'Expected an array of operators'
+      }, { status: 500 });
+    }
     // Transform the data to match our frontend requirements
     const formattedOperators = operators.map((op: any) => ({
-      id: op.operatorId.toString(),
-      name: op.name,
+      id: op.operatorId?.toString() || (op.id || '').toString(),
+      name: op.name || 'Unknown Provider',
       logoUrls: op.logoUrls || [],
-      supportsData: op.data,
-      supportsBundles: op.bundle
+      supportsData: op.data || false,
+      supportsBundles: op.bundle || false
     }));
 
     return NextResponse.json(formattedOperators);
