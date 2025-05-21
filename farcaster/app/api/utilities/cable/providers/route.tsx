@@ -7,28 +7,38 @@ export async function GET(request: NextRequest) {
 
   if (!country) {
     return NextResponse.json({ error: 'Country code is required' }, { status: 400 });
-  }
-  try {
+  }  try {
     // Ensure country code is properly formatted before passing to the API
     const sanitizedCountry = country.trim().toLowerCase();
-    const operators = await getBillerByCountry(sanitizedCountry);
-    // Ensure operators is an array before filtering
-    if (!Array.isArray(operators)) {
-      return NextResponse.json({ error: 'Invalid response from operator service' }, { status: 500 });
+    console.log(`Fetching cable providers for country: ${sanitizedCountry}`);
+    
+    const response: any = await getBillerByCountry(sanitizedCountry);
+    
+    // Check if response exists and is properly formatted
+    if (!response) {
+      return NextResponse.json({ error: 'Empty response from biller API' }, { status: 500 });
     }
+    
+    // Extract operators from the paginated response structure 
+    const operators = response.content || 
+                     (response.data?.content) || 
+                     (Array.isArray(response) ? response : []);
     
     // Filter to only include TV/cable operators
     const cableOperators = operators.filter((op: any) => 
-      op.operatorType === 'CABLE' || op.operatorType === 'TV' ) 
-    console.log('Filtered cable operators:', cableOperators);
+      op.serviceType === 'CABLE' || op.serviceType === 'TV' || 
+      op.operatorType === 'CABLE' || op.operatorType === 'TV'
+    );    console.log('Filtered cable operators:', cableOperators);
     
-    console.log('Filtered cable operators:', operators);
     // Transform the data to match our frontend requirements
     const formattedOperators = cableOperators.map((op: any) => ({
-      id: op.operatorId.toString(),
-      name: op.name,
+      id: (op.operatorId || op.id || '').toString(),
+      name: op.name || 'Unknown Provider',
       logoUrls: op.logoUrls || [],
-      supportsPackages: op.bundle || false
+      supportsPackages: op.bundle || false,
+      minAmount: op.minLocalTransactionAmount || 0,
+      maxAmount: op.maxLocalTransactionAmount || 0,
+      currencyCode: op.localTransactionCurrencyCode || ''
     }));
 
     return NextResponse.json(formattedOperators);

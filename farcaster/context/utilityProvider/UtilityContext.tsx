@@ -6,18 +6,17 @@ import { BrowserProvider, Contract, ethers, formatUnits, Interface, parseEther }
 import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
 import { BigNumber } from 'alchemy-sdk';
 import { Celo } from '@celo/rainbowkit-celo/chains';
-import { getCountryData, CountryData } from '../../utils/countryData';
-
+import {  CountryData } from '../../utils/countryData';
 // The recipient wallet address for all utility payments
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
-// Divvi Integration - retain as requested
+// Divvi Integration 
 const dataSuffix = getDataSuffix({
   consumer: RECIPIENT_WALLET,
   providers: ['0x5f0a55FaD9424ac99429f635dfb9bF20c3360Ab8', '0x6226ddE08402642964f9A6de844ea3116F0dFc7e'],
 })
 
-// Enhanced Type definitions
+
 type UtilityContextType = {
   isProcessing: boolean;
   selectedToken: string;
@@ -30,7 +29,6 @@ type UtilityContextType = {
   convertCurrency: (amount: string, fromCurrency?: string, toCurrency?: string) => Promise<number>;
   handleTransaction: (params: TransactionParams) => Promise<boolean>;
   approveSpend: (amount: string, token: string) => Promise<boolean>;
-  // New metadata types for different utility payments
   getTransactionMemo: (type: 'data' | 'electricity' | 'cable', metadata: Record<string, any>) => string;
   formatCurrencyAmount: (amount: string | number) => string;
 };
@@ -64,40 +62,28 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const [isApproving, setIsApproving] = useState(false);
   const [amount, setAmount] = useState<string>('');
 
-  // Update country data when country selection changes
-  useEffect(() => {
-    if (selectedCountry) {
-      const data = getCountryData(selectedCountry);
-      setCountryData(data || null);
-    } else {
-      setCountryData(null);
-    }
-  }, [selectedCountry]);
 
-  // Function to convert currency using the Reloadly FX API
   const convertCurrency = async (
-    amount: string, 
-    fromCurrency?: string, 
-    toCurrency: string = 'USD'
+    amount: string,
+    base_currency?: string 
   ): Promise<number> => {
+
     try {
-      // Use the selected country's currency code if fromCurrency is not provided
-      const sourceCurrency = fromCurrency || (countryData?.currency.code || 'NGN');
-      
-      // Ensure amount is valid
+      const sourceCurrency = base_currency || selectedCountry;
+      console.log("amount:", amount, "Source Currency input:", base_currency, "Country Data:", selectedCountry);
+
+      // Validate the amount
       if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
         throw new Error('Invalid amount for currency conversion');
       }
-      
-      const response = await fetch('/api/exchange-rate', {
+        const response = await fetch('/api/exchange-rate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           amount,
-          base_currency: sourceCurrency,
-          quote_currency: toCurrency,
+          base_currency: sourceCurrency
         }),
       });
       
@@ -135,10 +121,10 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const getTokenDecimals = (token: string): number => {
     switch (token) {
       case 'CUSD':
-        return 18; // CUSD uses 18 decimals
+        return 18;  
       case 'USDC':
       case 'USDT':
-        return 6; // USDC and USDT typically use 6 decimals
+        return 6;   
       default:
         return 18;
     }
@@ -156,7 +142,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
       minimumFractionDigits: 0
     });
     
-    return `${countryData.currency.symbol}${formattedNumber}`;
+    return `${selectedCountry || '₦'}${formattedNumber}`;
   };
 
   // Generate a transaction memo/description based on utility type
@@ -191,7 +177,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         // Parse amount using the correct decimal places for the token
         const decimals = getTokenDecimals(selectedToken);
         const depositValue = ethers.parseUnits(amount, decimals);
-        const gasLimit = 600000; // Set a reasonable gas limit
+        const gasLimit = 600000;  
 
         const tokenAddress = getTokenAddress(selectedToken);
         const tokenAbi = [
@@ -270,11 +256,11 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
       return false;
     }
 
-    setIsProcessing(true);
-
-    try {
+    setIsProcessing(true);    try {
       // Convert the local currency amount to its equivalent in USD
-      const convertedAmount = await convertCurrency(amount, countryData?.currency.code, 'USD');
+      const currencyCode = selectedCountry;
+      const convertedAmount = await convertCurrency(amount, currencyCode);
+
       if (convertedAmount <= 0) {
         toast.error('Currency conversion failed. Please try again.');
         return false;
@@ -336,7 +322,6 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           });
         } catch (referralError) {
           console.error("Referral submission error:", referralError);
-          // Continue since the main transaction succeeded
         }
 
         // Determine success message based on utility type

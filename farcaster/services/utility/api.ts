@@ -1,14 +1,21 @@
-import fetch, { RequestInit } from 'node-fetch';
-
 // Base URLs from environment variables
 const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL;
 const SANDBOX_API_URL = process.env.NEXT_PUBLIC_SANDBOX_API_URL;
 const PRODUCTION_API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Determine API URL based on environment
-const API_URL = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true'
-  ? SANDBOX_API_URL
-  : PRODUCTION_API_URL;
+const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
+const API_URL = isSandbox ? SANDBOX_API_URL : PRODUCTION_API_URL;
+
+// Log API URL configuration on initialization for debugging
+console.log('API Configuration:', {
+    mode: isSandbox ? 'SANDBOX' : 'PRODUCTION',
+    authUrl: AUTH_URL?.substring(0, 30) || '[NOT SET]',
+    apiUrl: API_URL?.substring(0, 30) || '[NOT SET]'
+});
+
+// Use the native fetch API's RequestInit interface
+type RequestInit = Parameters<typeof fetch>[1];
 
 
 // Cache for token and rates to minimize API calls

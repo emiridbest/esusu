@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOperator } from '../../../../../services/utility/api';
 
-// Define interface for operator details
+// Interface for operator details
 interface OperatorDetails {
   operatorId: number;
   data?: boolean;
@@ -13,7 +13,6 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const provider = searchParams.get('provider');
   const country = searchParams.get('country');
-
   if (!provider || !country) {
     return NextResponse.json({ error: 'Provider ID and country code are required' }, { status: 400 });
   }
@@ -27,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     // Check if this operator supports data bundles
     if (!operatorDetails.data) {
-      return NextResponse.json([]);  // Return empty array if no bundles are supported
+      return NextResponse.json([]); 
     }
 
     // Get the bundles for this operator

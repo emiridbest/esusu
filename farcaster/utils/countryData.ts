@@ -26,7 +26,7 @@ const COUNTRIES: Record<string, CountryData> = {
     currency: {
       code: "NGN",
       name: "Nigerian Naira",
-      symbol: "₦"
+      symbol: "₦",
     },
     servicesAvailable: {
       electricity: true,

@@ -18,8 +18,11 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        console.log(`Fetching providers for country: ${country}`);
-        const response: any = await getBillerByCountry(country);
+        // Ensure country code is properly formatted before passing to the API
+        const sanitizedCountry = country.trim().toLowerCase();
+        console.log(`Fetching providers for country: ${sanitizedCountry}`);
+        
+        const response: any = await getBillerByCountry(sanitizedCountry);
         
         // Check if response exists and is properly formatted
         if (!response) {
@@ -30,18 +33,23 @@ export async function GET(request: NextRequest) {
         const operators = response.content || 
                          (response.data?.content) || 
                          (Array.isArray(response) ? response : []);
-
-        // Transform the data to match our frontend requirements
-        const formattedOperators: ProviderDetails[] = operators.map((op: any) => ({
-            id: op.id?.toString() || '',
-            name: op.name || '',
-            serviceType: op.serviceType || '',
+        
+        // Filter to include only electricity operators
+        const electricityOperators = operators.filter((op: any) => 
+            op.serviceType === 'ELECTRICITY' || 
+            op.operatorType === 'ELECTRICITY' ||
+            true // Include all operators for now**
+        );        // Transform the data to match our frontend requirements
+        const formattedOperators: ProviderDetails[] = electricityOperators.map((op: any) => ({
+            id: (op.operatorId || op.id || '').toString(),
+            name: op.name || 'Unknown Provider',
+            serviceType: op.serviceType || 'ELECTRICITY',
             minLocalTransactionAmount: op.minLocalTransactionAmount || 0,
             maxLocalTransactionAmount: op.maxLocalTransactionAmount || 0,
             localTransactionCurrencyCode: op.localTransactionCurrencyCode || ''
         }));
         
-
+        console.log(`Found ${formattedOperators.length} electricity providers for ${sanitizedCountry}`);
         return NextResponse.json(formattedOperators);
     } catch (error: any) {
         console.error('Error fetching electricity providers:', error);

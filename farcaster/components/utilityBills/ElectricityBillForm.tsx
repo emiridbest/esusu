@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import DualCurrencyPrice from '../../components/DualCurrencyPrice';
-import { parseAmount } from '../../utils/currency';
+import React, { useState, useEffect, useContext, createContext } from 'react';
+import DualCurrencyPrice from './DualCurrencyPrice';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -56,6 +55,7 @@ export default function ElectricityBillForm() {
   const [amount, setAmount] = useState<number>(0);
   const [providers, setProviders] = useState<ElectricityProvider[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [countryCurrency, setCountryCurrency] = useState<string>(""); 
 
   const {
     selectedToken,
@@ -81,39 +81,39 @@ export default function ElectricityBillForm() {
   const watchCountry = form.watch("country");
   const watchProvider = form.watch("provider");
 
-   // Fetch network providers when country changes
-   useEffect(() => {
-     const getProviders = async () => {
-       if (watchCountry) {
-         setIsLoading(true);
-         form.setValue("provider", "");
-         
-         try {
-           const provider = await fetchElectricityProviders(watchCountry);
-           console.log("Fetched providers:", provider);
-           setProviders(provider);
-         } catch (error) {
-           console.error("Error fetching mobile operators:", error);
-           toast({
-             title: "Error",
-             description: "Failed to load network providers. Please try again.",
-             variant: "destructive",
-           });
-         } finally {
-           setIsLoading(false);
-         }
-       }
-     };
-     
-     getProviders();
-   }, [watchCountry, form, toast]);
-  
+  // Fetch network providers when country changes
+  useEffect(() => {
+    const getProviders = async () => {
+      if (watchCountry) {
+        setIsLoading(true);
+        form.setValue("provider", "");
+
+        try {
+          const provider = await fetchElectricityProviders(watchCountry);
+          console.log("Fetched providers:", provider);
+          setProviders(provider);
+        } catch (error) {
+          console.error("Error fetching mobile operators:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load network providers. Please try again.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    getProviders();
+  }, [watchCountry, form, toast]);
+
 
 
   // Update amount when amount changes
   useEffect(() => {
     if (watchAmount) {
-      setAmount(parseAmount(watchAmount));
+      setAmount(Number(watchAmount));
     } else {
       setAmount(0);
     }
@@ -165,160 +165,194 @@ export default function ElectricityBillForm() {
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="country"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Country</FormLabel>
-              <FormControl>
-                <CountrySelector
-                  value={field.value}
-                  onChange={field.onChange}
-                />
-              </FormControl>
-              <FormDescription>
-                Select the country for the electricity service.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="provider"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Electricity Provider</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                disabled={isLoading || providers.length === 0}
-              >
+    <CountryCurrencyProvider value={{ countryCurrency, setCountryCurrency }}>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="country"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Country</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder={providers.length === 0 ? "Select a country first" : "Select electricity provider"} />
-                  </SelectTrigger>
+                  <CountrySelector
+                    value={field.value}
+                    onChange={(val) => {
+                      field.onChange(val);
+                      if (val) setCountryCurrency(val);
+                    }}
+                  />
                 </FormControl>
-                <SelectContent>
-                  {providers.map((provider) => (
-                    <SelectItem key={provider.id} value={provider.id}>
-                      {provider.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {isLoading && <div className="text-sm text-gray-500 mt-1 flex items-center">
-                <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading providers...
-              </div>}
-              <FormDescription>
-                {providers.length === 0 && "Please select a country first to see available providers"}
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormDescription>
+                  Select the country for the electricity service.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="provider"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Electricity Provider</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  disabled={isLoading || providers.length === 0}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={providers.length === 0 ? "Select a country first" : "Select electricity provider"} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {providers.map((provider) => (
+                      <SelectItem key={provider.id} value={provider.id}>
+                        {provider.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {isLoading && <div className="text-sm text-gray-500 mt-1 flex items-center">
+                  <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading providers...
+                </div>}
+                <FormDescription>
+                  {providers.length === 0 && "Please select a country first to see available providers"}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="meterNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Meter Number</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter meter number" {...field} />
-              </FormControl>
-              <FormDescription>
-                Enter your electricity meter number.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="amount"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Amount </FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  placeholder="Enter amount"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                Enter the amount you want to pay.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="paymentToken"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Payment Token</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+          <FormField
+            control={form.control}
+            name="meterNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Meter Number</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select payment token" />
-                  </SelectTrigger>
+                  <Input placeholder="Enter meter number" {...field} />
                 </FormControl>
-                <SelectContent>
-                  {TOKENS.map((token) => (
-                    <SelectItem key={token.id} value={token.id}>
-                      {token.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                All token amounts are converted to USD equivalent
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormDescription>
+                  Enter your electricity meter number.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {amount > 0 && (
-          <Card className="bg-gray-50 dark:bg-gray-800/50">
-            <CardContent className="pt-4">
-              <div className="flex flex-col space-y-1">
-                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Payment Amount:
+          <FormField
+            control={form.control}
+            name="amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Amount </FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Enter amount"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Enter the amount you want to pay.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="paymentToken"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payment Token</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payment token" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {TOKENS.map((token) => (
+                      <SelectItem key={token.id} value={token.id}>
+                        {token.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  All token amounts are converted to USD equivalent
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {amount > 0 && (
+            <Card className="bg-gray-50 dark:bg-gray-800/50">
+              <CardContent className="pt-4">
+                <div className="flex flex-col space-y-1">
+                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Payment Amount:
+                  </div>
+                  <DualCurrencyPrice
+                    amount={amount}
+                    stablecoin={selectedToken}
+                    showTotal={true}
+                  />
                 </div>
-                <DualCurrencyPrice
-                  amount={amount}
-                  stablecoin={selectedToken}
-                  showTotal={true}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isProcessing || amount <= 0}
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            `Pay with ${selectedToken}`
+              </CardContent>
+            </Card>
           )}
-        </Button>
-      </form>
-    </Form>
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isProcessing || amount <= 0}
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              `Pay with ${selectedToken}`
+            )}
+          </Button>
+        </form>
+      </Form>
+    </CountryCurrencyProvider>
   );
 }
+// Create a context for the country currency
+const CountryCurrencyContext = createContext<{
+  countryCurrency: string | undefined;
+  setCountryCurrency: React.Dispatch<React.SetStateAction<string | undefined>>;
+} | undefined>(undefined);
+
+// Export the currency state through a custom hook
+export const useCountryCurrencyElectricity = () => {
+  const context = useContext(CountryCurrencyContext);
+  if (!context) {
+   return;
+  }
+  return context;
+};
+
+export const CountryCurrencyProvider: React.FC<{
+  children: React.ReactNode,
+  value: {
+    countryCurrency: string | undefined;
+    setCountryCurrency: React.Dispatch<React.SetStateAction<string | undefined>>;
+  }
+}> = ({ children, value }) => {
+  return (
+    <CountryCurrencyContext.Provider value={value}>
+      {children}
+    </CountryCurrencyContext.Provider>
+  );
+};

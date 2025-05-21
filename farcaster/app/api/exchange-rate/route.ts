@@ -3,26 +3,14 @@ import { convertToUSD, convertFromUSD } from '../../../services/utility/fxApi';
 
 export async function POST(request: NextRequest) {
   try {
-    const { amount, base_currency, quote_currency } = await request.json();
+    const { amount, base_currency } = await request.json();
     
-    if (!amount || !base_currency || !quote_currency) {
+    if (!amount || !base_currency) {
       return NextResponse.json(
         { error: 'Missing required parameters' },
         { status: 400 }
       );
     }
-    // Check if currencies are the same
-    if (base_currency === quote_currency) {
-      const numericAmount = parseFloat(amount);
-      return NextResponse.json({
-        fromAmount: numericAmount,
-        toAmount: numericAmount.toString(),
-        rate: 1,
-        fromCurrency: base_currency,
-        toCurrency: quote_currency
-      });
-    }
-    
     // Determine the correct conversion function based on currencies
     try {
       let convertedAmount: number;
@@ -30,7 +18,7 @@ export async function POST(request: NextRequest) {
       
       if (base_currency === 'USD') {
         // Convert from USD to local currency
-        convertedAmount = await convertFromUSD(amount, quote_currency);
+        convertedAmount = await convertFromUSD(amount, base_currency);
         rate = convertedAmount / parseFloat(amount);
       } else {
         // Convert from local currency to USD
@@ -43,7 +31,6 @@ export async function POST(request: NextRequest) {
         toAmount: convertedAmount.toFixed(2),
         rate: rate,
         fromCurrency: base_currency,
-        toCurrency: quote_currency
       });
     } catch (conversionError) {
       console.error('Currency conversion error:', conversionError);
