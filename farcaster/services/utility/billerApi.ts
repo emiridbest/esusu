@@ -1,14 +1,15 @@
-import fetch, { RequestInit } from 'node-fetch';
-
 // Base URLs from environment variables
 const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL;
 const SANDBOX_API_URL = process.env.NEXT_PUBLIC_SANDBOX_BILLER_API_URL;
 const PRODUCTION_API_URL = process.env.NEXT_PUBLIC_BILLER_API_URL;
 
 // Determine API URL based on environment
-const API_URL = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true'
-    ? SANDBOX_API_URL
-    : PRODUCTION_API_URL;
+const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
+const API_URL = isSandbox ? SANDBOX_API_URL : PRODUCTION_API_URL;
+
+
+// Use the native fetch API's RequestInit interface
+type RequestInit = Parameters<typeof fetch>[1];
 
 
 // Cache for token and rates to minimize API calls
@@ -32,11 +33,17 @@ const tokenCache = {
         const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
 
         if (!clientId || !clientSecret) {
-            throw new Error(' API credentials not configured');
+            throw new Error('API credentials not configured');
         }
+        
+        if (!AUTH_URL) {
+            throw new Error('AUTH_URL is not configured');
+        }
+        
         let audience = isSandbox
             ? SANDBOX_API_URL
             : PRODUCTION_API_URL;
+            
 
         const options = {
             method: 'POST',
@@ -49,14 +56,11 @@ const tokenCache = {
             })
         };
 
-        fetch(AUTH_URL, options)
-            .then(res => res.json())
-            .then(json => console.log(json))
-            .catch(err => console.error('error:' + err));
-
         const response = await fetch(AUTH_URL, options);
 
         if (!response.ok) {
+            const errorBody = await response.text().catch(() => 'Failed to read error response');
+            console.error(`Authentication failed: ${response.status} ${response.statusText}, Body: ${errorBody}`);
             throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
         }
 
@@ -98,22 +102,35 @@ async function getAuthHeaders() {
  * @param options Fetch options
  */
 async function BillerApiRequest(endpoint: string, options: RequestInit = {}) {
-    const headers = await getAuthHeaders();
-    const url = `${API_URL}${endpoint}`;
+    try {
+        const headers = await getAuthHeaders();
+        const url = `${API_URL}${endpoint}`;
+        
+        console.log(`Making biller API request to ${url}`);
+        
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                ...headers,
+                ...(options.headers || {})
+            }
+        });
 
-    const response = await fetch(url, {
-        ...options,
-        headers: {
-            ...headers,
-            ...(options.headers || {})
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => 'Failed to read error response body');
+            console.error(`Biller API request failed: ${response.status} ${response.statusText}, Body: ${errorText}`);
+            throw new Error(`Biller API request failed: ${response.status} ${response.statusText}`);
         }
-    });
 
-    if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        const data = await response.json();
+        console.log(`Biller API response received with status ${response.status}`);
+        return data;
+    } catch (error) {
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+            console.error('Network error when making biller API request. Check if API_URL is correct:', API_URL);
+        }
+        throw error;
     }
-
-    return response.json();
 }
 /**
  * Get all billers
@@ -121,18 +138,15 @@ async function BillerApiRequest(endpoint: string, options: RequestInit = {}) {
  */
 export async function getBillerByCountry(countryCode: string) {
     try {
-        const url = `/billers?countryISOCode=${countryCode}`;
-
-        const options = {
-            method: 'GET',
-            headers: await getAuthHeaders()
-        };
-
-        fetch(url, options)
-            .then(res => res.json())
-            .then(json => console.log(json))
-            .catch(err => console.error('error:' + err));
-        return await BillerApiRequest(url);
+        const endpoint = `/billers?countryISOCode=${countryCode}`;
+    
+        
+        if (!API_URL) {
+            console.error('API_URL is not defined in environment variables');
+            throw new Error('Biller API URL is not configured correctly');
+        }
+        
+        return await BillerApiRequest(endpoint);
     } catch (error) {
         console.error(`Error fetching billers for ${countryCode}:`, error);
         throw error;
