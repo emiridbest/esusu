@@ -51,7 +51,7 @@ next-env.d.ts
 node_modules
 /frontend/node_modules
 /backend/node_modules
-
+app/api/env-check/route.ts
 # Editor directories and files
 .idea
 .vscode
