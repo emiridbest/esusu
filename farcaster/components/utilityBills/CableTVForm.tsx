@@ -1,7 +1,6 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import DualCurrencyPrice from '../../components/DualCurrencyPrice';
-import { parseAmount } from '../../utils/currency';
+import React, { useState, useEffect, useContext, createContext } from 'react';
+import DualCurrencyPrice from './DualCurrencyPrice';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -61,6 +60,7 @@ export default function CableTVForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [providers, setProviders] = useState<CableProvider[]>([]);
   const [availablePlans, setAvailablePlans] = useState<CablePackage[]>([]);
+  const [countryCurrency, setCountryCurrency] = useState<string>(""); 
   const { 
     selectedToken, 
     setSelectedToken, 
@@ -147,7 +147,7 @@ export default function CableTVForm() {
       if (selectedPlan) {
         // Parse the price string to get the numeric value
         const priceValue = selectedPlan.price.replace(/[^0-9.]/g, '');
-        setSelectedPrice(parseAmount(priceValue));
+        setSelectedPrice(Number(priceValue));
       } else {
         setSelectedPrice(0);
       }
@@ -222,6 +222,8 @@ export default function CableTVForm() {
   }
 
   return (
+        <CountryCurrencyProvider value={{ countryCurrency, setCountryCurrency }}>
+    
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
@@ -231,11 +233,14 @@ export default function CableTVForm() {
             <FormItem>
               <FormLabel>Country</FormLabel>
               <FormControl>
-                <CountrySelector 
-                  value={field.value} 
-                  onChange={field.onChange}
-                />
-              </FormControl>
+                                <CountrySelector
+                                  value={field.value}
+                                  onChange={(val) => {
+                                    field.onChange(val);
+                                    if (val) setCountryCurrency(val);
+                                  }}
+                                />
+                              </FormControl>
               <FormDescription>
                 Select the country for the cable TV service.
               </FormDescription>
@@ -385,5 +390,36 @@ export default function CableTVForm() {
         </Button>
       </form>
     </Form>
+        </CountryCurrencyProvider>
+    
   );
 }
+
+// Create a context for the country currency
+const CountryCurrencyContext = createContext<{
+  countryCurrency: string | undefined;
+  setCountryCurrency: React.Dispatch<React.SetStateAction<string | undefined>>;
+} | undefined>(undefined);
+
+// Export the currency state through a custom hook
+export const useCountryCurrencyCable = () => {
+  const context = useContext(CountryCurrencyContext);
+  if (!context) {
+   return;
+  }
+  return context;
+};
+
+export const CountryCurrencyProvider: React.FC<{
+  children: React.ReactNode,
+  value: {
+    countryCurrency: string | undefined;
+    setCountryCurrency: React.Dispatch<React.SetStateAction<string | undefined>>;
+  }
+}> = ({ children, value }) => {
+  return (
+    <CountryCurrencyContext.Provider value={value}>
+      {children}
+    </CountryCurrencyContext.Provider>
+  );
+};
