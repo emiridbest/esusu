@@ -1,7 +1,6 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import DualCurrencyPrice from '../../components/DualCurrencyPrice';
-import { parseAmount } from '../../utils/currency';
+import React, { useState, useEffect, createContext, useContext } from 'react';
+import DualCurrencyPrice from './DualCurrencyPrice';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -29,9 +28,9 @@ import { useToast } from "../../hooks/use-toast"
 import { Loader2 } from "lucide-react";
 import CountrySelector from '../utilityBills/CountrySelector';
 import { TOKENS } from '../../context/utilityProvider/tokens';
-import { 
-  fetchMobileOperators, 
-  fetchDataPlans, 
+import {
+  fetchMobileOperators,
+  fetchDataPlans,
   verifyPhoneNumber,
   type NetworkOperator,
   type DataPlan
@@ -61,25 +60,28 @@ export default function MobileDataForm() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [networks, setNetworks] = useState<NetworkOperator[]>([]);
   const [availablePlans, setAvailablePlans] = useState<DataPlan[]>([]);
-  const { 
-    selectedToken, 
-    setSelectedToken, 
+  const [countryCurrency, setCountryCurrency] = useState<string>(""); 
+
+  const {
+    selectedToken,
+    setSelectedToken,
     isProcessing,
-    setIsProcessing, 
-    handleTransaction 
+    setIsProcessing,
+    handleTransaction
   } = useUtility();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      country: "NG", // Default to Nigeria
+      country: "", // Default to Nigeria
       phoneNumber: "",
       network: "",
       plan: "",
       paymentToken: "cusd",
     },
   });
-  
+
+
   const watchCountry = form.watch("country");
   const watchNetwork = form.watch("network");
   const watchPlan = form.watch("plan");
@@ -92,7 +94,7 @@ export default function MobileDataForm() {
         setIsLoading(true);
         form.setValue("network", "");
         form.setValue("plan", "");
-        
+
         try {
           const operators = await fetchMobileOperators(watchCountry);
           setNetworks(operators);
@@ -108,7 +110,7 @@ export default function MobileDataForm() {
         }
       }
     };
-    
+
     getNetworks();
   }, [watchCountry, form, toast]);
 
@@ -118,7 +120,7 @@ export default function MobileDataForm() {
       if (watchNetwork && watchCountry) {
         setIsLoading(true);
         form.setValue("plan", "");
-        
+
         try {
           const plans = await fetchDataPlans(watchNetwork, watchCountry);
           setAvailablePlans(plans);
@@ -137,7 +139,7 @@ export default function MobileDataForm() {
         setAvailablePlans([]);
       }
     };
-    
+
     getDataPlans();
   }, [watchNetwork, watchCountry, form, toast]);
 
@@ -148,7 +150,7 @@ export default function MobileDataForm() {
       if (selectedPlan) {
         // Parse the price string to get the numeric value
         const priceValue = selectedPlan.price.replace(/[^0-9.]/g, '');
-        setSelectedPrice(parseAmount(priceValue));
+        setSelectedPrice(Number(priceValue));
       } else {
         setSelectedPrice(0);
       }
@@ -163,22 +165,22 @@ export default function MobileDataForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsProcessing(true);
-    
+
     try {
       // First verify the phone number with the selected network
       const verificationResult = await verifyPhoneNumber(
-        values.phoneNumber, 
+        values.phoneNumber,
         values.network,
         values.country
       );
-      
+
       if (!verificationResult.verified) {
         throw new Error(verificationResult.message || 'Phone number verification failed');
       }
-      
+
       const selectedPlan = availablePlans.find(plan => plan.id === values.plan);
       const networkName = networks.find(net => net.id === values.network)?.name || '';
-      
+
       const success = await handleTransaction({
         type: 'data',
         amount: selectedPrice.toString(),
@@ -198,7 +200,7 @@ export default function MobileDataForm() {
           title: "Payment Successful",
           description: `Your mobile data purchase for ${values.phoneNumber} was successful.`,
         });
-        
+
         // Reset the form but keep the country
         form.reset({
           ...form.getValues(),
@@ -221,170 +223,202 @@ export default function MobileDataForm() {
       setIsProcessing(false);
     }
   }
-
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="country"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Country</FormLabel>
-              <FormControl>
-                <CountrySelector 
-                  value={field.value} 
-                  onChange={field.onChange}
-                />
-              </FormControl>
-              <FormDescription>
-                Select the country for the mobile data service.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="phoneNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Phone Number</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter phone number" {...field} />
-              </FormControl>
-              <FormDescription>
-                Enter the phone number to recharge.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="network"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Network Provider</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || networks.length === 0}>
+    <CountryCurrencyProvider value={{ countryCurrency, setCountryCurrency }}>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="country"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Country</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select network provider" />
-                  </SelectTrigger>
+                  <CountrySelector
+                    value={field.value}
+                    onChange={(val) => {
+                      field.onChange(val);
+                      if (val) setCountryCurrency(val);
+                    }}
+                  />
                 </FormControl>
-                <SelectContent>
-                  {networks.map((network) => (
-                    <SelectItem key={network.id} value={network.id}>
-                      {network.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {isLoading && <div className="text-sm text-gray-500 mt-1 flex items-center">
-                <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading providers...
-              </div>}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormDescription>
+                  Select the country for the mobile data service.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="plan"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Data Plan</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                value={field.value} 
-                disabled={isLoading || !watchNetwork || availablePlans.length === 0}
-              >
+          <FormField
+            control={form.control}
+            name="phoneNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Phone Number</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select data plan" />
-                  </SelectTrigger>
+                  <Input placeholder="Enter phone number" {...field} />
                 </FormControl>
-                <SelectContent>
-                  {availablePlans.map((plan) => (
-                    <SelectItem key={plan.id} value={plan.id}>
-                      {plan.name} - {plan.price}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {isLoading && <div className="text-sm text-gray-500 mt-1 flex items-center">
-                <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading plans...
-              </div>}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormDescription>
+                  Enter the phone number to recharge.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="paymentToken"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Payment Token</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select payment token" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {TOKENS.map((token) => (
-                    <SelectItem key={token.id} value={token.id}>
-                      {token.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                All token amounts are converted to USD equivalent
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="network"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Network Provider</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || networks.length === 0}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select network provider" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {networks.map((network) => (
+                      <SelectItem key={network.id} value={network.id}>
+                        {network.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {isLoading && <div className="text-sm text-gray-500 mt-1 flex items-center">
+                  <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading providers...
+                </div>}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {selectedPrice > 0 && (
-          <Card className="bg-gray-50 dark:bg-gray-800/50">
-            <CardContent className="pt-4">
-              <div className="flex flex-col space-y-1">
-                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Payment Amount:
+          <FormField
+            control={form.control}
+            name="plan"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Data Plan</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={isLoading || !watchNetwork || availablePlans.length === 0}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select data plan" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {availablePlans.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        {plan.name} - {plan.price}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {isLoading && <div className="text-sm text-gray-500 mt-1 flex items-center">
+                  <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading plans...
+                </div>}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="paymentToken"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payment Token</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payment token" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {TOKENS.map((token) => (
+                      <SelectItem key={token.id} value={token.id}>
+                        {token.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  All token amounts are converted to USD equivalent
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {selectedPrice > 0 && (
+            <Card className="bg-gray-50 dark:bg-gray-800/50">
+              <CardContent className="pt-4">
+                <div className="flex flex-col space-y-1">
+                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Payment Amount:
+                  </div>
+                  <DualCurrencyPrice
+                    amount={selectedPrice}
+                    stablecoin={selectedToken}
+                    showTotal={true}
+                  />
                 </div>
-                <DualCurrencyPrice
-                  amount={selectedPrice}
-                  stablecoin={selectedToken}
-                  showTotal={true}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isProcessing || !selectedPrice}
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            `Pay with ${selectedToken}`
+              </CardContent>
+            </Card>
           )}
-        </Button>
-      </form>
-    </Form>
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isProcessing || !selectedPrice}
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              `Pay with ${selectedToken}`
+            )}        </Button>
+        </form>
+      </Form>
+    </CountryCurrencyProvider>
   );
 }
+
+// Create a context for the country currency
+const CountryCurrencyContext = createContext<{
+  countryCurrency: string | undefined;
+  setCountryCurrency: React.Dispatch<React.SetStateAction<string | undefined>>;
+} | undefined>(undefined);
+
+// Export the currency state through a custom hook
+export const useCountryCurrencyData = () => {
+  const context = useContext(CountryCurrencyContext);
+  if (!context) {
+    return;
+  }
+  return context;
+};
+
+export const CountryCurrencyProvider: React.FC<{
+  children: React.ReactNode,
+  value: {
+    countryCurrency: string | undefined;
+    setCountryCurrency: React.Dispatch<React.SetStateAction<string | undefined>>;
+  }
+}> = ({ children, value }) => {
+  return (
+    <CountryCurrencyContext.Provider value={value}>
+      {children}
+    </CountryCurrencyContext.Provider>
+  );
+};
