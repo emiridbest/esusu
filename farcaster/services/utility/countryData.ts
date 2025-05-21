@@ -17,8 +17,7 @@ export function countryCodeToISO2(countryCode: string): string {
     '254': 'KE',  // Kenya
     '255': 'TZ',  // Tanzania
     '233': 'GH',  // Ghana
-    '27': 'ZA',   // South Africa
-    // Add more country codes as needed
+    '27': 'ZA'   // South Africa
   };
   
   // For ISO2 codes that are already in the correct format
