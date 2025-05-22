@@ -27,59 +27,78 @@ const tokenCache = {
 /**
  * Gets an OAuth 2.0 access token from Reloadly
  * Implements caching to avoid unnecessary token requests
- */async function getAccessToken(): Promise<string> {
-   // Check if token is still valid
-   if (tokenCache.token && tokenCache.expiresAt > Date.now()) {
-     return tokenCache.token;
-   }
+ */
+async function getAccessToken(): Promise<string> {
+  // Check if token is still valid
+  if (tokenCache.token && tokenCache.expiresAt > Date.now()) {
+    console.log('Using cached token (expires in', 
+      Math.round((tokenCache.expiresAt - Date.now()) / 1000), 'seconds)');
+    return tokenCache.token;
+  }
  
-   try {
-     const clientId = process.env.NEXT_PUBLIC_CLIENT_ID;
-     const clientSecret = process.env.NEXT_PUBLIC_CLIENT_SECRET;
-     const isSandbox =process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
+  try {
+    const clientId = process.env.NEXT_CLIENT_ID;
+    const clientSecret = process.env.NEXT_CLIENT_SECRET;
+    const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
  
-     if (!clientId || !clientSecret) {
-       throw new Error('Reloadly API credentials not configured');
-     }
+    if (!clientId || !clientSecret) {
+      throw new Error('Reloadly API credentials not configured');
+    }
 
-  // Use regular API audience
-  let audience = isSandbox 
-    ? process.env.NEXT_PUBLIC_SANDBOX_API_URL
-    : process.env.NEXT_PUBLIC_API_URL;
+    // Use regular API audience - make sure we have the full URL without truncation
+    const audience = isSandbox 
+      ? process.env.NEXT_PUBLIC_SANDBOX_API_URL
+      : process.env.NEXT_PUBLIC_API_URL;
+    
+    if (!audience) {
+      throw new Error('API audience URL not configured');
+    }
  
-       const options = {
-       method: 'POST',
-       headers: {'Content-Type': 'application/json', 
-         Accept: 'application/json'},
-       body: JSON.stringify({
-         client_id: clientId,
-         client_secret: clientSecret,
-         grant_type: 'client_credentials',
-         audience: audience
-       })
-     };
+    console.log('Requesting new access token...', {
+      authUrl: AUTH_URL,
+      audience,
+      mode: isSandbox ? 'SANDBOX' : 'PRODUCTION'
+    });
+
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json', 
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: 'client_credentials',
+        audience: audience
+      })
+    };
  
-     const response = await fetch(AUTH_URL, options);
+    const response = await fetch(AUTH_URL, options);
  
-     if (!response.ok) {
-       throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
-     }
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Authentication error response:', errorText);
+      throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
+    }
  
-     const data = await response.json() as {
-       access_token: string;
-       expires_in?: number;
-     };
+    const data = await response.json() as {
+      access_token: string;
+      expires_in?: number;
+    };
  
-     // Store token with expiration
-     const expiresIn = data.expires_in || 3600;
-     tokenCache.token = data.access_token;
-     tokenCache.expiresAt = Date.now() + (expiresIn * 1000) - 60000; // Subtract 1 minute for safety
-     return tokenCache.token;
-   } catch (error) {
-     console.error('Error getting Reloadly access token:', error);
-     throw new Error('Failed to authenticate with Reloadly API');
-   }
- }
+    // Store token with expiration
+    const expiresIn = data.expires_in || 3600;
+    tokenCache.token = data.access_token;
+    tokenCache.expiresAt = Date.now() + (expiresIn * 1000) - 60000; // Subtract 1 minute for safety
+    
+    console.log('New token acquired, expires in', expiresIn - 60, 'seconds');
+    return tokenCache.token;
+  } catch (error) {
+    console.error('Error getting Reloadly access token:', error);
+    throw new Error('Failed to authenticate with Reloadly API');
+  }
+}
 
 /**
  * Creates authenticated request headers for Reloadly API
@@ -104,6 +123,25 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const headers = await getAuthHeaders();
   const url = `${API_URL}${endpoint}`;
 
+  console.log(`Making API request to ${url}`, {
+    method: options.method || 'GET',
+    headers: {
+      ...Object.keys(headers).reduce((acc, key) => ({ 
+        ...acc, 
+        [key]: key.toLowerCase().includes('authorization') 
+          ? '**REDACTED**' 
+          : headers[key] 
+      }), {}),
+      ...Object.keys(options.headers || {}).reduce((acc, key) => ({ 
+        ...acc, 
+        [key]: key.toLowerCase().includes('authorization') 
+          ? '**REDACTED**' 
+          : options.headers?.[key] 
+      }), {})
+    },
+    body: options.body ? '**PRESENT**' : undefined
+  });
+
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -113,7 +151,16 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
   });
 
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    // Try to parse error response
+    try {
+      const errorData = await response.json();
+      console.error('API request failed with error data:', errorData);
+      const errorMessage = errorData.message || `API request failed: ${response.status} ${response.statusText}`;
+      throw new Error(errorMessage);
+    } catch (parseError) {
+      // If parsing fails, throw basic error
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
   }
 
   return response.json();
@@ -168,6 +215,7 @@ export async function getOperator(operatorId: number) {
  * @param countryCode ISO country code
  */
 export async function detectOperator(phone: string, countryCode: string) {
+ console.log('Detecting operator for phone:', phone, 'in country:', countryCode);
   try {
     return await apiRequest(`/operators/auto-detect/phone/${phone}/countries/${countryCode}`);
   } catch (error) {
@@ -181,28 +229,45 @@ export async function detectOperator(phone: string, countryCode: string) {
  * @param params Top-up parameters
  */
 export async function makeTopup(params: {
-  operatorId: number;
+  operatorId: string;
   amount: string;
+  useLocalAmount?: boolean;
+  recipientEmail?: string;
   recipientPhone: {
-    countryCode: string;
-    number: string;
+    country?: string;
+    countryCode?: string;
+    phoneNumber?: string;
+    number?: string;
   };
-  senderPhone?: {
-    countryCode: string;
-    number: string;
-  };
-  customIdentifier: string;
 }) {
   try {
     // Perform input validation
-    if (!params.operatorId || !params.amount || !params.recipientPhone || !params.customIdentifier) {
+    if (!params.operatorId || !params.amount || !params.recipientPhone) {
       throw new Error('Missing required fields for top-up');
     }
 
-    return await apiRequest('/topups', {
+    const requestBody = {
+      operatorId: parseInt(params.operatorId),
+      amount: params.useLocalAmount ? parseFloat(params.amount) : null,
+      useLocalAmount: !!params.useLocalAmount,
+      recipientEmail: params.recipientEmail || null,
+      recipientPhone: {
+        countryCode: params.recipientPhone.country || params.recipientPhone.countryCode || '',
+        number: params.recipientPhone.phoneNumber || params.recipientPhone.number || ''
+      },
+      senderPhone: null
+    };
+
+    console.log('Making topup with request:', JSON.stringify(requestBody, null, 2));
+    
+    // Use the apiRequest function to make the call
+    const response = await apiRequest('/topups', {
       method: 'POST',
-      body: JSON.stringify(params)
+      body: JSON.stringify(requestBody)
     });
+    
+    console.log('Top-up response:', response);
+    return response;
   } catch (error) {
     console.error('Error making top-up:', error);
     throw error;
