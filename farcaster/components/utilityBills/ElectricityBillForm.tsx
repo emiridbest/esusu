@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useContext, createContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import DualCurrencyPrice from './DualCurrencyPrice';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -56,10 +56,9 @@ export default function ElectricityBillForm() {
   const [providers, setProviders] = useState<ElectricityProvider[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [countryCurrency, setCountryCurrency] = useState<string>(""); 
+  const [selectedToken, setSelectedToken] = useState<string | undefined>(undefined);
 
   const {
-    selectedToken,
-    setSelectedToken,
     isProcessing,
     setIsProcessing,
     handleTransaction
@@ -165,7 +164,6 @@ export default function ElectricityBillForm() {
   }
 
   return (
-    <CountryCurrencyProvider value={{ countryCurrency, setCountryCurrency }}>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -325,34 +323,5 @@ export default function ElectricityBillForm() {
           </Button>
         </form>
       </Form>
-    </CountryCurrencyProvider>
   );
 }
-// Create a context for the country currency
-const CountryCurrencyContext = createContext<{
-  countryCurrency: string | undefined;
-  setCountryCurrency: React.Dispatch<React.SetStateAction<string | undefined>>;
-} | undefined>(undefined);
-
-// Export the currency state through a custom hook
-export const useCountryCurrencyElectricity = () => {
-  const context = useContext(CountryCurrencyContext);
-  if (!context) {
-   return;
-  }
-  return context;
-};
-
-export const CountryCurrencyProvider: React.FC<{
-  children: React.ReactNode,
-  value: {
-    countryCurrency: string | undefined;
-    setCountryCurrency: React.Dispatch<React.SetStateAction<string | undefined>>;
-  }
-}> = ({ children, value }) => {
-  return (
-    <CountryCurrencyContext.Provider value={value}>
-      {children}
-    </CountryCurrencyContext.Provider>
-  );
-};
