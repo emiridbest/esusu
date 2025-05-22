@@ -7,6 +7,7 @@ import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
 import { BigNumber } from 'alchemy-sdk';
 import { Celo } from '@celo/rainbowkit-celo/chains';
 import {  CountryData } from '../../utils/countryData';
+
 // The recipient wallet address for all utility payments
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
@@ -19,12 +20,7 @@ const dataSuffix = getDataSuffix({
 
 type UtilityContextType = {
   isProcessing: boolean;
-  selectedToken: string;
-  selectedCountry: string | null;
   countryData: CountryData | null;
-  setSelectedToken: (token: string) => void;
-  setSelectedCountry: (countryCode: string) => void;
-  handleTokenChange: (value: string) => void;
   setIsProcessing: (processing: boolean) => void;
   convertCurrency: (amount: string, fromCurrency?: string, toCurrency?: string) => Promise<number>;
   handleTransaction: (params: TransactionParams) => Promise<boolean>;
@@ -55,23 +51,18 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const usdtAddress = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e";
 
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [selectedToken, setSelectedToken] = useState<string>('CUSD');
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [countryData, setCountryData] = useState<CountryData | null>(null);
   const [isApproved, setIsApproved] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
-  const [amount, setAmount] = useState<string>('');
-
+ 
 
   const convertCurrency = async (
     amount: string,
-    base_currency?: string 
+    base_currency: string 
   ): Promise<number> => {
 
     try {
-      const sourceCurrency = base_currency || selectedCountry;
-      console.log("amount:", amount, "Source Currency input:", base_currency, "Country Data:", selectedCountry);
-
+      const sourceCurrency = base_currency;
       // Validate the amount
       if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
         throw new Error('Invalid amount for currency conversion');
@@ -101,9 +92,6 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     }
   };
 
-  const handleTokenChange = (value: string) => {
-    setSelectedToken(value);
-  };
 
   const getTokenAddress = (token: string) => {
     switch (token) {
@@ -142,7 +130,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
       minimumFractionDigits: 0
     });
     
-    return `${selectedCountry || '₦'}${formattedNumber}`;
+    return `${countryData?.currency?.symbol || '₦'}${formattedNumber}`;
   };
 
   // Generate a transaction memo/description based on utility type
@@ -159,7 +147,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     }
   };
 
-  const approveSpend = async (amount: string, selectedToken: string): Promise<boolean> => {
+  const approveSpend = async (amount: string, token: string): Promise<boolean> => {
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
       toast.error('Please enter a valid amount');
       return false;
@@ -175,11 +163,11 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         const signer = await provider.getSigner(userAddress);
         
         // Parse amount using the correct decimal places for the token
-        const decimals = getTokenDecimals(selectedToken);
+        const decimals = getTokenDecimals(token);
         const depositValue = ethers.parseUnits(amount, decimals);
         const gasLimit = 600000;  
 
-        const tokenAddress = getTokenAddress(selectedToken);
+        const tokenAddress = getTokenAddress(token);
         const tokenAbi = [
           "function allowance(address owner, address spender) view returns (uint256)",
           "function approve(address spender, uint256 amount) returns (bool)"
@@ -255,18 +243,17 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
       toast.error('Please enter a valid amount');
       return false;
     }
-
-    setIsProcessing(true);    try {
+    setIsProcessing(true);
+      try {
+      console.log("metatadata", metadata);
       // Convert the local currency amount to its equivalent in USD
-      const currencyCode = selectedCountry;
+      const currencyCode = metadata?.countryCode || countryData?.currency?.code;
       const convertedAmount = await convertCurrency(amount, currencyCode);
 
       if (convertedAmount <= 0) {
         toast.error('Currency conversion failed. Please try again.');
         return false;
       }
-
-      // First approve token spending if needed
       const approved = await approveSpend(convertedAmount.toString(), token);
       if (!approved) {
         toast.error('Transaction cannot proceed without approval');
@@ -323,7 +310,6 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         } catch (referralError) {
           console.error("Referral submission error:", referralError);
         }
-
         // Determine success message based on utility type
         let successMessage = '';
         switch (type) {
@@ -337,7 +323,6 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
             successMessage = `Successfully subscribed for ${metadata.planName || 'TV service'} on ${recipient}`;
             break;
         }
-
         toast.success(successMessage);
         return true;
       } else {
@@ -356,12 +341,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   // Context value with all utilities
   const value = {
     isProcessing,
-    selectedToken,
-    selectedCountry,
     countryData,
-    setSelectedToken,
-    setSelectedCountry,
-    handleTokenChange,
     setIsProcessing,
     convertCurrency,
     handleTransaction,
