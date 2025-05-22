@@ -14,7 +14,7 @@ const rateCache = new Map<string, { rate: number, timestamp: number }>();
 const RATE_CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
 /**
- * Get Reloadly access token
+ * Get access token
  * @returns Access token
  */
 async function getAccessToken(): Promise<string> {
@@ -24,12 +24,12 @@ async function getAccessToken(): Promise<string> {
   }
 
   try {
-    const clientId = process.env.NEXT_PUBLIC_CLIENT_ID;
-    const clientSecret = process.env.NEXT_PUBLIC_CLIENT_SECRET;
+    const clientId = process.env.NEXT_CLIENT_ID;
+    const clientSecret = process.env.NEXT_CLIENT_SECRET;
     const isSandbox =process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
 
     if (!clientId || !clientSecret) {
-      throw new Error('Reloadly API credentials not configured');
+      throw new Error(' API credentials not configured');
     }
 
     // Get audience URL from env or default to API URL
