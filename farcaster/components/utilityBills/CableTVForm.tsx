@@ -57,13 +57,12 @@ const formSchema = z.object({
 export default function CableTVForm() {
   const { toast } = useToast();
   const [selectedPrice, setSelectedPrice] = useState(0);
+  const [selectedToken, setSelectedToken] = useState<string | undefined>(undefined);  
   const [isLoading, setIsLoading] = useState(false);
   const [providers, setProviders] = useState<CableProvider[]>([]);
   const [availablePlans, setAvailablePlans] = useState<CablePackage[]>([]);
   const [countryCurrency, setCountryCurrency] = useState<string>(""); 
   const { 
-    selectedToken, 
-    setSelectedToken, 
     isProcessing,
     setIsProcessing, 
     handleTransaction 
@@ -222,8 +221,6 @@ export default function CableTVForm() {
   }
 
   return (
-        <CountryCurrencyProvider value={{ countryCurrency, setCountryCurrency }}>
-    
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
@@ -390,36 +387,6 @@ export default function CableTVForm() {
         </Button>
       </form>
     </Form>
-        </CountryCurrencyProvider>
     
   );
 }
-
-// Create a context for the country currency
-const CountryCurrencyContext = createContext<{
-  countryCurrency: string | undefined;
-  setCountryCurrency: React.Dispatch<React.SetStateAction<string | undefined>>;
-} | undefined>(undefined);
-
-// Export the currency state through a custom hook
-export const useCountryCurrencyCable = () => {
-  const context = useContext(CountryCurrencyContext);
-  if (!context) {
-   return;
-  }
-  return context;
-};
-
-export const CountryCurrencyProvider: React.FC<{
-  children: React.ReactNode,
-  value: {
-    countryCurrency: string | undefined;
-    setCountryCurrency: React.Dispatch<React.SetStateAction<string | undefined>>;
-  }
-}> = ({ children, value }) => {
-  return (
-    <CountryCurrencyContext.Provider value={value}>
-      {children}
-    </CountryCurrencyContext.Provider>
-  );
-};

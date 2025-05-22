@@ -16,7 +16,7 @@ import { UtilityProvider, useUtility } from '../context/utilityProvider/UtilityC
 function MainContent() {
   const router = useRouter();
   const [selectedTab, setSelectedTab] = useState('mobile-data');
-  const { selectedCountry, countryData } = useUtility();
+  const {  countryData } = useUtility();
 
   const handleTabChange = (tab: string) => {
     setSelectedTab(tab);

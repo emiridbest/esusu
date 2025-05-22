@@ -91,36 +91,81 @@ export async function fetchDataPlans(operatorId: string, countryCode: string): P
 
 /**
  * Verify a phone number with a specific mobile provider
+ * Returns verification status with suggested provider if available
  */
 export async function verifyPhoneNumber(phoneNumber: string, providerId: string, countryCode: string): Promise<{
     verified: boolean;
     message: string;
     operatorName?: string;
     suggestedProvider?: { id: string; name: string };
+    autoSwitched?: boolean;
 }> {
     if (!phoneNumber || !providerId || !countryCode) {
         return { verified: false, message: 'Missing required information' };
     }
 
+    // Clean the phone number - remove spaces, dashes, etc.
+    const cleanedPhoneNumber = phoneNumber.replace(/[^\d+]/g, '');
+    
     // Convert country code to ISO2 format if needed
     const iso2Code = countryCodeToISO2(countryCode);
-
+            
     try {
-        const response = await fetch('/api/utilities/data/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                phoneNumber,
-                provider: providerId,
-                country: iso2Code
-            })
-        });
-
-        return await response.json();
+        console.log(`Verifying phone: ${cleanedPhoneNumber} with provider: ${providerId} in country: ${iso2Code}`);
+        
+        const response = await fetch(`/api/utilities/data/verify?phoneNumber=${cleanedPhoneNumber}&provider=${providerId}&country=${iso2Code}`);
+        
+        if (!response.ok) {
+            throw new Error(`Verification API returned status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // Handle case where verification failed but a suggestion is available
+        if (!result.verified && result.suggestedProvider) {
+            console.log(`Provider mismatch. Suggested: ${result.suggestedProvider.name} (${result.suggestedProvider.id})`);
+        }
+        
+        return result;
     } catch (error) {
         console.error('Error verifying phone number:', error);
-        return { verified: false, message: 'Failed to verify phone number' };
+        return { 
+            verified: false, 
+            message: error instanceof Error ? error.message : 'Failed to verify phone number' 
+        };
     }
+}
+
+/**
+ * Verify phone number and automatically switch to the correct provider if needed
+ */
+export async function verifyAndSwitchProvider(phoneNumber: string, providerId: string, countryCode: string): Promise<{
+    verified: boolean;
+    message: string;
+    operatorName?: string;
+    suggestedProvider?: { id: string; name: string };
+    autoSwitched?: boolean;
+    correctProviderId?: string;
+}> {
+    const result = await verifyPhoneNumber(phoneNumber, providerId, countryCode);
+    
+    // If verification failed but we have a suggested provider, retry with that provider
+    if (!result.verified && result.suggestedProvider && result.suggestedProvider.id) {
+        console.log(`Auto-switching to suggested provider: ${result.suggestedProvider.name}`);
+        
+        const retryResult = await verifyPhoneNumber(phoneNumber, result.suggestedProvider.id, countryCode);
+        
+        if (retryResult.verified) {
+            return {
+                ...retryResult,
+                autoSwitched: true,
+                correctProviderId: result.suggestedProvider.id,
+                message: `Automatically switched to ${result.suggestedProvider.name} which matches your phone number`
+            };
+        }
+    }
+    
+    return result;
 }
 
 /**

@@ -49,7 +49,6 @@ export async function GET(request: NextRequest) {
             localTransactionCurrencyCode: op.localTransactionCurrencyCode || ''
         }));
         
-        console.log(`Found ${formattedOperators.length} electricity providers for ${sanitizedCountry}`);
         return NextResponse.json(formattedOperators);
     } catch (error: any) {
         console.error('Error fetching electricity providers:', error);
