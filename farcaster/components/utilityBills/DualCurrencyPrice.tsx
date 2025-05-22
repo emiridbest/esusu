@@ -3,11 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Skeleton } from '../ui/skeleton';
 import { useUtility } from '../../context/utilityProvider/UtilityContext';
-import { useCountryCurrencyData } from './MobileDataForm';
-import { useCountryCurrencyElectricity } from './ElectricityBillForm';
-import { useCountryCurrencyCable } from './CableTVForm';
+import { getCountryData } from '../../utils/countryData';
+
 interface DualCurrencyPriceProps {
   amount: number | string;
+  countryCurrency?: string;
   stablecoin?: string;
   includeGasFee?: boolean;
   showTotal?: boolean;
@@ -21,12 +21,12 @@ export function parseAmount(amount: string | number): number {
   }
   return amount || 0;
 }
-export function formatCurrency(amount: number, currency: string = 'NGN'): string {
+export function formatCurrency(amount: number, currency: string): string {
   if (isNaN(amount)) return '0.00';
-
+  const currencyCode = getCountryData(currency)?.currency?.code;
   const formatter = new Intl.NumberFormat('en-NG', {
     style: 'currency',
-    currency: currency === 'NGN' ? 'NGN' : 'USD',
+    currency: currencyCode,
     minimumFractionDigits: 2,
   });
 
@@ -35,42 +35,27 @@ export function formatCurrency(amount: number, currency: string = 'NGN'): string
 
 export default function DualCurrencyPrice({
   amount,
-  stablecoin = 'cUSD',
+  stablecoin = '',
+  countryCurrency = '',
   includeGasFee = false,
   showTotal = false,
   className = ''
 }: DualCurrencyPriceProps) {
   const { convertCurrency } = useUtility();
-
-
-
   const [loading, setLoading] = useState(true);
   const [localDisplay, setLocalDisplay] = useState('');
   const [cryptoDisplay, setCryptoDisplay] = useState('');
   const [totalDisplay, setTotalDisplay] = useState('');
   const [gasFeeDisplay, setGasFeeDisplay] = useState('');
-   const dataContext = useCountryCurrencyData();
-   const electricityContext = useCountryCurrencyElectricity();
-   const cableContext = useCountryCurrencyCable();
-
-  // Use the context and provide a fallback if not available
-  let countryCurrency = "";
-  if (dataContext) {
-    countryCurrency = dataContext.countryCurrency;
-  } else if (electricityContext) {
-    countryCurrency = electricityContext.countryCurrency;
-  } else if (cableContext) {
-    countryCurrency = cableContext.countryCurrency;
-  }
-
-
   const [usdEquivalent, setUsdEquivalent] = useState(0);
+
   useEffect(() => {
     const fetchPrices = async () => {
-      if (!amount) {
+      if (!amount && countryCurrency) {
         setLoading(false);
         return;
       }
+
       setLoading(true);
       try {
         const parsedAmount = parseAmount(amount);
