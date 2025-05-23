@@ -22,7 +22,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.posthog.com https://*.posthogcdn.com; connect-src 'self' https://*.posthog.com; frame-ancestors 'self' https://*.farcaster.xyz https://*.warpcast.com https://*.farcaster.network https://*.frames.deploy-preview-6754.frame.far.quest *;",
+            value: "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' https://app.posthog.com https://us-assets.i.posthog.com 'unsafe-inline'; connect-src 'self' https://app.posthog.com https://us-assets.i.posthog.com; img-src 'self' data: blob:; frame-src 'self' https://*.warpcast.com https://*.farcaster.xyz;"
           },
           {
             key: 'X-XSS-Protection',
