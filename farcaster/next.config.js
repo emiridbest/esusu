@@ -22,7 +22,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "frame-ancestors 'self' https://*.farcaster.xyz https://*.warpcast.com https://*.farcaster.network https://*.frames.deploy-preview-6754.frame.far.quest *;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.posthog.com https://*.posthogcdn.com; connect-src 'self' https://*.posthog.com; frame-ancestors 'self' https://*.farcaster.xyz https://*.warpcast.com https://*.farcaster.network https://*.frames.deploy-preview-6754.frame.far.quest *;",
           },
           {
             key: 'X-XSS-Protection',
