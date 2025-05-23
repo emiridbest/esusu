@@ -8,7 +8,6 @@ import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { FrameContext } from "@farcaster/frame-node";
 import sdk from "@farcaster/frame-sdk";
-import { UtilityProvider } from "../context/utilityProvider/UtilityContext";
 
 const WagmiProvider = dynamic(
   () => import("../components/providers/WagmiProvider"),
@@ -89,12 +88,10 @@ export function Providers({
 
   return (
     <SessionProvider session={session}>
-      <WagmiProvider> 
-        <UtilityProvider>
+      <WagmiProvider>
         <PostHogProvider>
-          {children as JSX.Element}
+            {children}
         </PostHogProvider>
-      </UtilityProvider>
       </WagmiProvider>
     </SessionProvider>
   );
