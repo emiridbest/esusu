@@ -2,9 +2,10 @@
 import { Alfajores, Celo } from "@celo/rainbowkit-celo/chains";
 import { http, createConfig, WagmiProvider } from 'wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactNode, useEffect, useState } from "react";
-import sdk from "@farcaster/frame-sdk";
-import { FrameContext } from "@farcaster/frame-node";
+import { ReactNode, useEffect } from "react";
+import { FarcasterProvider } from "../components/FarcasterProvider";
+import { UtilityProvider } from "../context/utilityProvider/UtilityContext";
+import posthog from 'posthog-js';
 
 // Configuration for Wagmi
 export const config = createConfig({
@@ -18,44 +19,50 @@ export const config = createConfig({
 const queryClient = new QueryClient()
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  // Move hooks inside the component function
-  const [isSDKLoaded, setIsSDKLoaded] = useState(false);
-  const [context, setContext] = useState<FrameContext>();
+  const posthogPublicKey = process.env.NEXT_POSTHOG_KEY;
+  const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com';
 
   useEffect(() => {
-    const load = async () => {
-      try {
-      const frameContext = await sdk.context;
-      if (!frameContext) {
-        console.warn("No frame context available");
+    // Initialize PostHog if the key is available
+    if (typeof window !== 'undefined' && posthogPublicKey) {
+      posthog.init(posthogPublicKey, {
+        api_host: posthogHost,
+        persistence: 'memory',
+        person_profiles: 'identified_only',
+        disable_session_recording: true,
+        capture_pageview: true,
+        cross_subdomain_cookie: false,
+        secure_cookie: true,
+        loaded: (ph) => {
+          // Generate anonymous session ID without identifying
+          const sessionId = ph.get_distinct_id() || crypto.randomUUID();
+          ph.register({ session_id: sessionId });
 
-        return;
-      }
-
-      setContext(frameContext as unknown as FrameContext);
-      setIsSDKLoaded(true);
-      sdk.actions.ready({});
+          // Temporary distinct ID that will be aliased later
+          if (!ph.get_distinct_id()) {
+            ph.reset(true); // Ensure clean state
+          }
+        },
+      });
     }
-    catch (error) {
-      console.error("Error loading SDK context:", error);
-    }
-    };
-    // Check if the SDK is already loaded
     
-    if (sdk && !isSDKLoaded) {
-      load();
-      return () => {
-        sdk.removeAllListeners();
-      };
-    }
-  }, [isSDKLoaded]);
+    return () => {
+      if (typeof window !== 'undefined') {
+        posthog.capture('app_closed');
+      }
+    };
+  }, [posthogPublicKey, posthogHost]);
 
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        {children as JSX.Element}
-      </QueryClientProvider>
-    </WagmiProvider>
+    <FarcasterProvider>
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={queryClient}>
+          <UtilityProvider>
+            {children as JSX.Element}
+          </UtilityProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </FarcasterProvider>
   );
 }
 
