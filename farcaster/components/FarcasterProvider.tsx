@@ -1,7 +1,64 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { sdk } from '@farcaster/frame-sdk';
+import { sdk as originalSdk } from '@farcaster/frame-sdk';
+
+/**
+ * Initializes a patched version of the Farcaster SDK with additional error handling
+ * and compatibility improvements.
+ * @returns The patched Farcaster SDK instance
+ */
+export const initPatchedFarcasterSdk = () => {
+    // Create a proxy around the original SDK to add error handling
+    const patchedSdk = {
+        ...originalSdk,
+        
+        // Enhanced actions with better error handling
+        actions: {
+            ...originalSdk.actions,
+            
+            // Override methods that might need patching
+            viewProfile: async (options: any) => {
+                try {
+                    return await originalSdk.actions.viewProfile(options);
+                } catch (error) {
+                    console.warn('Patched SDK: Error in viewProfile:', error);
+                    // Return minimal user object in case of failure
+                    return { fid: 0, username: 'unknown' };
+                }
+            },
+
+            ready: async () => {
+                try {
+                    return await originalSdk.actions.ready();
+                } catch (error) {
+                    console.warn('Patched SDK: Error in ready method:', error);
+                    return false;
+                }
+            }
+        },
+        
+        // Add compatibility methods and fixes
+        isInMiniApp: async () => {
+            try {
+                // Check if we're in a Farcaster environment
+                if (typeof window !== 'undefined' && 
+                        window.location.hostname.includes('farcaster')) {
+                    return true;
+                }
+                return await originalSdk.isInMiniApp();
+            } catch (error) {
+                console.warn('Patched SDK: Error checking if in mini app:', error);
+                return false;
+            }
+        }
+    };
+
+    return patchedSdk;
+};
+
+// Export the original SDK for cases where it's needed directly
+export const sdk = originalSdk;
 import posthog from 'posthog-js';
 
 interface FarcasterContextType {
@@ -80,7 +137,7 @@ export function FarcasterProvider({ children }: FarcasterProviderProps) {  const
 
           // Initialize Ethereum provider
           try {
-            const provider = await sdk.wallet.ethProvider;
+            const provider =  sdk.wallet.ethProvider;
             setEthereum(provider);
           } catch (err) {
             console.error('Error initializing Ethereum provider:', err);

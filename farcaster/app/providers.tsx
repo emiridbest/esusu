@@ -1,69 +1,101 @@
 "use client";
-import { Alfajores, Celo } from "@celo/rainbowkit-celo/chains";
-import { http, createConfig, WagmiProvider } from 'wagmi'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactNode, useEffect } from "react";
-import { FarcasterProvider } from "../components/FarcasterProvider";
+
+import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
+import type { Session } from "next-auth";
+import { SessionProvider } from "next-auth/react";
+import posthog from "posthog-js";
+import { PostHogProvider as PHProvider } from "posthog-js/react";
+import { FrameContext } from "@farcaster/frame-node";
+import sdk from "@farcaster/frame-sdk";
 import { UtilityProvider } from "../context/utilityProvider/UtilityContext";
-import posthog from 'posthog-js';
 
-// Configuration for Wagmi
-export const config = createConfig({
-  chains: [Celo, Alfajores],
-  transports: {
-    [Celo.id]: http(),
-  },
-})
+const WagmiProvider = dynamic(
+  () => import("../components/providers/WagmiProvider"),
+  {
+    ssr: false,
+  }
+);
 
-// Create a client for React Query
-const queryClient = new QueryClient()
+export function PostHogProvider({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return;
 
-export function AppProvider({ children }: { children: ReactNode }) {
-  const posthogPublicKey = process.env.NEXT_POSTHOG_KEY;
-  const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com';
+    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+      api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+      persistence: "memory",
+      person_profiles: "identified_only",
+      loaded: (ph) => {
+        // Generate anonymous session ID without identifying
+        const sessionId = ph.get_distinct_id() || crypto.randomUUID();
+        ph.register({ session_id: sessionId });
+
+        // Temporary distinct ID that will be aliased later
+        if (!ph.get_distinct_id()) {
+          ph.reset(true); // Ensure clean state
+        }
+      },
+    });
+  }, []);
+
+  return <PHProvider client={posthog}>{children}</PHProvider>;
+}
+export function Providers({
+  session,
+  children,
+}: {
+  session: Session | null;
+  children: React.ReactNode;
+}) {
+  const [isSDKLoaded, setIsSDKLoaded] = useState(false);
+  const [context, setContext] = useState<FrameContext>();
 
   useEffect(() => {
-    // Initialize PostHog if the key is available
-    if (typeof window !== 'undefined' && posthogPublicKey) {
-      posthog.init(posthogPublicKey, {
-        api_host: posthogHost,
-        persistence: 'memory',
-        person_profiles: 'identified_only',
-        disable_session_recording: true,
-        capture_pageview: true,
-        cross_subdomain_cookie: false,
-        secure_cookie: true,
-        loaded: (ph) => {
-          // Generate anonymous session ID without identifying
-          const sessionId = ph.get_distinct_id() || crypto.randomUUID();
-          ph.register({ session_id: sessionId });
-
-          // Temporary distinct ID that will be aliased later
-          if (!ph.get_distinct_id()) {
-            ph.reset(true); // Ensure clean state
-          }
-        },
-      });
-    }
-    
-    return () => {
-      if (typeof window !== 'undefined') {
-        posthog.capture('app_closed');
+    const load = async () => {
+      const frameContext = await sdk.context;
+      if (!frameContext) {
+        return;
       }
+
+      setContext(frameContext as unknown as FrameContext);
     };
-  }, [posthogPublicKey, posthogHost]);
+    if (sdk && !isSDKLoaded) {
+      load();
+      return () => {
+        sdk.removeAllListeners();
+      };
+    }
+  }, [isSDKLoaded]);
+
+  useEffect(() => {
+    if (!context?.user?.fid || !posthog?.isFeatureEnabled) return;
+
+    const fidId = `fc_${context?.user?.fid}`;
+    const currentId = posthog.get_distinct_id();
+
+    // Skip if already identified with this FID
+    if (currentId === fidId) return;
+
+    // Create alias from session ID → FID
+    posthog.alias(fidId, currentId);
+
+    // Identify future events with FID
+    posthog.identify(fidId, {
+      farcaster_username: context.user?.username,
+      farcaster_display_name: context.user?.displayName,
+      farcaster_fid: context.user?.fid,
+    });
+  }, [context?.user]); // Only runs when FID changes
 
   return (
-    <FarcasterProvider>
-      <WagmiProvider config={config}>
-        <QueryClientProvider client={queryClient}>
-          <UtilityProvider>
-            {children as JSX.Element}
-          </UtilityProvider>
-        </QueryClientProvider>
+    <SessionProvider session={session}>
+      <WagmiProvider> 
+        <UtilityProvider>
+        <PostHogProvider>
+          {children as JSX.Element}
+        </PostHogProvider>
+      </UtilityProvider>
       </WagmiProvider>
-    </FarcasterProvider>
+    </SessionProvider>
   );
 }
-
-export default AppProvider;

@@ -1,15 +1,17 @@
-import { ReactNode } from "react";
-import { AppProvider } from "../app/providers";
+import { Providers } from "../app/providers";
+import { getSession } from "../lib/auth";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import { ThemeProvider } from "../components/ThemeProvider";
 import SplashScreen from "../components/SplashScreen";
 import "./globals.css";
 import { Metadata } from "next";
+
 const appUrl = process.env.NEXT_PUBLIC_URL
 export const metadata: Metadata = {
   title: 'Esusu - Buy Mobile Data Bundles',
   description: 'Top-up mobile data with crypto on the Celo blockchain',
+  metadataBase: new URL(appUrl),
   openGraph: {
     images: ['/api/og/data'],
     title: 'Esusu - Mobile Data Bundles',
@@ -27,25 +29,25 @@ export const metadata: Metadata = {
           type: "launch_frame",
           name: "Esusu",
           url: appUrl,
-          splashImageUrl: "https://github.com/emiridbest/esusu/blob/main/farcaster/public/esusu.png",
+          splashImageUrl: `${appUrl}/esusu.png`,
           splashBackgroundColor: "#f5f0ec",
-          webhookUrl: `${appUrl}/api/farcasterwebhook`,
+          webhookUrl: `${appUrl}/api/farcaster/webhook`,
         }
       }
     })
   }
 }
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
-}: {
-  children: ReactNode
-}) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  const session = await getSession();
   return (
     <html lang="en">
       <body>
         <ThemeProvider>
-          <AppProvider>
+          <Providers session={session}>
             <SplashScreen />
             <div className="min-h-screen bg-gradient-radial from-white via-gray-50 to-gray-100 dark:from-black dark:via-black dark:to-black">
               <Header />
@@ -56,7 +58,7 @@ export default function RootLayout({
               </main>
               <Footer />
             </div>
-          </AppProvider>
+          </Providers>
         </ThemeProvider>
       </body>
     </html>

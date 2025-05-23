@@ -7,9 +7,9 @@
     "frame": {
         "version": "next",
         "name": "Esusu",
-        "iconUrl": "https://github.com/emiridbest/esusu/blob/main/farcaster/public/esusu.png",
+        "iconUrl": "https://esusu-farcaster.vercel.app/esusu.png",
         "homeUrl": "https://esusu-farcaster.vercel.app",
-        "splashImageUrl": "https://github.com/emiridbest/esusu/blob/main/farcaster/public/esusu.png",
+        "splashImageUrl": "https://esusu-farcaster.vercel.app/esusu.png",
         "splashBackgroundColor": "#f5f0ec",
         "webhookUrl": "https://esusu-farcaster.vercel.app/api/farcaster/webhook",
         "subtitle": "Mobile data with crypto",
