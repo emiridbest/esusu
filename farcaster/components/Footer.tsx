@@ -16,7 +16,7 @@ export default function Footer() {
   
   const navItems = [
     { name: "Home", icon: HomeIcon, path: "/", ariaLabel: "Navigate to home" },
-    { name: "Utility Bills", icon: ArchiveBoxArrowDownIcon, path: "/utilityBills", ariaLabel: "Navigate to utility bills" },
+   { name: "Utility Bills", icon: ArchiveBoxArrowDownIcon, path: "/", ariaLabel: "Navigate to utility bills" },
    // { name: "Save", icon: ArchiveBoxArrowDownIcon, path: "/miniSafe", ariaLabel: "Navigate to savings" },
    // { name: "Thrift", icon: UserGroupIcon, path: "/thrift", ariaLabel: "Navigate to thrift" },
    // { name: "Profile", icon: UserIcon, path: "/profile", ariaLabel: "Navigate to profile" }
