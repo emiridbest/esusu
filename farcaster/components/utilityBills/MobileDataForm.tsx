@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Button } from "../../components/ui/button";
 import { useUtility } from '../../context/utilityProvider/UtilityContext';
+import { useFarcaster } from "../../components/FarcasterProvider";
+import FarcasterWalletButton from "../../components/FarcasterWalletButton";
 import {
   Form,
   FormControl,
@@ -24,10 +26,12 @@ import {
 } from "../../components/ui/select";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
-import { useToast } from "../../hooks/use-toast"
+import { useToast } from "../../hooks/use-toast";
+import { ToastAction } from "../../components/ui/toast"; 
 import { Loader2 } from "lucide-react";
 import CountrySelector from '../utilityBills/CountrySelector';
 import { TOKENS } from '../../context/utilityProvider/tokens';
+import posthog from 'posthog-js';
 import {
   fetchMobileOperators,
   fetchDataPlans,
@@ -35,6 +39,8 @@ import {
   type NetworkOperator,
   type DataPlan
 } from '../../services/utility/utilityServices';
+
+const appUrl = process.env.NEXT_PUBLIC_URL
 
 const formSchema = z.object({
   country: z.string({
@@ -67,10 +73,9 @@ export default function MobileDataForm() {
   const [isVerified, setIsVerified] = useState<boolean>(false);
   const [networks, setNetworks] = useState<NetworkOperator[]>([]);
   const [availablePlans, setAvailablePlans] = useState<DataPlan[]>([]);
-  const [countryCurrency, setCountryCurrency] = useState<string>("");
-  const [selectedToken, setSelectedToken] = useState<string | undefined>(undefined);
+  const [countryCurrency, setCountryCurrency] = useState<string>("");  const [selectedToken, setSelectedToken] = useState<string | undefined>(undefined);
+  const { isInMiniApp, composeCast, addMiniApp } = useFarcaster();
   const {
-
     isProcessing,
     setIsProcessing,
     handleTransaction
@@ -177,11 +182,17 @@ useEffect(() => {
  * @param phoneNumber - The phone number to recharge.
  * @param provider - The selected network provider.
  * @returns 
- */
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+ */  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsProcessing(true);
-    let paymentSuccessful = false;
-    let topupAttempted = false;
+    let paymentSuccessful = false;    let topupAttempted = false;
+
+    // Track form submission attempt
+    posthog.capture('data_topup_initiated', {
+      country: values.country,
+      network: values.network,
+      plan: values.plan,
+      payment_token: values.paymentToken
+    });
 
     try {
       // First verify the phone number with the selected network
@@ -194,10 +205,14 @@ useEffect(() => {
 
         console.log(`Verifying: Phone Number: ${phoneNumber}, Provider: ${provider}, Country: ${country}`);
 
-        const verificationResult = await verifyAndSwitchProvider(phoneNumber, provider, country);
-
-        if (verificationResult.verified) {
-          setIsVerified(true);
+        const verificationResult = await verifyAndSwitchProvider(phoneNumber, provider, country);        if (verificationResult.verified) {          setIsVerified(true);
+          
+          // Track successful verification
+          posthog.capture('phone_verification_success', {
+            country: country,
+            network: provider,
+            auto_switched: verificationResult.autoSwitched || false
+          });
 
           // If the provider was auto-switched, update the form value
           if (verificationResult.autoSwitched && verificationResult.correctProviderId) {
@@ -217,9 +232,15 @@ useEffect(() => {
               description: "Phone number verified successfully",
               variant: "default"
             });
-          }
-        } else {
-          setIsVerified(false);
+          }        } else {          setIsVerified(false);
+          
+          // Track verification failure
+          posthog.capture('phone_verification_failed', {
+            country: country,
+            network: provider,
+            error_message: verificationResult.message
+          });
+          
           toast({
             title: "Verification Failed",
             description: verificationResult.message,
@@ -266,10 +287,16 @@ useEffect(() => {
           planName: selectedPlan?.name || '',
           network: networkName
         }
-      });
+      });      if (success) {        paymentSuccessful = true;
 
-      if (success) {
-        paymentSuccessful = true;
+        // Track successful payment
+        posthog.capture('payment_successful', {
+          amount: selectedPrice,
+          token: selectedToken,
+          network: networkName,
+          plan: selectedPlan?.name || '',
+          country: values.country
+        });
 
         toast({
           title: "Payment Successful",
@@ -306,6 +333,33 @@ useEffect(() => {
               title: "Top-up Successful",
               description: `Successfully topped up ${values.phoneNumber} with ${selectedPlan?.name || 'your selected plan'}.`,
             });
+
+            // If in Farcaster mini app, provide option to share and add mini app
+            if (isInMiniApp) {
+              // Show toast with option to share
+              toast({
+                title: "Share Your Top-up",
+                description: "Would you like to share this successful transaction on Farcaster?",
+                action: <ToastAction altText="Share" onClick={() => {
+                  const shareUrl = `${appUrl}/share?type=data&network=${encodeURIComponent(networkName)}&plan=${encodeURIComponent(selectedPlan?.name || '')}&status=success`;                  
+                  composeCast({
+                    text: `Just topped up ${values.phoneNumber} with ${selectedPlan?.name || 'mobile data'} on ${networkName} using Esusu! 📱💫 #MobileCrypto #Esusu`,
+                    embeds: [{ url: shareUrl }]
+                  });
+                }}>Share</ToastAction>,
+              });
+              
+              // After a short delay, show toast to add mini app
+              setTimeout(() => {
+                toast({
+                  title: "Add Esusu to Farcaster",
+                  description: "Never miss a mobile data deal! Add Esusu to your mini apps?",
+                  action: <ToastAction altText="Add" onClick={() => addMiniApp()}>
+                    Add
+                  </ToastAction>,
+                });
+              }, 3000);
+            }
 
             // Reset the form but keep the country
             form.reset({
@@ -509,8 +563,7 @@ useEffect(() => {
                     if(val) setSelectedToken(val);
                   }}
                   value={field.value}
-                >
-                  <FormControl>
+                >                  <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select payment token" />
                     </SelectTrigger>

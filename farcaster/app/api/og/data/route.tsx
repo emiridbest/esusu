@@ -2,7 +2,6 @@
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 
-
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -25,6 +24,8 @@ export async function GET(req: NextRequest) {
       title = 'Select a Mobile Operator';
       subtitle = 'Choose your provider for mobile data top-up';
     }
+    
+    // Farcaster requires a 1.91:1 aspect ratio (recommend 1200x630)
     return new ImageResponse(
       (
         <div
