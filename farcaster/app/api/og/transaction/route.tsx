@@ -1,4 +1,3 @@
-//@ts-nocheck
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 import { getTransactionStatus } from '../../../../services/utility/api';
