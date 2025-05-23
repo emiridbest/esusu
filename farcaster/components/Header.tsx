@@ -29,7 +29,6 @@ import {
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "../components/ui/sheet";
-import { farcasterFrame as frameConnector } from '@farcaster/frame-wagmi-connector'
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,7 +38,7 @@ export default function Header() {
 
 
   const { isConnected, address } = useAccount()
-  const { connect } = useConnect();
+  const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
 
 
@@ -184,7 +183,7 @@ export default function Header() {
               </DropdownMenu>
               ) : (
               <Button 
-                onClick={() => connect({ connector: frameConnector() })}
+                onClick={() => connect({ connector: connectors[0] })}
                 className="rounded-full bg-primary hover:bg-primary/90   font-medium shadow-md"
               >
                 Connect Wallet
@@ -345,13 +344,6 @@ export default function Header() {
               </NavigationMenuList>
             </NavigationMenu>
           </div>
-          <button
-            type="button"
-            className="hidden md:flex items-center justify-center h-10 w-10 text-black dark:text-white transition-all duration-300"
-            onClick={() => connect({ connector: frameConnector() })}          >
-            Connect
-          </button>
-
         </div>
       </div>
     </header>

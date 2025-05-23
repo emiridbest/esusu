@@ -3,7 +3,6 @@ import { getSession } from "../lib/auth";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import { ThemeProvider } from "../components/ThemeProvider";
-import SplashScreen from "../components/SplashScreen";
 import "./globals.css";
 import { Metadata } from "next";
 
@@ -29,6 +28,7 @@ export const metadata: Metadata = {
           type: "launch_frame",
           name: "Esusu",
           url: appUrl,
+          // Configure the native Farcaster splash screen
           splashImageUrl: `${appUrl}/esusu.png`,
           splashBackgroundColor: "#f5f0ec",
           webhookUrl: `${appUrl}/api/farcaster/webhook`,
@@ -48,7 +48,6 @@ export default async function RootLayout({
       <body>
         <ThemeProvider>
           <Providers session={session}>
-            <SplashScreen />
             <div className="min-h-screen bg-gradient-radial from-white via-gray-50 to-gray-100 dark:from-black dark:via-black dark:to-black">
               <Header />
               <main className="py-6 px-4 sm:px-6 lg:px-8">
