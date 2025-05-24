@@ -1,8 +1,15 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, use } from 'react';
 import { toast } from 'react-toastify';
 import { BrowserProvider, Contract, ethers, formatUnits, Interface, parseEther } from "ethers";
+import {
+  useAccount,
+  usePublicClient,
+  useSignTypedData,
+  useSendTransaction,
+} from "wagmi";
+import { config } from '../../components/providers/WagmiProvider';
 import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
 import { BigNumber } from 'alchemy-sdk';
 import { Celo } from '@celo/rainbowkit-celo/chains';
@@ -24,7 +31,6 @@ type UtilityContextType = {
   setIsProcessing: (processing: boolean) => void;
   convertCurrency: (amount: string, fromCurrency?: string, toCurrency?: string) => Promise<number>;
   handleTransaction: (params: TransactionParams) => Promise<boolean>;
-  approveSpend: (amount: string, token: string) => Promise<boolean>;
   getTransactionMemo: (type: 'data' | 'electricity' | 'cable', metadata: Record<string, any>) => string;
   formatCurrencyAmount: (amount: string | number) => string;
 };
@@ -54,6 +60,15 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const [countryData, setCountryData] = useState<CountryData | null>(null);
   const [isApproved, setIsApproved] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
+  const { address } = useAccount();
+  const publicClient = usePublicClient({chainId: Celo.id});
+  const { signTypedDataAsync } = useSignTypedData();
+  const { 
+    data: hash, 
+    isPending,
+    sendTransaction ,
+    sendTransactionAsync 
+  } = useSendTransaction()
  
 
   const convertCurrency = async (
@@ -147,102 +162,23 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     }
   };
 
-  const approveSpend = async (amount: string, token: string): Promise<boolean> => {
-    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-      toast.error('Please enter a valid amount');
-      return false;
-    }
-    
-    setIsApproving(true);
-    
-    if (window.ethereum) {
-      try {
-        let accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-        let userAddress = accounts[0];
-        const provider = new BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner(userAddress);
-        
-        // Parse amount using the correct decimal places for the token
-        const decimals = getTokenDecimals(token);
-        const depositValue = ethers.parseUnits(amount, decimals);
-        const gasLimit = 600000;  
-
-        const tokenAddress = getTokenAddress(token);
-        const tokenAbi = [
-          "function allowance(address owner, address spender) view returns (uint256)",
-          "function approve(address spender, uint256 amount) returns (bool)"
-        ];
-
-        const tokenContract = new Contract(tokenAddress, tokenAbi, signer);
-        const allowance = await tokenContract.allowance(userAddress, RECIPIENT_WALLET);
-        
-        // Convert to BigNumber for comparison
-        const allowanceBigNumber = BigNumber.from(allowance.toString());
-
-        if (allowanceBigNumber.gte(depositValue.toString())) {
-          setIsApproved(true);
-          toast.success('Already approved!');
-          return true;
-        } else {
-          toast.info('Approving transaction...');
-
-          // Correctly encode the approve function with parameters
-          const approveInterface = new Interface(tokenAbi);
-          const approveData = approveInterface.encodeFunctionData("approve", [
-            RECIPIENT_WALLET,
-            depositValue
-          ]);
-
-          // Append the data suffix to the approve call data for Divvi integration
-          const dataWithSuffix = approveData + dataSuffix;
-
-          // Send the transaction with the properly encoded data
-          const tx = await signer.sendTransaction({
-            to: tokenAddress,
-            data: dataWithSuffix,
-            gasLimit: gasLimit
-          });
-
-          // Wait for the transaction to be confirmed
-          await tx.wait();
-
-          try {
-            // Submit the referral data to Divvi
-            await submitReferral({
-              txHash: tx.hash as `0x${string}`,
-              chainId: Celo.id 
-            });
-
-            setIsApproved(true);
-            toast.success('Approval successful!');
-            return true;
-          } catch (referralError) {
-            console.error("Error submitting referral:", referralError);
-            // Still set approved since the transaction succeeded
-            setIsApproved(true);
-            toast.success('Approval successful, but referral tracking failed');
-            return true;
-          }
-        }
-      } catch (error) {
-        console.error("Error approving spend:", error);
-        toast.error('Approval failed!');
-        return false;
-      } finally {
-        setIsApproving(false);
-      }
-    } else {
-      toast.error('Ethereum provider not found. Please install a Web3 wallet.');
-      return false;
-    }
-  };
-
   // Enhanced transaction handler for all utility types
   const handleTransaction = async ({ type, amount, token, recipient, metadata }: TransactionParams): Promise<boolean> => {
+    
+    const balance = await publicClient.getBalance({ address });
+    const gasEstimate = 0.001
+    console.log("balance", balance);
+   
+    //if (balance < parseEther(gasEstimate.toString())) {
+  //    toast.error('Insufficient balance for gas fees. Please top up your wallet.');
+      //return //false;
+ //   }
+
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
       toast.error('Please enter a valid amount');
       return false;
     }
+     console.log("now", gasEstimate);
     setIsProcessing(true);
       try {
       console.log("metatadata", metadata);
@@ -254,23 +190,13 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         toast.error('Currency conversion failed. Please try again.');
         return false;
       }
-      const approved = await approveSpend(convertedAmount.toString(), token);
-      if (!approved) {
-        toast.error('Transaction cannot proceed without approval');
-        return false;
-      }
+     
 
       // Get the token contract interface
       const tokenAddress = getTokenAddress(token);
       const decimals = getTokenDecimals(token);
 
-      if (window.ethereum) {
-        // Set up provider and signer
-        let accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-        let userAddress = accounts[0];
-        const provider = new BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner(userAddress);
-
+      if (address) {
         // Prepare transaction memo based on utility type
         const memo = getTransactionMemo(type, metadata);
 
@@ -279,7 +205,6 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
         // Prepare token transfer
         const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
-        const tokenContract = new Contract(tokenAddress, tokenAbi, signer);
 
         // Encode the transfer function
         const transferInterface = new Interface(tokenAbi);
@@ -292,19 +217,17 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         const dataWithSuffix = transferData + dataSuffix;
 
         // Send the transaction
-        const tx = await signer.sendTransaction({
+        const tx = await sendTransactionAsync({
           to: tokenAddress,
           data: dataWithSuffix,
           gasLimit: 600000
         });
 
-        // Wait for transaction confirmation
-        await tx.wait();
 
         // Submit the referral to Divvi
         try {
           await submitReferral({
-            txHash: tx.hash as `0x${string}`,
+            txHash: tx as unknown as `0x${string}`,
             chainId: Celo.id 
           });
         } catch (referralError) {
@@ -345,7 +268,6 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     setIsProcessing,
     convertCurrency,
     handleTransaction,
-    approveSpend,
     getTransactionMemo,
     formatCurrencyAmount
   };
