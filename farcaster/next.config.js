@@ -16,5 +16,5 @@ const nextConfig = {
 module.exports = {
   reactStrictMode: true,
   pageExtensions: ['tsx', 'ts'],
-  allowedDevOrigins: ['local-origin.dev', '*.local-origin.dev', 'https://deliver-awful-magnificent-correctly.trycloudflare.com/'],
+  allowedDevOrigins: ['local-origin.dev', '*.local-origin.dev', 'https://esusu-farcaster.vercel.app']
 };

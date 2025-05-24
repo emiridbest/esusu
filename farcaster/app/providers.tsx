@@ -60,6 +60,7 @@ export function Providers({
     };
     if (sdk && !isSDKLoaded) {
       load();
+      sdk.actions.ready()
       return () => {
         sdk.removeAllListeners();
       };
