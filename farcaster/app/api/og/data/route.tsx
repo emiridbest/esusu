@@ -104,7 +104,7 @@ export async function GET(req: NextRequest) {
                 alignItems: 'center',
                 justifyContent: 'center',
               }}>
-                <img src={`${process.env.NEXT_PUBLIC_URL}/esusu.png`} alt="Esusu Logo" style={{ width: '100%', height: '100%' }} />
+                <img src={`${process.env.NEXT_PUBLIC_URL}/esusu.png`} alt="Esusu Logo" style={{ width: '90%', height: '90%' }} />
               </div>
             </div>
 
