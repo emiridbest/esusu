@@ -24,7 +24,7 @@ import {
 } from "../../components/ui/select";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
-import { toast } from "sonner"
+import { toast } from 'react-toastify';
 import { Loader2 } from "lucide-react";
 import CountrySelector from '../utilityBills/CountrySelector';
 import { TOKENS } from '../../context/utilityProvider/tokens';
