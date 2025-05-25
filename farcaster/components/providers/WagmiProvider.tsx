@@ -1,13 +1,12 @@
 import { createConfig, http, injected, WagmiProvider } from "wagmi";
-import { celo } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { farcasterFrame as miniAppConnector } from '@farcaster/frame-wagmi-connector'
-
+import {  Celo } from "@celo/rainbowkit-celo/chains";
 // Create a custom config with error handling
 export const config = createConfig({
-  chains: [celo],
+  chains: [Celo],
   transports: {
-    [celo.id]: http(),
+    [Celo.id]: http(),
   },
   connectors: [ miniAppConnector(), injected() ],
 });

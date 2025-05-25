@@ -1,18 +1,15 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect, use } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, use, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { BrowserProvider, Contract, ethers, formatUnits, Interface, parseEther } from "ethers";
+import { ethers, Interface } from "ethers";
 import {
   useAccount,
-  usePublicClient,
-  useSignTypedData,
   useSendTransaction,
+  useSwitchChain,
 } from "wagmi";
 import { config } from '../../components/providers/WagmiProvider';
 import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
-import { BigNumber } from 'alchemy-sdk';
-import { Celo } from '@celo/rainbowkit-celo/chains';
 import {  CountryData } from '../../utils/countryData';
 
 // The recipient wallet address for all utility payments
@@ -58,18 +55,24 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [countryData, setCountryData] = useState<CountryData | null>(null);
-  const [isApproved, setIsApproved] = useState(false);
-  const [isApproving, setIsApproving] = useState(false);
-  const { address } = useAccount();
-  const publicClient = usePublicClient({chainId: Celo.id});
-  const { signTypedDataAsync } = useSignTypedData();
+  const { address, chain } = useAccount();
+ const celoChainId = config.chains[0].id;
+  const {
+    switchChain,
+    error: switchChainError,
+    isError: isSwitchChainError,
+    isPending: isSwitchChainPending,
+  } = useSwitchChain();
+  
+  
+  const handleSwitchChain = useCallback(() => {
+    switchChain({ chainId: celoChainId });
+  }, [switchChain, celoChainId]);
+
   const { 
-    data: hash, 
-    isPending,
-    sendTransaction ,
-    sendTransactionAsync 
-  } = useSendTransaction()
- 
+    sendTransactionAsync
+  } = useSendTransaction({ config })
+
 
   const convertCurrency = async (
     amount: string,
@@ -164,21 +167,23 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
   // Enhanced transaction handler for all utility types
   const handleTransaction = async ({ type, amount, token, recipient, metadata }: TransactionParams): Promise<boolean> => {
-    
-    const balance = await publicClient.getBalance({ address });
-    const gasEstimate = 0.001
-    console.log("balance", balance);
-   
-    //if (balance < parseEther(gasEstimate.toString())) {
-  //    toast.error('Insufficient balance for gas fees. Please top up your wallet.');
-      //return //false;
- //   }
+    console.log("Handling transaction:", chain.id);
+    if (chain?.id !== celoChainId) {
+      if (isSwitchChainPending) {
+        toast.info('Switching to Celo network...');
+      }
+      if (isSwitchChainError) {
+        toast.error(`Failed to switch chain: ${switchChainError?.message || 'Unknown error'}`);
+      } else {
+        await handleSwitchChain();
+      }
+      return false;
+    }
 
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
       toast.error('Please enter a valid amount');
       return false;
     }
-     console.log("now", gasEstimate);
     setIsProcessing(true);
       try {
       console.log("metatadata", metadata);
@@ -215,7 +220,6 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
         // Append the Divvi data suffix
         const dataWithSuffix = transferData + dataSuffix;
-
         // Send the transaction
         const tx = await sendTransactionAsync({
           to: tokenAddress,
@@ -228,8 +232,9 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         try {
           await submitReferral({
             txHash: tx as unknown as `0x${string}`,
-            chainId: Celo.id 
+            chainId: celoChainId 
           });
+          console.log("Referral submitted successfully");
         } catch (referralError) {
           console.error("Referral submission error:", referralError);
         }

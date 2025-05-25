@@ -11,6 +11,7 @@ import CableTVForm from '../components/utilityBills/CableTVForm';
 import ElectricityBillForm from '../components/utilityBills/ElectricityBillForm';
 import MobileDataForm from '../components/utilityBills/MobileDataForm';
 import { UtilityProvider, useUtility } from '../context/utilityProvider/UtilityContext';
+import { ToastContainer } from 'react-toastify';
 
 // Main content component - separated to use the useUtility hook
 function MainContent() {
@@ -24,6 +25,7 @@ function MainContent() {
 
   return (
     <div className="container mx-auto p-4">
+        <ToastContainer position="bottom-right" theme="colored" />
 
       {/* Main Utility Bills Card */}
       <Card>

@@ -24,7 +24,7 @@ import {
 } from "../../components/ui/select";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
-import { useToast } from "../../hooks/use-toast"
+import { toast } from 'react-toastify';
 import { Loader2 } from "lucide-react";
 import CountrySelector from '../utilityBills/CountrySelector';
 import { TOKENS } from '../../context/utilityProvider/tokens';
@@ -60,7 +60,6 @@ const formSchema = z.object({
 });
 
 export default function MobileDataForm() {
-  const { toast } = useToast();
   const [selectedPrice, setSelectedPrice] = useState(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
@@ -107,11 +106,7 @@ export default function MobileDataForm() {
           setNetworks(operators);
         } catch (error) {
           console.error("Error fetching mobile operators:", error);
-          toast({
-            title: "Error",
-            description: "Failed to load network providers. Please try again.",
-            variant: "destructive",
-          });
+          toast.error("Failed to load network providers. Please try again.");
         } finally {
           setIsLoading(false);
         }
@@ -134,11 +129,7 @@ export default function MobileDataForm() {
           console.log("Available Plans: ", plans);
         } catch (error) {
           console.error("Error fetching data plans:", error);
-          toast({
-            title: "Error",
-            description: "Failed to load data plans. Please try again.",
-            variant: "destructive",
-          });
+          toast.error("Failed to load data plans. Please try again.");
         } finally {
           setIsLoading(false);
         }
@@ -148,7 +139,7 @@ export default function MobileDataForm() {
     };
 
     getDataPlans();
-  }, [watchNetwork, watchCountry, form, toast]);
+  }, [watchNetwork, watchCountry, form]);
 
   // Update price when plan changes
   useEffect(() => {
@@ -202,40 +193,24 @@ useEffect(() => {
           // If the provider was auto-switched, update the form value
           if (verificationResult.autoSwitched && verificationResult.correctProviderId) {
             form.setValue('network', verificationResult.correctProviderId);
-            toast({
-              title: "Network Provider Switched",
-              description: verificationResult.message,
-              variant: "default"
-            });
+            toast.success(verificationResult.message);
 
             // Fetch plans for the new provider
             const plans = await fetchDataPlans(verificationResult.correctProviderId, country);
             setAvailablePlans(plans);
           } else {
-            toast({
-              title: "Verification Successful",
-              description: "Phone number verified successfully",
-              variant: "default"
-            });
+            toast.success("Phone number verified successfully");
           }
         } else {
           setIsVerified(false);
-          toast({
-            title: "Verification Failed",
-            description: verificationResult.message,
-            variant: "destructive"
-          });
+          toast.error(verificationResult.message);
           // Return early if verification failed
           setIsProcessing(false);
           return;
         }
       } catch (error) {
         console.error("Error during verification:", error);
-        toast({
-          title: "Verification Error",
-          description: "An error occurred during verification. Please check your phone number and try again.",
-          variant: "destructive"
-        });
+        toast.error("An error occurred during verification. Please check your phone number and try again.");
         setIsProcessing(false);
         return;
       } finally {
@@ -271,10 +246,7 @@ useEffect(() => {
       if (success) {
         paymentSuccessful = true;
 
-        toast({
-          title: "Payment Successful",
-          description: "Processing your mobile data top-up...",
-        });
+        toast.success("Processing your mobile data top-up...");
 
         // Now that payment is successful, attempt the top-up
         topupAttempted = true;
@@ -302,10 +274,7 @@ useEffect(() => {
           const data = await response.json();
 
           if (response.ok && data.success) {
-            toast({
-              title: "Top-up Successful",
-              description: `Successfully topped up ${values.phoneNumber} with ${selectedPlan?.name || 'your selected plan'}.`,
-            });
+            toast.success(`Successfully topped up ${values.phoneNumber} with ${selectedPlan?.name || 'your selected plan'}.`);
 
             // Reset the form but keep the country
             form.reset({
@@ -320,11 +289,7 @@ useEffect(() => {
             setSelectedPrice(0);
           } else {
             console.error("Top-up API Error:", data);
-            toast({
-              title: "Top-up Failed",
-              description: data.error || "There was an issue processing your top-up. Our team has been notified.",
-              variant: "destructive",
-            });
+            toast.error(data.error || "There was an issue processing your top-up. Our team has been notified.");
 
             // Here we would ideally log this to a monitoring system for manual resolution
             console.error("Payment succeeded but top-up failed. Manual intervention required:", {
@@ -337,11 +302,7 @@ useEffect(() => {
           }
         } catch (error) {
           console.error("Error during top-up:", error);
-          toast({
-            title: "Top-up Error",
-            description: "There was an error processing your top-up. Our team has been notified and will resolve this shortly.",
-            variant: "destructive",
-          });
+          toast.error("There was an error processing your top-up. Our team has been notified and will resolve this shortly.");
 
           // Log for manual intervention
           console.error("Critical error - Payment succeeded but top-up failed with exception:", {
@@ -352,19 +313,11 @@ useEffect(() => {
           });
         }
       } else {
-        toast({
-          title: "Payment Failed",
-          description: "Your payment could not be processed. Please try again.",
-          variant: "destructive"
-        });
+        toast.error("Your payment could not be processed. Please try again.");
       }
     } catch (error) {
       console.error("Error in submission flow:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "There was an unexpected error processing your request.",
-        variant: "destructive",
-      });
+      toast.error(error instanceof Error ? error.message : "There was an unexpected error processing your request.");
 
       // If payment succeeded but top-up wasn't attempted, we need to log this for manual intervention
       if (paymentSuccessful && !topupAttempted) {
