@@ -25,8 +25,6 @@ function MainContent() {
 
   return (
     <div className="container mx-auto p-4">
-        <ToastContainer position="bottom-right" theme="colored" />
-
       {/* Main Utility Bills Card */}
       <Card>
         <CardHeader>
@@ -81,6 +79,7 @@ const App: React.FC = () => {
   return (
     <UtilityProvider>
       <MainContent />
+      <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} closeOnClick pauseOnHover draggable />
     </UtilityProvider>
   );
 }

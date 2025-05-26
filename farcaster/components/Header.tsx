@@ -96,12 +96,11 @@ export default function Header() {
 
   useEffect(() => {
     const switchToCelo = async () => {
-      if (!isConnected) {
+      if (!isConnected || isConnected && chainId !== celoChainId) {
         try {
-          console.log("Attempting to switch to Celo network..." + chainId);
           toast.info("Switching to Celo network...");
-          await handleSwitchChain();
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          handleSwitchChain();
+          await new Promise(resolve => setTimeout(resolve, 3000));
           if (chainId == celoChainId) {
             const connector = connectors.find((c) => c.id === "miniAppConnector") || connectors[0];
             connect({
@@ -109,7 +108,6 @@ export default function Header() {
               chainId: celoChainId,
             });
             toast.success("Connected to Celo network successfully!");
-            console.log("Connected to Celo network..." + chainId);
           } else {
             throw new Error("Failed to switch to Celo network");
           }
@@ -297,10 +295,13 @@ export default function Header() {
                 </DropdownMenu>
               ) : (
                 <Button
-                  onClick={() => connect({ connector: celoChainId })}
-                  className="rounded-full bg-primary hover:bg-primary/90   font-medium shadow-md"
+                  className="cursor-pointer flex items-center justify-between hover:bg-primary/10 hover:text-primary"
+                  onClick={() => {
+                    const connector = connectors.find((c) => c.id === "miniAppConnector") || connectors[0];
+                    connect({ connector, chainId: celoChainId });
+                  }}
                 >
-                  Connect Wallet
+                  Connect
                 </Button>
               )}
 
@@ -472,12 +473,15 @@ export default function Header() {
               </NavigationMenuList>
             </NavigationMenu>
           </div>
-          <button
-            type="button"
-            className="hidden md:flex items-center justify-center h-10 w-10 text-black dark:text-white transition-all duration-300"
-            onClick={() => connect({ connector: celoChainId })}          >
+          <Button
+            className="hidden md:flex rounded-full bg-primary hover:bg-primary/90 font-medium shadow-md"
+            onClick={() => {
+              const connector = connectors.find((c) => c.id === "miniAppConnector") || connectors[0];
+              connect({ connector, chainId: celoChainId });
+            }}
+          >
             Connect
-          </button>
+          </Button>
 
         </div>
       </div>
@@ -491,4 +495,3 @@ declare global {
     farcaster: any;
   }
 }
-

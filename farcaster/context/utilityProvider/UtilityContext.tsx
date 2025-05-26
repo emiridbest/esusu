@@ -1,16 +1,17 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, use, useCallback } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { ethers, Interface } from "ethers";
 import {
   useAccount,
   useSendTransaction,
   useSwitchChain,
+  usePublicClient
 } from "wagmi";
 import { config } from '../../components/providers/WagmiProvider';
 import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
-import {  CountryData } from '../../utils/countryData';
+import { CountryData } from '../../utils/countryData';
 
 // The recipient wallet address for all utility payments
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
@@ -56,27 +57,27 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [countryData, setCountryData] = useState<CountryData | null>(null);
   const { address, chain } = useAccount();
- const celoChainId = config.chains[0].id;
+  const celoChainId = config.chains[0].id;
   const {
     switchChain,
     error: switchChainError,
     isError: isSwitchChainError,
     isPending: isSwitchChainPending,
   } = useSwitchChain();
-  
-  
+  const publicClient = usePublicClient({ config });
+
   const handleSwitchChain = useCallback(() => {
     switchChain({ chainId: celoChainId });
   }, [switchChain, celoChainId]);
 
-  const { 
+  const {
     sendTransactionAsync
   } = useSendTransaction({ config })
 
 
   const convertCurrency = async (
     amount: string,
-    base_currency: string 
+    base_currency: string
   ): Promise<number> => {
 
     try {
@@ -85,7 +86,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
       if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
         throw new Error('Invalid amount for currency conversion');
       }
-        const response = await fetch('/api/exchange-rate', {
+      const response = await fetch('/api/exchange-rate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -95,12 +96,12 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           base_currency: sourceCurrency
         }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to convert currency');
       }
-      
+
       const data = await response.json();
       return parseFloat(data.toAmount);
     } catch (error) {
@@ -127,10 +128,10 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const getTokenDecimals = (token: string): number => {
     switch (token) {
       case 'CUSD':
-        return 18;  
+        return 18;
       case 'USDC':
       case 'USDT':
-        return 6;   
+        return 6;
       default:
         return 18;
     }
@@ -139,15 +140,15 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   // Format currency amount with the appropriate symbol
   const formatCurrencyAmount = (amount: string | number): string => {
     if (!countryData) return `${amount}`;
-    
+
     const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    
+
     // Format the number with commas for thousands
-    const formattedNumber = numericAmount.toLocaleString('en-US', { 
+    const formattedNumber = numericAmount.toLocaleString('en-US', {
       maximumFractionDigits: 2,
       minimumFractionDigits: 0
     });
-    
+
     return `${countryData?.currency?.symbol || '₦'}${formattedNumber}`;
   };
 
@@ -165,9 +166,11 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     }
   };
 
+
+
+
   // Enhanced transaction handler for all utility types
   const handleTransaction = async ({ type, amount, token, recipient, metadata }: TransactionParams): Promise<boolean> => {
-    console.log("Handling transaction:", chain.id);
     if (chain?.id !== celoChainId) {
       if (isSwitchChainPending) {
         toast.info('Switching to Celo network...');
@@ -175,7 +178,9 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
       if (isSwitchChainError) {
         toast.error(`Failed to switch chain: ${switchChainError?.message || 'Unknown error'}`);
       } else {
-        await handleSwitchChain();
+        handleSwitchChain();
+        toast.success('Successfully switched to the Celo network.');
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
       return false;
     }
@@ -185,8 +190,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
       return false;
     }
     setIsProcessing(true);
-      try {
-      console.log("metatadata", metadata);
+    try {
       // Convert the local currency amount to its equivalent in USD
       const currencyCode = metadata?.countryCode || countryData?.currency?.code;
       const convertedAmount = await convertCurrency(amount, currencyCode);
@@ -195,7 +199,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         toast.error('Currency conversion failed. Please try again.');
         return false;
       }
-     
+
 
       // Get the token contract interface
       const tokenAddress = getTokenAddress(token);
@@ -232,9 +236,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         try {
           await submitReferral({
             txHash: tx as unknown as `0x${string}`,
-            chainId: celoChainId 
+            chainId: celoChainId
           });
-          console.log("Referral submitted successfully");
         } catch (referralError) {
           console.error("Referral submission error:", referralError);
         }
