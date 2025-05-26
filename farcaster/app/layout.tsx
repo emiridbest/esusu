@@ -5,6 +5,7 @@ import Header from "../components/Header";
 import { ThemeProvider } from "../components/ThemeProvider";
 import "./globals.css";
 import { Metadata } from "next";
+import { Toaster } from "../components/ui/sonner";
 
 const appUrl = process.env.NEXT_PUBLIC_URL
 export const metadata: Metadata = {
@@ -55,6 +56,7 @@ export default async function RootLayout({
                   {children}
                 </div>
               </main>
+                      <Toaster />
               <Footer />
             </div>
           </Providers>

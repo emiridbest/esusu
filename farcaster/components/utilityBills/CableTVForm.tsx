@@ -75,7 +75,7 @@ export default function CableTVForm() {
       subscriberId: "",
       provider: "",
       plan: "",
-      paymentToken: "cusd",
+      paymentToken: "",
     },
   });
   
