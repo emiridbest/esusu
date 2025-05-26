@@ -47,14 +47,18 @@ Esusu bridges traditional community savings practices with blockchain technology
 - **SDK**: Goat SDK
 
 ## Contract Information
+The Esusu protocol has been deployed to the following contracts:
 
-- **Current Esusu Piggy Box Contract**: `0x4f2823A3AACa8eA1B427ABC5750Ccb3D4E8C4AC7`
-- **Former Contract**: `0xD7154A32280c31a510BF248CE35F2627162227b4`
-- **Token**: MST (MiniSafe Token) - Rewards for locking up funds
+| Network | Contract | Address |
+|---------|----------|---------|
+| Celo | MiniSafeAave | `0x9fAB2C3310a906f9306ACaA76303BcEb46cA5478` |
+| Celo | MiniSafeAaveIntegration | `0xB58c8917eD9e2ba632f6f446cA0509781dd676B2` |
+| Celo | MiniSafeAave | `0x67fDEC406b8d3bABaf4D59627aCde3C5cD4BA90A` |
 Full Contract Repo: https://github.com/emiridbest/esusu-contracts/
 ```
 esusu/
-├── frontend/            # Next.js 15 frontend application
+├── farcaster/           # Next.js 15 frontend application for Farcaster 
+├── frontend/            # Next.js 15 frontend application for MiniPay
 │   ├── app/             # App Router components and routes
 │   ├── components/      # Reusable React components
 │   ├── public/          # Static assets
@@ -69,7 +73,7 @@ esusu/
 
 - **Mini Safe**: Secure savings feature
 - **Thrift**: Group savings feature
-- **Chat Assistant**: AI-powered assistant for performing onchain transactions
+- **Chat Assistant**: AI-powered assistant for performing on-chain transactions
 
 ## Getting Started
 
