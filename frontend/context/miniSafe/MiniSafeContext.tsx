@@ -291,9 +291,9 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 if (selectedToken === 'CUSD') {
                   tx = await contract.withdraw(cusdAddress, cusdBalance, { gasLimit });
                 } else if (selectedToken === 'USDC') {
-                  tx = await contract.withdraw(usdcAddress,usdcBalance { gasLimit });
+                  tx = await contract.withdraw(usdcAddress,usdcBalance, { gasLimit });
                 } else if (selectedToken === 'USDT') {
-                  tx = await contract.withdraw(usdtAddress,usdtBalance { gasLimit });
+                  tx = await contract.withdraw(usdtAddress,usdtBalance, { gasLimit });
                 }
                 await tx.wait();
                 getBalance();
