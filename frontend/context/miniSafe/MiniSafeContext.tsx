@@ -289,11 +289,11 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 toast.info('Processing withdrawal...');
                 let tx;
                 if (selectedToken === 'CUSD') {
-                  tx = await contract.withdraw(cusdAddress, { gasLimit });
+                  tx = await contract.withdraw(cusdAddress, cusdBalance, { gasLimit });
                 } else if (selectedToken === 'USDC') {
-                  tx = await contract.withdraw(usdcAddress, { gasLimit });
+                  tx = await contract.withdraw(usdcAddress,usdcBalance { gasLimit });
                 } else if (selectedToken === 'USDT') {
-                  tx = await contract.withdraw(usdtAddress, { gasLimit });
+                  tx = await contract.withdraw(usdtAddress,usdtBalance { gasLimit });
                 }
                 await tx.wait();
                 getBalance();
