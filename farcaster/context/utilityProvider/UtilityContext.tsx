@@ -7,7 +7,6 @@ import {
   useAccount,
   useSendTransaction,
   useSwitchChain,
-  usePublicClient
 } from "wagmi";
 import { config } from '../../components/providers/WagmiProvider';
 import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
@@ -64,7 +63,6 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     isError: isSwitchChainError,
     isPending: isSwitchChainPending,
   } = useSwitchChain();
-  const publicClient = usePublicClient({ config });
 
   const handleSwitchChain = useCallback(() => {
     switchChain({ chainId: celoChainId });

@@ -13,13 +13,10 @@ import {
   useChainId
 } from "wagmi";
 import {
-  MagnifyingGlassIcon,
-  BellAlertIcon,
   ChevronDownIcon,
   Bars3Icon,
   XMarkIcon
 } from "@heroicons/react/24/outline";
-import { ThemeContext } from "../components/ThemeProvider";
 import { cn } from "../lib/utils";
 import {
   NavigationMenu,
@@ -70,7 +67,7 @@ export default function Header() {
 
   const handleSwitchChain = useCallback(() => {
     switchChain({ chainId: celoChainId });
-  }, [switchChain, publicClient]);
+  }, [switchChain, celoChainId]);
 
   // Move hooks to the component level so they're called unconditionally
   const cusdResult = useReadContract({
@@ -118,7 +115,7 @@ export default function Header() {
     };
 
     switchToCelo();
-  }, [connect, connectors, chainId, celoChainId, handleSwitchChain]);
+  }, [connect, connectors, chainId, celoChainId, handleSwitchChain, isConnected]);
 
 
   useEffect(() => {
@@ -176,7 +173,7 @@ export default function Header() {
   // Navigation links
   const navLinks = [
     { title: "Pay Bills", href: "/" },
-    { title: "Free Zone", href: "/freebies" },
+    { title: "Freebies", href: "/freebies" },
   ];
 
   // About menu items
@@ -352,7 +349,7 @@ export default function Header() {
                         className={cn(
                           "py-2 px-4 rounded-lg transition-all duration-300",
                           pathname === "/"
-                            ? "bg-primary/10 text-primary border-l-2 border-primary"
+                            ? "text-black/90 dark:bg-primary/10 dark:text-primary border-l-2 border-primary"
                             : "hover:bg-primary/10 hover:text-primary"
                         )}
                       >
@@ -367,8 +364,8 @@ export default function Header() {
                           className={cn(
                             "py-2 px-4 rounded-lg transition-all duration-300",
                             pathname === link.href
-                              ? "bg-primary/10 text-primary border-l-2 border-primary"
-                              : "hover:bg-primary/10 hover:text-primary"
+                              ? "text-black/90 dark:bg-primary/10 dark:text-primary border-l-2 border-primary text-sm font-medium"
+                              : "text-black/80 dark:text-gray-400 hover:bg-primary/10 hover:text-primary text-sm font-medium"
                           )}
                         >
                           {link.title}
