@@ -7,10 +7,10 @@ import Link from "next/link";
 import { Card, CardContent } from "../../components/ui/card";
 import { Loader2 } from "lucide-react";
 
-import { VerifyButton } from "../../components/freebies/VerifyButton"
-import { IdentityCard } from "../../components/freebies/IdentityCard"
-import { SigningModal } from "../../components/freebies/SigningModal"
-import HelpSection from "../../components/freebies/HelpSection";
+import { VerifyButton } from "../../components/identity/VerifyButton"
+import { IdentityCard } from "../../components/identity/IdentityCard"
+import { SigningModal } from "../../components/identity/SigningModal"
+import HelpSection from "../../components/identity/HelpSection";
 
 function IdentityVerification() {
   const { isConnected, address } = useAccount();
