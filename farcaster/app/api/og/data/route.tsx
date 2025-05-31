@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
     };
 
     // Generate dynamic title based on URL parameters
-    let title = 'Buy Mobile Data Bundles';
-    let subtitle = 'Top-up mobile data with crypto on the Celo blockchain';
+    let title = 'Claim Free Data to Access the Internet';
+    let subtitle = 'Top-up mobile data with crypto on the Celo blockchain x GoodDollar';
 
     if (operator) {
       title = 'Select a Data Bundle';
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: '#1a1a1a', // Black background
+            backgroundColor: '#000000', // Black background
             position: 'relative',
           }}
         >
@@ -70,42 +70,27 @@ export async function GET(req: NextRequest) {
 
           <div
             style={{
-              marginTop: '40px',
+              marginTop: '20px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               padding: '40px',
               backgroundColor: '#1a1a1a', 
               borderRadius: '20px',
-              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.5)',
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.9)',
               width: '80%',
               maxWidth: '900px',
               border: '2px solid #FFD700', // Yellow border
             }}
           >
             <div style={{
-              width: '140px',
-              height: '140px',
               marginBottom: '30px',
-              position: 'relative',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: '#FFD700', // Yellow background
-              borderRadius: '50%',
             }}>
-              {/* Esusu  logo */}
-              <div style={{
-                width: '100px',
-                height: '100px',
-                backgroundColor: '#FFD700', // Yellow circle
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <img src={`${process.env.NEXT_PUBLIC_URL}/esusu.png`} alt="Esusu Logo" style={{ width: '70%', height: '70%' }} />
-              </div>
+              {/* Esusu logo */}
+              <img src={`${process.env.NEXT_PUBLIC_URL}/esusu.png`} alt="Esusu Logo" style={{ width: '200px', height: '200px' }} />
             </div>
 
             <h1 style={{
@@ -138,15 +123,6 @@ export async function GET(req: NextRequest) {
               Get Started
             </div>
           </div>
-
-          <p style={{
-            position: 'absolute',
-            bottom: '20px',
-            fontSize: '20px',
-            color: '#FFD700' // Yellow text
-          }}>
-            Powered by Esusu on the Celo Blockchain
-          </p>
         </div>
       ),
       {
@@ -185,7 +161,7 @@ export async function GET(req: NextRequest) {
           </div>
 
           <p style={{ fontSize: '32px', marginTop: '20px', color: 'white' }}>
-            Buy mobile data bundles with crypto
+            Get mobile data bundles with crypto
           </p>
         </div>
       ),
