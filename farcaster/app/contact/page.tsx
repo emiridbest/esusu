@@ -7,7 +7,7 @@ import React from "react";
 
 
 export default function ContactPage() {
-  const telegramLink = "https://web.telegram.org/k/#-4669232349"; 
+  const telegramLink = "https://t.me/+kYeSswiKgB9lMjZk"; 
   
   return (
     <div className="container mx-auto py-12 px-4">
