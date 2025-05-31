@@ -24,8 +24,8 @@ const WithdrawTab: React.FC = () => {
   // Get the current date to determine if withdrawal is allowed
   const currentDay = new Date().getDate();
   const isWithdrawalPeriod = currentDay >= 28 && currentDay <= 31;
-  const daysLeft = isWithdrawalPeriod ? 0 : Math.max(28 - currentDay, 0);
-  const progressValue = Math.max(((28 - currentDay) / 28) * 100, 0);
+  const daysLeft = isWithdrawalPeriod ? 0 : currentDay > 31 ? 28 : Math.max(28 - currentDay, 0);
+  const progressValue = isWithdrawalPeriod ? 100 : Math.min(Math.max(((currentDay / 28) * 100), 0), 100);
 
   return (
     <div className="space-y-6">
@@ -37,16 +37,20 @@ const WithdrawTab: React.FC = () => {
 
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Lock time remaining</span>
-            <span className="text-sm">{daysLeft} days left</span>
+            <span className="text-sm font-medium">Withdrawal period</span>
+            {isWithdrawalPeriod ? (
+              <span className="text-sm text-green-600 font-medium">Available now!</span>
+            ) : (
+              <span className="text-sm">{daysLeft} {daysLeft === 1 ? 'day' : 'days'} until available</span>
+            )}
           </div>
           
           <Progress 
             value={progressValue} 
-            className="h-2" 
+            className={`h-2 ${isWithdrawalPeriod ? 'bg-green-100 dark:bg-green-900/30' : ''}`}
           />
           <p className="text-xs text-gray-500 mt-2">
-            You can withdraw without penalty during withdrawal window
+            Withdrawals are only available between the 28th-31st of each month
           </p>
         </div>
 
@@ -64,10 +68,12 @@ const WithdrawTab: React.FC = () => {
         </Button>
 
         {!isWithdrawalPeriod && (
-          <p className="text-center text-sm text-red-500 mt-3">
-            <AlertCircleIcon className="h-4 w-4 inline mr-1" />
-            Your funds are still locked. Use Break Lock to withdraw early.
-          </p>
+          <div className="border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 rounded-md p-3 mt-3">
+            <p className="text-sm flex items-start">
+              <AlertCircleIcon className="h-4 w-4 text-amber-600 mr-2 mt-0.5 flex-shrink-0" />
+              <span>Your funds are time-locked until the 28th of the month. Use the <strong>Break Lock</strong> tab if you need to withdraw early (requires EST tokens).</span>
+            </p>
+          </div>
         )}
       </div>
 
