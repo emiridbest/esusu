@@ -51,8 +51,6 @@ interface Transaction {
   timestamp?: string;
 }
 
-const STABLE_TOKEN_ADDRESS = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
-
 const truncateAddress = (address: string): string => {
   return address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '';
 };
@@ -73,13 +71,12 @@ const TransactionList: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [page, setPage] = useState(1);
   const [transactionFilter, setTransactionFilter] = useState<'all' | 'sent' | 'received'>('all');
-  const addRecentTransaction = useAddRecentTransaction();
   const { address } = useAccount();
 
   useEffect(() => {
     const fetchTransactions = async () => {
       if (!address) {
-        console.error('No address found');
+        // Don't show error, just set loading to false and wait for address
         setIsLoading(false);
         return;
       }
