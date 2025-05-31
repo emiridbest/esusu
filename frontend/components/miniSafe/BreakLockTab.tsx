@@ -36,7 +36,7 @@ const BreakLockTab: React.FC = () => {
         </div>
 
         <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-          Use your EST tokens to break the timelock and withdraw your funds outside withdrawal window. This will consume your EST tokens.
+          <strong>Need to withdraw before the 28th?</strong> Use your EST tokens to break the timelock and withdraw your funds immediately. This will consume your EST tokens but bypass the monthly withdrawal restriction.
         </p>
 
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md p-3 mb-4">
