@@ -7,7 +7,8 @@ const TOKEN_ADDRESSES = {
   CUSD: '0x765DE816845861e75A25fCA122bb6898B8B1282a',
   USDC: '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
   USDT: '0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e',
-  CELO: '0x471EcE3750Da237f93B8E339c536989b8978a438' // Native CELO token
+  CELO: '0x471EcE3750Da237f93B8E339c536989b8978a438', // Native CELO token
+  G$: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A", // G$ token address
 };
 
 export const useBalance = () => {
@@ -21,6 +22,8 @@ export const useBalance = () => {
       case 'USDC':
       case 'USDT':
         return 6;
+      case 'G$':
+        return 18;
       default:
         return 18;
     }
