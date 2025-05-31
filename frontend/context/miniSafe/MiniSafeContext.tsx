@@ -2,7 +2,7 @@ import React, { createContext, useState, useCallback, useContext, useEffect } fr
 import { toast } from 'react-toastify';
 import { contractAddress, abi } from '@/utils/abi';
 import { formatUnits, Interface } from "ethers";
- import { gweiUnits, parseEther, parseUnits } from "viem";
+import { gweiUnits, parseEther, parseUnits } from "viem";
 import { BigNumber } from 'alchemy-sdk';
 import { getDataSuffix, submitReferral } from '@divvi/referral-sdk';
 import { Celo } from '@celo/rainbowkit-celo/chains';

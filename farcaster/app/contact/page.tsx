@@ -4,8 +4,9 @@ import { ExternalLink, MessageCircle, Users, Clock, Headphones } from "lucide-re
 import React from "react";
 
 export default function ContactPage() {
-  const telegramLink = "https://web.telegram.org/k/#-4669232349";
- 
+  const telegramLink = "https://t.me/+kYeSswiKgB9lMjZk"; 
+  
+
   return (
     <div className="container mx-auto py-12 px-4 min-h-screen bg-gradient-to-br from-white via-yellow-50/40 to-yellow-100/30 dark:from-black dark:via-gray-900 dark:to-yellow-900/20">
       <div className="max-w-2xl mx-auto text-center">
