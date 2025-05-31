@@ -202,7 +202,7 @@ const Hero: React.FC = () => {
                       className="w-8 h-8 rounded-full bg-white dark:black border-2 border-white dark:border-gray-800 shadow-lg overflow-hidden -ml-2 first:ml-0"
                       style={{ zIndex: 3 - i }}
                     >
-                      <Image src="/esusu.png" alt="User" width={32} height={32} />
+                      <Image src="/esusu.png" alt="User" width={32} height={32} priority />
                     </div>
                   ))}
                 </div>

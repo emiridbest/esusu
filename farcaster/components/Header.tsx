@@ -176,6 +176,7 @@ export default function Header() {
   // Navigation links
   const navLinks = [
     { title: "Pay Bills", href: "/" },
+    { title: "Free Zone", href: "/freebies" },
   ];
 
   // About menu items

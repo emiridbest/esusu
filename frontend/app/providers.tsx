@@ -18,7 +18,7 @@ const appInfo = {
   appName: "Celo Composer",
 };
 
-const wagmiConfig = createConfig({
+export const wagmiConfig = createConfig({
   connectors,
   publicClient: publicClient,
 });

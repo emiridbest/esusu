@@ -33,6 +33,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Celo } from "@celo/rainbowkit-celo/chains";
 
 export default function Header() {
   const [searchVisible, setSearchVisible] = useState(false);
@@ -54,7 +55,7 @@ export default function Header() {
     // Only attempt to connect if not already connected
     if (!isConnected) {
       try {
-        connect();
+        connect({chainId: Celo.id});
       } catch (error) {
         console.error("Connection error:", error);
       }
@@ -109,6 +110,7 @@ export default function Header() {
             <Image
               className="cursor-pointer transition-all duration-300 hover:scale-105"
               src="/esusu.png"
+              priority
               width="120"
               height="120"
               alt="EsusuLogo"

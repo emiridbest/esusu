@@ -1,6 +1,6 @@
 import React from 'react';
-import { motion } from "framer-motion";
 import { useMiniSafe } from '@/context/miniSafe/MiniSafeContext';
+import { formatUnits } from "ethers";
 
 // Shadcn/UI Components
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ const BalanceCard: React.FC = () => {
     formatBalance,
     interestRate,
   } = useMiniSafe();
+
 
   return (
     <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border-gray-100 dark:border-gray-700 overflow-hidden h-full dark:text-white">
@@ -75,7 +76,7 @@ const BalanceCard: React.FC = () => {
                   </div>
                   <span className="font-medium">CUSD</span>
                 </div>
-                <div className="text-xl font-bold">{formatBalance(cusdBalance)}</div>
+                <div className="text-xl font-bold">{cusdBalance ? formatBalance(formatUnits(cusdBalance || '0', 18)) : '0.00'}</div>
               </div>
             </div>
 
@@ -91,7 +92,7 @@ const BalanceCard: React.FC = () => {
                   </div>
                   <span className="font-medium">USDC</span>
                 </div>
-                <div className="text-xl font-bold">{formatBalance(usdcBalance)}</div>
+                <div className="text-xl font-bold">{usdcBalance ? formatBalance(formatUnits(usdcBalance || '0', 6)) : '0.00'}</div>
               </div>
             </div>
 
@@ -107,7 +108,7 @@ const BalanceCard: React.FC = () => {
                   </div>
                   <span className="font-medium">USDT</span>
                 </div>
-                <div className="text-xl font-bold">{formatBalance(usdtBalance)}</div>
+                <div className="text-xl font-bold">{usdtBalance ? formatBalance(formatUnits(usdtBalance || '0', 18)) : '0.00'}</div>
               </div>
             </div>
 
@@ -146,7 +147,7 @@ const BalanceCard: React.FC = () => {
           </Select>
         </div>
 
-        {parseFloat(usdcBalance) > 0 && (
+        {usdcBalance && parseFloat(formatUnits(usdcBalance || '0', 6)) > 0 && (
           <Alert className="bg-primary/5 border-primary/20">
             <div className="flex items-start">
               <InfoIcon className="h-5 w-5 text-primary mr-2 mt-0.5" />

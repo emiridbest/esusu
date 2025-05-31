@@ -192,6 +192,7 @@ const Esusu: React.FC = () => {
               <div className="absolute inset-0 rounded-full bg-primary/10 animate-pulse blur-xl"></div>
               <Image
                 src="/esusu.png"
+                priority
                 alt="Esusu App"
                 width={180}
                 height={180}
