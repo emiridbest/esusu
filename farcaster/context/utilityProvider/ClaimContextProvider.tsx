@@ -150,7 +150,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
             country: values.country,
             phoneNumber: cleanPhoneNumber
           },
-          email: values.email || `${address}@gooddollar.org`,
+          email: values.email,
           isFreeClaim: true
         }),
       });
@@ -180,7 +180,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     
     const selectedToken = "G$";
     const tokenAddress = getTokenAddress(selectedToken, TOKENS);
-    const decimals = getTokenDecimals(selectedToken, TOKENS);
 
     const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
     const transferInterface = new Interface(tokenAbi);
