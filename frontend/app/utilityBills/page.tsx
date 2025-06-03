@@ -3,25 +3,28 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { PhoneIcon, Smartphone, Zap, Tv, WalletIcon, CreditCard, Loader2 } from 'lucide-react';
-
+import Head from 'next/head';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-import CableSubscriptionForm from '@/components/utilityBills/CableSubscriptionForm';
+import CableTVForm from '@/components/utilityBills/CableTVForm';
 import ElectricityBillForm from '@/components/utilityBills/ElectricityBillForm';
 import MobileDataForm from '@/components/utilityBills/MobileDataForm';
-import { UtilityProvider } from '@/context/utilityProvider/UtilityContext';
-const UtilityBills: React.FC = () => {
+import { UtilityProvider, useUtility } from '@/context/utilityProvider/UtilityContext';
+
+// Main content component - separated to use the useUtility hook
+function MainContent() {
   const router = useRouter();
   const [selectedTab, setSelectedTab] = useState('mobile-data');
+  const {  countryData } = useUtility();
 
   const handleTabChange = (tab: string) => {
     setSelectedTab(tab);
   };
 
   return (
-    <UtilityProvider>
     <div className="container mx-auto p-4">
+      {/* Main Utility Bills Card */}
       <Card>
         <CardHeader>
           <CardTitle>Utility Bills</CardTitle>
@@ -29,14 +32,26 @@ const UtilityBills: React.FC = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="mobile-data" onValueChange={handleTabChange}>
-          <TabsList className="grid w-full grid-cols-3 gap-1">
-          <TabsTrigger value="mobile-data" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 gap-1">
+              <TabsTrigger 
+                value="mobile-data" 
+                className="w-full"
+                disabled={countryData ? !countryData.servicesAvailable.data : undefined}
+              >
                 <Smartphone className="mr-2" /> Data
               </TabsTrigger>
-              <TabsTrigger value="cable-subscription" className="w-full">
+              <TabsTrigger 
+                value="cable-subscription" 
+                className="w-full"
+                disabled={countryData ? !countryData.servicesAvailable.cable : undefined}
+              >
                 <Tv className="mr-2" /> Cable
               </TabsTrigger>
-              <TabsTrigger value="electricity-bill" className="w-full">
+              <TabsTrigger 
+                value="electricity-bill" 
+                className="w-full"
+                disabled={countryData ? !countryData.servicesAvailable.electricity : undefined}
+              >
                 <Zap className="mr-2" /> Electricity
               </TabsTrigger>
             </TabsList>
@@ -46,7 +61,7 @@ const UtilityBills: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="cable-subscription">
-              <CableSubscriptionForm />
+              <CableTVForm />
             </TabsContent>
 
             <TabsContent value="electricity-bill">
@@ -56,6 +71,13 @@ const UtilityBills: React.FC = () => {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+const UtilityBills: React.FC = () => {
+  return (
+    <UtilityProvider>
+      <MainContent />
     </UtilityProvider>
   );
 }
