@@ -80,20 +80,23 @@ const ClaimProcessorContext = createContext<ClaimProcessorType | undefined>(unde
 
 // Provider component - this should be a component, not a hook
 export function ClaimProvider({ children }: ClaimProviderProps) {
-  let identitySDK;
-  try {
-    identitySDK = useIdentitySDK('production');
-  } catch (error) {
-    console.error("Error initializing IdentitySDK:", error);
-    // Provide a fallback or handle the error
+const sdkEnvironment = process.env.NEXT_PUBLIC_GOODDOLLAR_ENVIRONMENT as contractEnv || 'production';
+let identitySDK = null;
+  if (sdkEnvironment !== undefined) {
+    try {
+      identitySDK = useIdentitySDK();
+    } catch (error) {
+      console.error("Error initializing Identity SDK:", error);
+    }
   }
+
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
   const [isProcessing, setIsProcessing] = useState(false);
   const [entitlement, setEntitlement] = useState<bigint | null>(null);
   const [canClaim, setCanClaim] = useState(false);
-    const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
+  const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
   const [transactionSteps, setTransactionSteps] = useState<Step[]>([]);
   const [currentOperation, setCurrentOperation] = useState<'data' | null>(null);
   const [isWaitingTx, setIsWaitingTx] = useState(false);
@@ -110,8 +113,9 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         publicClient,
         walletClient,
         identitySDK,
-        env: 'production',
+        env: sdkEnvironment as contractEnv,
       });
+      toast.success("ClaimSDK initialized successfully!");
     } catch (error) {
       console.error("Error initializing ClaimSDK:", error);
     }

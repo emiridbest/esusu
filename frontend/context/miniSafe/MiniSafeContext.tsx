@@ -1,9 +1,8 @@
 import React, { createContext, useState, useCallback, useContext, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { contractAddress, abi } from '@/utils/abi';
 import { formatUnits, Interface } from "ethers";
 import { gweiUnits, parseEther, parseUnits } from "viem";
-import { BigNumber } from 'alchemy-sdk';
 import { getDataSuffix, submitReferral } from '@divvi/referral-sdk';
 import { Celo } from '@celo/rainbowkit-celo/chains';
 import {
@@ -215,9 +214,12 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       toast.error('Please connect your wallet');
       return;
     }
-
+    openTransactionDialog('approve');
     setIsApproving(true);
-
+    updateStepStatus('check-balance', 'loading');
+    await getBalance();
+    updateStepStatus('check-balance', 'success');
+    updateStepStatus('allowance', 'loading');
     try {
       const tokenAddress = getTokenAddress(selectedToken);
       const depositValue = parseEther(depositAmount.toString());
@@ -240,15 +242,17 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         functionName: 'allowance',
         args: [address, contractAddress],
       });
-
+      updateStepStatus('allowance', 'success');
       // Compare BigInt values directly
       if ((allowanceData as bigint) >= (depositValue as bigint)) {
         setIsApproved(true);
         toast.success('Already approved!');
         setIsApproving(false);
+        updateStepStatus('approve', 'success');
+        closeTransactionDialog();
         return;
       }
-
+      updateStepStatus('approve', 'loading');
       toast.info('Approving transaction...');
 
       const tokenAbi = [
@@ -271,7 +275,8 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         data: dataWithSuffix as `0x${string}`,
         chainId: Celo.id,
       });
-
+      updateStepStatus('approve', 'success');
+      updateStepStatus('confirm', 'loading');
       try {
         await submitReferral({
           txHash: tx.hash as `0x${string}`,
@@ -281,6 +286,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         setIsApproved(true);
         toast.success('Approval successful!');
+        updateStepStatus('confirm', 'success');
       } catch (referralError) {
         console.error("Error submitting referral:", referralError);
         setIsApproved(true);
@@ -569,23 +575,29 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         tokenAddress
       ]);
       const breakData = breakTimelockData + dataSuffix;
-      const sendHash = await sendTransactionAsync({
-        to: contractAddress as `0x${string}`,
-        data: breakData as `0x${string}`,
-        chainId: Celo.id,
-      });
+      
+      let txHash: `0x${string}`;
+      try {
+        const sendHash = await sendTransactionAsync({
+          to: contractAddress as `0x${string}`,
+          data: breakData as `0x${string}`,
+          chainId: Celo.id,
+        });
+        txHash = sendHash.hash;
+      } catch (error) {
+        updateStepStatus('confirm', 'error', error instanceof Error ? error.message : 'Unknown error');
+        throw error;
+      }
 
       // Update third step to success and start confirmation step
-      updateStepStatus('break', 'success');
-      updateStepStatus('confirm', 'loading');
       toast.info('Waiting for confirmation...');
 
       await getBalance();
       await getTokenBalance();
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: sendHash.hash });
-      
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      updateStepStatus('break', 'success');
+      updateStepStatus('confirm', 'loading');
       if (receipt.status === 'success') {
-        updateStepStatus('confirm', 'success');
         toast.success('Timelock broken successfully!');
       } else {
         updateStepStatus('confirm', 'error', 'Transaction failed on blockchain');
@@ -684,7 +696,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         { 
           id: 'break',
           title: 'Break Timelock',
-          description: 'Breaking the timelock...',
+          description: 'Requesting to break timelock...',
           status: 'inactive' 
         },
         { 

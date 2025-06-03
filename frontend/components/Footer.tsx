@@ -5,13 +5,11 @@ import {
   UserGroupIcon, 
   UserIcon 
 } from "@heroicons/react/24/outline";
-import { useContext } from "react";
-import { ThemeContext } from "@/components/ThemeProvider";
 import { cn } from "@/lib/utils";
 import { useRouter, usePathname } from "next/navigation";
+import { GiftIcon, StoreIcon } from "lucide-react";
 
 export default function Footer() {
-  const { darkMode } = useContext(ThemeContext);
   const router = useRouter();
   const pathname = usePathname();
   
@@ -20,8 +18,10 @@ export default function Footer() {
   const navItems = [
     { name: "Home", icon: HomeIcon, path: "/", ariaLabel: "Navigate to home" },
     { name: "Save", icon: ArchiveBoxArrowDownIcon, path: "/miniSafe", ariaLabel: "Navigate to savings" },
+    { name: "Pay Bills", icon: StoreIcon, path: "/utilityBills", ariaLabel: "Navigate to utility bills" },
+    { name: "Freebies", icon: GiftIcon, path: "/freebies", ariaLabel: "Navigate to freebies" },
     { name: "Thrift", icon: UserGroupIcon, path: "/thrift", ariaLabel: "Navigate to thrift" },
-    { name: "Profile", icon: UserIcon, path: "/profile", ariaLabel: "Navigate to profile" }
+    //{ name: "Profile", icon: UserIcon, path: "/profile", ariaLabel: "Navigate to profile" }
   ];
 
   return (
