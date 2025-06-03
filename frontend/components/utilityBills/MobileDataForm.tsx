@@ -72,7 +72,9 @@ export default function MobileDataForm() {
   const { checkTokenBalance } = useBalance();
 
   const {
-
+    transactionSteps,
+    updateStepStatus,
+    openTransactionDialog,
     isProcessing,
     setIsProcessing,
     handleTransaction
@@ -190,6 +192,8 @@ export default function MobileDataForm() {
           toast.error("Please ensure all fields are filled out correctly.");
           throw new Error("Please ensure all fields are filled out correctly.");
         }
+        openTransactionDialog("data", values.phoneNumber);
+        updateStepStatus('verify-phone', 'loading');
 
         const verificationResult = await verifyAndSwitchProvider(phoneNumber, provider, country);
 
@@ -207,11 +211,15 @@ export default function MobileDataForm() {
             setAvailablePlans(plans);
           } else {
             toast.success("You are now using the correct network provider.");
+            updateStepStatus('verify-phone', 'success');
+
           }
         } else {
           setIsVerified(false);
           toast.error("Phone number verification failed. Please double-check the phone number.");
           setIsProcessing(false);
+          updateStepStatus('verify-phone', 'error', "Your phone number did not verify with the selected network provider. Please check the number and try again.");
+
           return;
         }
       } catch (error) {
@@ -225,12 +233,19 @@ export default function MobileDataForm() {
       // Continue with payment if verification was successful
       const selectedPlan = availablePlans.find(plan => plan.id === values.plan);
       const networkName = networks.find(net => net.id === values.network)?.name || '';
+      updateStepStatus('check-balance', 'loading');
+
       // Check if the user has enough token balance
       const hasEnoughBalance = await checkTokenBalance(selectedToken, selectedPrice.toString(), values.country);
       if (!hasEnoughBalance) {
         toast.error(`Insufficient ${selectedToken} balance to complete this transaction.`);
+        updateStepStatus('check-balance', 'error', `Insufficient ${selectedToken} balance`);
+
         return false;
       }
+      updateStepStatus('check-balance', 'success');
+      updateStepStatus('send-payment', 'loading');
+
       // Process blockchain payment first
       const success = await handleTransaction({
         type: 'data',
@@ -248,11 +263,14 @@ export default function MobileDataForm() {
 
       if (success) {
         paymentSuccessful = true;
+        updateStepStatus('send-payment', 'success');
 
         toast.success("Processing your mobile data top-up...");
 
         // Now that payment is successful, attempt the top-up
         topupAttempted = true;
+        updateStepStatus('top-up', 'loading');
+
         try {
           // Format the phone number as expected by the API
           const cleanPhoneNumber = values.phoneNumber.replace(/[\s\-\+]/g, '');
@@ -278,6 +296,7 @@ export default function MobileDataForm() {
 
           if (response.ok && data.success) {
             toast.success(`Successfully topped up ${values.phoneNumber} with ${selectedPlan?.name || 'your selected plan'}.`);
+            updateStepStatus('top-up', 'success');
 
             // Reset the form but keep the country
             form.reset({
@@ -293,6 +312,7 @@ export default function MobileDataForm() {
           } else {
             console.error("Top-up API Error:", data);
             toast.error(data.error || "There was an issue processing your top-up. Our team has been notified.");
+            updateStepStatus('top-up', 'error', "Top-up failed but payment succeeded, Please screenshot this error and contact support.");
 
             // Here we would ideally log this to a monitoring system for manual resolution
             console.error("Payment succeeded but top-up failed. Manual intervention required:", {
@@ -306,6 +326,7 @@ export default function MobileDataForm() {
         } catch (error) {
           console.error("Error during top-up:", error);
           toast.error("There was an error processing your top-up. Our team has been notified and will resolve this shortly.");
+          updateStepStatus('top-up', 'error', "Top-up failed but payment succeeded, Please screenshot this error and contact support.");
 
           // Log for manual intervention
           console.error("Critical error - Payment succeeded but top-up failed with exception:", {
@@ -317,37 +338,39 @@ export default function MobileDataForm() {
         }
       } else {
         toast.error("Your payment could not be processed. Please try again.");
+        updateStepStatus('send-payment', 'error', "Payment failed, please close this window and try again.");
+
       }
     } catch (error) {
       console.error("Error in submission flow:", error);
       toast.error(error instanceof Error ? error.message : "There was an unexpected error processing your request.");
-
-      // If payment succeeded but top-up wasn't attempted, we need to log this for manual intervention
-      if (paymentSuccessful && !topupAttempted) {
-        console.error("Critical error - Payment succeeded but top-up was never attempted:", {
-          user: values.email,
-          phone: values.phoneNumber,
-          amount: selectedPrice,
-          error
-        });
+      // Find the current loading step and mark it as error
+      const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
+      if (loadingStepIndex !== -1) {
+        updateStepStatus(
+          transactionSteps[loadingStepIndex].id,
+          'error',
+          error instanceof Error ? error.message : 'Unknown error'
+        );
       }
+
     } finally {
       setIsProcessing(false);
     }
   }
   return (
-  <div className="bg-gradient-to-br from-white via-black-50 to-primary-50 dark:from-black dark:via-black-0 dark:to-black p-6 rounded-xl border border-primary-400/20 dark:border-primary-400/30">
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="country"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-black-800 dark:text-yellow-400 font-medium text-sm">Country</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <CountrySelector
+    <div className="bg-gradient-to-br from-white via-black-50 to-primary-50 dark:from-black dark:via-black-0 dark:to-black p-6 rounded-xl border border-primary-400/20 dark:border-primary-400/30">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="country"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-black-800 dark:text-yellow-400 font-medium text-sm">Country</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <CountrySelector
 
                       value={field.value}
                       onChange={(val) => {
@@ -396,11 +419,11 @@ export default function MobileDataForm() {
                 <FormLabel className="text-black-800 dark:text-yellow-400 font-medium text-sm">Network Provider</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || networks.length === 0}>
                   <FormControl className="relative">
-                  <SelectTrigger className="bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-gray-900 dark:text-white">
+                    <SelectTrigger className="bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-gray-900 dark:text-white">
                       <SelectValue placeholder="Select network provider" className='text-xs' />
                     </SelectTrigger>
                   </FormControl>
-                <SelectContent className="bg-white dark:bg-black/90 border-2 border-yellow-400/30 dark:border-yellow-400/40">
+                  <SelectContent className="bg-white dark:bg-black/90 border-2 border-yellow-400/30 dark:border-yellow-400/40">
                     {networks.map((network) => (
                       <SelectItem
                         key={network.id}
@@ -432,11 +455,11 @@ export default function MobileDataForm() {
                   disabled={isLoading || !watchNetwork || availablePlans.length === 0}
                 >
                   <FormControl>
-                  <SelectTrigger className="bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-gray-900 dark:text-white">
+                    <SelectTrigger className="bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-gray-900 dark:text-white">
                       <SelectValue placeholder="Select data plan" className='text-xs' />
                     </SelectTrigger>
                   </FormControl>
-                <SelectContent className="bg-white dark:bg-gray-800 border-2 border-yellow-400/30 dark:border-yellow-400/40">
+                  <SelectContent className="bg-white dark:bg-gray-800 border-2 border-yellow-400/30 dark:border-yellow-400/40">
                     {availablePlans.map((plan) => (
                       <SelectItem
                         key={plan.id}
@@ -491,11 +514,11 @@ export default function MobileDataForm() {
                   value={field.value}
                 >
                   <FormControl>
-                  <SelectTrigger className="bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-gray-900 dark:text-white">
+                    <SelectTrigger className="bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-gray-900 dark:text-white">
                       <SelectValue placeholder="Select payment token" className='text-xs' />
                     </SelectTrigger>
                   </FormControl>
-                <SelectContent className="bg-white dark:bg-gray-800 border-2 border-yellow-400/30 dark:border-yellow-400/40">
+                  <SelectContent className="bg-white dark:bg-gray-800 border-2 border-yellow-400/30 dark:border-yellow-400/40">
                     {TOKENS.map((token) => (
                       <SelectItem
                         key={token.id}

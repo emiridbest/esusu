@@ -69,7 +69,7 @@ export const TransactionSteps = ({ steps, currentStepIndex }: TransactionStepsPr
             </h4>
             
             <p className={`
-              text-sm leading-relaxed transition-colors
+              text-xs leading-relaxed transition-colors
               ${index === activeIndex 
                 ? 'text-gray-700 dark:text-gray-300' 
                 : 'text-gray-600 dark:text-gray-400'
@@ -80,7 +80,7 @@ export const TransactionSteps = ({ steps, currentStepIndex }: TransactionStepsPr
             
             {step.status === 'error' && step.errorMessage && (
               <div className="mt-3 p-3 bg-red-100 dark:bg-red-900/30 rounded-xl border border-red-200 dark:border-red-700">
-                <p className="text-sm text-red-700 dark:text-red-300 font-medium">
+                <p className="text-xs text-red-700 dark:text-red-300 font-medium">
                   {step.errorMessage}
                 </p>
               </div>
