@@ -57,8 +57,9 @@ export default function ElectricityBillForm() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [countryCurrency, setCountryCurrency] = useState<string>(""); 
   const [selectedToken, setSelectedToken] = useState<string | undefined>(undefined);
-
-  const {
+ const {
+    updateStepStatus,
+    openTransactionDialog,
     isProcessing,
     setIsProcessing,
     handleTransaction
@@ -125,9 +126,9 @@ export default function ElectricityBillForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsProcessing(true);
-
+    openTransactionDialog("electricity", values.amount)
+    updateStepStatus("electricity", "loading");
     try {
-
       const success = await handleTransaction({
         type: 'electricity',
         amount: values.amount,
@@ -144,6 +145,7 @@ export default function ElectricityBillForm() {
           title: "Payment Successful",
           description: `Your electricity bill payment for ${values.meterNumber} was successful.`,
         });
+        updateStepStatus("electricity", "success");
 
         // Reset the form
         form.reset();
