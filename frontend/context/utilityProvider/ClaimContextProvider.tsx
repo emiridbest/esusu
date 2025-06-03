@@ -80,14 +80,9 @@ const ClaimProcessorContext = createContext<ClaimProcessorType | undefined>(unde
 
 // Provider component - this should be a component, not a hook
 export function ClaimProvider({ children }: ClaimProviderProps) {
-  const sdkEnvironment  = process.env.NEXT_PUBLIC_GOODDOLLAR_ENVIRONMENT;
-  if (!sdkEnvironment) {
-    throw new Error("NEXT_PUBLIC_GOODDOLLAR_ENVIRONMENT is not set");
-  }
-
   let identitySDK;
   try {
-    identitySDK = useIdentitySDK(sdkEnvironment as contractEnv);
+    identitySDK = useIdentitySDK('production');
   } catch (error) {
     console.error("Error initializing IdentitySDK:", error);
     // Provide a fallback or handle the error
