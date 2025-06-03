@@ -1,6 +1,5 @@
 "use client";
 import React from 'react';
-import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { motion } from "framer-motion";
 import TransactionList from '@/components/TransactionList';
@@ -21,8 +20,6 @@ export default function MiniSafe() {
   return (
     <MiniSafeProvider>
       <div className="container mx-auto px-4 py-8">
-        <ToastContainer position="bottom-right" theme="colored" />
-
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
