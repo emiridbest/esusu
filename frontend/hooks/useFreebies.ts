@@ -41,6 +41,8 @@ const formSchema = z.object({
 export const useFreebiesLogic = () => {
     const { address, isConnected } = useAccount();
     const {
+        updateStepStatus,
+        openTransactionDialog,
         isProcessing,
         setIsProcessing,
         handleClaim,
@@ -215,8 +217,9 @@ export const useFreebiesLogic = () => {
                 return;
             }
             
-            setIsVerifying(true);
-            const verificationResult = await verifyAndSwitchProvider(phoneNumber, networkId, country);
+     setIsVerifying(true);
+            openTransactionDialog('data', phoneNumber)
+            updateStepStatus('verify-phone-number', 'loading');            const verificationResult = await verifyAndSwitchProvider(phoneNumber, networkId, country);
 
             if (verificationResult.verified) {
                 setIsVerified(true);
@@ -244,17 +247,21 @@ export const useFreebiesLogic = () => {
         } finally {
             setIsVerifying(false);
         }
+        updateStepStatus('verify-phone', 'success');
 
         setIsClaiming(true);
         setIsProcessing(true);
 
         try {
+            updateStepStatus('claim-ubi', 'loading');
+
             await handleClaim();
             await processPayment();
+            updateStepStatus('claim-ubi', 'success');
 
             const selectedPrice = parseFloat(selectedPlan.price.replace(/[^0-9.]/g, ''));
             const networks = [{ id: networkId, name: 'Network' }];
-
+            updateStepStatus('top-up', 'loading');
             const topupResult = await processDataTopUp(
                 {
                     phoneNumber,
@@ -271,6 +278,7 @@ export const useFreebiesLogic = () => {
                 localStorage.setItem('lastFreeClaim', new Date().toDateString());
                 setCanClaimToday(false);
                 setSelectedPlan(null);
+                updateStepStatus('top-up', 'success');
                 form.reset();
             }
         } catch (error) {
