@@ -8,21 +8,27 @@ import { getDataSuffix, submitReferral } from '@divvi/referral-sdk';
 import { Celo } from '@celo/rainbowkit-celo/chains';
 import {
   useAccount,
-  useBalance,
-  useContractRead,
-  useContractWrite,
-  useWaitForTransaction,
   usePublicClient,
-  usePrepareSendTransaction,
   useSendTransaction,
-  useToken
 } from 'wagmi';
-import { readContract, writeContract, getAccount, prepareWriteContract } from '@wagmi/core';
+import { readContract, writeContract } from '@wagmi/core';
+
+// Import Dialog components
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { TransactionSteps, Step, StepStatus } from '@/components/TransactionSteps';
 
 // Divvi Integration
 const dataSuffix = getDataSuffix({
   consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-  providers: ['0x5f0a55FaD9424ac99429f635dfb9bF20c3360Ab8', '0x6226ddE08402642964f9A6de844ea3116F0dFc7e'],
+  providers: ['0x5f0a55FaD9424ac99429f635dfb9bB20c3360Ab8', '0x6226ddE08402642964f9A6de844ea3116F0dFc7e'],
 });
 
 interface MiniSafeContextType {
@@ -48,6 +54,13 @@ interface MiniSafeContextType {
   isWaitingTx: boolean;
   isLoading: boolean;
   interestRate: number;
+
+  // Transaction dialog
+  isTransactionDialogOpen: boolean;
+  openTransactionDialog: (operation: 'deposit' | 'withdraw' | 'break' | 'approve' | null) => void;
+  closeTransactionDialog: () => void;
+  transactionSteps: Step[];
+  currentOperation: 'deposit' | 'withdraw' | 'break' | 'approve' | null;
 
   // Functions
   getBalance: () => Promise<void>;
@@ -85,6 +98,11 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     sendTransactionAsync
   } = useSendTransaction({ chainId: Celo.id });
 
+
+  // Transaction dialog states
+  const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
+  const [transactionSteps, setTransactionSteps] = useState<Step[]>([]);
+  const [currentOperation, setCurrentOperation] = useState<'deposit' | 'withdraw' | 'break' | 'approve' | null>(null);
 
   // Get wagmi account info
   const { address } = useAccount();
@@ -163,7 +181,16 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const handleTokenChange = (value: string) => {
     setSelectedToken(value);
   };
-
+  
+  // Update step status helper function
+  const updateStepStatus = (stepId: string, status: StepStatus, errorMessage?: string) => {
+    setTransactionSteps(prevSteps => prevSteps.map(step => 
+      step.id === stepId 
+        ? { ...step, status, ...(errorMessage ? { errorMessage } : {}) } 
+        : step
+    ));
+  };
+  
   const getTokenAddress = (token: string) => {
     switch (token) {
       case 'USDC':
@@ -278,14 +305,72 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return;
     }
 
+    // Open the multi-step dialog
+    openTransactionDialog('deposit');
     setIsWaitingTx(true);
 
     try {
+      // Update first step to loading state
+      updateStepStatus('check-balance', 'loading');
+      
       const tokenAddress = getTokenAddress(selectedToken);
       const depositValue = parseEther(depositAmount.toString());
 
-      toast.info('Processing deposit...');
+      // Check balance and update first step
+      await getBalance();
+      await getTokenBalance();
+      updateStepStatus('check-balance', 'success');
 
+      // Start second step - allowance
+      updateStepStatus('allowance', 'loading');
+
+      // Check if already approved
+      const allowanceData = await readContract({
+        address: tokenAddress as `0x${string}`,
+        abi: [
+          {
+            name: 'allowance',
+            type: 'function',
+            stateMutability: 'view',
+            inputs: [
+              { name: 'owner', type: 'address' },
+              { name: 'spender', type: 'address' }
+            ],
+            outputs: [{ name: '', type: 'uint256' }]
+          }
+        ],
+        functionName: 'allowance',
+        args: [address, contractAddress],
+      });
+
+      // If not approved, approve
+
+      if ((allowanceData as bigint) < (depositValue as bigint)) {
+        // Start approval step
+        updateStepStatus('approve', 'loading');
+        const tokenAbi = [
+          "function approve(address spender, uint256 amount) returns (bool)"
+        ];
+        const approveInterface = new Interface(tokenAbi);
+        const approveData = approveInterface.encodeFunctionData("approve", [
+          contractAddress,
+          depositValue,
+        ]);
+
+        const dataWithSuffix = approveData + dataSuffix;
+        await sendTransactionAsync({
+          to: tokenAddress as `0x${string}`,
+          data: dataWithSuffix as `0x${string}`,
+          chainId: Celo.id,
+        });
+      }
+
+      // Update second step
+      updateStepStatus('approve', 'success');
+      
+      // Start third step - deposit
+      updateStepStatus('deposit', 'loading');
+      
       const { hash } = await writeContract({
         address: contractAddress as `0x${string}`,
         abi,
@@ -293,7 +378,10 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         args: [tokenAddress, depositValue],
       });
 
-      toast.info('Waiting for confirmation...');
+      updateStepStatus('deposit', 'success');
+      
+      // Start confirmation step
+      updateStepStatus('confirm', 'loading');
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
       if (receipt.status === 'success') {
@@ -301,75 +389,124 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         await getTokenBalance();
         setDepositAmount(0);
         setIsApproved(false);
+        updateStepStatus('confirm', 'success');
         toast.success('Deposit successful!');
       } else {
+        updateStepStatus('confirm', 'error', 'Transaction failed on blockchain');
         toast.error('Deposit failed!');
       }
     } catch (error) {
       console.error("Error making deposit:", error);
       toast.error('Deposit failed!');
+      
+      // Find the current loading step and mark it as error
+      const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
+      if (loadingStepIndex !== -1) {
+        updateStepStatus(
+          transactionSteps[loadingStepIndex].id, 
+          'error', 
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
     } finally {
       setIsWaitingTx(false);
     }
   };
 
 
-const handleWithdraw = async () => {
-  if (!selectedToken) {
-    toast.error('Please select a token');
-    return;
-  }
-  if (!address) {
-    toast.error('Please connect your wallet');
-    return;
-  }
-  
-  setIsWaitingTx(true);
-  try {
-    const tokenAddress = getTokenAddress(selectedToken);
-    
-    // Get token decimals (you might need to fetch this from the token contract)
-    const getTokenDecimals = (selectedToken: string) => {
-      switch(selectedToken) {
-        case 'USDC': return 6;  // USDC typically uses 6 decimals
-        case 'USDT': return 6;  // USDT typically uses 6 decimals  
-        case 'CUSD': return 18; // Assuming CUSD uses 18 decimals
-        default: return 18;
-      }
-    };
-    
-    const decimals = getTokenDecimals(selectedToken);
-    
-    let withdrawalAmount: string = "0";
-    if (selectedToken === 'CUSD') {
-      withdrawalAmount = cusdBalance;
-    } else if (selectedToken === 'USDC') {
-      withdrawalAmount = usdcBalance;
-    } else if (selectedToken === 'USDT') {
-      withdrawalAmount = usdtBalance;
+  const handleWithdraw = async () => {
+    if (!selectedToken) {
+      toast.error('Please select a token');
+      return;
     }
-const gweiAmount = BigInt(withdrawalAmount) / BigInt('10000000'); //to be fixed
-    toast.info('Processing withdrawal...');
-    const { hash } = await writeContract({
-      address: contractAddress as `0x${string}`,
-      abi,
-      functionName: 'withdraw',
-      args: [tokenAddress, gweiAmount], // Use BigInt directly since balance is already in wei format
-    });
+    if (!address) {
+      toast.error('Please connect your wallet');
+      return;
+    }
+
+    // Open the multi-step dialog
+    openTransactionDialog('withdraw');
+    setIsWaitingTx(true);
     
-    toast.info('Waiting for confirmation...');
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
-    await getBalance();
-    await getTokenBalance();
-    setWithdrawAmount(0);
-    toast.success('Withdrawal successful!');
-  } catch (error) {
-    console.error("Error making withdrawal:", error);
-    toast.error('Withdrawal failed!');
-  } finally {
-    setIsWaitingTx(false);
-  }
-};
+    try {
+      // Update first step to loading state
+      updateStepStatus('check-balance', 'loading');
+      
+      const tokenAddress = getTokenAddress(selectedToken);
+
+      // Get token decimals (you might need to fetch this from the token contract)
+      const getTokenDecimals = (selectedToken: string) => {
+        switch (selectedToken) {
+          case 'USDC': return 6;  // USDC typically uses 6 decimals
+          case 'USDT': return 6;  // USDT typically uses 6 decimals  
+          case 'CUSD': return 18; // Assuming CUSD uses 18 decimals
+          default: return 18;
+        }
+      };
+
+      const decimals = getTokenDecimals(selectedToken);
+
+      let withdrawalAmount: string = "0";
+      if (selectedToken === 'CUSD') {
+        withdrawalAmount = cusdBalance;
+      } else if (selectedToken === 'USDC') {
+        withdrawalAmount = usdcBalance;
+      } else if (selectedToken === 'USDT') {
+        withdrawalAmount = usdtBalance;
+      }
+
+      // Check balance and update first step
+      await getBalance();
+      await getTokenBalance();
+      updateStepStatus('check-balance', 'success');
+      
+      // Start second step - withdrawal
+      updateStepStatus('withdraw', 'loading');
+      
+      const weiAmount = parseEther(withdrawalAmount); //to be fixed
+      const { hash } = await writeContract({
+        address: contractAddress as `0x${string}`,
+        abi,
+        functionName: 'withdraw',
+        args: [tokenAddress, weiAmount],
+      });
+
+      // Update second step
+      updateStepStatus('withdraw', 'success');
+      
+      // Start confirmation step
+      updateStepStatus('confirm', 'loading');
+      
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      
+      if (receipt.status === 'success') {
+        updateStepStatus('confirm', 'success');
+        toast.success('Withdrawal successful!');
+      } else {
+        updateStepStatus('confirm', 'error', 'Transaction failed on blockchain');
+        toast.error('Withdrawal failed!');
+      }
+
+      await getBalance();
+      await getTokenBalance();
+      setWithdrawAmount(0);
+    } catch (error) {
+      console.error("Error making withdrawal:", error);
+      toast.error('Withdrawal failed!');
+      
+      // Find the current loading step and mark it as error
+      const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
+      if (loadingStepIndex !== -1) {
+        updateStepStatus(
+          transactionSteps[loadingStepIndex].id, 
+          'error', 
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
+    } finally {
+      setIsWaitingTx(false);
+    }
+  };
 
   const handleBreakLock = async () => {
     if (!address) {
@@ -377,32 +514,225 @@ const gweiAmount = BigInt(withdrawalAmount) / BigInt('10000000'); //to be fixed
       return;
     }
 
+    // Open the multi-step dialog
+    openTransactionDialog('break');
     setIsWaitingTx(true);
 
     try {
+      // Update first step to loading state
+      updateStepStatus('check-balance', 'loading');
       const tokenAddress = getTokenAddress(selectedToken);
 
-      toast.info('Processing timelock break...');
+      // Get token balance
+      await getBalance();
+      await getTokenBalance();
+      
+      // Update first step to success and start second step
+      updateStepStatus('check-balance', 'success');
+      updateStepStatus('approve', 'loading');
 
-      const { hash } = await writeContract({
+      // approve token spend if not already approved
+      const tokenAbi = [
+        "function allowance(address owner, address spender) view returns (uint256)",
+        "function approve(address spender, uint256 amount) returns (bool)"
+      ];
+      const spend = await readContract({
         address: contractAddress as `0x${string}`,
         abi,
-        functionName: 'breakTimelock',
-        args: [tokenAddress],
+        functionName: 'MIN_TOKENS_FOR_TIMELOCK_BREAK',
+      }) as number;
+      const spendAmount = parseEther(spend.toString());
+      
+      // Correctly encode the approve function with parameters
+      const approveInterface = new Interface(tokenAbi);
+      const approveData = approveInterface.encodeFunctionData("approve", [
+        contractAddress,
+        spendAmount,
+      ]);
+
+      // Append the data suffix to the approve call data
+      const dataWithSuffix = approveData + dataSuffix;
+
+      // Send the transaction with the properly encoded data
+      const tx = await sendTransactionAsync({
+        to: contractAddress as `0x${string}`,
+        data: dataWithSuffix as `0x${string}`,
+        chainId: Celo.id,
       });
 
+      // Update second step to success and start third step
+      updateStepStatus('approve', 'success');
+      updateStepStatus('break', 'loading');
+      
+      const breakTimelockInterface = new Interface(abi);
+      const breakTimelockData = breakTimelockInterface.encodeFunctionData("breakTimelock", [
+        tokenAddress
+      ]);
+      const breakData = breakTimelockData + dataSuffix;
+      const sendHash = await sendTransactionAsync({
+        to: contractAddress as `0x${string}`,
+        data: breakData as `0x${string}`,
+        chainId: Celo.id,
+      });
+
+      // Update third step to success and start confirmation step
+      updateStepStatus('break', 'success');
+      updateStepStatus('confirm', 'loading');
       toast.info('Waiting for confirmation...');
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
       await getBalance();
       await getTokenBalance();
-      toast.success('Timelock broken successfully!');
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: sendHash.hash });
+      
+      if (receipt.status === 'success') {
+        updateStepStatus('confirm', 'success');
+        toast.success('Timelock broken successfully!');
+      } else {
+        updateStepStatus('confirm', 'error', 'Transaction failed on blockchain');
+        toast.error('Transaction failed');
+      }
+      
+      await getBalance();
+      await getTokenBalance();
     } catch (error) {
       console.error("Error breaking timelock:", error);
       toast.error('Error breaking timelock');
+      
+      // Find the current loading step and mark it as error
+      const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
+      if (loadingStepIndex !== -1) {
+        updateStepStatus(
+          transactionSteps[loadingStepIndex].id, 
+          'error', 
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
     } finally {
       setIsWaitingTx(false);
     }
+  };
+
+  // Transaction dialog handlers
+  const openTransactionDialog = (operation: 'deposit' | 'withdraw' | 'break' | 'approve' | null) => {
+    setCurrentOperation(operation);
+    setIsTransactionDialogOpen(true);
+
+    // Set up transaction steps based on the operation
+    let steps: Step[] = [];
+    if (operation === 'deposit') {
+      steps = [
+        { 
+          id: 'check-balance',
+          title: 'Check Balance',
+          description: 'Checking your wallet balance...',
+          status: 'inactive' 
+        },
+        { 
+          id: 'approve',
+          title: 'Approve',
+          description: `Allowing safe to use your ${selectedToken}...`,
+          status: 'inactive' 
+        },
+        { 
+          id: 'deposit',
+          title: 'Deposit',
+          description: `Depositing ${depositAmount} ${selectedToken} into the safe...`,
+          status: 'inactive' 
+        },
+        { 
+          id: 'confirm',
+          title: 'Confirm',
+          description: 'Confirming transaction on the blockchain...',
+          status: 'inactive' 
+        }
+      ];
+    } else if (operation === 'withdraw') {
+      steps = [
+        { 
+          id: 'check-balance',
+          title: 'Check Balance',
+          description: 'Checking your safe balance...',
+          status: 'inactive' 
+        },
+        { 
+          id: 'withdraw',
+          title: 'Withdraw',
+          description: `Withdrawing your ${selectedToken} from the safe...`,
+          status: 'inactive' 
+        },
+        { 
+          id: 'confirm',
+          title: 'Confirm',
+          description: 'Confirming transaction on the blockchain...',
+          status: 'inactive' 
+        }
+      ];
+    } else if (operation === 'break') {
+      steps = [
+        { 
+          id: 'check-balance',
+          title: 'Check Balance',
+          description: 'Checking your token balance...',
+          status: 'inactive' 
+        },
+        { 
+          id: 'approve',
+          title: 'Approve',
+          description: 'Approving token spend for timelock break...',
+          status: 'inactive' 
+        },
+        { 
+          id: 'break',
+          title: 'Break Timelock',
+          description: 'Breaking the timelock...',
+          status: 'inactive' 
+        },
+        { 
+          id: 'confirm',
+          title: 'Confirm',
+          description: 'Confirming transaction on the blockchain...',
+          status: 'inactive' 
+        }
+      ];
+    }
+      else if (operation === 'approve') {
+        steps = [
+          { 
+            id: 'check-balance',
+            title: 'Check Balance',
+            description: 'Checking your token balance...',
+            status: 'inactive' 
+          },
+          {
+            id: 'allowance',
+            title: 'Allowance',
+            description: `Checking allowance for ${selectedToken}...`,
+            status: 'inactive'
+          },
+          { 
+            id: 'approve',
+            title: 'Approve',
+            description: `Allowing safe to use your ${selectedToken}...`,
+            status: 'inactive' 
+          },
+          { 
+            id: 'confirm',
+            title: 'Confirm',
+            description: 'Confirming transaction on the blockchain...',
+            status: 'inactive' 
+          }
+        ];
+    }
+    setTransactionSteps(steps);
+  };
+
+  const closeTransactionDialog = () => {
+    setIsTransactionDialogOpen(false);
+    setCurrentOperation(null);
+    // Reset steps after dialog closes with a delay
+    setTimeout(() => {
+      setTransactionSteps([]);
+    }, 300);
   };
 
   useEffect(() => {
@@ -412,9 +742,10 @@ const gweiAmount = BigInt(withdrawalAmount) / BigInt('10000000'); //to be fixed
     }
   }, [address, getBalance, getTokenBalance]);
 
+  // Format balance for display
   const formatBalance = (balance: string | undefined, decimals = 2) => {
     if (!balance) return "0.00";
-    
+
     const balanceNumber = parseFloat(balance);
     if (isNaN(balanceNumber)) {
       return "0.00";
@@ -446,6 +777,13 @@ const gweiAmount = BigInt(withdrawalAmount) / BigInt('10000000'); //to be fixed
     isLoading,
     interestRate,
 
+    // Transaction dialog
+    isTransactionDialogOpen,
+    openTransactionDialog,
+    closeTransactionDialog,
+    transactionSteps,
+    currentOperation,
+
     // Functions
     getBalance,
     getTokenBalance,
@@ -457,9 +795,74 @@ const gweiAmount = BigInt(withdrawalAmount) / BigInt('10000000'); //to be fixed
     formatBalance,
   };
 
+  // Get dialog title based on current operation
+  const getDialogTitle = () => {
+    switch (currentOperation) {
+      case 'deposit':
+        return 'Deposit Funds';
+      case 'withdraw':
+        return 'Withdraw Funds';
+      case 'break':
+        return 'Break Timelock';
+      default:
+        return 'Transaction';
+    }
+  };
+  
+  // Check if all steps are completed
+  const allStepsCompleted = transactionSteps.every(step => step.status === 'success');
+  const hasError = transactionSteps.some(step => step.status === 'error');
+  
   return (
     <MiniSafeContext.Provider value={value}>
       {children}
+      
+      {/* Multi-step Transaction Dialog */}
+      <Dialog open={isTransactionDialogOpen} onOpenChange={(open) => !isWaitingTx && !open && closeTransactionDialog()}>
+        <DialogContent className="sm:max-w-md border rounded-lg">
+          <DialogHeader>
+            <DialogTitle className='text-black/90 dark:text-white/90'>{getDialogTitle()}</DialogTitle>
+            <DialogDescription>
+              {currentOperation === 'deposit' ? 
+                `Depositing ${depositAmount} ${selectedToken}` : 
+                currentOperation === 'withdraw' ? 
+                `Withdrawing ${selectedToken}` : 
+                'Breaking timelock to access funds early'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {/* Transaction Steps */}
+          <TransactionSteps steps={transactionSteps} />
+          
+          <DialogFooter className="flex justify-between text-black/90 dark:text-white/90">
+            <Button 
+              variant="outline" 
+              onClick={closeTransactionDialog} 
+              disabled={isWaitingTx && !hasError}
+            >
+              {hasError ? 'Close' : allStepsCompleted ? 'Done' : 'Cancel'}
+            </Button>
+            
+            {hasError && (
+              <Button 
+                variant="destructive" 
+                onClick={() => {
+                  closeTransactionDialog();
+                  // Re-attempt the operation after closing
+                  setTimeout(() => {
+                    if (currentOperation === 'deposit') handleDeposit();
+                    if (currentOperation === 'withdraw') handleWithdraw();
+                    if (currentOperation === 'break') handleBreakLock();
+                    if (currentOperation === 'approve') approveSpend();
+                  }, 500);
+                }}
+              >
+                Try Again
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MiniSafeContext.Provider>
   );
 };
