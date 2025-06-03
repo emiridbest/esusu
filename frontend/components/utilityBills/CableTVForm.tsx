@@ -62,10 +62,12 @@ export default function CableTVForm() {
   const [providers, setProviders] = useState<CableProvider[]>([]);
   const [availablePlans, setAvailablePlans] = useState<CablePackage[]>([]);
   const [countryCurrency, setCountryCurrency] = useState<string>(""); 
-  const { 
+  const {
+    updateStepStatus,
+    openTransactionDialog,
     isProcessing,
-    setIsProcessing, 
-    handleTransaction 
+    setIsProcessing,
+    handleTransaction
   } = useUtility();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -159,24 +161,27 @@ export default function CableTVForm() {
     setSelectedToken(watchPaymentToken);
   }, [watchPaymentToken, setSelectedToken]);
 
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsProcessing(true);
-    
+    openTransactionDialog("cable", selectedPrice.toString());
+    updateStepStatus("verifying-subscriber-id", "loading");
     try {
       // First verify the subscriber ID with the selected provider
       const verificationResult = await verifySubscriberID(
-        values.subscriberId, 
+        values.subscriberId,
         values.provider,
         values.country
       );
-      
+
       if (!verificationResult.verified) {
         throw new Error(verificationResult.message || 'Subscriber ID verification failed');
       }
-      
+      updateStepStatus("verifying-subscriber-id", "success");
       const selectedPlan = availablePlans.find(plan => plan.id === values.plan);
       const providerName = providers.find(p => p.id === values.provider)?.name || '';
-      
+      updateStepStatus("processing-payment", "loading");
+
       const success = await handleTransaction({
         type: 'cable',
         amount: selectedPrice.toString(),
@@ -196,7 +201,7 @@ export default function CableTVForm() {
           title: "Payment Successful",
           description: `Your cable TV subscription for ${values.subscriberId} was successful.`,
         });
-        
+        updateStepStatus("processing-payment", "success");
         // Reset the form but keep the country
         form.reset({
           ...form.getValues(),
@@ -219,16 +224,17 @@ export default function CableTVForm() {
       setIsProcessing(false);
     }
   }
-return (
-  <div className="bg-gradient-to-br from-white via-black-50 to-primary-50 dark:from-black dark:via-black-0 dark:to-black p-6 rounded-xl border border-primary-400/20 dark:border-primary-400/30">
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="country"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-gray-800 dark:text-primary/90 font-medium text-sm">Country</FormLabel>
+
+  return (
+    <div className="bg-gradient-to-br from-white via-black-50 to-primary-50 dark:from-black dark:via-black-0 dark:to-black p-6 rounded-xl border border-primary-400/20 dark:border-primary-400/30">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="country"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-gray-800 dark:text-primary/90 font-medium text-sm">Country</FormLabel>
               <FormControl>
                 <div className="relative">
                   <CountrySelector
