@@ -45,7 +45,7 @@ export default function FreebiesPage() {
     } = useFreebiesLogic();
 
    return (
-    <div className="container py-8 bg-gradient-to-br from-yellow-50 to-white dark:from-gray-900 dark:to-black min-h-screen">
+    <div className="container py-8 bg-gradient-to-br from-yellow-50 to-white dark:from-black/90 dark:to-black min-h-screen">
         <p className="text-center mb-8 text-xl font-semibold text-black dark:text-yellow-100 bg-yellow-200 dark:bg-yellow-900/30 py-3 px-6 rounded-full mx-auto max-w-2xl shadow-lg">
             ⚡ Claim your free daily data bundle powered by GoodDollar UBI ⚡
         </p>

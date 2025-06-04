@@ -133,7 +133,7 @@ export default function DualCurrencyPrice({
             <div className="text-xs text-gray-500 pt-1">
               Gas Fee: {gasFeeDisplay}
             </div>
-            <div className="text-sm font-medium text-primary pt-1">
+            <div className="text-sm font-medium text-black/70 pt-1">
               Total: {totalDisplay}
             </div>
           </>

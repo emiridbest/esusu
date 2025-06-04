@@ -11,6 +11,16 @@ import {
 import { config } from '../../components/providers/WagmiProvider';
 import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
 import { CountryData } from '../../utils/countryData';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from "../../components/ui/dialog";
+import { Button } from "../../components/ui/button";
+import { TransactionSteps, Step, StepStatus } from '../../components/TransactionSteps';
 
 // The recipient wallet address for all utility payments
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
@@ -30,6 +40,19 @@ type UtilityContextType = {
   handleTransaction: (params: TransactionParams) => Promise<boolean>;
   getTransactionMemo: (type: 'data' | 'electricity' | 'cable', metadata: Record<string, any>) => string;
   formatCurrencyAmount: (amount: string | number) => string;
+
+  // Transaction dialog
+  isTransactionDialogOpen: boolean;
+  setIsTransactionDialogOpen: (open: boolean) => void;
+  setTransactionSteps: (steps: Step[]) => void;
+  setCurrentOperation: (operation: 'data' | 'electricity' | 'cable' | null) => void;
+  isWaitingTx?: boolean;
+  setIsWaitingTx?: (waiting: boolean) => void;
+  closeTransactionDialog: () => void;
+  openTransactionDialog: (operation: 'data' | 'electricity' | 'cable', recipientValue: string) => void;
+  transactionSteps: Step[];
+  currentOperation: "data" | "electricity" | "cable" | null;
+  updateStepStatus: (stepId: string, status: StepStatus, errorMessage?: string) => void;
 };
 
 type TransactionParams = {
@@ -52,9 +75,14 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const usdcAddress = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
   const cusdAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
   const usdtAddress = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e";
+  const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
+  const [transactionSteps, setTransactionSteps] = useState<Step[]>([]);
+  const [currentOperation, setCurrentOperation] = useState<'data' | 'electricity' | 'cable' | null>(null);
+  const [isWaitingTx, setIsWaitingTx] = useState(false);
 
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [countryData, setCountryData] = useState<CountryData | null>(null);
+  const [recipient, setRecipient] = useState<string>('');
   const { address, chain } = useAccount();
   const celoChainId = config.chains[0].id;
   const {
@@ -109,6 +137,14 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     }
   };
 
+  // Update step status helper function
+  const updateStepStatus = (stepId: string, status: StepStatus, errorMessage?: string) => {
+    setTransactionSteps(prevSteps => prevSteps.map(step =>
+      step.id === stepId
+        ? { ...step, status, ...(errorMessage ? { errorMessage } : {}) }
+        : step
+    ));
+  };
 
   const getTokenAddress = (token: string) => {
     switch (token) {
@@ -166,7 +202,6 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
 
 
-
   // Enhanced transaction handler for all utility types
   const handleTransaction = async ({ type, amount, token, recipient, metadata }: TransactionParams): Promise<boolean> => {
     if (chain?.id !== celoChainId) {
@@ -189,6 +224,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     }
     setIsProcessing(true);
     try {
+
       // Convert the local currency amount to its equivalent in USD
       const currencyCode = metadata?.countryCode || countryData?.currency?.code;
       const convertedAmount = await convertCurrency(amount, currencyCode);
@@ -261,12 +297,119 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     } catch (error) {
       console.error('Transaction failed:', error);
       toast.error('Transaction failed. Please try again.');
+          // Find the current loading step and mark it as error
+      const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
+      if (loadingStepIndex !== -1) {
+        updateStepStatus(
+          transactionSteps[loadingStepIndex].id, 
+          'error', 
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
       return false;
     } finally {
       setIsProcessing(false);
     }
   };
 
+
+  // Get dialog title based on current operation
+  const getDialogTitle = () => {
+    switch (currentOperation) {
+      case 'data':
+        return 'Purchase Data Bundle';
+      case 'electricity':
+        return 'Pay Electricity Bill';
+      case 'cable':
+        return 'Subscribe to Cable TV';
+      default:
+        return 'Transaction';
+    }
+  };
+  const openTransactionDialog = (operation: 'data' | 'electricity' | 'cable', recipientValue: string) => {
+    setCurrentOperation(operation);
+    setRecipient(recipientValue);
+    setIsTransactionDialogOpen(true);
+    setIsTransactionDialogOpen(true);
+    let steps: Step[] = [];
+    if (operation === 'data') {
+      steps = [
+        {
+          id: 'verify-phone',
+          title: 'Verify Phone Number',
+          description: `Verifying phone number for ${recipient}`,
+          status: 'inactive'
+        },
+        {
+          id: 'check-balance',
+          title: 'Check Balance',
+          description: `Checking your wallet balance`,
+          status: 'inactive'
+        },
+        {
+          id: 'send-payment',
+          title: 'Send Payment',
+          description: `Sending payment for ${recipient}`,
+          status: 'inactive'
+        },
+        {
+          id: 'top-up',
+          title: 'Perform Top Up',
+          description: `Confirming data purchase for ${recipient}`,
+          status: 'inactive'
+        }
+      ];
+    } else if (operation === 'electricity') {
+      steps = [
+        {
+          id: 'electricity-payment',
+          title: 'Pay Electricity Bill',
+          description: `Paying electricity bill for meter ${recipient}`,
+          status: 'inactive'
+        }
+      ];
+    } else if (operation === 'cable') {
+      steps = [
+        {
+          id: 'verifying-subscriber-id',
+          title: 'Verify Subscriber ID',
+          description: `Verifying subscriber ID for ${recipient}`,
+          status: 'inactive'
+        },
+        {
+          id: 'processing-payment',
+          title: 'Processing Payment',
+          description: `Processing payment for ${recipient}`,
+          status: 'inactive'
+        },
+        {
+          id: 'send-payment',
+          title: 'Send Payment',
+          description: `Sending payment for ${recipient}`,
+          status: 'inactive'
+        },
+        {
+          id: 'subscribe-cable',
+          title: 'Subscribe to Cable TV',
+          description: `Confirming cable subscription for ${recipient}`,
+          status: 'inactive'
+        }
+      ];
+    }
+    setTransactionSteps(steps);
+  };
+
+  // Check if all steps are completed
+  const allStepsCompleted = transactionSteps.every(step => step.status === 'success');
+  const hasError = transactionSteps.some(step => step.status === 'error');
+  const closeTransactionDialog = () => {
+    setIsTransactionDialogOpen(false);
+    setCurrentOperation(null);
+    // Reset steps after dialog closes with a delay
+    setTimeout(() => {
+      setTransactionSteps([]);
+    }, 300);
+  };
   // Context value with all utilities
   const value = {
     isProcessing,
@@ -275,12 +418,68 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     convertCurrency,
     handleTransaction,
     getTransactionMemo,
-    formatCurrencyAmount
+    formatCurrencyAmount,
+    // Transaction dialog state
+    setTransactionSteps,
+    setCurrentOperation,
+    setIsTransactionDialogOpen,
+    isTransactionDialogOpen,
+    isWaitingTx: false,
+    setIsWaitingTx,
+    closeTransactionDialog,
+    openTransactionDialog,
+    transactionSteps,
+    currentOperation,
+    updateStepStatus
   };
+
+
 
   return (
     <UtilityContext.Provider value={value}>
       {children}
+
+      {/* Multi-step Transaction Dialog */}
+      <Dialog open={isTransactionDialogOpen} onOpenChange={(open) => !isWaitingTx && !open && closeTransactionDialog()}>
+        <DialogContent className="sm:max-w-md border rounded-lg">
+          <DialogHeader>
+            <DialogTitle className='text-black/90 dark:text-white/90'>{getDialogTitle()}</DialogTitle>
+            <DialogDescription>
+              {currentOperation === 'data' ?
+                `Purchasing data for ${recipient}` :
+                currentOperation === 'electricity' ?
+                  `Paying electricity bill for meter ${recipient}` :
+                  currentOperation === 'cable' ?
+                    `Subscribing to cable TV for ${recipient}` :
+                    'Processing transaction...'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Transaction Steps */}
+          <TransactionSteps steps={transactionSteps} />
+
+          <DialogFooter className="flex justify-between text-black/90 dark:text-white/90">
+            <Button
+              variant="outline"
+              onClick={closeTransactionDialog}
+              disabled={isWaitingTx && !hasError}
+            >
+              {hasError ? 'Close' : allStepsCompleted ? 'Done' : 'Cancel'}
+            </Button>
+            {hasError && (
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  closeTransactionDialog();
+                }}
+              >
+                Try Again
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </UtilityContext.Provider>
   );
 };
