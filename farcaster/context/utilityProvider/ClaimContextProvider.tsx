@@ -8,6 +8,16 @@ import { getDataSuffix, submitReferral } from '@divvi/referral-sdk';
 import { config } from '../../components/providers/WagmiProvider';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { ClaimSDK, useIdentitySDK } from '@goodsdks/citizen-sdk';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from "../../components/ui/dialog";
+import { Button } from "../../components/ui/button";
+import { TransactionSteps, Step, StepStatus } from '../../components/TransactionSteps';
 
 // Constants
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
@@ -51,6 +61,19 @@ type ClaimProcessorType = {
   processDataTopUp: (values: any, selectedPrice: number, availablePlans: any[], networks: any[]) => Promise<{ success: boolean; error?: any }>;
   processPayment: () => Promise<string>;
   TOKENS: typeof TOKENS;
+  // Transaction dialog
+  isTransactionDialogOpen: boolean;
+  setIsTransactionDialogOpen: (open: boolean) => void;
+  setTransactionSteps: (steps: Step[]) => void;
+  setCurrentOperation: (operation: 'data' | null) => void;
+  isWaitingTx?: boolean;
+  setIsWaitingTx?: (waiting: boolean) => void;
+  closeTransactionDialog: () => void;
+  openTransactionDialog: (operation: 'data', recipientValue: string) => void;
+  transactionSteps: Step[];
+  currentOperation: "data" | null;
+  updateStepStatus: (stepId: string, status: StepStatus, errorMessage?: string) => void;
+
 };
 
 type ClaimProviderProps = {
@@ -69,9 +92,16 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [entitlement, setEntitlement] = useState<bigint | null>(null);
   const [canClaim, setCanClaim] = useState(false);
-  
+  const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
+  const [transactionSteps, setTransactionSteps] = useState<Step[]>([]);
+  const [currentOperation, setCurrentOperation] = useState<'data' | null>(null);
+  const [isWaitingTx, setIsWaitingTx] = useState(false);
+  const [recipient, setRecipient] = useState<string>('');
+
+
+
   const celoChainId = config.chains[0].id;
-  
+
   // Initialize claimSDK
   let claimSDK = null;
   if (address && publicClient && walletClient && identitySDK) {
@@ -87,10 +117,10 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       console.error("Error initializing ClaimSDK:", error);
     }
   }
-  
+
   // Setup transaction sending
   const { sendTransactionAsync } = useSendTransaction({ config });
-  
+
   // Setup chain switching
   const {
     switchChain,
@@ -103,20 +133,31 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     switchChain({ chainId: celoChainId });
   };
 
+
+  // Update step status helper function
+  const updateStepStatus = (stepId: string, status: StepStatus, errorMessage?: string) => {
+    setTransactionSteps(prevSteps => prevSteps.map(step =>
+      step.id === stepId
+        ? { ...step, status, ...(errorMessage ? { errorMessage } : {}) }
+        : step
+    ));
+  };
+
+
   const handleClaim = async () => {
     try {
       if (!claimSDK) {
         throw new Error("ClaimSDK not initialized");
       }
-      
+
       if (entitlement !== null && entitlement <= BigInt(0)) {
         throw new Error("No entitlement available for claim.");
       }
-      
+
       setIsProcessing(true);
       await claimSDK.claim();
       toast.success("Successfully claimed G$ tokens!");
-      
+
       // Check entitlement again after claiming
       const newEntitlement = await claimSDK.checkEntitlement();
       setEntitlement(newEntitlement);
@@ -177,7 +218,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     if (!entitlement || entitlement <= BigInt(0)) {
       throw new Error("No entitlement available for payment.");
     }
-    
+
     const selectedToken = "G$";
     const tokenAddress = getTokenAddress(selectedToken, TOKENS);
 
@@ -216,6 +257,59 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     }
   };
 
+
+  // Get dialog title based on current operation
+  const getDialogTitle = () => {
+    switch (currentOperation) {
+      case 'data':
+        return 'Purchase Data Bundle';
+      default:
+        return 'Transaction';
+    }
+  };
+
+  const openTransactionDialog = (operation: 'data', recipientValue: string) => {
+    setCurrentOperation(operation);
+    setRecipient(recipientValue);
+    setIsTransactionDialogOpen(true);
+    setIsTransactionDialogOpen(true);
+    let steps: Step[] = [];
+    if (operation === 'data') {
+      steps = [
+        {
+          id: 'verify-phone-number',
+          title: 'Verify Phone Number',
+          description: `Verifying phone number for ${recipient}`,
+          status: 'inactive'
+        },
+        {
+          id: 'claim-ubi',
+          title: 'Claim UBI',
+          description: `Claiming Universal Basic Income for ${recipient}`,
+          status: 'inactive'
+        },
+        {
+          id: 'top-up',
+          title: 'Perform Top Up',
+          description: `Confirming data purchase for ${recipient}`,
+          status: 'inactive'
+        }
+      ];
+    }
+    setTransactionSteps(steps);
+  };
+
+  // Check if all steps are completed
+  const allStepsCompleted = transactionSteps.every(step => step.status === 'success');
+  const hasError = transactionSteps.some(step => step.status === 'error');
+  const closeTransactionDialog = () => {
+    setIsTransactionDialogOpen(false);
+    setCurrentOperation(null);
+    // Reset steps after dialog closes with a delay
+    setTimeout(() => {
+      setTransactionSteps([]);
+    }, 300);
+  };
   // Combine all context values
   const value = {
     isProcessing,
@@ -232,12 +326,54 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     handleClaim,
     processDataTopUp,
     processPayment,
-    TOKENS
+    TOKENS,
+    // Transaction dialog state
+    setTransactionSteps,
+    setCurrentOperation,
+    setIsTransactionDialogOpen,
+    isTransactionDialogOpen,
+    isWaitingTx: false,
+    setIsWaitingTx,
+    closeTransactionDialog,
+    openTransactionDialog,
+    transactionSteps,
+    currentOperation,
+    updateStepStatus
   };
 
   return (
     <ClaimProcessorContext.Provider value={value}>
       {children}
+      {/* Multi-step Transaction Dialog */}
+      <Dialog open={isTransactionDialogOpen} onOpenChange={(open) => !isWaitingTx && !open && closeTransactionDialog()}>
+        <DialogContent className="sm:max-w-md border rounded-lg">
+          <DialogHeader>
+            <DialogTitle className='text-black/90 dark:text-white/90'>{getDialogTitle()}</DialogTitle>
+            <DialogDescription>
+              {currentOperation === 'data' ?
+                `Purchasing data for ${recipient}` :
+                currentOperation === 'electricity' ?
+                  `Paying electricity bill for meter ${recipient}` :
+                  currentOperation === 'cable' ?
+                    `Subscribing to cable TV for ${recipient}` :
+                    'Processing transaction...'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Transaction Steps */}
+          <TransactionSteps steps={transactionSteps} />
+
+          <DialogFooter className="flex justify-between text-black/90 dark:text-white/90">
+            <Button
+              variant="outline"
+              onClick={closeTransactionDialog}
+              disabled={isWaitingTx && !hasError}
+            >
+              {hasError ? 'Close' : allStepsCompleted ? 'Done' : 'Cancel'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ClaimProcessorContext.Provider>
   );
 }

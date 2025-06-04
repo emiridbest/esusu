@@ -41,6 +41,8 @@ const formSchema = z.object({
 export const useFreebiesLogic = () => {
     const { address, isConnected } = useAccount();
     const {
+        updateStepStatus,
+        openTransactionDialog,
         isProcessing,
         setIsProcessing,
         handleClaim,
@@ -63,7 +65,7 @@ export const useFreebiesLogic = () => {
     const [isWhitelisted, setIsWhitelisted] = useState<boolean | undefined>(undefined);
     const [loadingWhitelist, setLoadingWhitelist] = useState<boolean | undefined>(undefined);
 
-    const identitySDK = useIdentitySDK("development");
+    const identitySDK = useIdentitySDK("production");
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -152,7 +154,7 @@ export const useFreebiesLogic = () => {
                 }
             }
         };
-        
+
         checkWhitelistStatus();
     }, [address, identitySDK, isWhitelisted]);
 
@@ -214,8 +216,11 @@ export const useFreebiesLogic = () => {
                 toast.error("Please connect your wallet, select a bundle and enter your phone number");
                 return;
             }
-            
+
             setIsVerifying(true);
+            openTransactionDialog('data', phoneNumber)
+            updateStepStatus('verify-phone-number', 'loading');
+
             const verificationResult = await verifyAndSwitchProvider(phoneNumber, networkId, country);
 
             if (verificationResult.verified) {
@@ -240,21 +245,24 @@ export const useFreebiesLogic = () => {
         } catch (error) {
             console.error("Error during verification:", error);
             setIsProcessing(false);
+            updateStepStatus('verify-phone-number', 'error', "Phone number and network selected do not match. Please try again.");
             return;
         } finally {
             setIsVerifying(false);
         }
+        updateStepStatus('verify-phone', 'success');
 
         setIsClaiming(true);
         setIsProcessing(true);
-
         try {
+            updateStepStatus('claim-ubi', 'loading');
             await handleClaim();
             await processPayment();
+            updateStepStatus('claim-ubi', 'success');
 
             const selectedPrice = parseFloat(selectedPlan.price.replace(/[^0-9.]/g, ''));
             const networks = [{ id: networkId, name: 'Network' }];
-
+            updateStepStatus('top-up', 'loading');
             const topupResult = await processDataTopUp(
                 {
                     phoneNumber,
@@ -271,11 +279,13 @@ export const useFreebiesLogic = () => {
                 localStorage.setItem('lastFreeClaim', new Date().toDateString());
                 setCanClaimToday(false);
                 setSelectedPlan(null);
+                updateStepStatus('top-up', 'success');
                 form.reset();
             }
         } catch (error) {
             console.error("Claim failed:", error);
             toast.error("Failed to claim your free data bundle. Please try again.");
+            updateStepStatus('claim-ubi', 'error', error instanceof Error ? error.message : "Unknown error");
         } finally {
             setIsClaiming(false);
             setIsProcessing(false);
@@ -288,7 +298,7 @@ export const useFreebiesLogic = () => {
         formSchema,
         watchCountry,
         watchNetwork,
-        
+
         // State
         isConnected,
         isProcessing,
@@ -300,12 +310,12 @@ export const useFreebiesLogic = () => {
         loadingWhitelist,
         canClaimToday,
         timeRemaining,
-        
+
         // Data
         networks,
         availablePlans,
         selectedPlan,
-        
+
         // Functions
         setCountryCurrency,
         handleClaimBundle
