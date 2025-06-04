@@ -2,13 +2,18 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, use, useCallback } from 'react';
 import { toast } from 'sonner';
-import { ethers, Interface } from "ethers";
+import { ethers, Interface  } from "ethers";
+
 import {
   useAccount,
+  usePublicClient,
   useSendTransaction,
   useSwitchChain,
+  useWalletClient,
+  useConnectorClient,
+   type Config,
 } from "wagmi";
-import { config } from '../../components/providers/WagmiProvider';
+import Provider, { config } from '../../components/providers/WagmiProvider';
 import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
 import { CountryData } from '../../utils/countryData';
 import {
@@ -21,7 +26,7 @@ import {
 } from "../../components/ui/dialog";
 import { Button } from "../../components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '../../components/TransactionSteps';
-
+import { Mento } from "@mento-protocol/mento-sdk";
 // The recipient wallet address for all utility payments
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
@@ -40,6 +45,7 @@ type UtilityContextType = {
   handleTransaction: (params: TransactionParams) => Promise<boolean>;
   getTransactionMemo: (type: 'data' | 'electricity' | 'cable', metadata: Record<string, any>) => string;
   formatCurrencyAmount: (amount: string | number) => string;
+  mento: Mento | null;
 
   // Transaction dialog
   isTransactionDialogOpen: boolean;
@@ -73,18 +79,22 @@ const UtilityContext = createContext<UtilityContextType | undefined>(undefined);
 // Provider component
 export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const usdcAddress = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
-  const cusdAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
   const usdtAddress = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e";
+  const cusdAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
+  const celoAddress = "0x471EcE3750Da237f93B8E339c536989b8978a438";
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
   const [transactionSteps, setTransactionSteps] = useState<Step[]>([]);
   const [currentOperation, setCurrentOperation] = useState<'data' | 'electricity' | 'cable' | null>(null);
   const [isWaitingTx, setIsWaitingTx] = useState(false);
+  const [mento, setMento] = useState<Mento | null>(null);
 
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [countryData, setCountryData] = useState<CountryData | null>(null);
   const [recipient, setRecipient] = useState<string>('');
-  const { address, chain } = useAccount();
+  const { address, chain, isConnected } = useAccount();
   const celoChainId = config.chains[0].id;
+
+  const provider = new ethers.JsonRpcProvider("https://forno.celo.org")
   const {
     switchChain,
     error: switchChainError,
@@ -99,6 +109,24 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const {
     sendTransactionAsync
   } = useSendTransaction({ config })
+  useEffect(() => {
+    const initializeMento = async () => {
+        try {
+          console.log('Initializing Mento with provider:', provider);
+          const mentoInstance = await Mento.create(provider);
+          setMento(mentoInstance);
+          console.log('Mento initialized successfully');
+          return mentoInstance;
+        } catch (error) {
+          console.error('Failed to initialize Mento:', error);
+          // Don't set mento to null here to keep any previous successful initialization
+        }
+      
+      return null;
+    };
+
+    initializeMento();
+  }, [provider, isConnected]);
 
 
   const convertCurrency = async (
@@ -154,6 +182,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         return cusdAddress;
       case 'USDT':
         return usdtAddress;
+      case 'CELO':
+        return celoAddress;
       default:
         return cusdAddress;
     }
@@ -166,6 +196,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
       case 'USDC':
       case 'USDT':
         return 6;
+      case 'CELO':
+        return 18;
       default:
         return 18;
     }
@@ -242,16 +274,31 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
       if (address) {
         // Prepare transaction memo based on utility type
         const memo = getTransactionMemo(type, metadata);
-
+        let paymentAmount;
+        if (token === 'CELO') {
+          try {
+          const quoteAmountIn = await mento.getAmountIn(
+            celoAddress,
+            cusdAddress,
+            convertedAmount
+          );
+          console.log('Quote Amount in CUSD:', quoteAmountIn);
+          paymentAmount = ethers.parseUnits(quoteAmountIn.toString(), decimals);
+        } catch (error) {
+          console.error('Error fetching quote amount:', error);
+          toast.error('Failed to fetch quote amount. Please try again.');
+        paymentAmount = ethers.parseUnits((convertedAmount *  3.02).toString(), decimals);
+        }
+      } else {
         // Parse amount with correct decimals
-        const paymentAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
+        paymentAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
+      }
+      // Prepare token transfer
+      const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
 
-        // Prepare token transfer
-        const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
-
-        // Encode the transfer function
-        const transferInterface = new Interface(tokenAbi);
-        const transferData = transferInterface.encodeFunctionData("transfer", [
+      // Encode the transfer function
+      const transferInterface = new Interface(tokenAbi);
+      const transferData = transferInterface.encodeFunctionData("transfer", [
           RECIPIENT_WALLET,
           paymentAmount
         ]);
@@ -297,12 +344,12 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     } catch (error) {
       console.error('Transaction failed:', error);
       toast.error('Transaction failed. Please try again.');
-          // Find the current loading step and mark it as error
+      // Find the current loading step and mark it as error
       const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
       if (loadingStepIndex !== -1) {
         updateStepStatus(
-          transactionSteps[loadingStepIndex].id, 
-          'error', 
+          transactionSteps[loadingStepIndex].id,
+          'error',
           error instanceof Error ? error.message : 'Unknown error'
         );
       }
@@ -419,6 +466,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     handleTransaction,
     getTransactionMemo,
     formatCurrencyAmount,
+    mento,
     // Transaction dialog state
     setTransactionSteps,
     setCurrentOperation,
@@ -492,3 +540,5 @@ export const useUtility = () => {
   }
   return context;
 };
+
+

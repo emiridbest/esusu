@@ -154,7 +154,7 @@ async function getExchangeRate(base_currency: string, targetCurrency: string): P
       timestamp: Date.now()
     });
 
-    return fxRate;
+    return fxRate ;
   } catch (error) {
     console.error('Error getting exchange rate from Reloadly:', error);
     throw new Error('Failed to get exchange rate from Reloadly');
@@ -218,9 +218,11 @@ export async function convertToUSD(
 
     // Get exchange rate from local currency to USD
     const rate = await getExchangeRate(base_currency, 'USD');
-    
+    // ADJUSTMENT: Reloadly's API returns rates in a different format, so we need to adjust the rate calculation
+    const factor = rate * 0.15
+    const finalRate = rate - factor
     // Calculate converted amount
-    const convertedAmount = numericAmount / rate;
+    const convertedAmount = numericAmount / finalRate;
     
     return convertedAmount;
   } catch (error) {

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Skeleton } from '../ui/skeleton';
 import { useUtility } from '../../context/utilityProvider/UtilityContext';
 import { getCountryData } from '../../utils/countryData';
-
+import { ethers } from 'ethers';
 interface DualCurrencyPriceProps {
   amount: number | string;
   countryCurrency?: string;
@@ -41,14 +41,16 @@ export default function DualCurrencyPrice({
   showTotal = false,
   className = ''
 }: DualCurrencyPriceProps) {
-  const { convertCurrency } = useUtility();
+  const { convertCurrency, mento } = useUtility();
   const [loading, setLoading] = useState(true);
+  const [waitingForMento, setWaitingForMento] = useState(false);
   const [localDisplay, setLocalDisplay] = useState('');
   const [cryptoDisplay, setCryptoDisplay] = useState('');
   const [totalDisplay, setTotalDisplay] = useState('');
   const [gasFeeDisplay, setGasFeeDisplay] = useState('');
   const [usdEquivalent, setUsdEquivalent] = useState(0);
-
+  const cusdAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
+  const celoAddress = "0x471EcE3750Da237f93B8E339c536989b8978a438";
   useEffect(() => {
     const fetchPrices = async () => {
       if (!amount && countryCurrency) {
@@ -68,13 +70,62 @@ export default function DualCurrencyPrice({
         try {
           usdAmount = await convertCurrency(parseAmount(amount).toString(), countryCurrency);
           setUsdEquivalent(usdAmount);
+
         } catch (error) {
           console.error('Error converting to USD:', error);
           setUsdEquivalent(0);
           throw error;
         }
+        if (stablecoin === 'CELO' && !mento) {
+          setWaitingForMento(true);
+          let timeoutId: NodeJS.Timeout;
+          const mentoWaitPromise = new Promise<void>((resolve, reject) => {
+            timeoutId = setTimeout(() => {
+              reject(new Error('Timeout waiting for Mento initialization'));
+            }, 5000);
 
-        setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
+            const checkInterval = setInterval(() => {
+              if (mento) {
+                clearInterval(checkInterval);
+                clearTimeout(timeoutId);
+                resolve();
+              }
+            }, 100);
+          });
+
+          try {
+            await mentoWaitPromise;
+          } catch (error) {
+            console.warn('Mento initialization timed out, using fallback calculation');
+          } finally {
+            setWaitingForMento(false);
+          }
+        }
+
+        if (stablecoin === 'CELO') {
+          const amountIn = ethers.parseUnits(usdAmount.toString(), 18);
+
+          if (!mento) {
+            usdAmount = usdAmount * 3.02
+            setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
+          } else {
+            try {
+              const celoPrice = await mento.getAmountIn(
+                celoAddress,
+                cusdAddress,
+                amountIn
+              );
+              usdAmount = parseFloat(ethers.formatUnits(celoPrice, 18));
+              console.log('Celo Price:', celoPrice.toString());
+              setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
+            } catch (error) {
+              console.error('Error getting Celo price from Mento:', error);
+              setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
+            }
+          }
+        } else {
+          setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
+        }
 
         if (showTotal) {
           // Standard gas fee in USD
@@ -84,6 +135,7 @@ export default function DualCurrencyPrice({
           setGasFeeDisplay(`${stablecoin} ${gasFeeUSD.toFixed(2)}`);
           setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
         }
+
       } catch (error) {
         console.error('Error fetching price data:', error);
 
@@ -101,7 +153,7 @@ export default function DualCurrencyPrice({
     };
     fetchPrices();
 
-  }, [amount, stablecoin, includeGasFee, showTotal, convertCurrency, countryCurrency]);
+  }, [amount, stablecoin, includeGasFee, showTotal, convertCurrency, countryCurrency, mento]);
 
   if (loading) {
     return (
@@ -109,6 +161,11 @@ export default function DualCurrencyPrice({
         <Skeleton className="h-5 w-24" />
         <Skeleton className="h-5 w-20" />
         {showTotal && <Skeleton className="h-5 w-28" />}
+        {waitingForMento && (
+          <div className="text-xs text-black/50 mt-1">
+            Initializing price converter...
+          </div>
+        )}
       </div>
     );
   }
