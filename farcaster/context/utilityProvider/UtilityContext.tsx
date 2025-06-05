@@ -1,8 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect, use, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, use, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
-import { ethers, Interface  } from "ethers";
+import { ethers, Interface } from "ethers";
 
 import {
   useAccount,
@@ -11,7 +11,7 @@ import {
   useSwitchChain,
   useWalletClient,
   useConnectorClient,
-   type Config,
+  type Config,
 } from "wagmi";
 import Provider, { config } from '../../components/providers/WagmiProvider';
 import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
@@ -86,7 +86,6 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const [transactionSteps, setTransactionSteps] = useState<Step[]>([]);
   const [currentOperation, setCurrentOperation] = useState<'data' | 'electricity' | 'cable' | null>(null);
   const [isWaitingTx, setIsWaitingTx] = useState(false);
-  const [mento, setMento] = useState<Mento | null>(null);
 
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [countryData, setCountryData] = useState<CountryData | null>(null);
@@ -109,23 +108,22 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const {
     sendTransactionAsync
   } = useSendTransaction({ config })
-  useEffect(() => {
-    const initializeMento = async () => {
-        try {
-          console.log('Initializing Mento with provider:', provider);
-          const mentoInstance = await Mento.create(provider);
-          setMento(mentoInstance);
-          console.log('Mento initialized successfully');
-          return mentoInstance;
-        } catch (error) {
-          console.error('Failed to initialize Mento:', error);
-          // Don't set mento to null here to keep any previous successful initialization
-        }
-      
-      return null;
-    };
 
-    initializeMento();
+  const [mento, setMento] = useState<Mento | null>(null);
+
+  useEffect(() => {
+    if (!isConnected || !provider) return;
+    
+    const initMento = async () => {
+      try {
+        const mentoInstance = await Mento.create(provider);
+        setMento(mentoInstance);
+      } catch (error) {
+        console.error('Failed to initialize Mento:', error);
+      }
+    };
+    
+    initMento();
   }, [provider, isConnected]);
 
 
@@ -277,28 +275,28 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         let paymentAmount;
         if (token === 'CELO') {
           try {
-          const quoteAmountIn = await mento.getAmountIn(
-            celoAddress,
-            cusdAddress,
-            convertedAmount
-          );
-          console.log('Quote Amount in CUSD:', quoteAmountIn);
-          paymentAmount = ethers.parseUnits(quoteAmountIn.toString(), decimals);
-        } catch (error) {
-          console.error('Error fetching quote amount:', error);
-          toast.error('Failed to fetch quote amount. Please try again.');
-        paymentAmount = ethers.parseUnits((convertedAmount *  3.02).toString(), decimals);
+            const quoteAmountIn = await (await mento).getAmountIn(
+              celoAddress,
+              cusdAddress,
+              convertedAmount
+            );
+            console.log('Quote Amount in CUSD:', quoteAmountIn);
+            paymentAmount = ethers.parseUnits(quoteAmountIn.toString(), decimals);
+          } catch (error) {
+            console.error('Error fetching quote amount:', error);
+            toast.error('Failed to fetch quote amount. Please try again.');
+            paymentAmount = ethers.parseUnits((convertedAmount * 3.02).toString(), decimals);
+          }
+        } else {
+          // Parse amount with correct decimals
+          paymentAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
         }
-      } else {
-        // Parse amount with correct decimals
-        paymentAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
-      }
-      // Prepare token transfer
-      const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
+        // Prepare token transfer
+        const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
 
-      // Encode the transfer function
-      const transferInterface = new Interface(tokenAbi);
-      const transferData = transferInterface.encodeFunctionData("transfer", [
+        // Encode the transfer function
+        const transferInterface = new Interface(tokenAbi);
+        const transferData = transferInterface.encodeFunctionData("transfer", [
           RECIPIENT_WALLET,
           paymentAmount
         ]);
