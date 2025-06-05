@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useContext, createContext, ReactNode, useMemo, useEffect } from 'react';
+import React, { useState, useContext, createContext, ReactNode, useMemo, useEffect, useRef } from 'react';
 import { ethers, Interface } from "ethers";
 import { useAccount, useSendTransaction, useSwitchChain } from "wagmi";
 import { toast } from 'sonner';
@@ -99,6 +99,8 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const [recipient, setRecipient] = useState<string>('');
   const celoChainId = config.chains[0].id
   const [claimSDK, setClaimSDK] = useState<any>(null);
+    const [isInitializing, setIsInitializing] = useState(false);
+  const initializationAttempted = useRef(false);
   
   // Setup transaction sending
   const { sendTransactionAsync } = useSendTransaction({ config });
@@ -129,7 +131,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     }
     return null;
   }, [isConnected, address]);
-
   const identitySDK = useMemo(() => {
     if (isConnected && publicClient && walletClient) {
       try {
@@ -146,15 +147,27 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     return null;
   }, [publicClient, walletClient, isConnected]);
 
- useEffect(() => {
+  useEffect(() => {
     const initializeClaimSDK = async () => {
-      if (!isConnected || !walletClient || !identitySDK || !address) {
-        // Skip initialization if prerequisites aren't met
+      // Skip if we're already initializing, already initialized, or missing prerequisites
+      if (
+        isInitializing || 
+        initializationAttempted.current || 
+        claimSDK || 
+        !isConnected || 
+        !walletClient || 
+        !identitySDK || 
+        !address
+      ) {
         return;
       }
 
       try {
+        setIsInitializing(true);
+        initializationAttempted.current = true;
+        
         console.log("Initializing ClaimSDK with connected wallet...");
+        
         const sdk = ClaimSDK.init({
           publicClient: publicClient as PublicClient,
           walletClient: walletClient as unknown as WalletClient,
@@ -163,23 +176,33 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         });
 
         console.log("ClaimSDK initialized successfully");
-        setClaimSDK(await sdk);
+        
+        const initializedSDK = await sdk;
+        setClaimSDK(initializedSDK);
 
         // Check initial entitlement
-        if (sdk) {
-          const entitlementValue = await (await sdk).checkEntitlement();
+        if (initializedSDK) {
+          const entitlementValue = await initializedSDK.checkEntitlement();
           setEntitlement(entitlementValue);
           setCanClaim(entitlementValue > BigInt(0));
         }
       } catch (error) {
         console.error("Error initializing ClaimSDK:", error);
+      } finally {
+        setIsInitializing(false);
       }
     };
 
     initializeClaimSDK();
-  }, [isConnected, walletClient, identitySDK, address, publicClient]);
+  }, [isConnected, walletClient, identitySDK, address, publicClient, claimSDK, isInitializing]);
 
-
+  // Reset initialization state when wallet disconnects
+  useEffect(() => {
+    if (!isConnected) {
+      initializationAttempted.current = false;
+      setClaimSDK(null);
+    }
+  }, [isConnected]);
 
   // Update step status helper function
   const updateStepStatus = (stepId: string, status: StepStatus, errorMessage?: string) => {
@@ -190,28 +213,30 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     ));
   };
 
-
-  const handleClaim = async () => {
+ const handleClaim = async () => {
     try {
+      if (!isConnected) {
+        throw new Error("Wallet not connected");
+      }
+
       if (!claimSDK) {
         throw new Error("ClaimSDK not initialized");
       }
 
-      if (entitlement !== null && entitlement <= BigInt(0)) {
-        throw new Error("No entitlement available for claim.");
-      }
-
+      toast.info("Processing claim for G$ tokens...");
       setIsProcessing(true);
-      await claimSDK.claim();
-      toast.success("Successfully claimed G$ tokens!");
-
       // Check entitlement again after claiming
       const newEntitlement = await claimSDK.checkEntitlement();
       setEntitlement(newEntitlement);
-      setCanClaim(newEntitlement > BigInt(0));
+      const tx = await claimSDK.claim();
+      if (!tx) {
+        return;
+      }
+      toast.success("Successfully claimed G$ tokens!");
+
     } catch (error) {
       console.error("Error during claim:", error);
-      toast.error("There was an error processing your claim. Our team has been notified and will resolve this shortly.");
+      toast.error("There was an error processing your claim.");
     } finally {
       setIsProcessing(false);
     }
