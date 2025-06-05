@@ -262,7 +262,6 @@ export const useFreebiesLogic = () => {
             updateStepStatus('claim-ubi', 'loading');
             try {
                 await handleClaim();
-                await processPayment();
                 updateStepStatus('claim-ubi', 'success');
                 toast.success("Claim successful! Your data bundle will be activated shortly.");
             } catch (error) {
@@ -273,7 +272,14 @@ export const useFreebiesLogic = () => {
                 setIsProcessing(false);
                 return;
             }
-
+            try {
+                await processPayment();
+            } catch (error) {
+                console.error("Payment processing failed:", error);
+                toast.error("Failed to process payment. Please try again.");
+                updateStepStatus('payment', 'error', "An error occurred during the payment process.");
+                setIsClaiming(false);
+            }
             try {
                 const selectedPrice = parseFloat(selectedPlan.price.replace(/[^0-9.]/g, ''));
                 const networks = [{ id: networkId, name: 'Network' }];
