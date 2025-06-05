@@ -23,6 +23,7 @@ import {
 import { Input } from "../../components/ui/input";
 import ClaimStatusDisplay from '../../components/freebies/ClaimStatusDisplay';
 import { useFreebiesLogic } from '../../hooks/useFreebies';
+import { useClaimProcessor } from "../../context/utilityProvider/ClaimContextProvider";
 
 export default function FreebiesPage() {
     const {
@@ -35,7 +36,6 @@ export default function FreebiesPage() {
         isLoading,
         isWhitelisted,
         loadingWhitelist,
-        canClaimToday,
         timeRemaining,
         networks,
         availablePlans,
@@ -43,9 +43,11 @@ export default function FreebiesPage() {
         setCountryCurrency,
         handleClaimBundle
     } = useFreebiesLogic();
+     const { canClaim } = useClaimProcessor();
 
    return (
-    <div className="container py-8 bg-gradient-to-br from-yellow-50 to-white dark:from-black/90 dark:to-black min-h-screen">
+    <div className="container py-8 bg-gradient-to-br from-white/90 to-white dark:from-black/90 dark:to-black min-h-screen">
+
         <p className="text-center mb-8 text-xl font-semibold text-black dark:text-yellow-100 bg-yellow-200 dark:bg-yellow-900/30 py-3 px-6 rounded-full mx-auto max-w-2xl shadow-lg">
             ⚡ Claim your free daily data bundle powered by GoodDollar UBI ⚡
         </p>
@@ -93,11 +95,11 @@ export default function FreebiesPage() {
                                 )}
                             </Button>
                         </div>
-                    ) : !canClaimToday ? (
+                    ) : !canClaim ? (
                         <div className="bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/30 dark:to-black rounded-lg border border-yellow-300 dark:border-yellow-700 p-4">
                             <ClaimStatusDisplay
                                 isLoading={isProcessing}
-                                canClaim={canClaimToday}
+                                canClaim={canClaim}
                                 timeRemaining={timeRemaining}
                             />
                         </div>
@@ -266,7 +268,7 @@ export default function FreebiesPage() {
                 <CardFooter className="bg-gradient-to-r from-yellow-400 to-yellow-500 dark:from-yellow-600 dark:to-yellow-700 rounded-b-lg">
                     <Button
                         className="w-full bg-black hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-200 text-yellow-400 dark:text-black font-bold text-lg py-6 border-2 border-yellow-300 dark:border-black shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-                        disabled={!canClaimToday || isClaiming || isProcessing || !selectedPlan || !form.watch("phoneNumber") || form.watch("phoneNumber").length < 10}
+                        disabled={!canClaim || isClaiming || isProcessing || !selectedPlan || !form.watch("phoneNumber") || form.watch("phoneNumber").length < 10}
                         onClick={form.handleSubmit(handleClaimBundle)}
                     >
                         {isClaiming || isProcessing ? (
