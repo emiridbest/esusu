@@ -24,7 +24,7 @@ function MainContent() {
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto">
       {/* Main Utility Bills Card */}
       <Card>
         <CardHeader>
