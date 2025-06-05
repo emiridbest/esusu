@@ -23,7 +23,6 @@ import {
 import { Input } from "@/components/ui/input";
 import ClaimStatusDisplay from '@/components/freebies/ClaimStatusDisplay';
 import { useFreebiesLogic } from '@/hooks/useFreebies';
-import { ClaimProvider } from "@/context/utilityProvider/ClaimContextProvider";
 
 export default function Freebies() {
     const {
@@ -42,11 +41,11 @@ export default function Freebies() {
         availablePlans,
         selectedPlan,
         setCountryCurrency,
-        handleClaimBundle
+        onSubmit
     } = useFreebiesLogic();
 
    return (
-    <div className="container py-8 bg-gradient-to-br from-yellow-50 to-white dark:from-gray-900 dark:to-black min-h-screen">
+    <div className="container py-8 bg-gradient-to-br from-yellow-50 to-white dark:from-black/90 dark:to-black min-h-screen">
         <p className="text-center mb-8 text-xl font-semibold text-black dark:text-yellow-100 bg-yellow-200 dark:bg-yellow-900/30 py-3 px-6 rounded-full mx-auto max-w-2xl shadow-lg">
             ⚡ Claim your free daily data bundle powered by GoodDollar UBI ⚡
         </p>
@@ -63,7 +62,7 @@ export default function Freebies() {
                 </CardHeader>
 
                 <CardContent className="space-y-4 bg-white dark:bg-black p-6">
-                    {isLoading || isProcessing ? (
+                    { isProcessing ? (
                         <div className="flex justify-center py-8 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                             <Loader2 className="h-8 w-8 animate-spin text-yellow-600 dark:text-yellow-400" />
                             <span className="ml-2 text-yellow-800 dark:text-yellow-300 font-semibold">Processing...</span>
@@ -111,7 +110,7 @@ export default function Freebies() {
                             </div>
 
                             <Form {...form}>
-                                <form onSubmit={form.handleSubmit(handleClaimBundle)} className="space-y-6">
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                                     <FormField
                                         control={form.control}
                                         name="country"
@@ -168,7 +167,7 @@ export default function Freebies() {
                                                 <FormLabel className="text-black dark:text-yellow-200 font-semibold flex items-center gap-2">
                                                     📡 Network Provider
                                                 </FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || networks.length === 0}>
+                                                <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || !watchCountry || networks.length === 0}>
                                                     <FormControl>
                                                         <SelectTrigger className="border-yellow-300 dark:border-yellow-700 focus:border-yellow-500 dark:focus:border-yellow-500 bg-white dark:bg-black text-black dark:text-yellow-100">
                                                             <SelectValue placeholder="Select network provider" />
@@ -268,7 +267,7 @@ export default function Freebies() {
                     <Button
                         className="w-full bg-black hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-200 text-yellow-400 dark:text-black font-bold text-lg py-6 border-2 border-yellow-300 dark:border-black shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                         disabled={!canClaimToday || isClaiming || isProcessing || !selectedPlan || !form.watch("phoneNumber") || form.watch("phoneNumber").length < 10}
-                        onClick={form.handleSubmit(handleClaimBundle)}
+                        onClick={form.handleSubmit(onSubmit)}
                     >
                         {isClaiming || isProcessing ? (
                             <>

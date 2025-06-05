@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useContext, createContext, ReactNode } from 'react';
+import React, { useState, useContext, createContext, ReactNode, useMemo, useEffect } from 'react';
 import { ethers, Interface } from "ethers";
 import { useAccount, useSendTransaction } from "wagmi";
 import { toast } from 'sonner';
 import { getDataSuffix, submitReferral } from '@divvi/referral-sdk';
 import { Celo } from '@celo/rainbowkit-celo/chains';
-import { usePublicClient, useWalletClient } from 'wagmi';
-import { ClaimSDK, contractEnv, useIdentitySDK } from '@goodsdks/citizen-sdk';
+import { createPublicClient, http } from 'viem'
+import { IdentitySDK, ClaimSDK } from "@goodsdks/citizen-sdk"
+
 import {
   Dialog,
   DialogContent,
@@ -18,7 +19,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '@/components/TransactionSteps';
-
+import { createWalletClient, custom } from 'viem'
+import { celo } from 'viem/chains'
+import { PublicClient, WalletClient } from "viem"
 // Constants
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
@@ -48,7 +51,6 @@ const getTokenDecimals = (token: string, tokens: any): number => {
 type ClaimProcessorType = {
   isProcessing: boolean;
   setIsProcessing: (isProcessing: boolean) => void;
-  claimSDK: any;
   sendTransactionAsync: any;
   entitlement: bigint | null;
   canClaim: boolean;
@@ -80,19 +82,9 @@ const ClaimProcessorContext = createContext<ClaimProcessorType | undefined>(unde
 
 // Provider component - this should be a component, not a hook
 export function ClaimProvider({ children }: ClaimProviderProps) {
-const sdkEnvironment = process.env.NEXT_PUBLIC_GOODDOLLAR_ENVIRONMENT as contractEnv || 'production';
-let identitySDK = null;
-  if (sdkEnvironment !== undefined) {
-    try {
-      identitySDK = useIdentitySDK();
-    } catch (error) {
-      console.error("Error initializing Identity SDK:", error);
-    }
-  }
 
   const { address } = useAccount();
-  const publicClient = usePublicClient();
-  const { data: walletClient } = useWalletClient();
+  const { isConnected } = useAccount();
   const [isProcessing, setIsProcessing] = useState(false);
   const [entitlement, setEntitlement] = useState<bigint | null>(null);
   const [canClaim, setCanClaim] = useState(false);
@@ -101,30 +93,75 @@ let identitySDK = null;
   const [currentOperation, setCurrentOperation] = useState<'data' | null>(null);
   const [isWaitingTx, setIsWaitingTx] = useState(false);
   const [recipient, setRecipient] = useState<string>('');
-
-
-  
-  // Initialize claimSDK
-  let claimSDK = null;
-  if (address && publicClient && walletClient && identitySDK) {
-    try {
-      claimSDK = new ClaimSDK({
-        account: address,
-        publicClient,
-        walletClient,
-        identitySDK,
-        env: sdkEnvironment as contractEnv,
-      });
-      toast.success("ClaimSDK initialized successfully!");
-    } catch (error) {
-      console.error("Error initializing ClaimSDK:", error);
-    }
-  }
-  
-  // Setup transaction sending
   const { sendTransactionAsync } = useSendTransaction({ chainId: Celo.id });
-  
- 
+  const [claimSDK, setClaimSDK] = useState<any>(null);
+
+
+  const publicClient = createPublicClient({
+    chain: celo,
+    transport: http()
+  })
+  const walletClient = useMemo(() => {
+    if (isConnected && window.ethereum && address) {
+      return createWalletClient({
+        account: address as `0x${string}`,
+        chain: celo,
+        transport: custom(window.ethereum)
+      });
+    }
+    return null;
+  }, [isConnected, address]);
+
+  const identitySDK = useMemo(() => {
+    if (isConnected && publicClient && walletClient) {
+      try {
+        return new IdentitySDK(
+          publicClient as unknown as PublicClient,
+          walletClient as unknown as WalletClient,
+          "production"
+        );
+      } catch (error) {
+        console.error("Failed to initialize IdentitySDK:", error);
+        return null;
+      }
+    }
+    return null;
+  }, [publicClient, walletClient, isConnected]);
+
+ useEffect(() => {
+    const initializeClaimSDK = async () => {
+      if (!isConnected || !walletClient || !identitySDK || !address) {
+        // Skip initialization if prerequisites aren't met
+        return;
+      }
+
+      try {
+        console.log("Initializing ClaimSDK with connected wallet...");
+        const sdk = ClaimSDK.init({
+          publicClient: publicClient as PublicClient,
+          walletClient: walletClient as unknown as WalletClient,
+          identitySDK,
+          env: 'production',
+        });
+
+        console.log("ClaimSDK initialized successfully");
+        setClaimSDK(await sdk);
+
+        // Check initial entitlement
+        if (sdk) {
+          const entitlementValue = await (await sdk).checkEntitlement();
+          setEntitlement(entitlementValue);
+          setCanClaim(entitlementValue > BigInt(0));
+        }
+      } catch (error) {
+        console.error("Error initializing ClaimSDK:", error);
+      }
+    };
+
+    initializeClaimSDK();
+  }, [isConnected, walletClient, identitySDK, address, publicClient]);
+
+
   // Update step status helper function
   const updateStepStatus = (stepId: string, status: StepStatus, errorMessage?: string) => {
     setTransactionSteps(prevSteps => prevSteps.map(step =>
@@ -133,30 +170,29 @@ let identitySDK = null;
         : step
     ));
   };
-
-
-
+ 
   const handleClaim = async () => {
     try {
+      if (!isConnected) {
+        throw new Error("Wallet not connected");
+      }
+
       if (!claimSDK) {
         throw new Error("ClaimSDK not initialized");
       }
-      
-      if (entitlement !== null && entitlement <= BigInt(0)) {
-        throw new Error("No entitlement available for claim.");
-      }
-      
+
+      toast.info("Processing claim for G$ tokens...");
       setIsProcessing(true);
-      await claimSDK.claim();
-      toast.success("Successfully claimed G$ tokens!");
-      
       // Check entitlement again after claiming
       const newEntitlement = await claimSDK.checkEntitlement();
       setEntitlement(newEntitlement);
-      setCanClaim(newEntitlement > BigInt(0));
+      await claimSDK.claim();
+      toast.success("Successfully claimed G$ tokens!");
+
+
     } catch (error) {
       console.error("Error during claim:", error);
-      toast.error("There was an error processing your claim. Our team has been notified and will resolve this shortly.");
+      toast.error("There was an error processing your claim.");
     } finally {
       setIsProcessing(false);
     }
@@ -208,9 +244,10 @@ let identitySDK = null;
 
   const processPayment = async () => {
     if (!entitlement || entitlement <= BigInt(0)) {
-      throw new Error("No entitlement available for payment.");
+      toast.info("No entitlement available at the moment.");
+      return;
     }
-    
+
     const selectedToken = "G$";
     const tokenAddress = getTokenAddress(selectedToken, TOKENS);
 
@@ -244,7 +281,17 @@ let identitySDK = null;
     } catch (error) {
       console.error("Payment transaction failed:", error);
       toast.error("Payment transaction failed. Please try again.");
+      // Find the current loading step and mark it as error
+      const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
+      if (loadingStepIndex !== -1) {
+        updateStepStatus(
+          transactionSteps[loadingStepIndex].id,
+          'error',
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
       throw error;
+
     }
   };
 
@@ -268,7 +315,7 @@ let identitySDK = null;
     if (operation === 'data') {
       steps = [
         {
-          id: 'verify-phone-number',
+          id: 'verify-phone',
           title: 'Verify Phone Number',
           description: `Verifying phone number for ${recipient}`,
           status: 'inactive'
@@ -307,7 +354,6 @@ let identitySDK = null;
   const value = {
     isProcessing,
     setIsProcessing,
-    claimSDK,
     sendTransactionAsync,
     entitlement,
     canClaim,
@@ -332,19 +378,13 @@ let identitySDK = null;
   return (
     <ClaimProcessorContext.Provider value={value}>
       {children}
-       {/* Multi-step Transaction Dialog */}
+      {/* Multi-step Transaction Dialog */}
       <Dialog open={isTransactionDialogOpen} onOpenChange={(open) => !isWaitingTx && !open && closeTransactionDialog()}>
         <DialogContent className="sm:max-w-md border rounded-lg">
           <DialogHeader>
             <DialogTitle className='text-black/90 dark:text-white/90'>{getDialogTitle()}</DialogTitle>
             <DialogDescription>
-              {currentOperation === 'data' ?
-                `Purchasing data for ${recipient}` :
-                currentOperation === 'electricity' ?
-                  `Paying electricity bill for meter ${recipient}` :
-                  currentOperation === 'cable' ?
-                    `Subscribing to cable TV for ${recipient}` :
-                    'Processing transaction...'}
+              {currentOperation === 'data'}
             </DialogDescription>
           </DialogHeader>
 

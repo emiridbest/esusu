@@ -218,12 +218,12 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIsApproving(true);
     updateStepStatus('check-balance', 'loading');
     await getBalance();
-    updateStepStatus('check-balance', 'success');
-    updateStepStatus('allowance', 'loading');
+
     try {
       const tokenAddress = getTokenAddress(selectedToken);
       const depositValue = parseEther(depositAmount.toString());
 
+    updateStepStatus('allowance', 'loading');
       // Check allowance first
       const allowanceData = await readContract({
         address: tokenAddress as `0x${string}`,
