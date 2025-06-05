@@ -13,7 +13,7 @@ import {
     type DataPlan
 } from '../services/utility/utilityServices';
 import { useClaimProcessor } from '../context/utilityProvider/ClaimContextProvider';
-import { ClaimSDK, useIdentitySDK } from '@goodsdks/citizen-sdk';
+import { useIdentitySDK } from '@goodsdks/identity-sdk';
 
 const formSchema = z.object({
     country: z.string({

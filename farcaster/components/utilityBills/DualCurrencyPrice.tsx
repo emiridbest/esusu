@@ -178,7 +178,7 @@ export default function DualCurrencyPrice({
         transition={{ duration: 0.3 }}
         className="space-y-1"
       >
-        <div className="text-base font-medium dark:text-white">
+        <div className="text-base font-medium dark:text-black">
           {localDisplay}
         </div>
         <div className="text-sm text-gray-600 dark:text-gray-400">
