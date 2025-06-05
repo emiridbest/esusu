@@ -28,7 +28,7 @@ function IdentityVerification() {
   const [connectedAccount, setConnectedAccount] = useState<string | undefined>(
     undefined,
   )
-  const identitySDK = useIdentitySDK("development")
+  const identitySDK = useIdentitySDK("production")
 
   useEffect(() => {
     const verified = searchParams?.get("verified");
