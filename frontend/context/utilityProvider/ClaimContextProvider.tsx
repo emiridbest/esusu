@@ -27,9 +27,9 @@ const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
 // Divvi Integration 
 const dataSuffix = getDataSuffix({
-  consumer: RECIPIENT_WALLET,
-  providers: ['0x5f0a55FaD9424ac99429f635dfb9bF20c3360Ab8', '0x6226ddE08402642964f9A6de844ea3116F0dFc7e'],
-});
+  consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
+  providers: ['0x0423189886d7966f0dd7e7d256898daeee625dca'],
+})
 
 // Token definitions
 const TOKENS = {
