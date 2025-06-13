@@ -36,26 +36,26 @@ type UtilityContextType = {
   setIsProcessing: (processing: boolean) => void;
   convertCurrency: (amount: string, base_currency: string) => Promise<number>;
   handleTransaction: (params: TransactionParams) => Promise<boolean>;
-  getTransactionMemo: (type: 'data' | 'electricity' | 'cable', metadata: Record<string, any>) => string;
+  getTransactionMemo: (type: 'data' | 'electricity' | 'airtime', metadata: Record<string, any>) => string;
   formatCurrencyAmount: (amount: string | number) => string;
 
   // Transaction dialog
   isTransactionDialogOpen: boolean;
   setIsTransactionDialogOpen: (open: boolean) => void;
   setTransactionSteps: (steps: Step[]) => void;
-  setCurrentOperation: (operation: 'data' | 'electricity' | 'cable' | null) => void;
+  setCurrentOperation: (operation: 'data' | 'electricity' | 'airtime' | null) => void;
   isWaitingTx?: boolean;
   setIsWaitingTx?: (waiting: boolean) => void;
   closeTransactionDialog: () => void;
-  openTransactionDialog: (operation: 'data' | 'electricity' | 'cable', recipientValue: string) => void;
+  openTransactionDialog: (operation: 'data' | 'electricity' | 'airtime', recipientValue: string) => void;
   transactionSteps: Step[];
-  currentOperation: "data" | "electricity" | "cable" | null;
+  currentOperation: "data" | "electricity" | "airtime" | null;
   updateStepStatus: (stepId: string, status: StepStatus, errorMessage?: string) => void;
 };
 
 
 type TransactionParams = {
-  type: 'data' | 'electricity' | 'cable';
+  type: 'data' | 'electricity' | 'airtime';
   amount: string;
   token: string;
   recipient: string;
@@ -77,7 +77,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const [recipient, setRecipient] = useState<string>('');
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
   const [transactionSteps, setTransactionSteps] = useState<Step[]>([]);
-  const [currentOperation, setCurrentOperation] = useState<'data' | 'electricity' | 'cable' | null>(null);
+  const [currentOperation, setCurrentOperation] = useState<'data' | 'electricity' | 'airtime' | null>(null);
   const [isWaitingTx, setIsWaitingTx] = useState(false);
 
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -166,14 +166,14 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   };
 
   // Generate a transaction memo/description based on utility type
-  const getTransactionMemo = (type: 'data' | 'electricity' | 'cable', metadata: Record<string, any>): string => {
+  const getTransactionMemo = (type: 'data' | 'electricity' | 'airtime', metadata: Record<string, any>): string => {
     switch (type) {
       case 'data':
         return `Data purchase for ${metadata.phone || 'unknown'} - ${metadata.dataBundle || 'unknown'} bundle`;
       case 'electricity':
         return `Electricity payment for meter ${metadata.meterNumber || 'unknown'} - ${metadata.meterType || 'unknown'}`;
-      case 'cable':
-        return `Cable TV subscription for ${metadata.decoderNumber || 'unknown'} - ${metadata.planName || 'unknown'}`;
+      case 'airtime':
+        return `Airtime purchase for ${metadata.phone || 'unknown'} - ${metadata.dataBundle || 'unknown'} bundle`;
       default:
         return 'Utility payment';
     }
@@ -246,8 +246,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
             txHash: tx as unknown as `0x${string}`,
             chainId: Celo.id
           });
-        } catch (referralError) {
-          console.error("Referral submission error:", referralError);
+        } catch {
+          // Do nothing
         }
         // Determine success message based on utility type
         let successMessage = '';
@@ -258,8 +258,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           case 'electricity':
             successMessage = `Successfully paid electricity bill for meter ${recipient}`;
             break;
-          case 'cable':
-            successMessage = `Successfully subscribed for ${metadata.planName || 'TV service'} on ${recipient}`;
+          case 'airtime':
+            successMessage = `Successfully purchased airtime for ${recipient}`;
             break;
         }
         toast.success(successMessage);
@@ -294,13 +294,13 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         return 'Purchase Data Bundle';
       case 'electricity':
         return 'Pay Electricity Bill';
-      case 'cable':
-        return 'Subscribe to Cable TV';
+      case 'airtime':
+        return 'Purchase Airtime';
       default:
         return 'Transaction';
     }
   };
-  const openTransactionDialog = (operation: 'data' | 'electricity' | 'cable', recipientValue: string) => {
+  const openTransactionDialog = (operation: 'data' | 'electricity' | 'airtime', recipientValue: string) => {
     setCurrentOperation(operation);
     setRecipient(recipientValue);
     setIsTransactionDialogOpen(true);
@@ -342,30 +342,32 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           status: 'inactive'
         }
       ];
-    } else if (operation === 'cable') {
+    } else if (operation === 'airtime') {
       steps = [
         {
-          id: 'verifying-subscriber-id',
-          title: 'Verify Subscriber ID',
-          description: `Verifying subscriber ID for ${recipient}`,
+          id: 'verify-phone',
+          title: 'Verify Phone Number',
+          
+          description: `Verifying phone number for ${recipient}`,
           status: 'inactive'
         },
         {
-          id: 'processing-payment',
-          title: 'Processing Payment',
-          description: `Processing payment for ${recipient}`,
+          id: 'check-balance',
+          title: 'Check Balance',
+          description: `Checking your wallet balance`,  
           status: 'inactive'
         },
         {
-          id: 'send-payment',
+          id: 'send-payment', 
           title: 'Send Payment',
           description: `Sending payment for ${recipient}`,
           status: 'inactive'
         },
         {
-          id: 'subscribe-cable',
-          title: 'Subscribe to Cable TV',
-          description: `Confirming cable subscription for ${recipient}`,
+          id: 'top-up',   
+          
+          title: 'Perform Top Up',
+          description: `Confirming airtime purchase for ${recipient}`,  
           status: 'inactive'
         }
       ];
@@ -421,8 +423,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
                 `Purchasing data for ${recipient}` :
                 currentOperation === 'electricity' ?
                   `Paying electricity bill for meter ${recipient}` :
-                  currentOperation === 'cable' ?
-                    `Subscribing to cable TV for ${recipient}` :
+                  currentOperation === 'airtime' ?
+                    `Subscribing to airtime TV for ${recipient}` :
                     'Processing transaction...'}
             </DialogDescription>
           </DialogHeader>
