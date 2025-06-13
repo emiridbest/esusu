@@ -12,7 +12,7 @@ export type CountryData = {
   servicesAvailable: {
     electricity: boolean;
     data: boolean;
-    cable: boolean;
+    airtime: boolean;
   };
   phoneCode: string;
 };
@@ -31,7 +31,7 @@ const COUNTRIES: Record<string, CountryData> = {
     servicesAvailable: {
       electricity: true,
       data: true,
-      cable: true
+      airtime: true
     },
     phoneCode: "+234"
   },
@@ -47,7 +47,7 @@ const COUNTRIES: Record<string, CountryData> = {
     servicesAvailable: {
       electricity: true,
       data: true,
-      cable: false // Assuming cable service is not available
+      airtime: true // Assuming airtime service is not available
     },
     phoneCode: "+233"
   },
@@ -63,7 +63,7 @@ const COUNTRIES: Record<string, CountryData> = {
     servicesAvailable: {
       electricity: true,
       data: true,
-      cable: true
+      airtime: true
     },
     phoneCode: "+254"
   },
@@ -79,7 +79,7 @@ const COUNTRIES: Record<string, CountryData> = {
     servicesAvailable: {
       electricity: true,
       data: true,
-      cable: false // Assuming cable service is not available
+      airtime: true // Assuming airtime service is not available
     },
     phoneCode: "+256"
   }
@@ -106,7 +106,7 @@ export const getAllCountries = (): CountryData[] => {
 /**
  * Check if a specific service is available in a country
  * @param countryCode - The 2-letter country code
- * @param service - The service to check (electricity, data, cable)
+ * @param service - The service to check (electricity, data, airtime)
  * @returns True if the service is available, false otherwise
  */
 export const isServiceAvailable = (

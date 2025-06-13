@@ -7,8 +7,7 @@ import Head from 'next/head';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-import CableTVForm from '@/components/utilityBills/CableTVForm';
-import ElectricityBillForm from '@/components/utilityBills/ElectricityBillForm';
+import AirtimeForm from '@/components/utilityBills/AirtimeForm';
 import MobileDataForm from '@/components/utilityBills/MobileDataForm';
 import { UtilityProvider, useUtility } from '@/context/utilityProvider/UtilityContext';
 
@@ -41,11 +40,11 @@ function MainContent() {
                 <Smartphone className="mr-2" /> Data
               </TabsTrigger>
               <TabsTrigger 
-                value="cable-subscription" 
+                value="airtime" 
                 className="w-full"
-                disabled={countryData ? !countryData.servicesAvailable.cable : undefined}
+                disabled={countryData ? !countryData.servicesAvailable.airtime : undefined}
               >
-                <Tv className="mr-2" /> Cable
+                <PhoneIcon className="mr-2" /> Airtime
               </TabsTrigger>
               <TabsTrigger 
                 value="electricity-bill" 
@@ -60,13 +59,10 @@ function MainContent() {
               <MobileDataForm />
             </TabsContent>
 
-            <TabsContent value="cable-subscription">
-              <CableTVForm />
+            <TabsContent value="airtime">
+              <AirtimeForm />
             </TabsContent>
 
-            <TabsContent value="electricity-bill">
-              <ElectricityBillForm />
-            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>

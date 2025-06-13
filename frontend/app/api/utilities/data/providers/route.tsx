@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     // Ensure country code is properly formatted
     const sanitizedCountry = country.trim().toLowerCase();
 
-    const operators: any = await getOperatorsByCountry(sanitizedCountry);
+    const operators: any = await getOperatorsByCountry(sanitizedCountry, true, true);
 
     if (!Array.isArray(operators)) {
       console.error('Invalid response format from API:', operators);
