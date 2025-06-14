@@ -391,48 +391,65 @@ export default function MobileDataForm() {
 
           <FormField
             control={form.control}
-            name="phoneNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black-800 dark:text-yellow-400 font-medium text-sm">Phone Number</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter phone number"
-                    {...field}
-                    className="text-xs bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-gray-900 dark:text-white transition-all duration-200"
-
-                  />
-                </FormControl>
-                <FormDescription className="text-xs text-black-600 dark:text-black-300">
-                  Enter the phone number to recharge.
-                </FormDescription>
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
             name="network"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-black-800 dark:text-yellow-400 font-medium text-sm">Network Provider</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || networks.length === 0}>
+                <FormLabel className="text-black-800 dark:text-yellow-400 font-medium text-sm">Network Provider</FormLabel>ZZZ                <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || networks.length === 0}>
                   <FormControl className="relative">
-                    <SelectTrigger className="bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-gray-900 dark:text-white">
-                      <SelectValue placeholder="Select network provider" className='text-xs' />
+                    <SelectTrigger className="bg-white dark:bg-black/90 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white">
+                      <SelectValue placeholder="Select network provider" className='text-xs'>
+                        {field.value && networks && networks.length > 0 && (() => {
+                          const selectedNetwork = networks.find(n => n.id === field.value);
+                          if (selectedNetwork && selectedNetwork.logoUrls && selectedNetwork.logoUrls.length > 0) {
+                            return (
+                              <div className="flex items-center">
+                                <img
+                                  src={selectedNetwork.logoUrls[0]}
+                                  alt={selectedNetwork.name}
+                                  className="h-4 w-4 mr-2 rounded-sm object-contain"
+                                  onError={(e) => {
+                                    // If image fails to load, hide it
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                  }}
+                                />
+                                <span>{selectedNetwork.name}</span>
+                              </div>
+                            );
+                          }
+                          return field.value ? field.value : "Select network provider";
+                        })()}
+                      </SelectValue>
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-white dark:bg-black/90 border-2 border-yellow-400/30 dark:border-yellow-400/40">
-                    {networks.map((network) => (
-                      <SelectItem
-                        key={network.id}
-                        value={network.id}
-                        className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-gray-800 dark:text-gray-200"
-                      >
-                        {network.name}
-                      </SelectItem>
-                    ))}
+                    {networks.length > 0 ? (
+                      networks.map((network) => (
+                        <SelectItem
+                          key={network.id}
+                          value={network.id}
+                          className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-black/90 dark:text-black/90"
+                        >
+                          <div className="flex items-center">
+                            {network.logoUrls && network.logoUrls.length > 0 && (
+                              <img
+                                src={network.logoUrls[0]}
+                                alt={network.name}
+                                className="h-5 w-5 mr-2 rounded-sm object-contain"
+                                onError={(e) => {
+                                  // If image fails to load, hide it
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            )}
+                            <span>{network.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="px-2 py-1 text-sm text-black/90 dark:text-black/90">
+                        No network providers available
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
                 {isLoading && <div className="text-sm text-black-600 dark:text-yellow-300 mt-1 flex items-center">
@@ -442,7 +459,6 @@ export default function MobileDataForm() {
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="plan"
@@ -455,30 +471,61 @@ export default function MobileDataForm() {
                   disabled={isLoading || !watchNetwork || availablePlans.length === 0}
                 >
                   <FormControl>
-                    <SelectTrigger className="bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-gray-900 dark:text-white">
+                    <SelectTrigger className="bg-white dark:bg-black/90 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white">
                       <SelectValue placeholder="Select data plan" className='text-xs' />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-2 border-yellow-400/30 dark:border-yellow-400/40">
-                    {availablePlans.map((plan) => (
-                      <SelectItem
-                        key={plan.id}
-                        value={plan.id}
-                        className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-gray-800 dark:text-gray-200"
-                      >
-                        {plan.name} - {plan.price}
-                      </SelectItem>
-                    ))}
+                  <SelectContent className="bg-white dark:bg-black/90 border-2 border-yellow-400/30 dark:border-yellow-400/40">
+                    {availablePlans.length > 0 ? (
+                      availablePlans.map((plan) => (
+                        <SelectItem
+                          key={plan.id}
+                          value={plan.id}
+                          className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-black/90 dark:text-black/90"
+                        >
+                          {plan.name} - {plan.price}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="px-2 py-1 text-sm text-black/90 dark:text-black/90">
+                        No data plans available
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
                 {isLoading && <div className="text-sm text-black-600 dark:text-yellow-300 mt-1 flex items-center">
                   <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-yellow-400" /> Loading plans...
                 </div>}
+                {!isLoading && watchNetwork && availablePlans.length === 0 && (
+                  <div className="text-sm text-red-600 dark:text-yellow-300 mt-1">
+                    No data plans available for this network
+                  </div>
+                )}
                 <FormMessage className="text-red-600 dark:text-yellow-300" />
               </FormItem>
             )}
           />
+          <FormField
+            control={form.control}
+            name="phoneNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-black-800 dark:text-yellow-400 font-medium text-sm">Phone Number</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Enter phone number"
+                    {...field}
+                    className="text-xs bg-white dark:bg-black/90 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-black/90 dark:placeholder:text-black/90 text-black/90 dark:text-white transition-all duration-200"
 
+                  />
+                </FormControl>
+                <FormDescription className="text-xs text-black-600 dark:text-black-300">
+                  Enter the phone number to recharge.
+                </FormDescription>
+                <FormMessage className="text-red-600 dark:text-yellow-300" />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="email"
@@ -489,7 +536,7 @@ export default function MobileDataForm() {
                   <Input
                     placeholder="Enter your email"
                     {...field}
-                    className="text-xs bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-primary/900 dark:hover:border-yellow-400 focus:border-primary/900 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-black-500 dark:placeholder:text-black-400 text-black-900 dark:text-white transition-all duration-200"
+                    className="text-xs bg-white dark:bg-black/90 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-primary/900 dark:hover:border-yellow-400 focus:border-primary/900 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-black-500 dark:placeholder:text-black-400 text-black-900 dark:text-white transition-all duration-200"
                   />
                 </FormControl>
                 <FormDescription className="text-xs text-black-600 dark:text-black-300">
@@ -514,16 +561,16 @@ export default function MobileDataForm() {
                   value={field.value}
                 >
                   <FormControl>
-                    <SelectTrigger className="bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-gray-900 dark:text-white">
+                    <SelectTrigger className="bg-white dark:bg-black/90 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white">
                       <SelectValue placeholder="Select payment token" className='text-xs' />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-2 border-yellow-400/30 dark:border-yellow-400/40">
+                  <SelectContent className="bg-white dark:bg-black/90 border-2 border-yellow-400/30 dark:border-yellow-400/40">
                     {TOKENS.map((token) => (
                       <SelectItem
                         key={token.id}
                         value={token.id}
-                        className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-gray-800 dark:text-gray-200"
+                        className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-black/90 dark:text-black/90"
                       >
                         {token.name}
                       </SelectItem>
