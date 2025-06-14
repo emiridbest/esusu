@@ -97,7 +97,15 @@ export const useFreebiesLogic = () => {
                 form.setValue("plan", "");
 
                 try {
-                    const operators = await fetchMobileOperators(watchCountry);
+                    const response = await fetch(`/api/utilities/data/free?country=${watchCountry}`,
+                    {
+                        method: 'GET'
+                    });
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch data plans: ${response.statusText}`);
+                    }
+
+                   const operators: NetworkOperator[] = await response.json();
                     setNetworks(operators);
                 } catch (error) {
                     console.error("Error fetching mobile operators:", error);
