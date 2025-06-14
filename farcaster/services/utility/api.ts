@@ -60,6 +60,10 @@ async function getAccessToken(): Promise<string> {
       mode: isSandbox ? 'SANDBOX' : 'PRODUCTION'
     });
 
+    if (!AUTH_URL) {
+      throw new Error('Authentication URL not configured');
+    }
+
     const options = {
       method: 'POST',
       headers: {
@@ -105,7 +109,7 @@ async function getAccessToken(): Promise<string> {
  */
 async function getAuthHeaders() {
   const token = await getAccessToken();
-  const acceptHeader = process.env.NEXT_PUBLIC_ACCEPT_HEADER;
+  const acceptHeader = process.env.NEXT_PUBLIC_ACCEPT_HEADER || 'application/json';
 
   return {
     'Authorization': `Bearer ${token}`,
@@ -123,32 +127,13 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const headers = await getAuthHeaders();
   const url = `${API_URL}${endpoint}`;
 
-  console.log(`Making API request to ${url}`, {
-    method: options.method || 'GET',
-    headers: {
-      ...Object.keys(headers).reduce((acc, key) => ({ 
-        ...acc, 
-        [key]: key.toLowerCase().includes('authorization') 
-          ? '**REDACTED**' 
-          : headers[key] 
-      }), {}),
-      ...Object.keys(options.headers || {}).reduce((acc, key) => ({ 
-        ...acc, 
-        [key]: key.toLowerCase().includes('authorization') 
-          ? '**REDACTED**' 
-          : options.headers?.[key] 
-      }), {})
-    },
-    body: options.body ? '**PRESENT**' : undefined
-  });
-
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...headers,
-      ...(options.headers || {})
-    }
-  });
+ const response = await fetch(url, {
+  ...options,
+  headers: new Headers({
+    ...headers,
+    ...(typeof options.headers === 'object' ? options.headers : {})
+  })
+});
 
   if (!response.ok) {
     // Try to parse error response
@@ -183,10 +168,10 @@ export async function getCountries() {
  * Gets operators by country code
  * @param countryCode ISO country code
  */
-export async function getOperatorsByCountry(countryCode: string) {
+export async function getOperatorsByCountry(countryCode: string, dataOnly: boolean, bundleOnly: boolean) {
   try {
     // Create URL with query parameters
-    const url = `/operators/countries/${countryCode}?includeBundles=true&includeData=true`;
+    const url = `/operators/countries/${countryCode}?dataOnly=${dataOnly}&bundleOnly=${bundleOnly}&includeTopups=true`;
     return await apiRequest(url);
   } catch (error) {
     console.error(`Error fetching operators for ${countryCode}:`, error);
