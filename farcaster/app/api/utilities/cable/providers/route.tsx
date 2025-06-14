@@ -7,7 +7,8 @@ export async function GET(request: NextRequest) {
 
   if (!country) {
     return NextResponse.json({ error: 'Country code is required' }, { status: 400 });
-  }  try {
+  }
+  try {
     // Ensure country code is properly formatted before passing to the API
     const sanitizedCountry = country.trim().toLowerCase();
     console.log(`Fetching cable providers for country: ${sanitizedCountry}`);
