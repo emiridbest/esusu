@@ -450,29 +450,8 @@ useEffect(() => {
                     <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 dark:from-yellow-400/10 to-transparent pointer-events-none rounded-lg"></div>
                   </div>
                 </FormControl>
-                <FormDescription className="text-xs text-black-600 dark:text-black-300">
+                <FormDescription className="text-xs text-black-600 dark:text-white-300">
                   Select the country for the airtime service.
-                </FormDescription>
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="phoneNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black-800 dark:text-yellow-400 font-medium text-sm">Phone Number</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter phone number"
-                    {...field}
-                    className="text-xs bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-gray-900 dark:text-white transition-all duration-200"
-                  />
-                </FormControl>
-                <FormDescription className="text-xs text-black-600 dark:text-black-300">
-                  Enter the phone number to recharge with airtime.
                 </FormDescription>
                 <FormMessage className="text-red-600 dark:text-yellow-300" />
               </FormItem>
@@ -484,10 +463,10 @@ useEffect(() => {
             name="network"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-black-800 dark:text-yellow-400 font-medium text-sm">Network Provider</FormLabel>
+                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Network Provider</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || networks.length === 0}>
                   <FormControl className="relative">
-                    <SelectTrigger className="bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-gray-900 dark:text-white">
+                    <SelectTrigger className="bg-white dark:bg-black/90 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90">
                       <SelectValue placeholder="Select network provider" className='text-xs'>
                         {field.value && networks && networks.length > 0 && (() => {
                           const selectedNetwork = networks.find(n => n.id === field.value);
@@ -517,7 +496,7 @@ useEffect(() => {
                         <SelectItem
                           key={network.id}
                           value={network.id}
-                          className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-gray-800 dark:text-gray-200"
+                          className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-black/90 dark:text-white/90"
                         >
                           <div className="flex items-center">
                             {network.logoUrls && network.logoUrls.length > 0 && (
@@ -535,7 +514,7 @@ useEffect(() => {
                         </SelectItem>
                       ))
                     ) : (
-                      <div className="px-2 py-1 text-sm text-gray-500 dark:text-gray-400">
+                      <div className="px-2 py-1 text-sm text-black/90 dark:text-white/90">
                         No network providers available
                       </div>
                     )}
@@ -544,6 +523,27 @@ useEffect(() => {
                 {isLoading && <div className="text-sm text-black-600 dark:text-yellow-300 mt-1 flex items-center">
                   <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-yellow-400" /> Loading providers...
                 </div>}
+                <FormMessage className="text-red-600 dark:text-yellow-300" />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="phoneNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-black-800 dark:text-yellow-400 font-medium text-sm">Phone Number</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Enter phone number"
+                    {...field}
+                    className="text-xs bg-white dark:bg-black/90 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-black/90 dark:placeholder:text-black/90 text-black/90 dark:text-white/90 transition-all duration-200"
+                  />
+                </FormControl>
+                <FormDescription className="text-xs text-black-600 dark:text-white-300">
+                  Enter the phone number to recharge with airtime.
+                </FormDescription>
                 <FormMessage className="text-red-600 dark:text-yellow-300" />
               </FormItem>
             )}
@@ -561,16 +561,15 @@ useEffect(() => {
                   <div className="relative">
                     <Input
                       type="number"
-                      step="0.01"
                       placeholder={operatorRange ? `Enter amount (${operatorRange.min} - ${operatorRange.max})` : "Enter amount"}
                       {...field}
-                      className={`text-xs bg-white dark:bg-gray-800 border-2 ${!amountValidation.isValid
-                          ? 'border-red-400 dark:border-red-400'
-                          : amountValidation.type === 'warning'
-                            ? 'border-yellow-400 dark:border-yellow-400'
-                            : amountValidation.type === 'info'
-                              ? 'border-blue-400 dark:border-blue-400'
-                              : 'border-yellow-400/50 dark:border-yellow-400/30'
+                      className={`text-xs bg-white dark:bg-black/80 border-2 ${!amountValidation.isValid
+                        ? 'border-red-400 dark:border-red-400'
+                        : amountValidation.type === 'warning'
+                          ? 'border-yellow-400 dark:border-yellow-400'
+                          : amountValidation.type === 'info'
+                            ? 'border-blue-400 dark:border-blue-400'
+                            : 'border-yellow-400/50 dark:border-yellow-400/30'
                         } hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-gray-900 dark:text-white transition-all duration-200`}
                       disabled={isLoading || !operatorRange}
                     />
@@ -588,12 +587,12 @@ useEffect(() => {
                 {/* Amount validation message */}
                 {amountValidation.message && (
                   <div className={`text-xs mt-1 flex items-center ${amountValidation.type === 'error'
-                      ? 'text-red-600 dark:text-red-400'
-                      : amountValidation.type === 'warning'
-                        ? 'text-yellow-600 dark:text-yellow-400'
-                        : amountValidation.type === 'info'
-                          ? 'text-blue-600 dark:text-blue-400'
-                          : 'text-green-600 dark:text-green-400'
+                    ? 'text-red-600 dark:text-red-400'
+                    : amountValidation.type === 'warning'
+                      ? 'text-yellow-600 dark:text-yellow-400'
+                      : amountValidation.type === 'info'
+                        ? 'text-blue-600 dark:text-blue-400'
+                        : 'text-green-600 dark:text-green-400'
                     }`}>
                     {amountValidation.message}
                   </div>
@@ -618,6 +617,7 @@ useEffect(() => {
             )}
           />
 
+
           <FormField
             control={form.control}
             name="email"
@@ -628,10 +628,10 @@ useEffect(() => {
                   <Input
                     placeholder="Enter your email"
                     {...field}
-                    className="text-xs bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-primary/900 dark:hover:border-yellow-400 focus:border-primary/900 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-black-500 dark:placeholder:text-black-400 text-black-900 dark:text-white transition-all duration-200"
+                    className="text-xs bg-white dark:bg-black/90 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-primary/900 dark:hover:border-yellow-400 focus:border-primary/900 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-black-500 dark:placeholder:text-black-400 text-black-900 dark:text-white/90 transition-all duration-200"
                   />
                 </FormControl>
-                <FormDescription className="text-xs text-black-600 dark:text-black-300">
+                <FormDescription className="text-xs text-black-600 dark:text-white-300">
                   Enter your email for transaction receipt.
                 </FormDescription>
                 <FormMessage className="text-red-600 dark:text-yellow-300" />
@@ -653,23 +653,23 @@ useEffect(() => {
                   value={field.value}
                 >
                   <FormControl>
-                    <SelectTrigger className="bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-gray-900 dark:text-white">
+                    <SelectTrigger className="bg-white dark:bg-black/90 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90">
                       <SelectValue placeholder="Select payment token" className='text-xs' />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-2 border-yellow-400/30 dark:border-yellow-400/40">
+                  <SelectContent className="bg-white dark:bg-black/90 border-2 border-yellow-400/30 dark:border-yellow-400/40">
                     {TOKENS.map((token) => (
                       <SelectItem
                         key={token.id}
                         value={token.id}
-                        className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-gray-800 dark:text-gray-200"
+                        className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-black/90 dark:text-white/90"
                       >
                         {token.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <FormDescription className="text-xs text-black-600 dark:text-black-300">
+                <FormDescription className="text-xs text-black-600 dark:text-white-300">
                   All token amounts are converted to USD equivalent
                 </FormDescription>
                 <FormMessage className="text-red-600 dark:text-yellow-300" />
@@ -681,10 +681,10 @@ useEffect(() => {
             <Card className="bg-gradient-to-r from-yellow-100 via-yellow-200 to-yellow-100 dark:from-yellow-400 dark:via-yellow-300 dark:to-yellow-400 border-2 border-yellow-300 dark:border-0 shadow-lg shadow-yellow-400/20 dark:shadow-yellow-400/30">
               <CardContent className="pt-4">
                 <div className="flex flex-col space-y-1">
-                  <div className="text-sm font-medium text-black-800 dark:text-black">
+                  <div className="text-sm font-medium text-black-800 dark:text-white">
                     Payment Amount:
                   </div>
-                  <div className="text-black-900 dark:text-black font-medium">
+                  <div className="text-black-900 dark:text-white font-medium">
                     <DualCurrencyPrice
                       amount={selectedPrice}
                       countryCurrency={form.getValues().country}
