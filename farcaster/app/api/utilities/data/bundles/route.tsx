@@ -32,8 +32,8 @@ export async function GET(request: NextRequest) {
     // Get the bundles for this operator
     const bundles: any = operatorDetails.localFixedAmountsDescriptions;
 
-    let formattedBundles = [];
-    
+    let formattedBundles: { id: string; name: string; price: string; description: string; dataAmount: string; validity: string }[] = [];
+
     // Check if bundles is an array
     if (Array.isArray(bundles)) {
       formattedBundles = bundles.map((bundle: any) => ({

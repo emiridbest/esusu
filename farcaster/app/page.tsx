@@ -2,12 +2,12 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { PhoneIcon, Smartphone, Zap, Tv, WalletIcon, CreditCard, Loader2 } from 'lucide-react';
+import { PhoneIcon, Smartphone, Zap, Phone, WalletIcon, CreditCard, Loader2 } from 'lucide-react';
 import Head from 'next/head';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 
-import CableTVForm from '../components/utilityBills/CableTVForm';
+import AirtimeForm from '../components/utilityBills/AirtimeForm';
 import ElectricityBillForm from '../components/utilityBills/ElectricityBillForm';
 import MobileDataForm from '../components/utilityBills/MobileDataForm';
 import { UtilityProvider, useUtility } from '../context/utilityProvider/UtilityContext';
@@ -42,11 +42,11 @@ function MainContent() {
                 <Smartphone className="mr-2" /> Data
               </TabsTrigger>
               <TabsTrigger 
-                value="cable-subscription" 
+                value="airtime" 
                 className="w-full"
                 disabled={countryData && !countryData.servicesAvailable.cable}
               >
-                <Tv className="mr-2" /> Cable
+                <Phone className="mr-2" /> Airtime
               </TabsTrigger>
               <TabsTrigger 
                 value="electricity-bill" 
@@ -61,8 +61,8 @@ function MainContent() {
               <MobileDataForm />
             </TabsContent>
 
-            <TabsContent value="cable-subscription">
-              <CableTVForm />
+            <TabsContent value="airtime">
+              <AirtimeForm />
             </TabsContent>
 
             <TabsContent value="electricity-bill">
