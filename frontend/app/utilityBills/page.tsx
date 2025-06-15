@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AirtimeForm from '@/components/utilityBills/AirtimeForm';
 import MobileDataForm from '@/components/utilityBills/MobileDataForm';
 import { UtilityProvider, useUtility } from '@/context/utilityProvider/UtilityContext';
+import ElectricityBillForm from '@/components/utilityBills/ElectricityBillForm';
 
 // Main content component - separated to use the useUtility hook
 function MainContent() {
@@ -61,6 +62,13 @@ function MainContent() {
 
             <TabsContent value="airtime">
               <AirtimeForm />
+            </TabsContent>
+            <TabsContent value="electricity-bill">
+              <Card className="mt-4">
+                <CardContent>
+                  <ElectricityBillForm />
+                </CardContent>
+              </Card>
             </TabsContent>
 
           </Tabs>
