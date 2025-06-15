@@ -97,8 +97,21 @@ export const useFreebiesLogic = () => {
                 form.setValue("plan", "");
 
                 try {
-                    const operators = await fetchMobileOperators(watchCountry);
-                    setNetworks(operators);
+                    const response = await fetch(`/api/utilities/data/free?country=${watchCountry}`,
+                    {
+                        method: 'GET'
+                    });
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch data plans: ${response.statusText}`);
+                    }
+
+                const operators: NetworkOperator[] = await response.json();
+                // Filter out MTN Nigeria extra data
+                const filteredOperators = operators.filter(operator => 
+                    !(operator.name.toLowerCase().includes('mtn nigeria extra data') ||
+                    (operator.name.toLowerCase().includes('smile uganda data')))
+                );
+                setNetworks(filteredOperators);
                 } catch (error) {
                     console.error("Error fetching mobile operators:", error);
                     toast.error("Failed to load network providers. Please try again.");
@@ -205,119 +218,227 @@ export const useFreebiesLogic = () => {
     }, [nextClaimTime]);
 
     // Handle claim bundle logic
-    async function onSubmit(values: z.infer<typeof formSchema>) {
-        setIsProcessing(true);
-        try {
-            const phoneNumber = values.phoneNumber;
-            const country = values.country;
-            const emailAddress = values.email;
-            const networkId = values.network;
-            const selectedPlan = availablePlans.find(plan => plan.id === values.plan) || null;
-
-            if (!isConnected || !selectedPlan || !phoneNumber) {
-                setIsProcessing(false);
-                toast.error("Please connect your wallet, select a bundle and enter your phone number");
-                return;
-            }
-
-            setIsVerifying(true);
-
-            try {
-                openTransactionDialog('data', phoneNumber);
-                updateStepStatus('verify-phone', 'loading');
-                const verificationResult = await verifyAndSwitchProvider(phoneNumber, networkId, country);
-
-                if (verificationResult.verified) {
-                    setIsVerified(true);
-                    toast.success("Phone number verified successfully");
-                    if (verificationResult.autoSwitched && verificationResult.correctProviderId) {
-                        form.setValue('network', verificationResult.correctProviderId);
-                        toast.success(verificationResult.message);
-
-                        const plans = await fetchDataPlans(verificationResult.correctProviderId, country);
-                        setAvailablePlans(plans);
-                    } else {
-                        updateStepStatus('verify-phone', 'success');
-                        toast.success("You are now using the correct network provider.");
-                    }
-                } else {
-                    setIsVerified(false);
-                    toast.error("Phone number verification failed. Please double-check the phone number.");
-                    setIsProcessing(false);
-                    updateStepStatus('verify-phone', 'error', "Your phone number did not verify with the selected network provider. Please check the number and try again.");
-                    return;
-                }
-            } catch (error) {
-                console.error("Error during verification:", error);
-                toast.error(error instanceof Error ? error.message : "There was an unexpected error processing your request.");
-
-                setIsProcessing(false);
-                return;
-            } finally {
-                setIsVerifying(false);
-            }
-
-            setIsClaiming(true);
-            setIsProcessing(true);
-            updateStepStatus('claim-ubi', 'loading');
-            try {
-                await handleClaim();
-                updateStepStatus('claim-ubi', 'success');
-                toast.success("Claim successful! Your data bundle will be activated shortly.");
-            } catch (error) {
-                console.error("Claim failed:", error);
-                toast.error("Failed to claim your free data bundle. Please try again.");
-                updateStepStatus('claim-ubi', 'error', "An error occurred during the claim process.");
-                setIsClaiming(false);
-                setIsProcessing(false);
-                return;
-            }
-            try {
-                await processPayment();
-            } catch (error) {
-                console.error("Payment processing failed:", error);
-                toast.error("Failed to process payment. Please try again.");
-                updateStepStatus('payment', 'error', "An error occurred during the payment process.");
-                setIsClaiming(false);
-            }
-            try {
-                const selectedPrice = parseFloat(selectedPlan.price.replace(/[^0-9.]/g, ''));
-                const networks = [{ id: networkId, name: 'Network' }];
-                updateStepStatus('top-up', 'loading');
-                const topupResult = await processDataTopUp(
-                    {
-                        phoneNumber,
-                        country,
-                        network: networkId,
-                        email: emailAddress
-                    },
-                    selectedPrice,
-                    availablePlans,
-                    networks
-                );
-
-                if (topupResult.success) {
-                    localStorage.setItem('lastFreeClaim', new Date().toDateString());
-                    setCanClaimToday(false);
-                    setSelectedPlan(null);
-                    updateStepStatus('top-up', 'success');
-                    form.reset();
-                }
-            } catch (error) {
-                console.error("Top-up failed:", error);
-                toast.error("Failed to top up your data bundle.");
-                updateStepStatus('top-up', 'error', "An error occurred during the top-up process.");
-            } finally {
-                setIsClaiming(false);
-                setIsProcessing(false);
-            }
-        } catch (error) {
-            console.error("Error in submission flow:", error);
-            toast.error(error instanceof Error ? error.message : "There was an unexpected error processing your request.");
-            setIsProcessing(false);
-        }
+  // Handle claim bundle logic - Corrected version
+async function onSubmit(values: z.infer<typeof formSchema>) {
+    // Early return if already processing to prevent race conditions
+    if (isProcessing || isClaiming || !canClaimToday) {
+        console.log("Already processing, ignoring duplicate submission");
+        return;
     }
 
+    // Check localStorage before starting process
+    const checkCanClaim = () => {
+        if (typeof window === 'undefined') return true; // SSR check
+        const lastClaim = localStorage.getItem('lastFreeClaim');
+        const today = new Date().toDateString();
+        return lastClaim !== today;
+    };
+
+    if (!checkCanClaim()) {
+        toast.error("You have already claimed your free data bundle today. Please try again tomorrow.");
+        return;
+    }
+
+    // Generate unique transaction ID for idempotency
+    const transactionId = `${address}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    setIsProcessing(true);
+    let hasClaimedSuccessfully = false;
+    
+    try {
+        const phoneNumber = values.phoneNumber;
+        const country = values.country;
+        const emailAddress = values.email;
+        const networkId = values.network;
+        const selectedPlan = availablePlans.find(plan => plan.id === values.plan) || null;
+
+        // Validation checks
+        if (!isConnected) {
+            toast.error("Please connect your wallet");
+            return;
+        }
+        
+        if (!selectedPlan) {
+            toast.error("Please select a data plan");
+            return;
+        }
+        
+        if (!phoneNumber) {
+            toast.error("Please enter your phone number");
+            return;
+        }
+
+        // Validate selectedPlan has required properties
+        if (!selectedPlan.price || typeof selectedPlan.price !== 'string') {
+            toast.error("Invalid data plan selected. Please try selecting a different plan.");
+            return;
+        }
+
+        // Set early localStorage to prevent rapid duplicate submissions
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('processingClaim', transactionId);
+        }
+
+        setIsVerifying(true);
+
+        try {
+            openTransactionDialog('data', phoneNumber);
+            updateStepStatus('verify-phone', 'loading');
+            
+            const verificationResult = await verifyAndSwitchProvider(phoneNumber, networkId, country);
+
+            if (!verificationResult || !verificationResult.verified) {
+                setIsVerified(false);
+                toast.error("Phone number verification failed. Please double-check the phone number.");
+                updateStepStatus('verify-phone', 'error', "Your phone number did not verify with the selected network provider. Please check the number and try again.");
+                return;
+            }
+
+            setIsVerified(true);
+            toast.success("Phone number verified successfully");
+            
+            if (verificationResult.autoSwitched && verificationResult.correctProviderId) {
+                form.setValue('network', verificationResult.correctProviderId);
+                toast.success(verificationResult.message || "Network provider switched successfully");
+
+                try {
+                    const plans = await fetchDataPlans(verificationResult.correctProviderId, country);
+                    if (plans && plans.length > 0) {
+                        setAvailablePlans(plans);
+                        setSelectedPlan(plans[0]);
+                    } else {
+                        throw new Error("No data plans available for the correct provider");
+                    }
+                } catch (planError) {
+                    console.error("Error fetching new plans after provider switch:", planError);
+                    toast.error("Failed to load plans for the correct provider. Please try again.");
+                    return;
+                }
+            } else {
+                updateStepStatus('verify-phone', 'success');
+                toast.success("You are now using the correct network provider.");
+            }
+        } catch (verificationError) {
+            console.error("Error during verification:", verificationError);
+            toast.error(verificationError instanceof Error ? verificationError.message : "There was an unexpected error during verification.");
+            updateStepStatus('verify-phone', 'error', "Verification failed. Please try again.");
+            return;
+        } finally {
+            setIsVerifying(false);
+        }
+
+        // Start claiming process
+        setIsClaiming(true);
+        updateStepStatus('claim-ubi', 'loading');
+        
+        try {
+            await handleClaim();
+            hasClaimedSuccessfully = true;
+            updateStepStatus('claim-ubi', 'success');
+            toast.success("Claim successful! Your data bundle will be activated shortly.");
+        } catch (claimError) {
+            console.error("Claim failed:", claimError);
+            toast.error("Failed to claim your free data bundle. Please try again.");
+            updateStepStatus('claim-ubi', 'error', "An error occurred during the claim process.");
+            return;
+        }
+
+        // Process payment
+        updateStepStatus('payment', 'loading');
+        try {
+            await processPayment();
+            updateStepStatus('payment', 'success');
+        } catch (paymentError) {
+            console.error("Payment processing failed:", paymentError);
+            toast.error("Failed to process payment. Please try again.");
+            updateStepStatus('payment', 'error', "An error occurred during the payment process.");
+            return;
+        }
+
+        // Process data top-up
+        try {
+            const selectedPrice = parseFloat(selectedPlan.price.replace(/[^0-9.]/g, ''));
+            
+            // Validate parsed price
+            if (isNaN(selectedPrice) || selectedPrice <= 0) {
+                throw new Error("Invalid plan price");
+            }
+
+            const networks = [{ id: networkId, name: 'Network' }];
+            updateStepStatus('top-up', 'loading');
+            
+            const topupResult = await processDataTopUp(
+                {
+                    phoneNumber,
+                    country,
+                    network: networkId,
+                    email: emailAddress,
+                    transactionId // Add transaction ID for server-side deduplication
+                },
+                selectedPrice,
+                availablePlans,
+                networks
+            );
+                setCanClaimToday(false);
+
+            if (topupResult && topupResult.success) {
+                // Only set localStorage after successful topup
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('lastFreeClaim', new Date().toDateString());
+                    localStorage.removeItem('processingClaim'); // Clean up processing flag
+                }
+                
+                setSelectedPlan(null);
+                updateStepStatus('top-up', 'success');
+                form.reset();
+                
+                toast.success("Data bundle topped up successfully! You can claim again tomorrow.");
+            } else {
+                throw new Error( "Top-up failed - no success confirmation received");
+            }
+        } catch (topupError) {
+            console.error("Top-up failed:", topupError);
+            toast.error("Failed to top up your data bundle. Please try again.");
+            updateStepStatus('top-up', 'error', "An error occurred during the top-up process.");
+            
+            // If topup failed but claim succeeded, we might want to handle this differently
+            if (hasClaimedSuccessfully) {
+                toast.error("Claim succeeded but top-up failed. Please contact support.");
+            }
+            
+            throw topupError; // Re-throw to trigger cleanup in outer catch
+        }
+
+    } catch (error) {
+        console.error("Error in submission flow:", error);
+        
+        // Clean up localStorage on any error
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('processingClaim');
+            // Only remove lastFreeClaim if we haven't successfully claimed
+            if (!hasClaimedSuccessfully) {
+                localStorage.removeItem('lastFreeClaim');
+            }
+        }
+        
+        const errorMessage = error instanceof Error ? error.message : "There was an unexpected error processing your request.";
+        toast.error(errorMessage);
+        
+        // Reset step statuses on critical failure
+        updateStepStatus('verify-phone', 'error', errorMessage);
+        
+    } finally {
+        // Always clean up states
+        setIsClaiming(false);
+        setIsProcessing(false);
+        setIsVerifying(false);
+        
+        // Clean up processing flag
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('processingClaim');
+        }
+    }
+}
     return {
         // Form and validation
         form,

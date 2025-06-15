@@ -168,10 +168,10 @@ export async function getCountries() {
  * Gets operators by country code
  * @param countryCode ISO country code
  */
-export async function getOperatorsByCountry(countryCode: string, dataOnly: boolean, bundleOnly: boolean) {
+export async function getOperatorsByCountry(countryCode: string, dataOnly: boolean, bundleOnly: boolean, comboOnly: boolean) {
   try {
     // Create URL with query parameters
-    const url = `/operators/countries/${countryCode}?dataOnly=${dataOnly}&bundleOnly=${bundleOnly}&includeTopups=true`;
+    const url = `/operators/countries/${countryCode}?dataOnly=${dataOnly}&includeBundles=${bundleOnly}&includeCombos=${comboOnly}`;
     return await apiRequest(url);
   } catch (error) {
     console.error(`Error fetching operators for ${countryCode}:`, error);
