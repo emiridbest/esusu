@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const operators = await getOperatorsByCountry(country, false, false);
+        const operators = await getOperatorsByCountry(country, false, false, false);
 
         if (!Array.isArray(operators)) {
             console.error('Invalid response format from API:', operators);
