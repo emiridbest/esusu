@@ -55,12 +55,21 @@ export function Providers({
       if (!frameContext) {
         return;
       }
-
       setContext(frameContext as unknown as FrameContext);
+
+      sdk.actions.ready();
+
+      if (!frameContext.client.added) {
+        try {
+          await sdk.actions.addMiniApp();
+        } catch (error) {
+          // It's safe to ignore this error as the user may have just rejected the prompt.
+          console.info("User rejected or failed to add Mini App:", error);
+        }
+      }
     };
     if (sdk && !isSDKLoaded) {
       load();
-      sdk.actions.ready()
       return () => {
         sdk.removeAllListeners();
       };
@@ -90,9 +99,7 @@ export function Providers({
   return (
     <SessionProvider session={session}>
       <WagmiProvider>
-        <PostHogProvider>
-            {children}
-        </PostHogProvider>
+        <PostHogProvider>{children}</PostHogProvider>
       </WagmiProvider>
     </SessionProvider>
   );
