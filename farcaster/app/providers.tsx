@@ -61,7 +61,7 @@ export function Providers({
 
       if (!frameContext.client.added) {
         try {
-          await sdk.actions.addMiniApp();
+          await sdk.actions.addFrame();
         } catch (error) {
           // It's safe to ignore this error as the user may have just rejected the prompt.
           console.info("User rejected or failed to add Mini App:", error);
