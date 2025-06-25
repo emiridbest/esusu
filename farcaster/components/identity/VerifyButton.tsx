@@ -34,7 +34,7 @@ export const VerifyButton: React.FC<VerifyButtonProps> = ({
   return (
     <Button 
       onClick={handleVerify}
-      className="bg-primary/90 text-black hover:bg-black hover:text-primary/90 dark:bg-primary dark:text-black/90 hover:dark:bg-black border-2 border-primary hover:border-black dark:hover:border-black dark:hover:bg-white dark:hover:text-black duration-200"
+      className="bg-primary/90 text-black hover:bg-black hover:text-primary/90 dark:bg-primary dark:text-black/90 hover:dark:bg-black border-2 border-primary hover:border-black dark:hover:border-black dark:hover:text-black duration-200"
     >
       Verify Me
     </Button>
