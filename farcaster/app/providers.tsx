@@ -1,13 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { FrameContext } from "@farcaster/frame-node";
-import sdk from "@farcaster/frame-sdk";
+import sdk, {AddFrame} from "@farcaster/frame-sdk";
 
 const WagmiProvider = dynamic(
   () => import("../components/providers/WagmiProvider"),
@@ -48,24 +48,63 @@ export function Providers({
 }) {
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
   const [context, setContext] = useState<FrameContext>();
+  const [addFrameResult, setAddFrameResult] = useState("");
 
-  useEffect(() => {
-    const load = async () => {
-      const frameContext = await sdk.context;
-      if (!frameContext) {
-        return;
+ const addFrame = useCallback(async () => {
+    try {
+      await sdk.actions.addFrame();
+    } catch (error) {
+      if (error instanceof AddFrame.RejectedByUser) {
+        setAddFrameResult(`Not added: ${error.message}`);
       }
 
-      setContext(frameContext as unknown as FrameContext);
+      if (error instanceof AddFrame.InvalidDomainManifest) {
+        setAddFrameResult(`Not added: ${error.message}`);
+      }
+
+      setAddFrameResult(`Error: ${error}`);
+    }
+  }, []);
+  
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const frameContext = await sdk.context;
+        if (!frameContext) {
+          return;
+        }
+
+        setContext(frameContext as unknown as FrameContext);
+        setIsSDKLoaded(true);
+      } catch (error) {
+        console.error('Failed to load frame context:', error);
+      }
     };
+    
     if (sdk && !isSDKLoaded) {
-      load();
-      sdk.actions.ready()
+      const initializeSDK = async () => {
+        try {
+          await load();
+          await sdk.actions.ready();
+        } catch (error) {
+          console.error('Failed to initialize SDK:', error);
+        }
+      };
+      
+      initializeSDK();
+      
       return () => {
         sdk.removeAllListeners();
       };
     }
-  }, [isSDKLoaded]);
+  }, [isSDKLoaded, addFrame]);
+
+  // Separate effect to handle frame adding after context is loaded
+  useEffect(() => {
+    if (context && !context?.client?.added) {
+      addFrame();
+    }
+  }, [context, addFrame]);
 
   useEffect(() => {
     if (!context?.user?.fid || !posthog?.isFeatureEnabled) return;
