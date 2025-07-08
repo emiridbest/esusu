@@ -11,7 +11,7 @@
         "homeUrl": "https://esusu-farcaster.vercel.app",
         "splashImageUrl": "https://esusu-farcaster.vercel.app/esusu.png",
         "splashBackgroundColor": "#f5f0ec",
-        "webhookUrl": "https://esusu-farcaster.vercel.app/api/farcaster/webhook",
+        "webhookUrl": "https://api.neynar.com/f/app/9b0eeef4-765a-467d-b78c-8a6590e4d99d/event",
         "subtitle": "Mobile data with crypto",
         "description": "Buy mobile data bundles for Africa using cryptocurrency on Celo blockchain",
         "primaryCategory": "finance",

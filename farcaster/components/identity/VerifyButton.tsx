@@ -3,6 +3,7 @@ import { Button } from "../ui/button"
 import { useIdentitySDK } from "@goodsdks/identity-sdk"
 import { useAccount } from "wagmi"
 import { toast } from "sonner"
+import sdk from "@farcaster/frame-sdk"
 
 interface VerifyButtonProps {
   onVerificationSuccess: () => void
@@ -24,7 +25,10 @@ export const VerifyButton: React.FC<VerifyButtonProps> = ({
         42220,
       )
 
-      window.location.href = fvLink
+      sdk.actions.openUrl(fvLink)
+      if (window === window.parent) {
+        window.location.href = fvLink
+      }
     } catch (error) {
       console.error("Verification failed:", error)
       toast.error("Verification failed. Please try again.")
