@@ -7,7 +7,7 @@ import {
   useAccount,
   useSendTransaction,
 } from "wagmi";
-import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
+import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { CountryData } from '@/utils/countryData';
 import { Celo } from '@celo/rainbowkit-celo/chains';
 import {
@@ -24,11 +24,7 @@ import { TransactionSteps, Step, StepStatus } from '@/components/TransactionStep
 // The recipient wallet address for all utility payments
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
-// Divvi Integration 
-const dataSuffix = getDataSuffix({
-  consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-  providers: ['0x0423189886d7966f0dd7e7d256898daeee625dca','0xc95876688026be9d6fa7a7c33328bd013effa2bb','0x7beb0e14f8d2e6f6678cc30d867787b384b19e20'],
-})
+
 
 type UtilityContextType = {
   isProcessing: boolean;
@@ -231,7 +227,10 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           RECIPIENT_WALLET,
           paymentAmount
         ]);
-
+        const dataSuffix = getReferralTag({
+          user: address,
+          consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926', 
+        })
         // Append the Divvi data suffix
         const dataWithSuffix = transferData + dataSuffix;
         // Send the transaction
