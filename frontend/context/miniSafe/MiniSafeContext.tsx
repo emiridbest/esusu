@@ -100,12 +100,12 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Get wagmi account info
   const { address } = useAccount();
   const publicClient = usePublicClient();
-  
+
   // Only get referral tag when address is available
   const dataSuffix = address ? getReferralTag({
-        user: address as `0x${string}`,
-        consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-      }) : undefined;
+    user: address as `0x${string}`,
+    consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
+  }) : undefined;
   const getBalance = useCallback(async () => {
     if (!address) return;
 
@@ -179,16 +179,16 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const handleTokenChange = (value: string) => {
     setSelectedToken(value);
   };
-  
+
   // Update step status helper function
   const updateStepStatus = (stepId: string, status: StepStatus, errorMessage?: string) => {
-    setTransactionSteps(prevSteps => prevSteps.map(step => 
-      step.id === stepId 
-        ? { ...step, status, ...(errorMessage ? { errorMessage } : {}) } 
+    setTransactionSteps(prevSteps => prevSteps.map(step =>
+      step.id === stepId
+        ? { ...step, status, ...(errorMessage ? { errorMessage } : {}) }
         : step
     ));
   };
-  
+
   const getTokenAddress = (token: string) => {
     switch (token) {
       case 'USDC':
@@ -222,7 +222,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const tokenAddress = getTokenAddress(selectedToken);
       const depositValue = parseEther(depositAmount.toString());
 
-    updateStepStatus('allowance', 'loading');
+      updateStepStatus('allowance', 'loading');
       // Check allowance first
       const allowanceData = await readContract({
         address: tokenAddress as `0x${string}`,
@@ -265,9 +265,9 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         depositValue,
       ]);
       const dataSuffix = address ? getReferralTag({
-                user: address,
-                consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-            }) : '';
+        user: address,
+        consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
+      }) : '';
       // Append the data suffix to the approve call data
       const dataWithSuffix = approveData + dataSuffix;
 
@@ -281,7 +281,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       updateStepStatus('confirm', 'loading');
       try {
         await submitReferral({
-          txHash: tx as unknown as  `0x${string}`,
+          txHash: tx.hash,
           chainId: 42220
         });
 
@@ -320,7 +320,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       // Update first step to loading state
       updateStepStatus('check-balance', 'loading');
-      
+
       const tokenAddress = getTokenAddress(selectedToken);
       const depositValue = parseEther(depositAmount.toString());
 
@@ -373,31 +373,33 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Update second step
       updateStepStatus('approve', 'success');
-      
+
       // Start third step - deposit
       updateStepStatus('deposit', 'loading');
 
       // For deposit, we need to handle the referral tag differently
-      const hash = await writeContract({
-        address: contractAddress as `0x${string}`,
-        abi,
-        functionName: 'deposit',
-        args: [tokenAddress, depositValue],
-      });
+      // Fix: Create proper transaction data
+      const depositInterface = new Interface(abi);
+      const depositData = depositInterface.encodeFunctionData("deposit", [
+        tokenAddress,
+        depositValue
+      ]);
+      const dataWithSuffix = depositData + dataSuffix;
 
-      const tx = hash;
-        await submitReferral({
-          txHash: tx as unknown as  `0x${string}`,
-          chainId: 42220
-        });
+      const tx = await sendTransactionAsync({
+        to: contractAddress as `0x${string}`,
+        data: dataWithSuffix as `0x${string}`,
+        chainId: 42220,
+      });
       updateStepStatus('deposit', 'success');
-      
+
       // Start confirmation step
       updateStepStatus('confirm', 'loading');
-      if (!publicClient) {
-        return
-      }
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx as unknown as `0x${string}` });
+      await submitReferral({
+        txHash: tx.hash,
+        chainId: 42220
+      });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx.hash });
       if (receipt.status === 'success') {
         await getBalance();
         await getTokenBalance();
@@ -409,16 +411,116 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updateStepStatus('confirm', 'error', 'Transaction failed on blockchain');
         toast.error('Deposit failed!');
       }
+
     } catch (error) {
       console.error("Error making deposit:", error);
       toast.error('Deposit failed!');
-      
+
       // Find the current loading step and mark it as error
       const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
       if (loadingStepIndex !== -1) {
         updateStepStatus(
-          transactionSteps[loadingStepIndex].id, 
-          'error', 
+          transactionSteps[loadingStepIndex].id,
+          'error',
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
+    } finally {
+
+      setIsWaitingTx(false);
+    }
+  };
+
+
+  const handleWithdraw = async () => {
+    if (!selectedToken) {
+      toast.error('Please select a token');
+      return;
+    }
+    if (!address) {
+      toast.error('Please connect your wallet');
+      return;
+    }
+
+    openTransactionDialog('withdraw');
+    setIsWaitingTx(true);
+
+    try {
+      updateStepStatus('check-balance', 'loading');
+
+      const tokenAddress = getTokenAddress(selectedToken);
+      const getTokenDecimals = (selectedToken: string) => {
+        switch (selectedToken) {
+          case 'USDC': return 6;
+          case 'USDT': return 6;
+          case 'CUSD': return 18;
+          default: return 18;
+        }
+      };
+
+      const decimals = getTokenDecimals(selectedToken);
+
+      let withdrawalAmount: string = "0";
+      if (selectedToken === 'CUSD') {
+        withdrawalAmount = cusdBalance;
+      } else if (selectedToken === 'USDC') {
+        withdrawalAmount = usdcBalance;
+      } else if (selectedToken === 'USDT') {
+        withdrawalAmount = usdtBalance;
+      }
+
+      // Fix: Properly define weiAmount
+      const withdrawalValue = parseEther(withdrawalAmount.toString());
+      console.log("Withdrawal value:", withdrawalValue);
+      await getBalance();
+      await getTokenBalance();
+      updateStepStatus('check-balance', 'success');
+
+      updateStepStatus('withdraw', 'loading');
+
+      // Fix: Create proper transaction data
+      const withdrawInterface = new Interface(abi);
+      const withdrawData = withdrawInterface.encodeFunctionData("withdraw", [
+        tokenAddress,
+        withdrawalValue
+      ]);
+      const dataWithSuffix = withdrawData + dataSuffix;
+
+      const tx = await sendTransactionAsync({
+        to: contractAddress as `0x${string}`,
+        data: dataWithSuffix as `0x${string}`,
+        chainId: 42220,
+      });
+      updateStepStatus('withdraw', 'success');
+      updateStepStatus('confirm', 'loading');
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx.hash });
+
+      if (receipt.status === 'success') {
+        updateStepStatus('confirm', 'success');
+        toast.success('Withdrawal successful!');
+      } else {
+        updateStepStatus('confirm', 'error', 'Transaction failed on blockchain');
+        toast.error('Withdrawal failed!');
+      }
+
+      await getBalance();
+      await getTokenBalance();
+      setWithdrawAmount(0);
+      await submitReferral({
+        txHash: tx.hash,
+        chainId: 42220
+      });
+
+    } catch (error) {
+      console.error("Error making withdrawal:", error);
+      toast.error('Withdrawal failed!');
+
+      const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
+      if (loadingStepIndex !== -1) {
+        updateStepStatus(
+          transactionSteps[loadingStepIndex].id,
+          'error',
           error instanceof Error ? error.message : 'Unknown error'
         );
       }
@@ -426,109 +528,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIsWaitingTx(false);
     }
   };
-
-
- const handleWithdraw = async () => {
-  if (!selectedToken) {
-    toast.error('Please select a token');
-    return;
-  }
-  if (!address) {
-    toast.error('Please connect your wallet');
-    return;
-  }
-
-  openTransactionDialog('withdraw');
-  setIsWaitingTx(true);
-  
-  try {
-    updateStepStatus('check-balance', 'loading');
-    
-    const tokenAddress = getTokenAddress(selectedToken);
-    const getTokenDecimals = (selectedToken: string) => {
-      switch (selectedToken) {
-        case 'USDC': return 6;
-        case 'USDT': return 6;
-        case 'CUSD': return 18;
-        default: return 18;
-      }
-    };
-
-    const decimals = getTokenDecimals(selectedToken);
-
-    let withdrawalAmount: string = "0";
-    if (selectedToken === 'CUSD') {
-      withdrawalAmount = cusdBalance;
-    } else if (selectedToken === 'USDC') {
-      withdrawalAmount = usdcBalance;
-    } else if (selectedToken === 'USDT') {
-      withdrawalAmount = usdtBalance;
-    }
-
-    // Fix: Properly define weiAmount
-    const weiAmount = parseUnits(withdrawalAmount, decimals);
-
-    await getBalance();
-    await getTokenBalance();
-    updateStepStatus('check-balance', 'success');
-    
-    updateStepStatus('withdraw', 'loading');
-    
-    // Fix: Create proper transaction data
-    const withdrawInterface = new Interface(abi);
-    const withdrawData = withdrawInterface.encodeFunctionData("withdraw", [
-      tokenAddress, 
-      weiAmount
-    ]);
-    const dataWithSuffix = withdrawData + dataSuffix;
-
-    const tx = await sendTransactionAsync({
-      to: contractAddress as `0x${string}`,
-      data: dataWithSuffix as `0x${string}`,
-      chainId: 42220,
-    });
-
-       await submitReferral({
-          txHash: tx as unknown as  `0x${string}`,
-          chainId: 42220
-        });
-
-    updateStepStatus('withdraw', 'success');
-    updateStepStatus('confirm', 'loading');
-    
-    if (!publicClient) {
-      throw new Error('Public client not available');
-    }
-    
-    const receipt = await publicClient.waitForTransactionReceipt({ hash: tx as unknown as `0x${string}` });
-    
-    if (receipt.status === 'success') {
-      updateStepStatus('confirm', 'success');
-      toast.success('Withdrawal successful!');
-    } else {
-      updateStepStatus('confirm', 'error', 'Transaction failed on blockchain');
-      toast.error('Withdrawal failed!');
-    }
-
-    await getBalance();
-    await getTokenBalance();
-    setWithdrawAmount(0);
-  } catch (error) {
-    console.error("Error making withdrawal:", error);
-    toast.error('Withdrawal failed!');
-    
-    const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
-    if (loadingStepIndex !== -1) {
-      updateStepStatus(
-        transactionSteps[loadingStepIndex].id, 
-        'error', 
-        error instanceof Error ? error.message : 'Unknown error'
-      );
-    }
-  } finally {
-    setIsWaitingTx(false);
-  }
-};
 
   const handleBreakLock = async () => {
     if (!address) {
@@ -548,7 +547,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Get token balance
       await getBalance();
       await getTokenBalance();
-      
+
       // Update first step to success and start second step
       updateStepStatus('check-balance', 'success');
       updateStepStatus('approve', 'loading');
@@ -564,7 +563,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         functionName: 'MIN_TOKENS_FOR_TIMELOCK_BREAK',
       }) as number;
       const spendAmount = parseEther(spend.toString());
-      
+
       // Correctly encode the approve function with parameters
       const approveInterface = new Interface(tokenAbi);
       const approveData = approveInterface.encodeFunctionData("approve", [
@@ -585,13 +584,13 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Update second step to success and start third step
       updateStepStatus('approve', 'success');
       updateStepStatus('break', 'loading');
-      
+
       const breakTimelockInterface = new Interface(abi);
       const breakTimelockData = breakTimelockInterface.encodeFunctionData("breakTimelock", [
         tokenAddress
       ]);
       const breakData = breakTimelockData + dataSuffix;
-      
+
       let txHash: `0x${string}`;
       try {
         const tx = await sendTransactionAsync({
@@ -599,10 +598,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           data: breakData as `0x${string}`,
           chainId: 42220,
         });
-      await submitReferral({
-          txHash: tx as unknown as  `0x${string}`,
-          chainId: 42220
-        });
+
       } catch (error) {
         updateStepStatus('confirm', 'error', error instanceof Error ? error.message : 'Unknown error');
         throw error;
@@ -613,31 +609,35 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       await getBalance();
       await getTokenBalance();
-            if (!publicClient) {
-        return
-      }
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx as unknown as `0x${string}` });
-      updateStepStatus('break', 'success');
-      updateStepStatus('confirm', 'loading');
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx.hash });
       if (receipt.status === 'success') {
         toast.success('Timelock broken successfully!');
+        updateStepStatus('break', 'success');
+
       } else {
         updateStepStatus('confirm', 'error', 'Transaction failed on blockchain');
         toast.error('Transaction failed');
       }
-      
+
       await getBalance();
       await getTokenBalance();
+      updateStepStatus('confirm', 'loading');
+
+      await submitReferral({
+        txHash: tx.hash,
+        chainId: 42220
+      });
     } catch (error) {
       console.error("Error breaking timelock:", error);
       toast.error('Error breaking timelock');
-      
+
       // Find the current loading step and mark it as error
       const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
       if (loadingStepIndex !== -1) {
         updateStepStatus(
-          transactionSteps[loadingStepIndex].id, 
-          'error', 
+          transactionSteps[loadingStepIndex].id,
+          'error',
           error instanceof Error ? error.message : 'Unknown error'
         );
       }
@@ -655,107 +655,107 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     let steps: Step[] = [];
     if (operation === 'deposit') {
       steps = [
-        { 
+        {
           id: 'check-balance',
           title: 'Check Balance',
           description: 'Checking your wallet balance...',
-          status: 'inactive' 
+          status: 'inactive'
         },
-        { 
+        {
           id: 'approve',
           title: 'Approve',
           description: `Allowing safe to use your ${selectedToken}...`,
-          status: 'inactive' 
+          status: 'inactive'
         },
-        { 
+        {
           id: 'deposit',
           title: 'Deposit',
           description: `Depositing ${depositAmount} ${selectedToken} into the safe...`,
-          status: 'inactive' 
+          status: 'inactive'
         },
-        { 
+        {
           id: 'confirm',
           title: 'Confirm',
           description: 'Confirming transaction on the blockchain...',
-          status: 'inactive' 
+          status: 'inactive'
         }
       ];
     } else if (operation === 'withdraw') {
       steps = [
-        { 
+        {
           id: 'check-balance',
           title: 'Check Balance',
           description: 'Checking your safe balance...',
-          status: 'inactive' 
+          status: 'inactive'
         },
-        { 
+        {
           id: 'withdraw',
           title: 'Withdraw',
           description: `Withdrawing your ${selectedToken} from the safe...`,
-          status: 'inactive' 
+          status: 'inactive'
         },
-        { 
+        {
           id: 'confirm',
           title: 'Confirm',
           description: 'Confirming transaction on the blockchain...',
-          status: 'inactive' 
+          status: 'inactive'
         }
       ];
     } else if (operation === 'break') {
       steps = [
-        { 
+        {
           id: 'check-balance',
           title: 'Check Balance',
           description: 'Checking your token balance...',
-          status: 'inactive' 
+          status: 'inactive'
         },
-        { 
+        {
           id: 'approve',
           title: 'Approve',
           description: 'Approving token spend for timelock break...',
-          status: 'inactive' 
+          status: 'inactive'
         },
-        { 
+        {
           id: 'break',
           title: 'Break Timelock',
           description: 'Requesting to break timelock...',
-          status: 'inactive' 
+          status: 'inactive'
         },
-        { 
+        {
           id: 'confirm',
           title: 'Confirm',
           description: 'Confirming transaction on the blockchain...',
-          status: 'inactive' 
+          status: 'inactive'
         }
       ];
     }
-      else if (operation === 'approve') {
-        steps = [
-          { 
-            id: 'check-balance',
-            title: 'Check Balance',
-            description: 'Checking your token balance...',
-            status: 'inactive' 
-          },
-          {
-            id: 'allowance',
-            title: 'Allowance',
-            description: `Checking allowance for ${selectedToken}...`,
-            status: 'inactive'
-          },
-          { 
-            id: 'approve',
-            title: 'Approve',
-            description: `Allowing safe to use your ${selectedToken}...`,
-            status: 'inactive' 
-          },
-          { 
-            id: 'confirm',
-            title: 'Confirm',
-            description: 'Confirming transaction on the blockchain...',
-            status: 'inactive' 
-          }
-        ];
+    else if (operation === 'approve') {
+      steps = [
+        {
+          id: 'check-balance',
+          title: 'Check Balance',
+          description: 'Checking your token balance...',
+          status: 'inactive'
+        },
+        {
+          id: 'allowance',
+          title: 'Allowance',
+          description: `Checking allowance for ${selectedToken}...`,
+          status: 'inactive'
+        },
+        {
+          id: 'approve',
+          title: 'Approve',
+          description: `Allowing safe to use your ${selectedToken}...`,
+          status: 'inactive'
+        },
+        {
+          id: 'confirm',
+          title: 'Confirm',
+          description: 'Confirming transaction on the blockchain...',
+          status: 'inactive'
+        }
+      ];
     }
     setTransactionSteps(steps);
   };
@@ -842,44 +842,44 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return 'Transaction';
     }
   };
-  
+
   // Check if all steps are completed
   const allStepsCompleted = transactionSteps.every(step => step.status === 'success');
   const hasError = transactionSteps.some(step => step.status === 'error');
-  
+
   return (
     <MiniSafeContext.Provider value={value}>
       {children}
-      
+
       {/* Multi-step Transaction Dialog */}
       <Dialog open={isTransactionDialogOpen} onOpenChange={(open) => !isWaitingTx && !open && closeTransactionDialog()}>
         <DialogContent className="sm:max-w-md border rounded-lg">
           <DialogHeader>
             <DialogTitle className='text-black/90 dark:text-white/90'>{getDialogTitle()}</DialogTitle>
             <DialogDescription>
-              {currentOperation === 'deposit' ? 
-                `Depositing ${depositAmount} ${selectedToken}` : 
-                currentOperation === 'withdraw' ? 
-                `Withdrawing ${selectedToken}` : 
-                'Breaking timelock to access funds early'}
+              {currentOperation === 'deposit' ?
+                `Depositing ${depositAmount} ${selectedToken}` :
+                currentOperation === 'withdraw' ?
+                  `Withdrawing ${selectedToken}` :
+                  'Breaking timelock to access funds early'}
             </DialogDescription>
           </DialogHeader>
-          
+
           {/* Transaction Steps */}
           <TransactionSteps steps={transactionSteps} />
-          
+
           <DialogFooter className="flex justify-between text-black/90 dark:text-white/90">
-            <Button 
-              variant="outline" 
-              onClick={closeTransactionDialog} 
+            <Button
+              variant="outline"
+              onClick={closeTransactionDialog}
               disabled={isWaitingTx && !hasError}
             >
               {hasError ? 'Close' : allStepsCompleted ? 'Done' : 'Cancel'}
             </Button>
-            
+
             {hasError && (
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 onClick={() => {
                   closeTransactionDialog();
                   // Re-attempt the operation after closing
