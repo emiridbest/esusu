@@ -100,10 +100,12 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Get wagmi account info
   const { address } = useAccount();
   const publicClient = usePublicClient();
-  const dataSuffix = getReferralTag({
+  
+  // Only get referral tag when address is available
+  const dataSuffix = address ? getReferralTag({
         user: address as `0x${string}`,
         consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-      });
+      }) : undefined;
   const getBalance = useCallback(async () => {
     if (!address) return;
 
@@ -262,10 +264,10 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         contractAddress,
         depositValue,
       ]);
-      const dataSuffix = getReferralTag({
+      const dataSuffix = address ? getReferralTag({
                 user: address,
                 consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-            })
+            }) : '';
       // Append the data suffix to the approve call data
       const dataWithSuffix = approveData + dataSuffix;
 

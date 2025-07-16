@@ -13,7 +13,7 @@ const { chains, publicClient } = configureChains(
   [publicProvider()]
 );
 
-const connectors = () => [
+const connectors = [
   new InjectedConnector({ 
     chains,
     options: {
@@ -29,6 +29,7 @@ const appInfo = {
 
 export const wagmiConfig = createConfig({
   autoConnect: true,
+  connectors,
   publicClient,
 });
 
