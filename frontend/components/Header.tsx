@@ -47,9 +47,7 @@ export default function Header() {
 
   const { isConnected } = useAccount();
   
-  const { connect } = useConnect({
-    connector: new InjectedConnector(),
-  });
+  const { connect } = useConnect();
 
   useEffect(() => {
     // Only attempt to connect if not already connected

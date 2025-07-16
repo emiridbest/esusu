@@ -14,7 +14,7 @@ import {
   type Config,
 } from "wagmi";
 import Provider, { config } from '../../components/providers/WagmiProvider';
-import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
+import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { CountryData } from '../../utils/countryData';
 import {
   Dialog,
@@ -30,11 +30,7 @@ import { Mento } from "@mento-protocol/mento-sdk";
 // The recipient wallet address for all utility payments
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
-// Divvi Integration 
-const dataSuffix = getDataSuffix({
-  consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-  providers: ['0x0423189886d7966f0dd7e7d256898daeee625dca','0xc95876688026be9d6fa7a7c33328bd013effa2bb','0x7beb0e14f8d2e6f6678cc30d867787b384b19e20'],
-})
+
 
 type UtilityContextType = {
   isProcessing: boolean;
@@ -112,7 +108,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
   useEffect(() => {
     if (!isConnected || !provider) return;
-    
+
     const initMento = async () => {
       try {
         const mentoInstance = await Mento.create(provider);
@@ -121,7 +117,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         console.error('Failed to initialize Mento:', error);
       }
     };
-    
+
     initMento();
   }, [provider, isConnected]);
 
@@ -299,7 +295,11 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           RECIPIENT_WALLET,
           paymentAmount
         ]);
+        const dataSuffix = getReferralTag({
+          user: address, // The user address making the transaction
+          consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926', // Your Divvi Identifier
 
+        })
         // Append the Divvi data suffix
         const dataWithSuffix = transferData + dataSuffix;
         // Send the transaction
@@ -418,27 +418,27 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         {
           id: 'verify-phone',
           title: 'Verify Phone Number',
-          
+
           description: `Verifying phone number for ${recipient}`,
           status: 'inactive'
         },
         {
           id: 'check-balance',
           title: 'Check Balance',
-          description: `Checking your wallet balance`,  
+          description: `Checking your wallet balance`,
           status: 'inactive'
         },
         {
-          id: 'send-payment', 
+          id: 'send-payment',
           title: 'Send Payment',
           description: `Sending payment for ${recipient}`,
           status: 'inactive'
         },
         {
-          id: 'top-up',   
-          
+          id: 'top-up',
+
           title: 'Perform Top Up',
-          description: `Confirming airtime purchase for ${recipient}`,  
+          description: `Confirming airtime purchase for ${recipient}`,
           status: 'inactive'
         }
       ];

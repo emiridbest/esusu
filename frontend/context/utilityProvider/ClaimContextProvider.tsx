@@ -4,7 +4,7 @@ import React, { useState, useContext, createContext, ReactNode, useMemo, useEffe
 import { ethers, Interface } from "ethers";
 import { useAccount, useSendTransaction } from "wagmi";
 import { toast } from 'sonner';
-import { getDataSuffix, submitReferral } from '@divvi/referral-sdk';
+import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { Celo } from '@celo/rainbowkit-celo/chains';
 import { createPublicClient, http } from 'viem'
 import { IdentitySDK, ClaimSDK } from "@goodsdks/citizen-sdk"
@@ -25,11 +25,7 @@ import { PublicClient, WalletClient } from "viem"
 // Constants
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
-// Divvi Integration 
-const dataSuffix = getDataSuffix({
-  consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-  providers: ['0x0423189886d7966f0dd7e7d256898daeee625dca','0xc95876688026be9d6fa7a7c33328bd013effa2bb','0x7beb0e14f8d2e6f6678cc30d867787b384b19e20'],
-})
+
 
 // Token definitions
 const TOKENS = {
@@ -89,7 +85,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const [currentOperation, setCurrentOperation] = useState<'data' | null>(null);
   const [isWaitingTx, setIsWaitingTx] = useState(false);
   const [recipient, setRecipient] = useState<string>('');
-  const { sendTransactionAsync } = useSendTransaction({ chainId: Celo.id });
+  const { sendTransactionAsync } = useSendTransaction();
   const [claimSDK, setClaimSDK] = useState<any>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const initializationAttempted = useRef(false);
@@ -268,6 +264,9 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   };
 
   const processPayment = async () => {
+    if (!isConnected || !address) {
+      return;
+    }
     if (!entitlement || entitlement <= BigInt(0)) {
       toast.info("No entitlement available at the moment.");
       return;
@@ -282,7 +281,13 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       RECIPIENT_WALLET,
       entitlement
     ]);
-
+      console.log("Processing payment for address:", address);
+    
+    const dataSuffix = getReferralTag({
+      user: address, 
+      consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
+    });
+  
     const dataWithSuffix = transferData + dataSuffix;
 
     toast.info("Processing payment for data bundle...");
@@ -291,7 +296,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         to: tokenAddress as `0x${string}`,
         data: dataWithSuffix as `0x${string}`,
       });
-
+    
       try {
         await submitReferral({
           txHash: tx as unknown as `0x${string}`,
