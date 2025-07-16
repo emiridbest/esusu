@@ -47,18 +47,21 @@ export default function Header() {
 
   const { isConnected } = useAccount();
   
-  const { connect } = useConnect();
+  const { connect, connectors } = useConnect();
 
   useEffect(() => {
     // Only attempt to connect if not already connected
-    if (!isConnected) {
+    if (!isConnected && connectors.length > 0) {
       try {
-        connect({chainId: Celo.id});
+        const connector = connectors.find((c) => c.id === "injected") || connectors[0];
+        if (connector) {
+          connect({ chainId: Celo.id, connector });
+        }
       } catch (error) {
         console.error("Connection error:", error);
       }
     }
-  }, [connect, isConnected]); 
+  }, [connect, isConnected, connectors]); 
 
   const handleSearchIconClick = () => {
     setSearchVisible(true);

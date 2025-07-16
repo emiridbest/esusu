@@ -1,6 +1,7 @@
 "use client";
 import { Alfajores, Celo } from "@celo/rainbowkit-celo/chains";
-import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
+import { RainbowKitProvider, connectorsForWallets } from "@rainbow-me/rainbowkit";
+import { injectedWallet } from "@rainbow-me/rainbowkit/wallets";
 import "@rainbow-me/rainbowkit/styles.css";
 import { WagmiConfig, configureChains, createConfig } from "wagmi";
 import { publicProvider } from "wagmi/providers/public";
@@ -8,9 +9,18 @@ import { ReactNode } from "react";
 import { ClaimProvider } from "@/context/utilityProvider/ClaimContextProvider";
 
 const { chains, publicClient } = configureChains(
-  [Celo, Alfajores],
+  [Celo],
   [publicProvider()]
 );
+
+const connectors = connectorsForWallets([
+  {
+    groupName: 'Recommended',
+    wallets: [
+      injectedWallet({ chains }),
+    ],
+  },
+]);
 
 const appInfo = {
   appName: "Celo Composer",
@@ -18,7 +28,7 @@ const appInfo = {
 
 export const wagmiConfig = createConfig({
   autoConnect: true,
-  connectors: [],
+  connectors,
   publicClient,
 });
 
