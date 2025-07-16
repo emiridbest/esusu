@@ -4,7 +4,7 @@ import React, { useState, useContext, createContext, ReactNode, useMemo, useEffe
 import { ethers, Interface } from "ethers";
 import { useAccount, useSendTransaction, useSwitchChain } from "wagmi";
 import { toast } from 'sonner';
-import { getDataSuffix, submitReferral } from '@divvi/referral-sdk';
+import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { Celo } from '@celo/rainbowkit-celo/chains';
 import { createPublicClient, http } from 'viem'
 import { IdentitySDK, ClaimSDK } from "@goodsdks/citizen-sdk"
@@ -26,11 +26,7 @@ import { config } from '../../components/providers/WagmiProvider';
 // Constants
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
-// Divvi Integration 
-const dataSuffix = getDataSuffix({
-  consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-  providers: ['0x0423189886d7966f0dd7e7d256898daeee625dca','0xc95876688026be9d6fa7a7c33328bd013effa2bb','0x7beb0e14f8d2e6f6678cc30d867787b384b19e20'],
-})
+
 // Token definitions
 const TOKENS = {
   'G$': {
@@ -98,9 +94,9 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const [recipient, setRecipient] = useState<string>('');
   const celoChainId = config.chains[0].id
   const [claimSDK, setClaimSDK] = useState<any>(null);
-    const [isInitializing, setIsInitializing] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
   const initializationAttempted = useRef(false);
-  
+
   // Setup transaction sending
   const { sendTransactionAsync } = useSendTransaction({ config });
   // Setup chain switching
@@ -115,7 +111,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     switchChain({ chainId: celoChainId });
   };
 
-  
+
   const publicClient = createPublicClient({
     chain: celo,
     transport: http()
@@ -150,12 +146,12 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     const initializeClaimSDK = async () => {
       // Skip if we're already initializing, already initialized, or missing prerequisites
       if (
-        isInitializing || 
-        initializationAttempted.current || 
-        claimSDK || 
-        !isConnected || 
-        !walletClient || 
-        !identitySDK || 
+        isInitializing ||
+        initializationAttempted.current ||
+        claimSDK ||
+        !isConnected ||
+        !walletClient ||
+        !identitySDK ||
         !address
       ) {
         return;
@@ -164,9 +160,9 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       try {
         setIsInitializing(true);
         initializationAttempted.current = true;
-        
+
         console.log("Initializing ClaimSDK with connected wallet...");
-        
+
         const sdk = ClaimSDK.init({
           publicClient: publicClient as PublicClient,
           walletClient: walletClient as unknown as WalletClient,
@@ -175,7 +171,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         });
 
         console.log("ClaimSDK initialized successfully");
-        
+
         const initializedSDK = await sdk;
         setClaimSDK(initializedSDK);
 
@@ -212,7 +208,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     ));
   };
 
- const handleClaim = async () => {
+  const handleClaim = async () => {
     try {
       if (!isConnected) {
         throw new Error("Wallet not connected");
@@ -299,7 +295,10 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       RECIPIENT_WALLET,
       entitlement
     ]);
-
+    const dataSuffix = getReferralTag({
+      user: address, // The user address making the transaction
+      consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
+    })
     const dataWithSuffix = transferData + dataSuffix;
 
     toast.info("Processing payment for data bundle...");
