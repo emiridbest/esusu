@@ -242,7 +242,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         // Submit the referral to Divvi
         try {
           await submitReferral({
-            txHash: tx as unknown as `0x${string}`,
+            txHash: tx.hash as unknown as `0x${string}`,
             chainId: Celo.id
           });
         } catch {

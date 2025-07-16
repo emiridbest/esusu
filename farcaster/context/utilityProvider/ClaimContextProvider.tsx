@@ -311,7 +311,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
       try {
         await submitReferral({
-          txHash: tx,
+          txHash: tx as unknown as `0x${string}`,
           chainId: celoChainId
         });
       } catch (referralError) {
