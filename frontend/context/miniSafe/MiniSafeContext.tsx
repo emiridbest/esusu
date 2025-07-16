@@ -3,8 +3,7 @@ import { toast } from 'sonner';
 import { contractAddress, abi } from '@/utils/abi';
 import { formatUnits, Interface } from "ethers";
 import { gweiUnits, parseEther, parseUnits } from "viem";
-import { getDataSuffix, submitReferral } from '@divvi/referral-sdk';
-import { Celo } from '@celo/rainbowkit-celo/chains';
+import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import {
   useAccount,
   usePublicClient,
@@ -24,11 +23,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '@/components/TransactionSteps';
 
-// Divvi Integration 
-const dataSuffix = getDataSuffix({
-  consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-  providers: ['0x0423189886d7966f0dd7e7d256898daeee625dca','0xc95876688026be9d6fa7a7c33328bd013effa2bb','0x7beb0e14f8d2e6f6678cc30d867787b384b19e20'],
-})
 
 interface MiniSafeContextType {
   // Token addresses
@@ -95,7 +89,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [interestRate] = useState(5); // 5% APY for visualization
   const {
     sendTransactionAsync
-  } = useSendTransaction({ chainId: Celo.id });
+  } = useSendTransaction();
 
 
   // Transaction dialog states
@@ -106,7 +100,10 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Get wagmi account info
   const { address } = useAccount();
   const publicClient = usePublicClient();
-
+  const dataSuffix = getReferralTag({
+        user: address as `0x${string}`,
+        consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
+      });
   const getBalance = useCallback(async () => {
     if (!address) return;
 
@@ -265,7 +262,10 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         contractAddress,
         depositValue,
       ]);
-
+      const dataSuffix = getReferralTag({
+                user: address,
+                consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
+            })
       // Append the data suffix to the approve call data
       const dataWithSuffix = approveData + dataSuffix;
 
@@ -273,14 +273,14 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const tx = await sendTransactionAsync({
         to: tokenAddress,
         data: dataWithSuffix as `0x${string}`,
-        chainId: Celo.id,
+        chainId: 42220,
       });
       updateStepStatus('approve', 'success');
       updateStepStatus('confirm', 'loading');
       try {
         await submitReferral({
-          txHash: tx.hash as `0x${string}`,
-          chainId: Celo.id
+          txHash: tx as unknown as  `0x${string}`,
+          chainId: 42220
         });
 
 
@@ -362,12 +362,10 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           contractAddress,
           depositValue,
         ]);
-
-        const dataWithSuffix = approveData + dataSuffix;
         await sendTransactionAsync({
           to: tokenAddress as `0x${string}`,
-          data: dataWithSuffix as `0x${string}`,
-          chainId: Celo.id,
+          data: approveData as `0x${string}`,
+          chainId: 42220,
         });
       }
 
@@ -376,20 +374,28 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       // Start third step - deposit
       updateStepStatus('deposit', 'loading');
-      
-      const { hash } = await writeContract({
+
+      // For deposit, we need to handle the referral tag differently
+      const hash = await writeContract({
         address: contractAddress as `0x${string}`,
         abi,
         functionName: 'deposit',
         args: [tokenAddress, depositValue],
       });
 
+      const tx = hash;
+        await submitReferral({
+          txHash: tx as unknown as  `0x${string}`,
+          chainId: 42220
+        });
       updateStepStatus('deposit', 'success');
       
       // Start confirmation step
       updateStepStatus('confirm', 'loading');
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
+      if (!publicClient) {
+        return
+      }
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx as unknown as `0x${string}` });
       if (receipt.status === 'success') {
         await getBalance();
         await getTokenBalance();
@@ -420,99 +426,107 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
 
-  const handleWithdraw = async () => {
-    if (!selectedToken) {
-      toast.error('Please select a token');
-      return;
-    }
-    if (!address) {
-      toast.error('Please connect your wallet');
-      return;
-    }
+ const handleWithdraw = async () => {
+  if (!selectedToken) {
+    toast.error('Please select a token');
+    return;
+  }
+  if (!address) {
+    toast.error('Please connect your wallet');
+    return;
+  }
 
-    // Open the multi-step dialog
-    openTransactionDialog('withdraw');
-    setIsWaitingTx(true);
+  openTransactionDialog('withdraw');
+  setIsWaitingTx(true);
+  
+  try {
+    updateStepStatus('check-balance', 'loading');
     
-    try {
-      // Update first step to loading state
-      updateStepStatus('check-balance', 'loading');
-      
-      const tokenAddress = getTokenAddress(selectedToken);
-
-      // Get token decimals (you might need to fetch this from the token contract)
-      const getTokenDecimals = (selectedToken: string) => {
-        switch (selectedToken) {
-          case 'USDC': return 6;  // USDC typically uses 6 decimals
-          case 'USDT': return 6;  // USDT typically uses 6 decimals  
-          case 'CUSD': return 18; // Assuming CUSD uses 18 decimals
-          default: return 18;
-        }
-      };
-
-      const decimals = getTokenDecimals(selectedToken);
-
-      let withdrawalAmount: string = "0";
-      if (selectedToken === 'CUSD') {
-        withdrawalAmount = cusdBalance;
-      } else if (selectedToken === 'USDC') {
-        withdrawalAmount = usdcBalance;
-      } else if (selectedToken === 'USDT') {
-        withdrawalAmount = usdtBalance;
+    const tokenAddress = getTokenAddress(selectedToken);
+    const getTokenDecimals = (selectedToken: string) => {
+      switch (selectedToken) {
+        case 'USDC': return 6;
+        case 'USDT': return 6;
+        case 'CUSD': return 18;
+        default: return 18;
       }
+    };
 
-      // Check balance and update first step
-      await getBalance();
-      await getTokenBalance();
-      updateStepStatus('check-balance', 'success');
-      
-      // Start second step - withdrawal
-      updateStepStatus('withdraw', 'loading');
-      
-      const weiAmount = parseEther(withdrawalAmount); //to be fixed
-      const { hash } = await writeContract({
-        address: contractAddress as `0x${string}`,
-        abi,
-        functionName: 'withdraw',
-        args: [tokenAddress, weiAmount],
-      });
+    const decimals = getTokenDecimals(selectedToken);
 
-      // Update second step
-      updateStepStatus('withdraw', 'success');
-      
-      // Start confirmation step
-      updateStepStatus('confirm', 'loading');
-      
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      
-      if (receipt.status === 'success') {
-        updateStepStatus('confirm', 'success');
-        toast.success('Withdrawal successful!');
-      } else {
-        updateStepStatus('confirm', 'error', 'Transaction failed on blockchain');
-        toast.error('Withdrawal failed!');
-      }
-
-      await getBalance();
-      await getTokenBalance();
-      setWithdrawAmount(0);
-    } catch (error) {
-      console.error("Error making withdrawal:", error);
-      toast.error('Withdrawal failed!');
-      
-      // Find the current loading step and mark it as error
-      const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
-      if (loadingStepIndex !== -1) {
-        updateStepStatus(
-          transactionSteps[loadingStepIndex].id, 
-          'error', 
-          error instanceof Error ? error.message : 'Unknown error'
-        );
-      }
-    } finally {
-      setIsWaitingTx(false);
+    let withdrawalAmount: string = "0";
+    if (selectedToken === 'CUSD') {
+      withdrawalAmount = cusdBalance;
+    } else if (selectedToken === 'USDC') {
+      withdrawalAmount = usdcBalance;
+    } else if (selectedToken === 'USDT') {
+      withdrawalAmount = usdtBalance;
     }
-  };
+
+    // Fix: Properly define weiAmount
+    const weiAmount = parseUnits(withdrawalAmount, decimals);
+
+    await getBalance();
+    await getTokenBalance();
+    updateStepStatus('check-balance', 'success');
+    
+    updateStepStatus('withdraw', 'loading');
+    
+    // Fix: Create proper transaction data
+    const withdrawInterface = new Interface(abi);
+    const withdrawData = withdrawInterface.encodeFunctionData("withdraw", [
+      tokenAddress, 
+      weiAmount
+    ]);
+    const dataWithSuffix = withdrawData + dataSuffix;
+
+    const tx = await sendTransactionAsync({
+      to: contractAddress as `0x${string}`,
+      data: dataWithSuffix as `0x${string}`,
+      chainId: 42220,
+    });
+
+       await submitReferral({
+          txHash: tx as unknown as  `0x${string}`,
+          chainId: 42220
+        });
+
+    updateStepStatus('withdraw', 'success');
+    updateStepStatus('confirm', 'loading');
+    
+    if (!publicClient) {
+      throw new Error('Public client not available');
+    }
+    
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: tx as unknown as `0x${string}` });
+    
+    if (receipt.status === 'success') {
+      updateStepStatus('confirm', 'success');
+      toast.success('Withdrawal successful!');
+    } else {
+      updateStepStatus('confirm', 'error', 'Transaction failed on blockchain');
+      toast.error('Withdrawal failed!');
+    }
+
+    await getBalance();
+    await getTokenBalance();
+    setWithdrawAmount(0);
+  } catch (error) {
+    console.error("Error making withdrawal:", error);
+    toast.error('Withdrawal failed!');
+    
+    const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
+    if (loadingStepIndex !== -1) {
+      updateStepStatus(
+        transactionSteps[loadingStepIndex].id, 
+        'error', 
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+    }
+  } finally {
+    setIsWaitingTx(false);
+  }
+};
 
   const handleBreakLock = async () => {
     if (!address) {
@@ -563,7 +577,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const tx = await sendTransactionAsync({
         to: contractAddress as `0x${string}`,
         data: dataWithSuffix as `0x${string}`,
-        chainId: Celo.id,
+        chainId: 42220,
       });
 
       // Update second step to success and start third step
@@ -578,12 +592,15 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       let txHash: `0x${string}`;
       try {
-        const sendHash = await sendTransactionAsync({
+        const tx = await sendTransactionAsync({
           to: contractAddress as `0x${string}`,
           data: breakData as `0x${string}`,
-          chainId: Celo.id,
+          chainId: 42220,
         });
-        txHash = sendHash.hash;
+      await submitReferral({
+          txHash: tx as unknown as  `0x${string}`,
+          chainId: 42220
+        });
       } catch (error) {
         updateStepStatus('confirm', 'error', error instanceof Error ? error.message : 'Unknown error');
         throw error;
@@ -594,7 +611,10 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       await getBalance();
       await getTokenBalance();
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+            if (!publicClient) {
+        return
+      }
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx as unknown as `0x${string}` });
       updateStepStatus('break', 'success');
       updateStepStatus('confirm', 'loading');
       if (receipt.status === 'success') {

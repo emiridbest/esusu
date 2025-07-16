@@ -1,6 +1,5 @@
 "use client";
 import { Alfajores, Celo } from "@celo/rainbowkit-celo/chains";
-import celoGroups from "@celo/rainbowkit-celo/lists";
 import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import "@rainbow-me/rainbowkit/styles.css";
 import { WagmiConfig, configureChains, createConfig } from "wagmi";
@@ -14,14 +13,23 @@ const { chains, publicClient } = configureChains(
   [publicProvider()]
 );
 
-const connectors = [new InjectedConnector({ chains })];
+const connectors = () => [
+  new InjectedConnector({ 
+    chains,
+    options: {
+      name: 'Injected',
+      shimDisconnect: true,
+    }
+  })
+];
+
 const appInfo = {
   appName: "Celo Composer",
 };
 
 export const wagmiConfig = createConfig({
-  connectors,
-  publicClient: publicClient,
+  autoConnect: true,
+  publicClient,
 });
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -29,7 +37,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <WagmiConfig config={wagmiConfig}>
       <RainbowKitProvider chains={chains} appInfo={appInfo} coolMode={true} showRecentTransactions={true}>
         <ClaimProvider>
-          {children as JSX.Element}
+          {children}
         </ClaimProvider>
       </RainbowKitProvider>
     </WagmiConfig>
