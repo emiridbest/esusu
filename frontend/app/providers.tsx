@@ -3,7 +3,6 @@ import { Alfajores, Celo } from "@celo/rainbowkit-celo/chains";
 import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import "@rainbow-me/rainbowkit/styles.css";
 import { WagmiConfig, configureChains, createConfig } from "wagmi";
-import { InjectedConnector } from "wagmi/connectors/injected";
 import { publicProvider } from "wagmi/providers/public";
 import { ReactNode } from "react";
 import { ClaimProvider } from "@/context/utilityProvider/ClaimContextProvider";
@@ -13,23 +12,13 @@ const { chains, publicClient } = configureChains(
   [publicProvider()]
 );
 
-const connectors = [
-  new InjectedConnector({ 
-    chains,
-    options: {
-      name: 'Injected',
-      shimDisconnect: true,
-    }
-  })
-];
-
 const appInfo = {
   appName: "Celo Composer",
 };
 
 export const wagmiConfig = createConfig({
   autoConnect: true,
-  connectors,
+  connectors: [],
   publicClient,
 });
 
@@ -56,5 +45,6 @@ export function App({ Component, pageProps }: any) {
     </WagmiConfig>
   );
 }
+
 
 export default AppProvider;
