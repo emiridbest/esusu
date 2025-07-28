@@ -11,6 +11,7 @@
 - Onboard additional users, increasing the community base by over 150%
 - Ran a monthly community giveaway scheme
 - Launched referral campaign for early community members with rewards payout of over $250 so far
+- Ensured GitOps pipeline is functional
 
 
 ## Overview
