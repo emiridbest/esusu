@@ -7,6 +7,7 @@
 - Made smart contracts upgradable
 - Added test suite with above 85% coverage
 - Implemented G$ face verification on Farcaster
+- Accepting Celo as a means of payment via MentoSDK exchange rate
 - Onboard additional users, increasing the community base by over 150%
 - Ran a monthly community giveaway scheme
 - Launched referral campaign for early community members with rewards payout of over $250 so far
