@@ -85,7 +85,6 @@ export const useFreebiesLogic = () => {
 
     // Function to set country currency
     const setCountryCurrency = (country: string) => {
-        console.log("Setting country currency for:", country);
     };
 
     // Fetch network providers when country changes
@@ -222,7 +221,6 @@ export const useFreebiesLogic = () => {
 async function onSubmit(values: z.infer<typeof formSchema>) {
     // Early return if already processing to prevent race conditions
     if (isProcessing || isClaiming || !canClaimToday) {
-        console.log("Already processing, ignoring duplicate submission");
         return;
     }
 
