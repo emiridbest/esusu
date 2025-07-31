@@ -234,6 +234,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         body: JSON.stringify({
           operatorId: values.network,
           amount: selectedPrice.toString(),
+          customId: values.customId,
           recipientPhone: {
             country: values.country,
             phoneNumber: cleanPhoneNumber
