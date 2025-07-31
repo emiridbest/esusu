@@ -471,7 +471,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Fix: Properly define weiAmount
       const withdrawalValue = parseEther(withdrawalAmount.toString());
-      console.log("Withdrawal value:", withdrawalValue);
       await getBalance();
       await getTokenBalance();
       updateStepStatus('check-balance', 'success');

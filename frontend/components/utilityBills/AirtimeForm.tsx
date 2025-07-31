@@ -124,7 +124,6 @@ useEffect(() => {
       setOperatorRange(null);
 
       const operators = await fetchAirtimeOperators(watchCountry);
-      console.log("Fetched Airtime Operators:", operators);
       setNetworks(operators);
     } catch (error) {
       console.error("Error fetching airtime operators:", error);
@@ -320,7 +319,7 @@ useEffect(() => {
       updateStepStatus('send-payment', 'loading');
 
       // Process blockchain payment first
-      const success = await handleTransaction({
+      const tx = await handleTransaction({
         type: 'airtime',
         amount: selectedPrice.toString(),
         token: selectedToken,
@@ -334,7 +333,7 @@ useEffect(() => {
         }
       });
 
-      if (success) {
+      if (tx) {
         paymentSuccessful = true;
         updateStepStatus('send-payment', 'success');
 
@@ -356,6 +355,7 @@ useEffect(() => {
             body: JSON.stringify({
               operatorId: values.network,
               amount: enteredAmount.toString(),
+              customId: tx,
               useLocalAmount: true,
               recipientPhone: {
                 country: values.country,

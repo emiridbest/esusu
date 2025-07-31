@@ -141,7 +141,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         setIsInitializing(true);
         initializationAttempted.current = true;
         
-        console.log("Initializing ClaimSDK with connected wallet...");
         
         const sdk = ClaimSDK.init({
           publicClient: publicClient as PublicClient,
@@ -150,7 +149,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           env: 'production',
         });
 
-        console.log("ClaimSDK initialized successfully");
         
         const initializedSDK = await sdk;
         setClaimSDK(initializedSDK);
@@ -281,7 +279,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       RECIPIENT_WALLET,
       entitlement
     ]);
-      console.log("Processing payment for address:", address);
     
     const dataSuffix = getReferralTag({
       user: address, 
