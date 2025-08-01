@@ -65,6 +65,7 @@ export const useFreebiesLogic = () => {
     const [isVerified, setIsVerified] = useState<boolean>(false);
     const [isWhitelisted, setIsWhitelisted] = useState<boolean | undefined>(undefined);
     const [loadingWhitelist, setLoadingWhitelist] = useState<boolean | undefined>(undefined);
+    const [txID, setTxID] = useState<string | null>(null);
 
     const identitySDK = useIdentitySDK('production');
 
@@ -344,7 +345,8 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
         // Process payment
         updateStepStatus('payment', 'loading');
         try {
-            await processPayment();
+            const tx = await processPayment();
+            setTxID(tx.hash)
             updateStepStatus('payment', 'success');
         } catch (paymentError) {
             console.error("Payment processing failed:", paymentError);
@@ -371,7 +373,7 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                     country,
                     network: networkId,
                     email: emailAddress,
-                    transactionId // Add transaction ID for server-side deduplication
+                    txID
                 },
                 selectedPrice,
                 availablePlans,
