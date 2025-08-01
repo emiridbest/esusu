@@ -331,7 +331,7 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
         updateStepStatus('claim-ubi', 'loading');
         
         try {
-            //await handleClaim();
+            await handleClaim();
             hasClaimedSuccessfully = true;
             updateStepStatus('claim-ubi', 'success');
             toast.success("Claim successful! Your data bundle will be activated shortly.");
