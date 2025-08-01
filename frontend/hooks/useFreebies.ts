@@ -373,7 +373,7 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                     country,
                     network: networkId,
                     email: emailAddress,
-                    txID
+                    customId: txID
                 },
                 selectedPrice,
                 availablePlans,
