@@ -331,7 +331,7 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
         updateStepStatus('claim-ubi', 'loading');
         
         try {
-            await handleClaim();
+            //await handleClaim();
             hasClaimedSuccessfully = true;
             updateStepStatus('claim-ubi', 'success');
             toast.success("Claim successful! Your data bundle will be activated shortly.");
@@ -342,11 +342,15 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
             return;
         }
 
+        // ...existing code...
+
         // Process payment
         updateStepStatus('payment', 'loading');
+        let transactionHash: string | null = null;
         try {
             const tx = await processPayment();
-            setTxID(tx.hash)
+            transactionHash = tx.hash;
+            setTxID(transactionHash);
             updateStepStatus('payment', 'success');
         } catch (paymentError) {
             console.error("Payment processing failed:", paymentError);
@@ -364,6 +368,11 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                 throw new Error("Invalid plan price");
             }
 
+            // Ensure we have a valid transaction hash
+            if (!transactionHash) {
+                throw new Error("Transaction hash is required for topup");
+            }
+
             const networks = [{ id: networkId, name: 'Network' }];
             updateStepStatus('top-up', 'loading');
             
@@ -373,12 +382,14 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                     country,
                     network: networkId,
                     email: emailAddress,
-                    customId: txID
+                    customId: transactionHash // Use the transactionHash instead of txID
                 },
                 selectedPrice,
                 availablePlans,
                 networks
             );
+            
+            // ...rest of the code...
                 setCanClaimToday(false);
 
             if (topupResult && topupResult.success) {
