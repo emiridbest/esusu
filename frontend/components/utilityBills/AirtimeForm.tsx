@@ -90,6 +90,7 @@ export default function AirtimeForm() {
     transactionSteps,
     updateStepStatus,
     openTransactionDialog,
+    closeTransactionDialog,
     isProcessing,
     setIsProcessing,
     handleTransaction
@@ -383,6 +384,7 @@ useEffect(() => {
               paymentToken: values.paymentToken
             });
             setSelectedPrice(0);
+            closeTransactionDialog();
           } else {
             console.error("Top-up API Error:", data);
             toast.error(data.error || "There was an issue processing your top-up. Our team has been notified.");
