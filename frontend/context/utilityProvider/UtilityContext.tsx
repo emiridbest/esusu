@@ -435,7 +435,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
                 currentOperation === 'electricity' ?
                   `Paying electricity bill for meter ${recipient}` :
                   currentOperation === 'airtime' ?
-                    `Subscribing to airtime TV for ${recipient}` :
+                    `Purchasing airtime for ${recipient}` :
                     'Processing transaction...'}
             </DialogDescription>
           </DialogHeader>
