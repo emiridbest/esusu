@@ -95,7 +95,12 @@ export const useBalance = () => {
 
         return balance >= BigInt(requiredAmount.toString());
       }
-
+      if (tokenId === 'G$') {
+        const balance = await publicClient.getBalance({ address });
+        const convertedAmount = await convertCurrency(amount, currencyCode)
+        const requiredAmount = BigInt(ethers.parseUnits(convertedAmount.toString(), decimals));
+        return balance >= BigInt(requiredAmount.toString());
+      }
       // For ERC20 tokens
       const erc20Abi = [
         {
