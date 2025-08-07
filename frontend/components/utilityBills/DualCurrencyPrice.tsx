@@ -66,23 +66,40 @@ export default function DualCurrencyPrice({
         // Convert local currency to USD
         let usdAmount;
         try {
-          usdAmount = await convertCurrency(parseAmount(amount).toString(), countryCurrency);
-          setUsdEquivalent(usdAmount);
+          if (stablecoin === 'G$') {
+            usdAmount = await convertCurrency(parsedAmount.toString(), countryCurrency);
+            const gDollarAmount = usdAmount / 0.0001;
+            setUsdEquivalent(gDollarAmount);
+            setCryptoDisplay(`${stablecoin} ${gDollarAmount.toFixed(2)}`);
+            if (showTotal) {
+              const totalWithFee = gDollarAmount ;
+              setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
+            }
+          }
+          else if (stablecoin === 'CELO') {
+            usdAmount = await convertCurrency(parsedAmount.toString(), countryCurrency);
+            setUsdEquivalent(usdAmount * 2.8);
+            setCryptoDisplay(`${stablecoin} ${(usdAmount * 2.8).toFixed(2)}`);
+            if (showTotal) {
+              const totalWithFee = usdAmount * 2.8 ;
+              setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
+            }
+          }
+          else {
+            usdAmount = await convertCurrency(parseAmount(amount).toString(), countryCurrency);
+            setUsdEquivalent(usdAmount);
+            setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
+            if (showTotal) {
+              const gasFeeUSD = 0.01;
+              const totalWithFee = usdAmount + gasFeeUSD;
+              setGasFeeDisplay(`${stablecoin} ${gasFeeUSD.toFixed(2)}`);
+              setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
+            }
+          }
         } catch (error) {
           console.error('Error converting to USD:', error);
           setUsdEquivalent(0);
           throw error;
-        }
-
-        setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
-
-        if (showTotal) {
-          // Standard gas fee in USD
-          const gasFeeUSD = 0.01;
-          const totalWithFee = usdAmount + gasFeeUSD;
-
-          setGasFeeDisplay(`${stablecoin} ${gasFeeUSD.toFixed(2)}`);
-          setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
         }
       } catch (error) {
         console.error('Error fetching price data:', error);
