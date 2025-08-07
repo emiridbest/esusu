@@ -70,6 +70,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const usdcAddress = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
   const cusdAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
   const usdtAddress = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e";
+  const celoAddress = "0x471EcE3750Da237f93B8E339c536989b8978a438"; // Native CELO token
+  const goodDollarAddress = "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A"; // G$ token address
   const [recipient, setRecipient] = useState<string>('');
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
   const [transactionSteps, setTransactionSteps] = useState<Step[]>([]);
@@ -129,6 +131,10 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         return cusdAddress;
       case 'USDT':
         return usdtAddress;
+      case 'CELO':
+        return celoAddress;
+      case 'G$':
+        return goodDollarAddress;
       default:
         return cusdAddress;
     }
@@ -216,13 +222,19 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         const memo = getTransactionMemo(type, metadata);
 
         // Parse amount with correct decimals
-        const paymentAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
+        let paymentAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
 
         // Prepare token transfer
         const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
 
         // Encode the transfer function
         const transferInterface = new Interface(tokenAbi);
+        if (token === 'G$') {
+          paymentAmount = paymentAmount * BigInt(10000);
+        }
+        if (token === 'CELO') {
+          paymentAmount = paymentAmount * BigInt(2.8);
+        }
         const transferData = transferInterface.encodeFunctionData("transfer", [
           RECIPIENT_WALLET,
           paymentAmount
