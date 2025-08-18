@@ -37,7 +37,7 @@ type UtilityContextType = {
   countryData: CountryData | null;
   setIsProcessing: (processing: boolean) => void;
   convertCurrency: (amount: string, base_currency: string) => Promise<number>;
-  handleTransaction: (params: TransactionParams) => Promise<boolean>;
+  handleTransaction: (params: TransactionParams) => Promise<`0x${string}` | undefined>;
   getTransactionMemo: (type: 'data' | 'electricity' | 'airtime', metadata: Record<string, any>) => string;
   formatCurrencyAmount: (amount: string | number) => string;
   mento: Mento | null;
@@ -228,7 +228,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
 
   // Enhanced transaction handler for all utility types
-  const handleTransaction = async ({ type, amount, token, recipient, metadata }: TransactionParams): Promise<boolean> => {
+  const handleTransaction = async ({ type, amount, token, recipient, metadata }: TransactionParams): Promise<`0x${string}` | undefined> => {
     if (chain?.id !== celoChainId) {
       if (isSwitchChainPending) {
         toast.info('Switching to Celo network...');
@@ -240,12 +240,12 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         toast.success('Successfully switched to the Celo network.');
         await new Promise(resolve => setTimeout(resolve, 3000));
       }
-      return false;
+      return ;
     }
 
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
       toast.error('Please enter a valid amount');
-      return false;
+      return;
     }
     setIsProcessing(true);
     try {
@@ -256,7 +256,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
       if (convertedAmount <= 0) {
         toast.error('Currency conversion failed. Please try again.');
-        return false;
+        return ;
       }
 
 
@@ -275,7 +275,6 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
               cusdAddress,
               convertedAmount
             );
-            console.log('Quote Amount in CUSD:', quoteAmountIn);
             paymentAmount = ethers.parseUnits(quoteAmountIn.toString(), decimals);
           } catch (error) {
             console.error('Error fetching quote amount:', error);
@@ -333,10 +332,10 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
             break;
         }
         toast.success(successMessage);
-        return true;
+        return tx;
       } else {
         toast.error('Ethereum provider not found. Please install a Web3 wallet.');
-        return false;
+        return;
       }
     } catch (error) {
       console.error('Transaction failed:', error);
@@ -350,7 +349,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           error instanceof Error ? error.message : 'Unknown error'
         );
       }
-      return false;
+      return;
     } finally {
       setIsProcessing(false);
     }
