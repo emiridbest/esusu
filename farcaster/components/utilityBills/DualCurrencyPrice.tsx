@@ -51,6 +51,7 @@ export default function DualCurrencyPrice({
   const [usdEquivalent, setUsdEquivalent] = useState(0);
   const cusdAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
   const celoAddress = "0x471EcE3750Da237f93B8E339c536989b8978a438";
+  const goodDollarAddress = "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A";
   useEffect(() => {
     const fetchPrices = async () => {
       if (!amount && countryCurrency) {
@@ -116,12 +117,25 @@ export default function DualCurrencyPrice({
                 amountIn
               );
               usdAmount = parseFloat(ethers.formatUnits(celoPrice, 18));
-              console.log('Celo Price:', celoPrice.toString());
               setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
             } catch (error) {
               console.error('Error getting Celo price from Mento:', error);
               setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
             }
+          }
+        } else if (stablecoin === 'G$') {
+          const amountIn = ethers.parseUnits(usdAmount.toString(), 18);
+          try {
+            const goodDollarPrice = await mento.getAmountIn(
+              goodDollarAddress,
+              cusdAddress,
+              amountIn
+            );
+            usdAmount = parseFloat(ethers.formatUnits(goodDollarPrice, 18));
+            setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
+          } catch (error) {
+            console.error('Error getting GoodDollar price from Mento:', error);
+            setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
           }
         } else {
           setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);

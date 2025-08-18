@@ -1,3 +1,4 @@
+import { NextRequest, NextResponse } from 'next/server';
 // Base URLs from environment variables
 const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL;
 const SANDBOX_API_URL = process.env.NEXT_PUBLIC_SANDBOX_API_URL;
@@ -8,11 +9,6 @@ const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
 const API_URL = isSandbox ? SANDBOX_API_URL : PRODUCTION_API_URL;
 
 // Log API URL configuration on initialization for debugging
-console.log('API Configuration:', {
-    mode: isSandbox ? 'SANDBOX' : 'PRODUCTION',
-    authUrl: AUTH_URL?.substring(0, 30) || '[NOT SET]',
-    apiUrl: API_URL?.substring(0, 30) || '[NOT SET]'
-});
 
 // Use the native fetch API's RequestInit interface
 type RequestInit = Parameters<typeof fetch>[1];
@@ -31,8 +27,7 @@ const tokenCache = {
 async function getAccessToken(): Promise<string> {
   // Check if token is still valid
   if (tokenCache.token && tokenCache.expiresAt > Date.now()) {
-    console.log('Using cached token (expires in', 
-      Math.round((tokenCache.expiresAt - Date.now()) / 1000), 'seconds)');
+
     return tokenCache.token;
   }
  
@@ -54,11 +49,7 @@ async function getAccessToken(): Promise<string> {
       throw new Error('API audience URL not configured');
     }
  
-    console.log('Requesting new access token...', {
-      authUrl: AUTH_URL,
-      audience,
-      mode: isSandbox ? 'SANDBOX' : 'PRODUCTION'
-    });
+
 
     if (!AUTH_URL) {
       throw new Error('Authentication URL not configured');
@@ -96,7 +87,6 @@ async function getAccessToken(): Promise<string> {
     tokenCache.token = data.access_token;
     tokenCache.expiresAt = Date.now() + (expiresIn * 1000) - 60000; // Subtract 1 minute for safety
     
-    console.log('New token acquired, expires in', expiresIn - 60, 'seconds');
     return tokenCache.token;
   } catch (error) {
     console.error('Error getting Reloadly access token:', error);
@@ -150,28 +140,14 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
 
   return response.json();
 }
-
-
-/**
- * Fetches all countries supported by Reloadly
- */
-export async function getCountries() {
-  try {
-    return await apiRequest('/countries');
-  } catch (error) {
-    console.error('Error fetching countries:', error);
-    throw error;
-  }
-}
-
 /**
  * Gets operators by country code
  * @param countryCode ISO country code
  */
-export async function getOperatorsByCountry(countryCode: string, dataOnly: boolean, bundleOnly: boolean) {
+async function getOperatorsByCountry(countryCode: string, dataOnly: boolean, bundleOnly: boolean, comboOnly: boolean) {
   try {
     // Create URL with query parameters
-    const url = `/operators/countries/${countryCode}?dataOnly=${dataOnly}&bundleOnly=${bundleOnly}&includeTopups=true`;
+    const url = `/operators/countries/${countryCode}?dataOnly=${dataOnly}&includeBundles=${bundleOnly}&includeCombos=${comboOnly}`;
     return await apiRequest(url);
   } catch (error) {
     console.error(`Error fetching operators for ${countryCode}:`, error);
@@ -180,94 +156,40 @@ export async function getOperatorsByCountry(countryCode: string, dataOnly: boole
 }
 
 
-
-/**
- * Gets details of a specific operator
- * @param operatorId The ID of the operator
- */
-export async function getOperator(operatorId: number) {
-  try {
-    return await apiRequest(`/operators/${operatorId}`);
-  } catch (error) {
-    console.error(`Error fetching operator ${operatorId}:`, error);
-    throw error;
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const country = searchParams.get('country');
+  if (!country) {
+    return NextResponse.json({ error: 'Country code is required' }, { status: 400 });
   }
-}
-
-/**
- * Auto-detects operator for a phone number in a country
- * @param phone Phone number
- * @param countryCode ISO country code
- */
-export async function detectOperator(phone: string, countryCode: string) {
- console.log('Detecting operator for phone:', phone, 'in country:', countryCode);
   try {
-    return await apiRequest(`/operators/auto-detect/phone/${phone}/countries/${countryCode}`);
-  } catch (error) {
-    console.error(`Error detecting operator for ${phone} in ${countryCode}:`, error);
-    throw error;
-  }
-}
+    // Ensure country code is properly formatted
+    const sanitizedCountry = country.trim().toLowerCase();
 
-/**
- * Makes a data bundle top-up
- * @param params Top-up parameters
- */
-export async function makeTopup(params: {
-  operatorId: string;
-  amount: string;
-  useLocalAmount?: boolean;
-  recipientEmail?: string;
-  recipientPhone: {
-    country?: string;
-    countryCode?: string;
-    phoneNumber?: string;
-    number?: string;
-  };
-}) {
-  try {
-    // Perform input validation
-    if (!params.operatorId || !params.amount || !params.recipientPhone) {
-      throw new Error('Missing required fields for top-up');
+    const operators: any = await getOperatorsByCountry(sanitizedCountry, true, false, false);
+
+    if (!Array.isArray(operators)) {
+      console.error('Invalid response format from API:', operators);
+      return NextResponse.json({
+        error: 'Invalid response from operator service',
+        details: 'Expected an array of operators'
+      }, { status: 500 });
     }
+    // Transform the data to match our frontend requirements
+    const formattedOperators = operators.map((op: any) => ({
+      id: op.operatorId?.toString() || (op.id || '').toString(),
+      name: op.name || 'Unknown Provider',
+      logoUrls: op.logoUrls || [],
+      supportsData: op.data || false,
+      supportsBundles: op.bundle || false
+    }));
 
-    const requestBody = {
-      operatorId: parseInt(params.operatorId),
-      amount: params.useLocalAmount ? parseFloat(params.amount) : null,
-      useLocalAmount: !!params.useLocalAmount,
-      recipientEmail: params.recipientEmail || null,
-      recipientPhone: {
-        countryCode: params.recipientPhone.country || params.recipientPhone.countryCode || '',
-        number: params.recipientPhone.phoneNumber || params.recipientPhone.number || ''
-      },
-      senderPhone: null
-    };
-
-    console.log('Making topup with request:', JSON.stringify(requestBody, null, 2));
-    
-    // Use the apiRequest function to make the call
-    const response = await apiRequest('/topups', {
-      method: 'POST',
-      body: JSON.stringify(requestBody)
-    });
-    
-    console.log('Top-up response:', response);
-    return response;
-  } catch (error) {
-    console.error('Error making top-up:', error);
-    throw error;
-  }
-}
-
-/**
- * Gets transaction status by ID
- * @param transactionId The transaction ID to check
- */
-export async function getTransactionStatus(transactionId: number) {
-  try {
-    return await apiRequest(`/topups/${transactionId}/status`);
-  } catch (error) {
-    console.error(`Error fetching transaction status for ${transactionId}:`, error);
-    throw error;
+    return NextResponse.json(formattedOperators);
+  } catch (error: any) {
+    console.error('Error fetching operators:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch mobile providers', details: error.message },
+      { status: 500 }
+    );
   }
 }
