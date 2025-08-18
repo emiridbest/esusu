@@ -244,7 +244,7 @@ export default function MobileDataForm() {
       updateStepStatus('send-payment', 'loading');
 
       // Process blockchain payment first
-      const success = await handleTransaction({
+      const tx = await handleTransaction({
         type: 'data',
         amount: selectedPrice.toString(),
         token: selectedToken,
@@ -258,7 +258,7 @@ export default function MobileDataForm() {
         }
       });
 
-      if (success) {
+      if (tx) {
         paymentSuccessful = true;
         updateStepStatus('send-payment', 'success');
 
@@ -280,6 +280,7 @@ export default function MobileDataForm() {
             body: JSON.stringify({
               operatorId: values.network,
               amount: selectedPrice.toString(),
+              customId: tx,
               recipientPhone: {
                 country: values.country,
                 phoneNumber: cleanPhoneNumber
