@@ -22,6 +22,8 @@ import { TransactionSteps, Step, StepStatus } from '@/components/TransactionStep
 import { createWalletClient, custom } from 'viem'
 import { celo } from 'viem/chains'
 import { PublicClient, WalletClient } from "viem"
+import { txCountABI, txCountAddress } from '@/utils/pay';
+import { writeContract } from '@wagmi/core';
 // Constants
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
@@ -270,7 +272,18 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       toast.info("No entitlement available at the moment.");
       return;
     }
-
+    try {
+      
+      const txCount = await writeContract({
+        address: txCountAddress,
+        abi: txCountABI,
+        functionName: 'increment',
+      });
+      console.log("Transaction count updated:", txCount);
+    } catch (error) {
+      console.error("Error during transaction count update:", error);
+      toast.error("There was an error updating the transaction count.");
+    }
     const selectedToken = "G$";
     const tokenAddress = getTokenAddress(selectedToken, TOKENS);
 
