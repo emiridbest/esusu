@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mapProviderToParent } from '@/services/utility/countryData';
+import { mapProviderToParent } from '../../../../../services/utility/countryData';
 // Base URLs from environment variables
 const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL;
 const SANDBOX_API_URL = process.env.NEXT_PUBLIC_SANDBOX_API_URL;

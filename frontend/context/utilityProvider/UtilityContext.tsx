@@ -226,7 +226,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
         // Prepare token transfer
         const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
-
+        
         // Encode the transfer function
         const transferInterface = new Interface(tokenAbi);
         if (token === 'G$') {
