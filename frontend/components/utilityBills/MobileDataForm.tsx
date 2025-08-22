@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import DualCurrencyPrice from './DualCurrencyPrice';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -79,6 +80,7 @@ export default function MobileDataForm() {
     setIsProcessing,
     handleTransaction
   } = useUtility();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -247,7 +249,7 @@ export default function MobileDataForm() {
       updateStepStatus('send-payment', 'loading');
 
       // Process blockchain payment first
-      const success = await handleTransaction({
+      const paymentResult = await handleTransaction({
         type: 'data',
         amount: selectedPrice.toString(),
         token: selectedToken,
@@ -261,7 +263,7 @@ export default function MobileDataForm() {
         }
       });
 
-      if (success) {
+      if (paymentResult.success && paymentResult.transactionHash) {
         paymentSuccessful = true;
         updateStepStatus('send-payment', 'success');
 
@@ -275,12 +277,14 @@ export default function MobileDataForm() {
           // Format the phone number as expected by the API
           const cleanPhoneNumber = values.phoneNumber.replace(/[\s\-\+]/g, '');
 
-          // Make the top-up request
+          // SECURITY: Make the top-up request with payment validation
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          const apiKey = process.env.NEXT_PUBLIC_PAYMENT_API_KEY;
+          if (apiKey) headers['x-api-key'] = apiKey;
+
           const response = await fetch('/api/topup', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify({
               operatorId: values.network,
               amount: selectedPrice.toString(),
@@ -289,6 +293,11 @@ export default function MobileDataForm() {
                 phoneNumber: cleanPhoneNumber
               },
               email: values.email,
+              type: 'data',
+              // SECURITY: Payment validation fields
+              transactionHash: paymentResult.transactionHash,
+              expectedAmount: paymentResult.convertedAmount,
+              paymentToken: paymentResult.paymentToken
             }),
           });
 
@@ -297,6 +306,8 @@ export default function MobileDataForm() {
           if (response.ok && data.success) {
             toast.success(`Successfully topped up ${values.phoneNumber} with ${selectedPlan?.name || 'your selected plan'}.`);
             updateStepStatus('top-up', 'success');
+            // Redirect to transaction status page
+            router.push(`/tx/${paymentResult.transactionHash}`);
 
             // Reset the form but keep the country
             form.reset({

@@ -1,10 +1,9 @@
 "use client";
+
 import { useState, useEffect, useRef, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useConnect, useAccount } from "wagmi";
-import { InjectedConnector } from "wagmi/connectors/injected";
 import { 
   MagnifyingGlassIcon, 
   BellAlertIcon,
@@ -33,7 +32,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Celo } from "@celo/rainbowkit-celo/chains";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import ReceiptsMini from "@/components/receipts/ReceiptsMini";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 export default function Header() {
   const [searchVisible, setSearchVisible] = useState(false);
@@ -44,24 +45,6 @@ export default function Header() {
   const pathname = usePathname();
 
   const { darkMode } = useContext(ThemeContext);
-
-  const { isConnected } = useAccount();
-  
-  const { connect, connectors } = useConnect();
-
-  useEffect(() => {
-    // Only attempt to connect if not already connected
-    if (!isConnected && connectors.length > 0) {
-      try {
-        const connector = connectors.find((c) => c.id === "injected") || connectors[0];
-        if (connector) {
-          connect({ chainId: Celo.id, connector });
-        }
-      } catch (error) {
-        console.error("Connection error:", error);
-      }
-    }
-  }, [connect, isConnected, connectors]); 
 
   const handleSearchIconClick = () => {
     setSearchVisible(true);
@@ -209,14 +192,24 @@ export default function Header() {
               )}
             </div>
 
-            <Button 
-              size="icon" 
-              variant="ghost"
-              className="hover:bg-primary/10 hover:text-primary relative text-black/80 dark:text-primary"
-            >
-              <BellAlertIcon className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"></span>
-            </Button>
+            <ConnectButton />
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  size="icon" 
+                  variant="ghost"
+                  aria-label="Open receipts"
+                  className="hover:bg-primary/10 hover:text-primary relative text-black/80 dark:text-primary"
+                >
+                  <BellAlertIcon className="h-5 w-5" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"></span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-[360px] p-0">
+                <ReceiptsMini />
+              </PopoverContent>
+            </Popover>
 
             {/* Mobile menu */}
             <div className="md:hidden">
@@ -280,10 +273,4 @@ export default function Header() {
       </div>
     </header>
   );
-}
-
-declare global {
-  interface Window {
-    ethereum: any;
-  }
 }

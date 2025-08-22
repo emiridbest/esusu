@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import DualCurrencyPrice from './DualCurrencyPrice';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -94,6 +95,7 @@ export default function AirtimeForm() {
     setIsProcessing,
     handleTransaction
   } = useUtility();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -135,8 +137,8 @@ useEffect(() => {
   };
 
   getNetworks();
-  // Only depend on country change
-}, [watchCountry]);
+  // Depend on country and form (used inside effect)
+}, [watchCountry, form]);
 
 // 2. Fetch operator range when network or country changes
 useEffect(() => {
@@ -192,7 +194,7 @@ useEffect(() => {
   };
 
   getOperatorRange();
-}, [watchNetwork, watchCountry]);
+}, [watchNetwork, watchCountry, form]);
 
 // 3. Validate amount against operator range
 useEffect(() => {
@@ -320,7 +322,7 @@ useEffect(() => {
       updateStepStatus('send-payment', 'loading');
 
       // Process blockchain payment first
-      const success = await handleTransaction({
+      const paymentResult = await handleTransaction({
         type: 'airtime',
         amount: selectedPrice.toString(),
         token: selectedToken,
@@ -334,7 +336,7 @@ useEffect(() => {
         }
       });
 
-      if (success) {
+      if (paymentResult.success && paymentResult.transactionHash) {
         paymentSuccessful = true;
         updateStepStatus('send-payment', 'success');
 
@@ -347,12 +349,14 @@ useEffect(() => {
         try {
           const cleanPhoneNumber = values.phoneNumber.replace(/[\s\-\+]/g, '');
 
-          // Send the user-entered amount directly to the API
+          // SECURITY: Send payment validation data to prevent bypass
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          const apiKey = process.env.NEXT_PUBLIC_PAYMENT_API_KEY;
+          if (apiKey) headers['x-api-key'] = apiKey;
+
           const response = await fetch('/api/topup', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify({
               operatorId: values.network,
               amount: enteredAmount.toString(),
@@ -362,7 +366,11 @@ useEffect(() => {
                 phoneNumber: cleanPhoneNumber
               },
               email: values.email,
-              type: 'airtime'
+              type: 'airtime',
+              // SECURITY: Payment validation fields
+              transactionHash: paymentResult.transactionHash,
+              expectedAmount: paymentResult.convertedAmount,
+              paymentToken: paymentResult.paymentToken
             }),
           });
 
@@ -371,6 +379,8 @@ useEffect(() => {
           if (response.ok && data.success) {
             toast.success(`Successfully topped up ${values.phoneNumber} with ${enteredAmount} ${operatorRange.currency} airtime.`);
             updateStepStatus('top-up', 'success');
+            // Redirect to transaction status page
+            router.push(`/tx/${paymentResult.transactionHash}`);
 
             // Reset the form but keep the country
             form.reset({

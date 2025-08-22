@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useCallback, useEffect } from 'react';
 import { getContract, formatEther, createPublicClient, http } from "viem";
-import { celo } from "viem/chains";
+import { Celo } from "@celo/rainbowkit-celo/chains";
 import { BrowserProvider } from 'ethers';
 import { stableTokenABI } from "@celo/abis";
 import { motion } from "framer-motion";
@@ -46,11 +46,11 @@ const Balance: React.FC = () => {
     if (typeof window !== 'undefined' && window.ethereum) {
       try {
         setIsLoading(true);
-        const provider = new BrowserProvider(window.ethereum);
+        const provider = new BrowserProvider(window.ethereum as any);
         const signer = await provider.getSigner();
 
         const publicClient = createPublicClient({
-          chain: celo,
+          chain: Celo,
           transport: http(),
         });
 

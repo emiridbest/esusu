@@ -7,12 +7,15 @@ const PRODUCTION_API_URL = process.env.NEXT_PUBLIC_API_URL;
 const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
 const API_URL = isSandbox ? SANDBOX_API_URL : PRODUCTION_API_URL;
 
-// Log API URL configuration on initialization for debugging
-console.log('API Configuration:', {
+// Log API URL configuration on initialization for debugging in development
+if (process.env.NODE_ENV === 'development') {
+  console.log('Reloadly API Configuration:', {
     mode: isSandbox ? 'SANDBOX' : 'PRODUCTION',
-    authUrl: AUTH_URL?.substring(0, 30) || '[NOT SET]',
-    apiUrl: API_URL?.substring(0, 30) || '[NOT SET]'
-});
+    authUrl: AUTH_URL?.substring(0, 50) || '[NOT SET]',
+    apiUrl: API_URL?.substring(0, 50) || '[NOT SET]',
+    audienceUrl: process.env.NEXT_PUBLIC_AUDIENCE_URL?.substring(0, 50) || '[NOT SET]'
+  });
+}
 
 // Use the native fetch API's RequestInit interface
 type RequestInit = Parameters<typeof fetch>[1];
@@ -46,9 +49,10 @@ async function getAccessToken(): Promise<string> {
     }
 
     // Use regular API audience - make sure we have the full URL without truncation
-    const audience = isSandbox 
-      ? process.env.NEXT_PUBLIC_SANDBOX_API_URL
-      : process.env.NEXT_PUBLIC_API_URL;
+    const audience = process.env.NEXT_PUBLIC_AUDIENCE_URL || 
+      (isSandbox 
+        ? process.env.NEXT_PUBLIC_SANDBOX_API_URL
+        : process.env.NEXT_PUBLIC_API_URL);
     
     if (!audience) {
       throw new Error('API audience URL not configured');
@@ -109,7 +113,7 @@ async function getAccessToken(): Promise<string> {
  */
 async function getAuthHeaders() {
   const token = await getAccessToken();
-  const acceptHeader = process.env.NEXT_PUBLIC_ACCEPT_HEADER || 'application/json';
+  const acceptHeader = process.env.NEXT_PUBLIC_ACCEPT_HEADER || 'application/com.reloadly.topups-v1+json';
 
   return {
     'Authorization': `Bearer ${token}`,

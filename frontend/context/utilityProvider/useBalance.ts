@@ -92,11 +92,11 @@ export const useBalance = () => {
       if (tokenId === 'CELO') {
         const balance = await publicClient.getBalance({ address });
         const convertedAmount = await convertCurrency(amount, currencyCode)
-        const requiredAmount = BigInt(ethers.parseUnits(convertedAmount.toString()));
+        const requiredAmount = ethers.parseUnits(convertedAmount.toString(), 18);
         console.log(`CELO Balance: ${balance.toString()}`);
         console.log(`Required amount: ${requiredAmount.toString()}`);
 
-        return balance >= BigInt(requiredAmount.toString());
+        return balance >= requiredAmount;
       }
 
       // For ERC20 tokens
@@ -121,7 +121,7 @@ export const useBalance = () => {
       console.log(`Token balance for ${tokenId}: ${balance.toString()}`);
 
       const convertedAmount = await convertCurrency(amount, currencyCode)
-      const requiredAmount = BigInt(ethers.parseUnits(convertedAmount.toString(), decimals));
+      const requiredAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
       console.log(`Required amount: ${requiredAmount.toString()}`);
 
       return balance >= requiredAmount;

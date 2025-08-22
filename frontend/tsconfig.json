@@ -17,6 +17,7 @@
     "jsx": "preserve",
     "incremental": true,
     "baseUrl": ".",
+    "types": ["node", "react", "react-dom"],
     
     "plugins": [
       {
@@ -28,6 +29,11 @@
       "@local-contracts/*": ["../hardhat/*"]
     },
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.d.ts", ".next/types/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__tests__/**"
+  ]
 }

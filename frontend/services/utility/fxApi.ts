@@ -33,10 +33,10 @@ async function getAccessToken(): Promise<string> {
     }
 
     // Get audience URL from env or default to API URL
-    const audience = process.env.RELOADLY_AUDIENCE_URL || 
+    const audience = process.env.NEXT_PUBLIC_AUDIENCE_URL || 
       (isSandbox 
-        ? (process.env.NEXT_PUBLIC_SANDBOX_API_URL)
-        : (process.env.NEXT_PUBLIC_API_URL));
+        ? process.env.NEXT_PUBLIC_SANDBOX_API_URL
+        : process.env.NEXT_PUBLIC_API_URL);
 
       const options = {
       method: 'POST',
@@ -116,16 +116,16 @@ async function getExchangeRate(base_currency: string, targetCurrency: string): P
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Accept: 'application/com.reloadly.topups-v1+json',
+        Accept: process.env.NEXT_PUBLIC_ACCEPT_HEADER || 'application/com.reloadly.topups-v1+json',
         Authorization: `Bearer ${token}`
       },
       body: JSON.stringify({operatorId: operator, amount: 1})
     };
     
-    fetch(fxEndpoint, options)
-      .then(res => res.json())
-      .then(json => console.log(json))
-      .catch(err => console.error('error:' + err));
+    // Debug logging in development only
+    if (process.env.NODE_ENV === 'development') {
+      console.log('FX API Request:', { fxEndpoint, operator, base_currency });
+    }
 
     const response = await fetch(fxEndpoint, options)
 

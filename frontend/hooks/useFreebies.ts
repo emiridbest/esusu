@@ -68,6 +68,26 @@ export const useFreebiesLogic = () => {
 
     const identitySDK = useIdentitySDK('production');
 
+    // When wallet changes, check if user has previously verified via GoodDollar to avoid re-prompting
+    useEffect(() => {
+        try {
+            if (typeof window !== 'undefined' && address) {
+                const key = `gdVerified:${address.toLowerCase()}`;
+                const flag = localStorage.getItem(key);
+                if (flag === 'true') {
+                    setIsWhitelisted(true);
+                    setIsVerified(true);
+                } else {
+                    // allow normal remote check to run
+                    setIsWhitelisted(undefined);
+                    setIsVerified(false);
+                }
+            }
+        } catch (e) {
+            console.warn('Unable to read GoodDollar verification flag:', e);
+        }
+    }, [address]);
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -156,11 +176,25 @@ export const useFreebiesLogic = () => {
             if (address && isWhitelisted === undefined) {
                 try {
                     setLoadingWhitelist(true);
-                    const { isWhitelisted } =
+                    const { isWhitelisted: whitelisted } =
                         (await identitySDK?.getWhitelistedRoot(address)) ?? {};
 
-                    setIsWhitelisted(isWhitelisted);
-                    setIsVerified(isWhitelisted ?? false);
+                    setIsWhitelisted(whitelisted);
+                    setIsVerified(whitelisted ?? false);
+
+                    // Persist verification success per wallet and notify user once
+                    try {
+                        if (typeof window !== 'undefined' && whitelisted && address) {
+                            const key = `gdVerified:${address.toLowerCase()}`;
+                            const already = localStorage.getItem(key) === 'true';
+                            localStorage.setItem(key, 'true');
+                            if (!already) {
+                                toast.success("GoodDollar verification successful! You won't be prompted again here.");
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Unable to persist GoodDollar verification flag:', e);
+                    }
                 } catch (error) {
                     console.error("Error checking whitelist:", error);
                 } finally {

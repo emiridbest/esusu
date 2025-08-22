@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getBillerByCountry } from '@/services/utility/billerApi';
+import { electricityPaymentService } from '../../../../../../backend/lib/services/electricityPaymentService';
 
 interface ProviderDetails {
     id: string;
@@ -20,33 +20,33 @@ export async function GET(request: NextRequest) {
     try {
         // Ensure country code is properly formatted before passing to the API
         const sanitizedCountry = country.trim().toLowerCase();
-        console.log(`Fetching providers for country: ${sanitizedCountry}`);
+        console.log(`Frontend API: Fetching electricity providers for country: ${sanitizedCountry}`);
         
-        const response: any = await getBillerByCountry(sanitizedCountry);
+        // Map country codes to ISO2 format that Reloadly expects
+        const countryMapping: { [key: string]: string } = {
+            'ghana': 'GH',
+            'gh': 'GH',
+            'kenya': 'KE', 
+            'ke': 'KE',
+            'uganda': 'UG',
+            'ug': 'UG',
+            'nigeria': 'NG',
+            'ng': 'NG'
+        };
         
-        // Check if response exists and is properly formatted
-        if (!response) {
-            throw new Error('Empty response from biller API');
-        }
-
-        // Extract operators from the paginated response structure
-        const operators = response.content || 
-                         (response.data?.content) || 
-                         (Array.isArray(response) ? response : []);
+        const isoCountryCode = countryMapping[sanitizedCountry] || sanitizedCountry.toUpperCase();
+        console.log(`Frontend API: Mapped ${sanitizedCountry} to ${isoCountryCode}`);
         
-        // Filter to include only electricity operators
-        const electricityOperators = operators.filter((op: any) => 
-            op.serviceType === 'ELECTRICITY' || 
-            op.operatorType === 'ELECTRICITY' ||
-            true // Include all operators for now**
-        );        // Transform the data to match our frontend requirements
-        const formattedOperators: ProviderDetails[] = electricityOperators.map((op: any) => ({
-            id: (op.operatorId || op.id || '').toString(),
-            name: op.name || 'Unknown Provider',
-            serviceType: op.serviceType || 'ELECTRICITY',
-            minLocalTransactionAmount: op.minLocalTransactionAmount || 0,
-            maxLocalTransactionAmount: op.maxLocalTransactionAmount || 0,
-            localTransactionCurrencyCode: op.localTransactionCurrencyCode || ''
+        const providers = await electricityPaymentService.getProviders(isoCountryCode);
+        
+        // Transform the data to match our frontend requirements
+        const formattedOperators: ProviderDetails[] = providers.map((provider) => ({
+            id: provider.id,
+            name: provider.name,
+            serviceType: provider.serviceType,
+            minLocalTransactionAmount: provider.minAmount,
+            maxLocalTransactionAmount: provider.maxAmount,
+            localTransactionCurrencyCode: provider.currency
         }));
         
         return NextResponse.json(formattedOperators);

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Campaign, useThrift } from '@/context/thrift/ThriftContext';
+import { ThriftGroup, useThrift } from '@/context/thrift/ThriftContext';
 import { UsersIcon, CalendarIcon, Share2Icon } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -12,11 +12,11 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
 export function CampaignList() {
-  const { userCampaigns, joinCampaign, generateShareLink, loading, error } = useThrift();
+  const { allGroups, joinThriftGroup, generateShareLink, loading, error } = useThrift();
   const { toast } = useToast();
   const [connected, setConnected] = useState(false);
   
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<ThriftGroup | null>(null);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [userName, setUserName] = useState('');
@@ -56,28 +56,26 @@ export function CampaignList() {
     }
   }, []);
 
-  const handleJoinClick = (campaign: Campaign) => {
-    setSelectedCampaign(campaign);
+  const handleJoinClick = (group: ThriftGroup) => {
+    setSelectedGroup(group);
     setJoinDialogOpen(true);
   };
 
-  const handleShareClick = (campaign: Campaign) => {
-    setSelectedCampaign(campaign);
-    setShareableLink(generateShareLink(campaign.id));
+  const handleShareClick = (group: ThriftGroup) => {
+    setSelectedGroup(group);
+    setShareableLink(generateShareLink(group.id));
     setShareDialogOpen(true);
   };
 
-  const handleJoinCampaign = async () => {
-    if (!selectedCampaign || !userName) return;
+  const handleJoinGroup = async () => {
+    if (!selectedGroup) return;
     
     try {
-      // Default to cUSD for now
-      const tokenAddress = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1";
-      await joinCampaign(selectedCampaign.id, tokenAddress, userName);
+      await joinThriftGroup(selectedGroup.id);
       setJoinDialogOpen(false);
       setUserName('');
     } catch (error) {
-      console.error("Failed to join campaign:", error);
+      console.error("Failed to join thrift group:", error);
     }
   };
 
@@ -131,12 +129,12 @@ export function CampaignList() {
     );
   }
 
-  if (userCampaigns.length === 0) {
+  if (allGroups.length === 0) {
     return (
       <Card className="w-full">
         <CardContent className="pt-6">
           <div className="text-center p-8">
-            <p>You have not joined any thrift groups yet. Create one to get started!</p>
+            <p>No thrift groups available yet. Create one to get started!</p>
           </div>
         </CardContent>
       </Card>
@@ -146,28 +144,28 @@ export function CampaignList() {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-        {userCampaigns.map((campaign) => (
-          <Card key={campaign.id} className="overflow-hidden hover:shadow-md transition-shadow">
+        {allGroups.filter(group => group.isPublic && !group.isUserMember).map((group) => (
+          <Card key={group.id} className="overflow-hidden hover:shadow-md transition-shadow">
             <CardHeader className="bg-primary/5 pb-3">
               <div className="flex justify-between items-start">
-                <CardTitle className="text-lg font-semibold">{campaign.name}</CardTitle>
+                <CardTitle className="text-lg font-semibold">{group.name}</CardTitle>
                 <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                  {parseFloat(campaign.contributionAmount)} cUSD
+                  {parseFloat(group.depositAmount)} cUSD
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="pt-4">
               <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
-                {campaign.description}
+                {group.description}
               </p>
               <div className="flex flex-wrap gap-3 text-xs text-gray-500">
                 <div className="flex items-center gap-1">
                   <UsersIcon className="h-3 w-3" />
-                  <span>{campaign.totalContributions || '0'} members</span>
+                  <span>{group.totalMembers}/{group.maxMembers} members</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <CalendarIcon className="h-3 w-3" />
-                  <span>30 days rotation</span>
+                  <span>{group.isActive ? 'Active' : 'Pending'}</span>
                 </div>
               </div>
             </CardContent>
@@ -176,21 +174,18 @@ export function CampaignList() {
                 size="sm"
                 variant="outline"
                 className="text-xs flex items-center gap-1"
-                onClick={() => handleShareClick(campaign)}
+                onClick={() => handleShareClick(group)}
               >
                 <Share2Icon className="h-3 w-3" />
                 Share
               </Button>
               <Button
                 size="sm"
-                variant="ghost"
                 className="text-xs"
-                onClick={() => {
-                  // Navigate to campaign details page
-                  window.location.href = `/thrift/${campaign.id}`;
-                }}
+                onClick={() => handleJoinClick(group)}
+                disabled={group.totalMembers >= group.maxMembers}
               >
-                View Details
+                {group.totalMembers >= group.maxMembers ? 'Full' : 'Join Group'}
               </Button>
             </CardFooter>
           </Card>
@@ -204,7 +199,7 @@ export function CampaignList() {
             <DialogTitle>Share Thrift Group</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="mb-4">Share <strong>{selectedCampaign?.name}</strong> with your friends</p>
+            <p className="mb-4">Share <strong>{selectedGroup?.name}</strong> with your friends</p>
             <div className="grid gap-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="shareLink" className="text-right">Share Link</Label>
@@ -239,9 +234,9 @@ export function CampaignList() {
             <DialogTitle>Join Thrift Group</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="mb-4">You are joining: <strong>{selectedCampaign?.name}</strong></p>
+            <p className="mb-4">You are joining: <strong>{selectedGroup?.name}</strong></p>
             <p className="text-sm text-gray-500 mb-6">
-              Monthly contribution: {selectedCampaign?.contributionAmount} cUSD
+              Deposit amount: {selectedGroup?.depositAmount} cUSD
             </p>
             <div className="grid gap-4">
               <div className="grid grid-cols-4 items-center gap-4">
@@ -259,10 +254,10 @@ export function CampaignList() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setJoinDialogOpen(false)}>Cancel</Button>
             <Button 
-              onClick={handleJoinCampaign}
-              disabled={loading || !userName}
+              onClick={handleJoinGroup}
+              disabled={loading}
             >
-              {loading ? 'Joining...' : 'Request to Join'}
+              {loading ? 'Joining...' : 'Join Group'}
             </Button>
           </DialogFooter>
         </DialogContent>
