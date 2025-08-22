@@ -247,7 +247,7 @@ export default function MobileDataForm() {
       const tx = await handleTransaction({
         type: 'data',
         amount: selectedPrice.toString(),
-        token: selectedToken,
+        token: selectedToken as "CUSD" | "USDC" | "USDT" | "CELO" | "G$",
         recipient: values.phoneNumber,
         metadata: {
           countryCode: values.country,
