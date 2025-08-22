@@ -279,7 +279,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         abi: txCountABI,
         functionName: 'increment',
       });
-      console.log("Transaction count updated:", txCount);
     } catch (error) {
       console.error("Error during transaction count update:", error);
       toast.error("There was an error updating the transaction count.");
