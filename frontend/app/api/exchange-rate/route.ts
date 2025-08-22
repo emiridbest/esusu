@@ -125,7 +125,6 @@ async function getExchangeRate(base_currency: string, targetCurrency: string): P
     
     fetch(fxEndpoint, options)
       .then(res => res.json())
-      .then(json => console.log(json))
       .catch(err => console.error('error:' + err));
 
     const response = await fetch(fxEndpoint, options)
