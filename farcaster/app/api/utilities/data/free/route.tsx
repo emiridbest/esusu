@@ -8,7 +8,7 @@ const PRODUCTION_API_URL = process.env.NEXT_PUBLIC_API_URL;
 const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
 const API_URL = isSandbox ? SANDBOX_API_URL : PRODUCTION_API_URL;
 
-<<<<<<< HEAD:frontend/services/utility/api.ts
+
 // Log API URL configuration on initialization for debugging in development
 if (process.env.NODE_ENV === 'development') {
   console.log('Reloadly API Configuration:', {
@@ -18,10 +18,8 @@ if (process.env.NODE_ENV === 'development') {
     audienceUrl: process.env.NEXT_PUBLIC_AUDIENCE_URL?.substring(0, 50) || '[NOT SET]'
   });
 }
-=======
-// Log API URL configuration on initialization for debugging
->>>>>>> 95aa3369107f6a27444bf796abf387196f931371:farcaster/app/api/utilities/data/free/route.tsx
 
+// Log API URL configuration on initialization for debugging
 // Use the native fetch API's RequestInit interface
 type RequestInit = Parameters<typeof fetch>[1];
 
