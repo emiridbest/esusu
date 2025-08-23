@@ -47,7 +47,7 @@ const COUNTRIES: Record<string, CountryData> = {
     servicesAvailable: {
       electricity: true,
       data: true,
-      airtime: true // Assuming airtime service is not available
+      airtime: true 
     },
     phoneCode: "+233"
   },

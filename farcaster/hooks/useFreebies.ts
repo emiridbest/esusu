@@ -84,7 +84,6 @@ export const useFreebiesLogic = () => {
 
     // Function to set country currency
     const setCountryCurrency = (country: string) => {
-        console.log("Setting country currency for:", country);
     };
 
     // Fetch network providers when country changes

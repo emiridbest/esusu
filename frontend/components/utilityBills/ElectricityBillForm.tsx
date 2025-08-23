@@ -107,7 +107,6 @@ export default function ElectricityBillForm() {
 
         try {
           const provider = await fetchElectricityProviders(watchCountry);
-          console.log("Fetched providers:", provider);
           setProviders(provider);
         } catch (error) {
           console.error("Error in electricity payment submission:", error);

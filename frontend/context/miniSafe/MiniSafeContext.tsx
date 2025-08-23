@@ -1,7 +1,7 @@
 import React, { createContext, useState, useCallback, useContext, useEffect } from 'react';
 import { toast } from 'sonner';
 import { contractAddress, abi } from '@/utils/abi';
-import { encodeFunctionData, parseAbi, parseUnits, formatUnits } from "viem";
+import { encodeFunctionData, parseAbi, parseUnits, formatUnits, parseEther } from "viem";
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import {
   useAccount,
@@ -513,8 +513,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       // Fix: Properly define weiAmount
-      const withdrawalValue = BigInt(withdrawalAmount);
-
+      const withdrawalValue = parseEther(withdrawalAmount.toString());
       await getBalance();
       await getTokenBalance();
       updateStepStatus('check-balance', 'success');

@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { makeTopup } from '@/services/utility/api';
 import { ethers } from 'ethers';
 import dbConnect from '../../../../backend/lib/database/connection';
 import { TransactionService } from '../../../../backend/lib/services/transactionService';
-import { UserService } from '../../../../backend/lib/services/userService';
 import { NotificationService } from '../../../../backend/lib/services/notificationService';
 import { AnalyticsService } from '../../../../backend/lib/services/analyticsService';
 
-// Simple in-memory rate limiter and API key check
+// Rate limiting and API key configuration
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 const RATE_LIMIT_MAX = Number(process.env.TOPUP_RATE_LIMIT_PER_MINUTE || 10);
 const rateMap = new Map<string, { count: number; windowStart: number }>();
@@ -40,7 +38,7 @@ function requireApiKey(req: NextRequest): { ok: boolean; error?: string } {
   return { ok: true };
 }
 
-// SECURITY: Payment validation configuration
+// Payment validation configuration
 const CELO_RPC_URL = process.env.CELO_RPC_URL || 'https://forno.celo.org';
 const RECIPIENT_WALLET = (process.env.RECIPIENT_WALLET || '0xb82896C4F251ed65186b416dbDb6f6192DFAF926');
 const MIN_CONFIRMATIONS = 1;
@@ -60,11 +58,140 @@ const TOKEN_DECIMALS = {
   USDT: 6
 } as const;
 
+// Reloadly API configuration
+const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL;
+const SANDBOX_API_URL = process.env.NEXT_PUBLIC_SANDBOX_API_URL;
+const PRODUCTION_API_URL = process.env.NEXT_PUBLIC_API_URL;
+const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
+const API_URL = isSandbox ? SANDBOX_API_URL : PRODUCTION_API_URL;
+
+// Token cache for Reloadly API
+const tokenCache = {
+  token: '',
+  expiresAt: 0
+};
+
 interface PaymentValidation {
   transactionHash: string;
   expectedAmount: string;
   paymentToken: string;
   recipientAddress: string;
+}
+
+// Get OAuth 2.0 access token from Reloadly
+async function getAccessToken(): Promise<string> {
+  if (tokenCache.token && tokenCache.expiresAt > Date.now()) {
+    return tokenCache.token;
+  }
+
+  try {
+    const clientId = process.env.NEXT_CLIENT_ID;
+    const clientSecret = process.env.NEXT_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret || !AUTH_URL) {
+      throw new Error('Reloadly API credentials not configured');
+    }
+
+    const audience = isSandbox ? process.env.NEXT_PUBLIC_SANDBOX_API_URL : process.env.NEXT_PUBLIC_API_URL;
+    if (!audience) {
+      throw new Error('API configuration missing');
+    }
+
+    const response = await fetch(AUTH_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: 'client_credentials',
+        audience: audience
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Authentication error response:', errorText);
+      throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const expiresIn = data.expires_in || 3600;
+    tokenCache.token = data.access_token;
+    tokenCache.expiresAt = Date.now() + (expiresIn * 1000) - 60000;
+
+    return tokenCache.token;
+  } catch (error) {
+    console.error('Error getting Reloadly access token:', error);
+    throw new Error('Failed to authenticate with Reloadly API');
+  }
+}
+
+// Make authenticated API request to Reloadly
+async function apiRequest(endpoint: string, options: any = {}) {
+  const token = await getAccessToken();
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    ...options.headers
+  };
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers
+  });
+
+  if (!response.ok) {
+    try {
+      const errorData = await response.json();
+      console.error('API request failed:', errorData);
+      throw new Error(errorData.message || `API request failed: ${response.status}`);
+    } catch (parseError) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+  }
+
+  return response.json();
+}
+
+// Make a top-up request to Reloadly API
+async function makeTopup(params: {
+  operatorId: string;
+  amount: string;
+  customId: string;
+  useLocalAmount?: boolean;
+  recipientEmail?: string;
+  recipientPhone: {
+    country?: string;
+    countryCode?: string;
+    phoneNumber?: string;
+    number?: string;
+  };
+}) {
+  if (!params.operatorId || !params.amount || !params.customId || !params.recipientPhone) {
+    throw new Error('Missing required fields for top-up');
+  }
+
+  const requestBody = {
+    operatorId: parseInt(params.operatorId),
+    amount: params.useLocalAmount ? parseFloat(params.amount) : null,
+    useLocalAmount: !!params.useLocalAmount,
+    recipientEmail: params.recipientEmail || null,
+    customIdentifier: params.customId,
+    recipientPhone: {
+      countryCode: params.recipientPhone.country || params.recipientPhone.countryCode || '',
+      number: params.recipientPhone.phoneNumber || params.recipientPhone.number || ''
+    },
+    senderPhone: null
+  };
+
+  return await apiRequest('/topups', {
+    method: 'POST',
+    body: JSON.stringify(requestBody)
+  });
 }
 
 // Validate blockchain payment before processing top-up
@@ -103,9 +230,6 @@ async function validatePayment(validation: PaymentValidation): Promise<{ isValid
     if (txAge > MAX_TRANSACTION_AGE_MINUTES * 60) {
       return { isValid: false, error: 'Transaction too old' };
     }
-
-    // Note: For ERC20 transfers, tx.to is the token contract address, not the payment recipient.
-    // The actual recipient is validated below from the decoded transfer data.
 
     // Validate token contract address
     const tokenAddress = VALID_TOKENS[validation.paymentToken as keyof typeof VALID_TOKENS];
@@ -233,9 +357,6 @@ export async function POST(request: NextRequest) {
 
     console.log('Payment validated successfully, processing top-up...');
 
-    // Connect to database
-    await dbConnect();
-
     // Extract wallet address from transaction
     const provider = new ethers.JsonRpcProvider(CELO_RPC_URL);
     const tx = await provider.getTransaction(transactionHash);
@@ -280,6 +401,7 @@ export async function POST(request: NextRequest) {
       const result = await makeTopup({
         operatorId,
         amount,
+        customId: transactionHash,
         recipientPhone: {
           country: recipientPhone.country,
           phoneNumber: cleanedPhoneNumber
@@ -310,7 +432,7 @@ export async function POST(request: NextRequest) {
       try {
         await AnalyticsService.generateUserAnalytics(walletAddress, 'daily');
         await AnalyticsService.generateUserAnalytics(walletAddress, 'monthly');
-      } catch (analyticsError) {
+      } catch (analyticsError: any) {
         console.error('Analytics generation error:', analyticsError);
         // Don't fail the transaction for analytics errors
       }
@@ -350,22 +472,22 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: any) {
     console.error('Error processing top-up:', error);
-    
+
     // Handle different error types with detailed logging
     if (error.response?.data) {
       console.error('Reloadly API error:', error.response.data);
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: error.response.data.message || 'Failed to process topup', 
-          details: error.response.data 
+          error: error.response.data.message || 'Failed to process topup',
+          details: error.response.data
         },
         { status: error.response.status || 500 }
       );
     }
-    
+
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: error.message || 'Failed to process topup'
       },

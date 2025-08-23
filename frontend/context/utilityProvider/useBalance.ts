@@ -78,7 +78,6 @@ export const useBalance = () => {
   // Check if user has enough token balance to pay for the utility
   const checkTokenBalance = async (tokenId: string, amount: string, currencyCode: string): Promise<boolean> => {
     if (!address) {
-      console.log('No wallet address found');
       return false;
     }
 
@@ -86,19 +85,23 @@ export const useBalance = () => {
       const tokenAddress = getTokenAddress(tokenId);
       const decimals = getTokenDecimals(tokenId);
 
-      console.log(`Checking balance for token: ${tokenId} at address: ${tokenAddress}`);
 
       // For native CELO token
       if (tokenId === 'CELO') {
         const balance = await publicClient.getBalance({ address });
         const convertedAmount = await convertCurrency(amount, currencyCode)
-        const requiredAmount = ethers.parseUnits(convertedAmount.toString(), 18);
+        const requiredAmount = BigInt(ethers.parseUnits(convertedAmount.toString(), 18));
         console.log(`CELO Balance: ${balance.toString()}`);
         console.log(`Required amount: ${requiredAmount.toString()}`);
 
         return balance >= requiredAmount;
       }
-
+      if (tokenId === 'G$') {
+        const balance = await publicClient.getBalance({ address });
+        const convertedAmount = await convertCurrency(amount, currencyCode)
+        const requiredAmount = BigInt(ethers.parseUnits(convertedAmount.toString(), decimals));
+        return balance >= BigInt(requiredAmount.toString());
+      }
       // For ERC20 tokens
       const erc20Abi = [
         {
@@ -118,10 +121,9 @@ export const useBalance = () => {
         args: [address as `0x${string}`],
       });
 
-      console.log(`Token balance for ${tokenId}: ${balance.toString()}`);
 
       const convertedAmount = await convertCurrency(amount, currencyCode)
-      const requiredAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
+      const requiredAmount = BigInt(ethers.parseUnits(convertedAmount.toString(), decimals));
       console.log(`Required amount: ${requiredAmount.toString()}`);
 
       return balance >= requiredAmount;

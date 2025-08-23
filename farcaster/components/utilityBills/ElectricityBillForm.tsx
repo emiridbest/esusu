@@ -91,7 +91,6 @@ export default function ElectricityBillForm() {
 
         try {
           const provider = await fetchElectricityProviders(watchCountry);
-          console.log("Fetched providers:", provider);
           setProviders(provider);
         } catch (error) {
           console.error("Error fetching mobile operators:", error);
@@ -133,7 +132,7 @@ export default function ElectricityBillForm() {
       const success = await handleTransaction({
         type: 'electricity',
         amount: values.amount,
-        token: values.paymentToken,
+        token: selectedToken as "CUSD" | "USDC" | "USDT" | "CELO" | "G$",
         recipient: values.meterNumber,
         metadata: {
           providerId: values.provider,
