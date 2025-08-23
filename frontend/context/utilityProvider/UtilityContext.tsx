@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, use, useCallback } from 'react';
 import { toast } from 'sonner';
 import { parseUnits, encodeFunctionData, parseAbi } from "viem";
+import { ethers } from 'ethers';
 import {
   useAccount,
   useSendTransaction,
@@ -78,6 +79,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const usdcAddress = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
   const cusdAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
   const usdtAddress = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e";
+  const celoAddress = "0x471EcE3750Da237f93B8E339c536989b8978a438"; // Native CELO token
+  const goodDollarAddress = "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A"; // G$ token address
   const [recipient, setRecipient] = useState<string>('');
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
   const [transactionSteps, setTransactionSteps] = useState<Step[]>([]);
@@ -137,6 +140,10 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         return cusdAddress;
       case 'USDT':
         return usdtAddress;
+      case 'CELO':
+        return celoAddress;
+      case 'G$':
+        return goodDollarAddress;
       default:
         return cusdAddress;
     }
@@ -224,20 +231,26 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         const memo = getTransactionMemo(type, metadata);
 
         // Parse amount with correct decimals
-        const paymentAmount = parseUnits(convertedAmount.toString(), decimals);
+        let paymentAmount = parseUnits(convertedAmount.toString(), decimals);
 
         // Prepare token transfer
         const erc20Abi = parseAbi(["function transfer(address to, uint256 value) returns (bool)"]);
 
         // Encode the transfer function
-        const transferData = encodeFunctionData({
-          abi: erc20Abi,
-          functionName: "transfer",
-          args: [RECIPIENT_WALLET as `0x${string}`, paymentAmount]
-        });
+        const transferInterface = new ethers.Interface(erc20Abi);
+        if (token === 'G$') {
+          paymentAmount = paymentAmount * BigInt(10000);
+        }
+        if (token === 'CELO') {
+          paymentAmount = paymentAmount * BigInt(2.8);
+        }
+        const transferData = transferInterface.encodeFunctionData("transfer", [
+          RECIPIENT_WALLET,
+          paymentAmount
+        ]);
         const dataSuffix = getReferralTag({
           user: address,
-          consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926', 
+          consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
         })
         // Append the Divvi data suffix
         const dataWithSuffix = transferData + dataSuffix;
@@ -284,12 +297,12 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     } catch (error) {
       console.error('Transaction failed:', error);
       toast.error('Transaction failed. Please try again.');
-            // Find the current loading step and mark it as error
+      // Find the current loading step and mark it as error
       const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
       if (loadingStepIndex !== -1) {
         updateStepStatus(
-          transactionSteps[loadingStepIndex].id, 
-          'error', 
+          transactionSteps[loadingStepIndex].id,
+          'error',
           error instanceof Error ? error.message : 'Unknown error'
         );
       }
@@ -361,27 +374,27 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         {
           id: 'verify-phone',
           title: 'Verify Phone Number',
-          
+
           description: `Verifying phone number for ${recipient}`,
           status: 'inactive'
         },
         {
           id: 'check-balance',
           title: 'Check Balance',
-          description: `Checking your wallet balance`,  
+          description: `Checking your wallet balance`,
           status: 'inactive'
         },
         {
-          id: 'send-payment', 
+          id: 'send-payment',
           title: 'Send Payment',
           description: `Sending payment for ${recipient}`,
           status: 'inactive'
         },
         {
-          id: 'top-up',   
-          
+          id: 'top-up',
+
           title: 'Perform Top Up',
-          description: `Confirming airtime purchase for ${recipient}`,  
+          description: `Confirming airtime purchase for ${recipient}`,
           status: 'inactive'
         }
       ];
@@ -400,8 +413,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
       setTransactionSteps([]);
     }, 300);
   };
- 
-   // Context value with all utilities
+
+  // Context value with all utilities
   const value = {
     isProcessing,
     countryData,
@@ -426,7 +439,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   return (
     <UtilityContext.Provider value={value}>
       {children}
-      
+
       {/* Multi-step Transaction Dialog */}
       <Dialog open={isTransactionDialogOpen} onOpenChange={(open: boolean) => !isWaitingTx && !open && closeTransactionDialog()}>
         <DialogContent className="sm:max-w-md border rounded-lg">
@@ -438,7 +451,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
                 currentOperation === 'electricity' ?
                   `Paying electricity bill for meter ${recipient}` :
                   currentOperation === 'airtime' ?
-                    `Subscribing to airtime TV for ${recipient}` :
+                    `Purchasing airtime for ${recipient}` :
                     'Processing transaction...'}
             </DialogDescription>
           </DialogHeader>

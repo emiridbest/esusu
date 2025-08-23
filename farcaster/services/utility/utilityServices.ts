@@ -129,7 +129,6 @@ export async function verifyPhoneNumber(phoneNumber: string, providerId: string,
     const iso2Code = countryCodeToISO2(countryCode);
 
     try {
-        console.log(`Verifying phone: ${cleanedPhoneNumber} with provider: ${providerId} in country: ${iso2Code}`);
 
         const response = await fetch(`/api/utilities/data/verify?phoneNumber=${cleanedPhoneNumber}&provider=${providerId}&country=${iso2Code}`);
 
@@ -141,7 +140,6 @@ export async function verifyPhoneNumber(phoneNumber: string, providerId: string,
 
         // Handle case where verification failed but a suggestion is available
         if (!result.verified && result.suggestedProvider) {
-            console.log(`Provider mismatch. Suggested: ${result.suggestedProvider.name} (${result.suggestedProvider.id})`);
         }
 
         return result;
@@ -169,7 +167,6 @@ export async function verifyAndSwitchProvider(phoneNumber: string, providerId: s
 
     // If verification failed but we have a suggested provider, retry with that provider
     if (!result.verified && result.suggestedProvider && result.suggestedProvider.id) {
-        console.log(`Auto-switching to suggested provider: ${result.suggestedProvider.name}`);
 
         const retryResult = await verifyPhoneNumber(phoneNumber, result.suggestedProvider.id, countryCode);
 

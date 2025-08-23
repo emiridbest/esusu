@@ -288,6 +288,7 @@ export default function MobileDataForm() {
             body: JSON.stringify({
               operatorId: values.network,
               amount: selectedPrice.toString(),
+              customId: paymentResult.transactionHash,
               recipientPhone: {
                 country: values.country,
                 phoneNumber: cleanPhoneNumber

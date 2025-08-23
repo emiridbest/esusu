@@ -65,6 +65,7 @@ export const useFreebiesLogic = () => {
     const [isVerified, setIsVerified] = useState<boolean>(false);
     const [isWhitelisted, setIsWhitelisted] = useState<boolean | undefined>(undefined);
     const [loadingWhitelist, setLoadingWhitelist] = useState<boolean | undefined>(undefined);
+    const [txID, setTxID] = useState<string | null>(null);
 
     const identitySDK = useIdentitySDK('production');
 
@@ -105,7 +106,6 @@ export const useFreebiesLogic = () => {
 
     // Function to set country currency
     const setCountryCurrency = (country: string) => {
-        console.log("Setting country currency for:", country);
     };
 
     // Fetch network providers when country changes
@@ -256,7 +256,6 @@ export const useFreebiesLogic = () => {
 async function onSubmit(values: z.infer<typeof formSchema>) {
     // Early return if already processing to prevent race conditions
     if (isProcessing || isClaiming || !canClaimToday) {
-        console.log("Already processing, ignoring duplicate submission");
         return;
     }
 
@@ -377,10 +376,15 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
             return;
         }
 
+        // ...existing code...
+
         // Process payment
         updateStepStatus('payment', 'loading');
+        let transactionHash: string | null = null;
         try {
-            await processPayment();
+            const tx = await processPayment();
+            transactionHash = tx.hash;
+            setTxID(transactionHash);
             updateStepStatus('payment', 'success');
         } catch (paymentError) {
             console.error("Payment processing failed:", paymentError);
@@ -398,6 +402,11 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                 throw new Error("Invalid plan price");
             }
 
+            // Ensure we have a valid transaction hash
+            if (!transactionHash) {
+                throw new Error("Transaction hash is required for topup");
+            }
+
             const networks = [{ id: networkId, name: 'Network' }];
             updateStepStatus('top-up', 'loading');
             
@@ -407,12 +416,14 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                     country,
                     network: networkId,
                     email: emailAddress,
-                    transactionId // Add transaction ID for server-side deduplication
+                    customId: transactionHash // Use the transactionHash instead of txID
                 },
                 selectedPrice,
                 availablePlans,
                 networks
             );
+            
+            // ...rest of the code...
                 setCanClaimToday(false);
 
             if (topupResult && topupResult.success) {

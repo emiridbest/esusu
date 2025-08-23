@@ -61,12 +61,7 @@ export default function Chat() {
         setError(null);
     };
 
-    // Debug info for development
-    useEffect(() => {
-        console.log("Chat component mounted");
-        console.log("Initial messages:", messages);
-    
-    }, );
+
 
     return (
         <div className="flex h-full">
@@ -220,7 +215,6 @@ export default function Chat() {
                         onSubmit={(e) => {
                             e.preventDefault();
                             if (input.trim()) {
-                                console.log("Submitting message:", input);
                                 handleSubmit(e);
                             }
                         }}
