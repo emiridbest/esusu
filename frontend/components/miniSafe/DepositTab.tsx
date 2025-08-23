@@ -33,7 +33,7 @@ const DepositTab: React.FC = () => {
           <h3 className="text-base font-medium">Deposit {selectedToken}</h3>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-          Deposited assets are locked over time. You will earn EST tokens as rewards during this period.
+          Deposited assets are locked to earn rewards. Withdrawals are only available during the monthly window (28th-31st).
         </p>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -115,11 +115,11 @@ const DepositTab: React.FC = () => {
           </li>
           <li className="flex items-start">
             <div className="mr-2 mt-1 bg-primary/20 text-primary h-4 w-4 rounded-full flex items-center justify-center text-xs">3</div>
-            <span>You earn EST tokens proportional to your deposit amount</span>
+            <span>You earn rewards proportional to your deposit amount over time.</span>
           </li>
           <li className="flex items-start">
             <div className="mr-2 mt-1 bg-primary/20 text-primary h-4 w-4 rounded-full flex items-center justify-center text-xs">4</div>
-            <span>EST tokens can be used to break the timelock early if needed</span>
+            <span>Withdrawing outside the monthly window incurs a 5% penalty.</span>
           </li>
         </ul>
       </div>

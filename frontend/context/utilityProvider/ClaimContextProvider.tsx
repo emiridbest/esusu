@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useContext, createContext, ReactNode, useMemo, useEffect, useRef } from 'react';
-import { ethers, Interface } from "ethers";
+import { encodeFunctionData, parseAbi } from 'viem';
 import { useAccount, useSendTransaction } from "wagmi";
 import { toast } from 'sonner';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '@/components/TransactionSteps';
 import { createWalletClient, custom } from 'viem'
-import { celo } from 'viem/chains'
+// import { celo } from 'viem/chains'
 import { PublicClient, WalletClient } from "viem"
 import { txCountABI, txCountAddress } from '@/utils/pay';
 import { writeContract } from '@wagmi/core';
@@ -94,14 +94,14 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
 
   const publicClient = createPublicClient({
-    chain: celo,
+    chain: Celo,
     transport: http()
   })
   const walletClient = useMemo(() => {
     if (isConnected && window.ethereum && address) {
       return createWalletClient({
         account: address as `0x${string}`,
-        chain: celo,
+        chain: Celo,
         transport: custom(window.ethereum)
       });
     }
@@ -111,11 +111,11 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const identitySDK = useMemo(() => {
     if (isConnected && publicClient && walletClient) {
       try {
-        return new IdentitySDK(
-          publicClient as unknown as PublicClient,
-          walletClient as unknown as WalletClient,
-          "production"
-        );
+        return new IdentitySDK({
+          publicClient: publicClient as PublicClient,
+          walletClient: walletClient as WalletClient,
+          env: 'production',
+        });
       } catch (error) {
         console.error("Failed to initialize IdentitySDK:", error);
         return null;
@@ -202,6 +202,8 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
       toast.info("Processing claim for G$ tokens...");
       setIsProcessing(true);
+      setIsWaitingTx(true);
+      updateStepStatus('claim-ubi', 'loading');
       // Check entitlement again after claiming
       const newEntitlement = await claimSDK.checkEntitlement();
       setEntitlement(newEntitlement);
@@ -210,12 +212,15 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         return;
       }
       toast.success("Successfully claimed G$ tokens!");
+      updateStepStatus('claim-ubi', 'success');
 
     } catch (error) {
       console.error("Error during claim:", error);
       toast.error("There was an error processing your claim.");
+      updateStepStatus('claim-ubi', 'error', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setIsProcessing(false);
+      setIsWaitingTx(false);
     }
   };
 
@@ -286,12 +291,13 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     const selectedToken = "G$";
     const tokenAddress = getTokenAddress(selectedToken, TOKENS);
 
-    const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
-    const transferInterface = new Interface(tokenAbi);
-    const transferData = transferInterface.encodeFunctionData("transfer", [
-      RECIPIENT_WALLET,
-      entitlement
-    ]);
+    const erc20Abi = parseAbi(["function transfer(address to, uint256 value) returns (bool)"]);
+    const transferData = encodeFunctionData({
+      abi: erc20Abi,
+      functionName: 'transfer',
+      args: [RECIPIENT_WALLET as `0x${string}`, entitlement as bigint]
+    });
+    console.log("Processing payment for address:", address);
     
     const dataSuffix = getReferralTag({
       user: address, 
@@ -302,6 +308,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
     toast.info("Processing payment for data bundle...");
     try {
+      setIsWaitingTx(true);
       const tx = await sendTransactionAsync({
         to: tokenAddress as `0x${string}`,
         data: dataWithSuffix as `0x${string}`,
@@ -332,6 +339,8 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       }
       throw error;
 
+    } finally {
+      setIsWaitingTx(false);
     }
   };
 
@@ -406,7 +415,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     setCurrentOperation,
     setIsTransactionDialogOpen,
     isTransactionDialogOpen,
-    isWaitingTx: false,
+    isWaitingTx,
     setIsWaitingTx,
     closeTransactionDialog,
     openTransactionDialog,

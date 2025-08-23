@@ -71,7 +71,7 @@ const WithdrawTab: React.FC = () => {
           <div className="border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 rounded-md p-3 mt-3">
             <p className="text-sm flex items-start">
               <AlertCircleIcon className="h-4 w-4 text-amber-600 mr-2 mt-0.5 flex-shrink-0" />
-              <span>Your funds are time-locked until the 28th of the month. Use the <strong>Break Lock</strong> tab if you need to withdraw early (requires EST tokens).</span>
+              <span>Your funds are time-locked until the 28th of the month. Use the <strong>Break Lock</strong> tab to withdraw early, which will incur a 5% penalty on your total balance.</span>
             </p>
           </div>
         )}

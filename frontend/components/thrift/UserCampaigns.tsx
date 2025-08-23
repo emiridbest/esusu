@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Campaign, CampaignMember, useThrift } from '@/context/thrift/ThriftContext';
+import { ThriftGroup, ThriftMember, useThrift } from '@/context/thrift/ThriftContext';
 import { 
   Table, 
   TableBody, 
@@ -15,8 +15,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 
 export function UserCampaigns() {
-  const { userCampaigns, getCampaignMembers, loading, error } = useThrift();
-  const [campaignMembers, setCampaignMembers] = useState<{ [key: number]: CampaignMember[] }>({});
+  const { userGroups, getThriftGroupMembers, loading, error } = useThrift();
+  const [groupMembers, setGroupMembers] = useState<{ [key: number]: ThriftMember[] }>({});
   const [connected, setConnected] = useState(false);
   
   // Check if wallet is connected
@@ -53,27 +53,27 @@ export function UserCampaigns() {
     }
   }, []);
   
-  // Load members for all user campaigns
+  // Load members for all user groups
   useEffect(() => {
     const loadAllMembers = async () => {
-      if (!connected || userCampaigns.length === 0) return;
+      if (!connected || userGroups.length === 0) return;
       
-      const membersMap: { [key: number]: CampaignMember[] } = {};
+      const membersMap: { [key: number]: ThriftMember[] } = {};
       
-      for (const campaign of userCampaigns) {
+      for (const group of userGroups) {
         try {
-          const members = await getCampaignMembers(campaign.id);
-          membersMap[campaign.id] = members;
+          const members = await getThriftGroupMembers(group.id);
+          membersMap[group.id] = members;
         } catch (error) {
-          console.error(`Failed to fetch members for campaign ${campaign.id}:`, error);
+          console.error(`Failed to fetch members for group ${group.id}:`, error);
         }
       }
       
-      setCampaignMembers(membersMap);
+      setGroupMembers(membersMap);
     };
     
     loadAllMembers();
-  }, [userCampaigns, connected, getCampaignMembers]);
+  }, [userGroups, connected, getThriftGroupMembers]);
   
   if (!connected) {
     return (
@@ -111,7 +111,7 @@ export function UserCampaigns() {
     );
   }
   
-  if (userCampaigns.length === 0) {
+  if (userGroups.length === 0) {
     return (
       <Card className="w-full">
         <CardContent className="pt-6">
@@ -143,26 +143,26 @@ export function UserCampaigns() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead>Monthly</TableHead>
+                    <TableHead>Deposit</TableHead>
                     <TableHead>Members</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {userCampaigns.map((campaign) => (
-                    <TableRow key={campaign.id}>
+                  {userGroups.map((group) => (
+                    <TableRow key={group.id}>
                       <TableCell className="font-medium">
                         <a 
-                          href={`/thrift/${campaign.id}`}
+                          href={`/thrift/${group.id}`}
                           className="hover:underline text-primary"
                         >
-                          {campaign.name}
+                          {group.name}
                         </a>
                       </TableCell>
                       <TableCell className="max-w-xs truncate">
-                        {campaign.description}
+                        {group.description}
                       </TableCell>
-                      <TableCell>{parseFloat(campaign.contributionAmount)} cUSD</TableCell>
-                      <TableCell>{campaign.totalContributions || '0'}/5</TableCell>
+                      <TableCell>{parseFloat(group.depositAmount)} cUSD</TableCell>
+                      <TableCell>{group.totalMembers}/{group.maxMembers}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -181,31 +181,30 @@ export function UserCampaigns() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {userCampaigns.map((campaign) => (
-                    <TableRow key={campaign.id}>
+                  {userGroups.map((group) => (
+                    <TableRow key={group.id}>
                       <TableCell className="font-medium">
                         <a 
-                          href={`/thrift/${campaign.id}`}
+                          href={`/thrift/${group.id}`}
                           className="hover:underline text-primary"
                         >
-                          {campaign.name}
+                          {group.name}
                         </a>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                          {campaignMembers[campaign.id]?.map((member, idx) => (
+                          {groupMembers[group.id]?.map((member, idx) => (
                             <div key={idx} className="text-sm">
-                              {member.userName} 
-                              <span className="text-xs text-gray-500 ml-1">
-                                ({member.address.substring(0, 6)}...{member.address.substring(member.address.length - 4)})
+                              <span className="text-xs text-gray-500">
+                                {member.address.substring(0, 6)}...{member.address.substring(member.address.length - 4)}
                               </span>
                             </div>
                           )) || <span className="text-gray-500">Loading members...</span>}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Active
+                        <Badge variant="outline" className={group.isActive ? "bg-green-50 text-green-700 border-green-200" : "bg-yellow-50 text-yellow-700 border-yellow-200"}>
+                          {group.isActive ? 'Active' : 'Pending'}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -227,22 +226,22 @@ export function UserCampaigns() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {userCampaigns.map((campaign) => (
-                    <TableRow key={campaign.id}>
+                  {userGroups.map((group) => (
+                    <TableRow key={group.id}>
                       <TableCell className="font-medium">
                         <a 
-                          href={`/thrift/${campaign.id}`}
+                          href={`/thrift/${group.id}`}
                           className="hover:underline text-primary"
                         >
-                          {campaign.name}
+                          {group.name}
                         </a>
                       </TableCell>
-                      <TableCell>{parseFloat(campaign.contributionAmount)} cUSD/month</TableCell>
+                      <TableCell>{parseFloat(group.depositAmount)} cUSD</TableCell>
                       <TableCell>
                         {new Date().toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                        Round {group.currentRound + 1}
                       </TableCell>
                     </TableRow>
                   ))}

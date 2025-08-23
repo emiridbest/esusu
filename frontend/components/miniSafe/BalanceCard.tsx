@@ -108,7 +108,7 @@ const BalanceCard: React.FC = () => {
                   </div>
                   <span className="font-medium">USDT</span>
                 </div>
-                <div className="text-xl font-bold">{usdtBalance ? formatBalance(formatUnits(usdtBalance || '0', 18)) : '0.00'}</div>
+                <div className="text-xl font-bold">{usdtBalance ? formatBalance(formatUnits(usdtBalance || '0', 6)) : '0.00'}</div>
               </div>
             </div>
 

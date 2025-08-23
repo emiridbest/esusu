@@ -38,6 +38,9 @@ export interface ButtonProps
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
   isLoading?: boolean
+  // Explicitly declare to avoid rare inference issues in some TS setups
+  variant?: NonNullable<VariantProps<typeof buttonVariants>["variant"]>
+  size?: NonNullable<VariantProps<typeof buttonVariants>["size"]>
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(

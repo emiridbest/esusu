@@ -1,15 +1,14 @@
 import React, { createContext, useState, useCallback, useContext, useEffect } from 'react';
 import { toast } from 'sonner';
 import { contractAddress, abi } from '@/utils/abi';
-import { formatUnits, Interface } from "ethers";
-import { gweiUnits, parseEther, parseUnits } from "viem";
+import { encodeFunctionData, parseAbi, parseUnits, formatUnits, parseEther } from "viem";
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import {
   useAccount,
   usePublicClient,
   useSendTransaction,
 } from 'wagmi';
-import { readContract, writeContract } from '@wagmi/core';
+import { readContract } from '@wagmi/core';
 
 // Import Dialog components
 import {
@@ -73,6 +72,9 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const usdcAddress = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
   const cusdAddress = "0x765de816845861e75a25fca122bb6898b8b1282a";
   const usdtAddress = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e";
+  // Reward token (EST) configuration via environment
+  const rewardTokenAddressEnv = (process.env.NEXT_PUBLIC_REWARD_TOKEN_ADDRESS || '').trim();
+  const rewardTokenDecimalsDefault = Number.parseInt(process.env.NEXT_PUBLIC_REWARD_TOKEN_DECIMALS || '18', 10);
 
   // State values
   const [depositAmount, setDepositAmount] = useState(0);
@@ -105,7 +107,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const dataSuffix = address ? getReferralTag({
     user: address as `0x${string}`,
     consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-  }) : undefined;
+  }) : '';
   const getBalance = useCallback(async () => {
     if (!address) return;
 
@@ -154,27 +156,52 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const getTokenBalance = useCallback(async () => {
     if (!address) return;
 
+    const tokenAddress = rewardTokenAddressEnv as `0x${string}` | '';
+    if (!tokenAddress || !tokenAddress.startsWith('0x')) {
+      console.warn('Reward token address is not set. Set NEXT_PUBLIC_REWARD_TOKEN_ADDRESS to enable EST balance.');
+      setTokenBalance('0');
+      return;
+    }
+
+    // Minimal ERC20 ABI for balance and decimals (typed via parseAbi)
+    const erc20Abi = parseAbi([
+      'function balanceOf(address account) view returns (uint256)',
+      'function decimals() view returns (uint8)'
+    ]);
+
     try {
+      // Try to read token decimals; fallback to env default
+      let decimals = rewardTokenDecimalsDefault;
+      try {
+        const d = await readContract({
+          address: tokenAddress as `0x${string}`,
+          abi: erc20Abi,
+          functionName: 'decimals',
+        });
+        if (typeof d === 'number') decimals = d;
+        if (typeof d === 'bigint') decimals = Number(d);
+      } catch {
+        // ignore, keep default
+      }
+
       const data = await readContract({
-        address: contractAddress as `0x${string}`,
-        abi,
+        address: tokenAddress as `0x${string}`,
+        abi: erc20Abi,
         functionName: 'balanceOf',
         args: [address],
       });
 
-      if (data) {
-        const formattedBalance = formatUnits(data as unknown as bigint, 0);
-        setTokenBalance(formattedBalance.toString());
+      if (typeof data === 'bigint') {
+        const formatted = formatUnits(data, decimals);
+        setTokenBalance(formatted);
       } else {
-        // Ensure we never set an empty string
         setTokenBalance('0');
       }
     } catch (error) {
-      console.error("Error fetching token balance:", error);
-      // Set a default value on error
+      console.error('Error fetching reward token balance:', error);
       setTokenBalance('0');
     }
-  }, [address]);
+  }, [address, rewardTokenAddressEnv, rewardTokenDecimalsDefault]);
 
   const handleTokenChange = (value: string) => {
     setSelectedToken(value);
@@ -202,6 +229,17 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const getTokenDecimals = (token: string) => {
+    switch (token) {
+      case 'USDC':
+      case 'USDT':
+        return 6;
+      case 'CUSD':
+      default:
+        return 18;
+    }
+  };
+
   // Configure approve transaction
   const approveSpend = async () => {
     if (!depositAmount || isNaN(Number(depositAmount)) || Number(depositAmount) <= 0) {
@@ -215,12 +253,14 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
     openTransactionDialog('approve');
     setIsApproving(true);
+    setIsWaitingTx(true);
     updateStepStatus('check-balance', 'loading');
     await getBalance();
 
     try {
       const tokenAddress = getTokenAddress(selectedToken);
-      const depositValue = parseEther(depositAmount.toString());
+      const decimals = getTokenDecimals(selectedToken);
+      const depositValue = parseUnits(depositAmount.toString(), decimals);
 
       updateStepStatus('allowance', 'loading');
       // Check allowance first
@@ -254,16 +294,16 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       updateStepStatus('approve', 'loading');
       toast.info('Approving transaction...');
 
-      const tokenAbi = [
+      const tokenAbi = parseAbi([
         "function allowance(address owner, address spender) view returns (uint256)",
         "function approve(address spender, uint256 amount) returns (bool)"
-      ];
-      // Correctly encode the approve function with parameters
-      const approveInterface = new Interface(tokenAbi);
-      const approveData = approveInterface.encodeFunctionData("approve", [
-        contractAddress,
-        depositValue,
       ]);
+      // Correctly encode the approve function with parameters using viem
+      const approveData = encodeFunctionData({
+        abi: tokenAbi,
+        functionName: "approve",
+        args: [contractAddress as `0x${string}`, depositValue],
+      });
       const dataSuffix = address ? getReferralTag({
         user: address,
         consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
@@ -293,12 +333,27 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.error("Error submitting referral:", referralError);
         setIsApproved(true);
         toast.success('Approval successful, but referral tracking failed');
+        // Even if referral fails, finalize the confirm step so UI doesn't hang
+        updateStepStatus('confirm', 'success');
       }
     } catch (error) {
       console.error("Error approving spend:", error);
       toast.error('Approval failed!');
+      // Mark the current loading step as error to avoid stuck 'loading' UI
+      const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
+      if (loadingStepIndex !== -1) {
+        updateStepStatus(
+          transactionSteps[loadingStepIndex].id,
+          'error',
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      } else {
+        // Fallback: mark approve step as error
+        updateStepStatus('approve', 'error', error instanceof Error ? error.message : 'Unknown error');
+      }
     } finally {
       setIsApproving(false);
+      setIsWaitingTx(false);
     }
   };
 
@@ -322,17 +377,16 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       updateStepStatus('check-balance', 'loading');
 
       const tokenAddress = getTokenAddress(selectedToken);
-      const depositValue = parseEther(depositAmount.toString());
+      const decimals = getTokenDecimals(selectedToken);
+      const depositValue = parseUnits(depositAmount.toString(), decimals);
 
       // Check balance and update first step
       await getBalance();
       await getTokenBalance();
       updateStepStatus('check-balance', 'success');
-
-      // Start second step - allowance
-      updateStepStatus('allowance', 'loading');
-
-      // Check if already approved
+      // Approval step
+      updateStepStatus('approve', 'loading');
+      // Check allowance
       const allowanceData = await readContract({
         address: tokenAddress as `0x${string}`,
         abi: [
@@ -350,40 +404,36 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         functionName: 'allowance',
         args: [address, contractAddress],
       });
-
-      // If not approved, approve
-
-      if ((allowanceData as bigint) < (depositValue as bigint)) {
-        // Start approval step
-        updateStepStatus('approve', 'loading');
-        const tokenAbi = [
+      if ((allowanceData as bigint) >= (depositValue as bigint)) {
+        updateStepStatus('approve', 'success');
+      } else {
+        const tokenAbi = parseAbi([
           "function approve(address spender, uint256 amount) returns (bool)"
-        ];
-        const approveInterface = new Interface(tokenAbi);
-        const approveData = approveInterface.encodeFunctionData("approve", [
-          contractAddress,
-          depositValue,
         ]);
-        await sendTransactionAsync({
+        const approveData = encodeFunctionData({
+          abi: tokenAbi,
+          functionName: "approve",
+          args: [contractAddress as `0x${string}`, depositValue],
+        });
+        const approveDataWithSuffix = approveData + dataSuffix;
+        const approveTx = await sendTransactionAsync({
           to: tokenAddress as `0x${string}`,
-          data: approveData as `0x${string}`,
+          data: approveDataWithSuffix as `0x${string}`,
           chainId: 42220,
         });
+        await publicClient.waitForTransactionReceipt({ hash: approveTx.hash });
+        updateStepStatus('approve', 'success');
       }
-
-      // Update second step
-      updateStepStatus('approve', 'success');
 
       // Start third step - deposit
       updateStepStatus('deposit', 'loading');
 
-      // For deposit, we need to handle the referral tag differently
-      // Fix: Create proper transaction data
-      const depositInterface = new Interface(abi);
-      const depositData = depositInterface.encodeFunctionData("deposit", [
-        tokenAddress,
-        depositValue
-      ]);
+      // Create proper transaction data using viem
+      const depositData = encodeFunctionData({
+        abi,
+        functionName: "deposit",
+        args: [tokenAddress as `0x${string}`, depositValue],
+      });
       const dataWithSuffix = depositData + dataSuffix;
 
       const tx = await sendTransactionAsync({
@@ -424,6 +474,9 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           'error',
           error instanceof Error ? error.message : 'Unknown error'
         );
+      } else {
+        // Fallback: mark confirm step as error so UI can close gracefully
+        updateStepStatus('confirm', 'error', error instanceof Error ? error.message : 'Unknown error');
       }
     } finally {
 
@@ -449,16 +502,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       updateStepStatus('check-balance', 'loading');
 
       const tokenAddress = getTokenAddress(selectedToken);
-      const getTokenDecimals = (selectedToken: string) => {
-        switch (selectedToken) {
-          case 'USDC': return 6;
-          case 'USDT': return 6;
-          case 'CUSD': return 18;
-          default: return 18;
-        }
-      };
-
-      const decimals = getTokenDecimals(selectedToken);
 
       let withdrawalAmount: string = "0";
       if (selectedToken === 'CUSD') {
@@ -477,12 +520,12 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       updateStepStatus('withdraw', 'loading');
 
-      // Fix: Create proper transaction data
-      const withdrawInterface = new Interface(abi);
-      const withdrawData = withdrawInterface.encodeFunctionData("withdraw", [
-        tokenAddress,
-        withdrawalValue
-      ]);
+      // Fix: Create proper transaction data using viem
+      const withdrawData = encodeFunctionData({
+        abi,
+        functionName: "withdraw",
+        args: [tokenAddress as `0x${string}`, withdrawalValue],
+      });
       const dataWithSuffix = withdrawData + dataSuffix;
 
       const tx = await sendTransactionAsync({
@@ -522,6 +565,9 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           'error',
           error instanceof Error ? error.message : 'Unknown error'
         );
+      } else {
+        // Fallback: ensure an error is reflected to avoid stuck UI
+        updateStepStatus('confirm', 'error', error instanceof Error ? error.message : 'Unknown error');
       }
     } finally {
       setIsWaitingTx(false);
@@ -543,90 +589,56 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       updateStepStatus('check-balance', 'loading');
       const tokenAddress = getTokenAddress(selectedToken);
 
-      // Get token balance
+      // Refresh balances/info
       await getBalance();
-      await getTokenBalance();
+      // No EST token logic required anymore
 
-      // Update first step to success and start second step
+      // Update first step to success and start break step
       updateStepStatus('check-balance', 'success');
-      updateStepStatus('approve', 'loading');
-
-      // approve token spend if not already approved
-      const tokenAbi = [
-        "function allowance(address owner, address spender) view returns (uint256)",
-        "function approve(address spender, uint256 amount) returns (bool)"
-      ];
-      const spend = await readContract({
-        address: contractAddress as `0x${string}`,
-        abi,
-        functionName: 'MIN_TOKENS_FOR_TIMELOCK_BREAK',
-      }) as number;
-      const spendAmount = parseEther(spend.toString());
-
-      // Correctly encode the approve function with parameters
-      const approveInterface = new Interface(tokenAbi);
-      const approveData = approveInterface.encodeFunctionData("approve", [
-        contractAddress,
-        spendAmount,
-      ]);
-
-      // Append the data suffix to the approve call data
-      const dataWithSuffix = approveData + dataSuffix;
-
-      // Send the transaction with the properly encoded data
-      const tx = await sendTransactionAsync({
-        to: contractAddress as `0x${string}`,
-        data: dataWithSuffix as `0x${string}`,
-        chainId: 42220,
-      });
-
-      // Update second step to success and start third step
-      updateStepStatus('approve', 'success');
       updateStepStatus('break', 'loading');
 
-      const breakTimelockInterface = new Interface(abi);
-      const breakTimelockData = breakTimelockInterface.encodeFunctionData("breakTimelock", [
-        tokenAddress
-      ]);
+      const breakTimelockData = encodeFunctionData({
+        abi,
+        functionName: "breakTimelock",
+        args: [tokenAddress as `0x${string}`],
+      });
       const breakData = breakTimelockData + dataSuffix;
 
-      let txHash: `0x${string}`;
+      let breakTx: any;
       try {
-        const tx = await sendTransactionAsync({
+        breakTx = await sendTransactionAsync({
           to: contractAddress as `0x${string}`,
           data: breakData as `0x${string}`,
           chainId: 42220,
         });
 
       } catch (error) {
-        updateStepStatus('confirm', 'error', error instanceof Error ? error.message : 'Unknown error');
+        updateStepStatus('break', 'error', error instanceof Error ? error.message : 'Unknown error');
         throw error;
       }
 
-      // Update third step to success and start confirmation step
+      // Update break step to success and start confirmation step
       toast.info('Waiting for confirmation...');
-
-      await getBalance();
-      await getTokenBalance();
-
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx.hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: breakTx.hash });
       if (receipt.status === 'success') {
         toast.success('Timelock broken successfully!');
         updateStepStatus('break', 'success');
-
+        updateStepStatus('confirm', 'loading');
+        // Optional referral submit
+        try {
+          await submitReferral({
+            txHash: breakTx.hash,
+            chainId: 42220
+          });
+        } catch (referralError) {
+          console.error('Error submitting referral:', referralError);
+        }
+        updateStepStatus('confirm', 'success');
+        await getBalance();
       } else {
-        updateStepStatus('confirm', 'error', 'Transaction failed on blockchain');
+        updateStepStatus('break', 'error', 'Transaction failed on blockchain');
         toast.error('Transaction failed');
       }
-
-      await getBalance();
-      await getTokenBalance();
-      updateStepStatus('confirm', 'loading');
-
-      await submitReferral({
-        txHash: tx.hash,
-        chainId: 42220
-      });
     } catch (error) {
       console.error("Error breaking timelock:", error);
       toast.error('Error breaking timelock');
@@ -639,6 +651,9 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           'error',
           error instanceof Error ? error.message : 'Unknown error'
         );
+      } else {
+        // Fallback: ensure an error is reflected to avoid stuck UI
+        updateStepStatus('confirm', 'error', error instanceof Error ? error.message : 'Unknown error');
       }
     } finally {
       setIsWaitingTx(false);
@@ -705,13 +720,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         {
           id: 'check-balance',
           title: 'Check Balance',
-          description: 'Checking your token balance...',
-          status: 'inactive'
-        },
-        {
-          id: 'approve',
-          title: 'Approve',
-          description: 'Approving token spend for timelock break...',
+          description: 'Checking your safe balance...',
           status: 'inactive'
         },
         {
@@ -845,6 +854,37 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Check if all steps are completed
   const allStepsCompleted = transactionSteps.every(step => step.status === 'success');
   const hasError = transactionSteps.some(step => step.status === 'error');
+
+  // Auto-close the transaction dialog once steps complete (success) or any error occurs
+  // and we're no longer waiting on a transaction. A small delay lets the UI show final state.
+  useEffect(() => {
+    if (!isTransactionDialogOpen) return;
+    const allDone = transactionSteps.length > 0 && transactionSteps.every(step => step.status === 'success');
+    const anyError = transactionSteps.some(step => step.status === 'error');
+    if (!isWaitingTx && (allDone || anyError)) {
+      const t = setTimeout(() => {
+        closeTransactionDialog();
+      }, 1000);
+      return () => clearTimeout(t);
+    }
+  }, [isTransactionDialogOpen, isWaitingTx, transactionSteps]);
+
+  // Safety: timeout any transaction that takes too long to avoid indefinite 'loading'.
+  useEffect(() => {
+    if (!isTransactionDialogOpen || isWaitingTx === false) return;
+    const timeoutMs = Number.parseInt(process.env.NEXT_PUBLIC_TX_TIMEOUT_MS || '120000', 10);
+    const t = setTimeout(() => {
+      // Mark any loading step as error and stop waiting
+      setTransactionSteps(prev => {
+        const loading = [...prev].reverse().find(s => s.status === 'loading');
+        if (!loading) return prev.map(s => s);
+        return prev.map(s => s.id === loading.id ? { ...s, status: 'error', errorMessage: 'Transaction timed out' } : s);
+      });
+      setIsWaitingTx(false);
+      toast.error('Transaction timed out. Please try again.');
+    }, isNaN(timeoutMs) ? 120000 : timeoutMs);
+    return () => clearTimeout(t);
+  }, [isTransactionDialogOpen, isWaitingTx]);
 
   return (
     <MiniSafeContext.Provider value={value}>

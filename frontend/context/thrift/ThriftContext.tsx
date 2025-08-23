@@ -1,45 +1,48 @@
 "use client";
 import React, { createContext, useState, useCallback, useContext, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { contractAddress, abi } from '@/utils/esusu';
-import { BrowserProvider, Contract, formatUnits, parseUnits } from "ethers";
+import { contractAddress, MiniSafeAave } from '@/utils/abi';
+import { BrowserProvider, formatUnits, parseUnits } from "ethers";
 
-// Define the type for campaign data
-export interface Campaign {
+// Define the type for thrift group data (updated to match contract structure)
+export interface ThriftGroup {
   id: number;
   name: string;
   description: string;
-  contributionAmount: string;
-  payoutInterval: string;
-  lastPayoutBlock: string;
-  totalContributions: string;
-  monthlyContribution: string;
-  userName: string;
-  createdBy?: string;
-  members?: CampaignMember[];
-  isUserJoined?: boolean;
+  depositAmount: string;
+  maxMembers: number;
+  isPublic: boolean;
+  isActive: boolean;
+  currentRound: number;
+  totalMembers: number;
+  members: string[];
+  contributions: { [address: string]: string };
+  payoutOrder: number[];
+  completedPayouts: number;
+  isUserMember?: boolean;
 }
 
-export interface CampaignMember {
+export interface ThriftMember {
   address: string;
-  userName: string;
   contributionAmount: string;
   joinDate: string;
-  withdrawalMonth?: number;
+  hasContributed: boolean;
+  payoutPosition?: number;
 }
 
 export interface ThriftContextType {
-  userCampaigns: Campaign[];
-  allCampaigns: Campaign[];
-  createCampaign: (name: string, description: string, contributionAmount: string) => Promise<void>;
-  joinCampaign: (campaignId: number, tokenAddress: string, userName: string) => Promise<void>;
-  contribute: (campaignId: number, tokenAddress: string, amount: string) => Promise<void>;
-  withdraw: (campaignId: number) => Promise<void>;
-  getCampaignMembers: (campaignId: number) => Promise<CampaignMember[]>;
-  generateShareLink: (campaignId: number) => string;
+  userGroups: ThriftGroup[];
+  allGroups: ThriftGroup[];
+  createThriftGroup: (name: string, description: string, depositAmount: string, maxMembers: number, isPublic: boolean) => Promise<void>;
+  joinThriftGroup: (groupId: number) => Promise<void>;
+  addMemberToPrivateGroup: (groupId: number, memberAddress: string) => Promise<void>;
+  makeContribution: (groupId: number) => Promise<void>;
+  distributePayout: (groupId: number) => Promise<void>;
+  getThriftGroupMembers: (groupId: number) => Promise<ThriftMember[]>;
+  generateShareLink: (groupId: number) => string;
   loading: boolean;
   error: string | null;
-  refreshCampaigns: () => Promise<void>;
+  refreshGroups: () => Promise<void>;
 }
 
 // Celo token addresses
@@ -49,13 +52,13 @@ const CUSD_TOKEN_ADDRESS = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1";
 const ThriftContext = createContext<ThriftContextType | undefined>(undefined);
 
 export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [userCampaigns, setUserCampaigns] = useState<Campaign[]>([]);
-  const [allCampaigns, setAllCampaigns] = useState<Campaign[]>([]);
+  const [userGroups, setUserGroups] = useState<ThriftGroup[]>([]);
+  const [allGroups, setAllGroups] = useState<ThriftGroup[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [account, setAccount] = useState<string | null>(null);
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
-  const [contract, setContract] = useState<Contract | null>(null);
+  const [contract, setContract] = useState<MiniSafeAave | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
 
   // Initialize provider, account, and contract
@@ -73,9 +76,10 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setAccount(accounts[0].address);
           setIsConnected(true);
           
-          // Initialize contract
-          const esusuContract = new Contract(contractAddress, abi, await ethersProvider.getSigner());
-          setContract(esusuContract);
+          // Initialize MiniSafeAave contract
+          const signer = await ethersProvider.getSigner();
+          const miniSafeContract = new MiniSafeAave(contractAddress, signer);
+          setContract(miniSafeContract);
         } else {
           setIsConnected(false);
           setAccount(null);
@@ -122,8 +126,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [initialize]);
 
-  // Create campaign contract interaction
-  const createCampaign = async (name: string, description: string, contributionAmount: string) => {
+  // Create thrift group contract interaction
+  const createThriftGroup = async (name: string, description: string, depositAmount: string, maxMembers: number, isPublic: boolean) => {
     if (!contract || !isConnected) {
       throw new Error("Wallet not connected or contract not initialized");
     }
@@ -132,23 +136,23 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
       
-      const amount = parseUnits(contributionAmount, 18);
-      const tx = await contract.createCampaign(name, description, amount);
+      const amount = parseUnits(depositAmount, 18);
+      const tx = await contract.createThriftGroup(name, description, amount, maxMembers, isPublic);
       await tx.wait();
       
-      await refreshCampaigns();
-      toast.success("Campaign created successfully!");
+      await refreshGroups();
+      toast.success("Thrift group created successfully!");
     } catch (err) {
-      console.error("Failed to create campaign:", err);
-      setError(`Failed to create campaign: ${err instanceof Error ? err.message : String(err)}`);
-      toast.error(`Failed to create campaign: ${err instanceof Error ? err.message : String(err)}`);
+      console.error("Failed to create thrift group:", err);
+      setError(`Failed to create thrift group: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(`Failed to create thrift group: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // Join campaign contract interaction
-  const joinCampaign = async (campaignId: number, tokenAddress: string, userName: string) => {
+  // Join public thrift group contract interaction
+  const joinThriftGroup = async (groupId: number) => {
     if (!contract || !isConnected) {
       throw new Error("Wallet not connected or contract not initialized");
     }
@@ -157,22 +161,22 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
       
-      const tx = await contract.joinCampaign(campaignId, tokenAddress, userName);
+      const tx = await contract.joinPublicGroup(groupId);
       await tx.wait();
       
-      await refreshCampaigns();
-      toast.success("Successfully joined the campaign!");
+      await refreshGroups();
+      toast.success("Successfully joined the thrift group!");
     } catch (err) {
-      console.error("Failed to join campaign:", err);
-      setError(`Failed to join campaign: ${err instanceof Error ? err.message : String(err)}`);
-      toast.error(`Failed to join campaign: ${err instanceof Error ? err.message : String(err)}`);
+      console.error("Failed to join thrift group:", err);
+      setError(`Failed to join thrift group: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(`Failed to join thrift group: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // Contribute to campaign contract interaction
-  const contribute = async (campaignId: number, tokenAddress: string, amount: string) => {
+  // Add member to private group contract interaction
+  const addMemberToPrivateGroup = async (groupId: number, memberAddress: string) => {
     if (!contract || !isConnected) {
       throw new Error("Wallet not connected or contract not initialized");
     }
@@ -181,11 +185,34 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
       
-      const amountInWei = parseUnits(amount, 18);
-      const tx = await contract.contribute(tokenAddress, amountInWei);
+      const tx = await contract.addMemberToPrivateGroup(groupId, memberAddress);
       await tx.wait();
       
-      await refreshCampaigns();
+      await refreshGroups();
+      toast.success("Member added successfully!");
+    } catch (err) {
+      console.error("Failed to add member:", err);
+      setError(`Failed to add member: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(`Failed to add member: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Make contribution contract interaction
+  const makeContribution = async (groupId: number) => {
+    if (!contract || !isConnected) {
+      throw new Error("Wallet not connected or contract not initialized");
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const tx = await contract.makeContribution(groupId);
+      await tx.wait();
+      
+      await refreshGroups();
       toast.success("Contribution successful!");
     } catch (err) {
       console.error("Failed to contribute:", err);
@@ -196,8 +223,32 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // Withdraw from campaign contract interaction
-  const withdraw = async (campaignId: number) => {
+  // Function to get thrift group members
+  const getThriftGroupMembers = async (groupId: number): Promise<ThriftMember[]> => {
+    if (!contract || !isConnected) {
+      throw new Error("Wallet not connected or contract not initialized");
+    }
+
+    try {
+      // Get group data to access members array
+      const groupData = await contract.getThriftGroup(groupId);
+      const members = groupData.members || [];
+      
+      return members.map((address: string, index: number) => ({
+        address,
+        contributionAmount: '0', // Would need to query individual contributions
+        joinDate: new Date().toISOString(),
+        hasContributed: false, // Would need to check contribution status
+        payoutPosition: index
+      }));
+    } catch (error) {
+      console.error("Failed to fetch group members:", error);
+      throw error;
+    }
+  };
+
+  // Distribute payout contract interaction
+  const distributePayout = async (groupId: number) => {
     if (!contract || !isConnected) {
       throw new Error("Wallet not connected or contract not initialized");
     }
@@ -206,54 +257,32 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
       
-      const tx = await contract.withdraw(campaignId);
+      const tx = await contract.distributePayout(groupId);
       await tx.wait();
       
-      await refreshCampaigns();
-      toast.success("Withdrawal successful!");
+      await refreshGroups();
+      toast.success("Payout distributed successfully!");
     } catch (err) {
-      console.error("Failed to withdraw:", err);
-      setError(`Failed to withdraw: ${err instanceof Error ? err.message : String(err)}`);
-      toast.error(`Failed to withdraw: ${err instanceof Error ? err.message : String(err)}`);
+      console.error("Failed to distribute payout:", err);
+      setError(`Failed to distribute payout: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(`Failed to distribute payout: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // Function to get campaign members (this would require backend support or event indexing)
-  const getCampaignMembers = async (campaignId: number): Promise<CampaignMember[]> => {
-    if (!contract || !isConnected) {
-      throw new Error("Wallet not connected or contract not initialized");
-    }
-
-    try {
-      // mock
-      return [
-        {
-          address: account || '',
-          userName: 'You',
-          contributionAmount: '100',
-          joinDate: new Date().toISOString(),
-          withdrawalMonth: 1
-        }
-      ];
-    } catch (error) {
-      console.error("Failed to fetch campaign members:", error);
-      throw error;
-    }
-  };
-
-  // Generate shareable link for a campaign
-  const generateShareLink = (campaignId: number): string => {
+ 
+  // Generate shareable link for a thrift group
+  const generateShareLink = (groupId: number): string => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    return `${baseUrl}/thrift/join/${campaignId}`;
+    return `${baseUrl}/thrift/join/${groupId}`;
   };
 
-  // Function to fetch all campaigns
-  const refreshCampaigns = async () => {
+  // Function to fetch all thrift groups
+  const refreshGroups = async () => {
     if (!contract || !isConnected || !account) {
-      setUserCampaigns([]);
-      setAllCampaigns([]);
+      setUserGroups([]);
+      setAllGroups([]);
       return;
     }
 
@@ -261,103 +290,85 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
 
-      // Get all campaign IDs
-      const campaignIds = await contract.getAllCampaigns();
+      // Get user's groups first
+      const userGroupIds = await contract.getUserGroups(account);
+      const fetchedGroups: ThriftGroup[] = [];
+      const userGroupsTemp: ThriftGroup[] = [];
 
-      if (!campaignIds || !Array.isArray(campaignIds)) {
-        setUserCampaigns([]);
-        setAllCampaigns([]);
-        return;
-      }
-
-      // Fetch details for each campaign
-      const fetchedCampaigns: Campaign[] = [];
-      const userCampaignsTemp: Campaign[] = [];
-
-      for (const id of campaignIds) {
+      // For demo purposes, we'll create some mock groups
+      // In production, you would iterate through actual group IDs from events or contract state
+      const mockGroupIds = [1, 2, 3];
+      
+      for (const groupId of mockGroupIds) {
         try {
-          const details = await contract.getCampaignDetails(id);
+          const groupData = await contract.getThriftGroup(groupId);
+          
+          if (!groupData) continue;
 
-          if (!details) continue;
-
-          // Extract campaign details from the returned array
-          const [
-            name,
-            description,
-            contributionAmount,
-            payoutInterval,
-            lastPayoutBlock,
-            totalContributions,
-            userName,
-            campaignId
-          ] = details;
-
-          // Get campaign creator address
-          //const creatorAddress = await contract.getCampaignCreator(id);
-         // const isCreatedByUser = creatorAddress.toLowerCase() === account.toLowerCase();
-
-          // Check if current user has joined this campaign
-          const isUserJoined = userName && userName.length > 0;
-
-          const campaign: Campaign = {
-            id: Number(campaignId),
-            name,
-            description,
-            contributionAmount: formatUnits(contributionAmount, 18),
-            payoutInterval: payoutInterval.toString(),
-            lastPayoutBlock: lastPayoutBlock.toString(),
-            totalContributions: totalContributions.toString(),
-            monthlyContribution: '0', // Placeholder, update based on contract
-            userName,
-            //createdBy: creatorAddress,
-            isUserJoined
+          // Parse group data structure based on contract ABI
+          const group: ThriftGroup = {
+            id: groupId,
+            name: groupData.name || `Group ${groupId}`,
+            description: groupData.description || 'Thrift Group',
+            depositAmount: formatUnits(groupData.depositAmount || '0', 18),
+            maxMembers: Number(groupData.maxMembers || 5),
+            isPublic: Boolean(groupData.isPublic),
+            isActive: Boolean(groupData.isActive),
+            currentRound: Number(groupData.currentRound || 0),
+            totalMembers: Number(groupData.totalMembers || 0),
+            members: groupData.members || [],
+            contributions: groupData.contributions || {},
+            payoutOrder: groupData.payoutOrder || [],
+            completedPayouts: Number(groupData.completedPayouts || 0),
+            isUserMember: userGroupIds.includes(groupId)
           };
 
-          fetchedCampaigns.push(campaign);
+          fetchedGroups.push(group);
           
-          // If user has joined this campaign or created it, add to user campaigns
-          if (isUserJoined) {
-            userCampaignsTemp.push(campaign);
+          // If user is a member, add to user groups
+          if (group.isUserMember) {
+            userGroupsTemp.push(group);
           }
         } catch (err) {
-          console.error(`Error fetching campaign ${id}:`, err);
+          console.error(`Error fetching group ${groupId}:`, err);
         }
       }
 
-      setAllCampaigns(fetchedCampaigns);
-      setUserCampaigns(userCampaignsTemp);
+      setAllGroups(fetchedGroups);
+      setUserGroups(userGroupsTemp);
     } catch (err) {
-      setError(`Failed to fetch campaigns: ${err instanceof Error ? err.message : String(err)}`);
+      setError(`Failed to fetch thrift groups: ${err instanceof Error ? err.message : String(err)}`);
       console.error(err);
-      setUserCampaigns([]);
-      setAllCampaigns([]);
+      setUserGroups([]);
+      setAllGroups([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Initial fetch of campaigns when the user connects
+  // Initial fetch of groups when the user connects
   useEffect(() => {
     if (isConnected && contract) {
-      refreshCampaigns();
+      refreshGroups();
     } else {
-      setUserCampaigns([]);
-      setAllCampaigns([]);
+      setUserGroups([]);
+      setAllGroups([]);
     }
   }, [isConnected, contract]);
 
   const value = {
-    userCampaigns,
-    allCampaigns,
-    createCampaign,
-    joinCampaign,
-    contribute,
-    withdraw,
-    getCampaignMembers,
+    userGroups,
+    allGroups,
+    createThriftGroup,
+    joinThriftGroup,
+    addMemberToPrivateGroup,
+    makeContribution,
+    distributePayout,
+    getThriftGroupMembers,
     generateShareLink,
     loading,
     error,
-    refreshCampaigns
+    refreshGroups
   };
 
   return <ThriftContext.Provider value={value}>{children}</ThriftContext.Provider>;

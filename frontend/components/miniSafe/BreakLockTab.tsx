@@ -22,11 +22,6 @@ const BreakLockTab: React.FC = () => {
     handleBreakLock,
   } = useMiniSafe();
 
-  // EST tokens required to break lock
-  const requiredEstTokens = 15;
-  const hasEnoughTokens = parseInt(tokenBalance) >= requiredEstTokens;
-  const tokenPercentage = Math.min((parseInt(tokenBalance) / requiredEstTokens) * 100, 100);
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
@@ -36,50 +31,13 @@ const BreakLockTab: React.FC = () => {
         </div>
 
         <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-          <strong>Need to withdraw before the 28th?</strong> Use your EST tokens to break the timelock and withdraw your funds immediately. This will consume your EST tokens but bypass the monthly withdrawal restriction.
+          <strong>Need to withdraw before the 28th?</strong> You can break the timelock to withdraw your funds immediately. This action will incur a 5% penalty on your total balance.
         </p>
-
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md p-3 mb-4">
-          <div className="flex items-start">
-            <div className="mr-3 mt-0.5">
-              <LockIcon className="h-5 w-5 text-amber-500" />
-            </div>
-            <div>
-              <h4 className="text-sm font-medium mb-1">Required EST Tokens</h4>
-              <p className="text-xs text-gray-600 dark:text-gray-300" data-testid="required-tokens-text">
-                You need {requiredEstTokens} EST tokens to break this timelock
-              </p>
-
-              <div className="mt-2 flex items-center justify-between">
-                <span className="text-xs">Your balance:</span>
-                <span className="text-xs font-medium">{tokenBalance} EST</span>
-              </div>
-              <Progress
-                value={tokenPercentage}
-                className="h-1.5 mt-1"
-              />
-
-              <p className="mt-2 text-xs">
-                {hasEnoughTokens ? (
-                  <span className="text-green-600 dark:text-green-400">
-                    <CheckCircleIcon className="h-3 w-3 inline mr-1" />
-                    You have enough EST tokens
-                  </span>
-                ) : (
-                  <span className="text-amber-600 dark:text-amber-400">
-                    <AlertCircleIcon className="h-3 w-3 inline mr-1" />
-                    You need {requiredEstTokens - parseInt(tokenBalance)} more EST tokens
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
 
         <Button
           variant="default"
           onClick={handleBreakLock}
-          disabled={!hasEnoughTokens || isWaitingTx}
+          disabled={isWaitingTx}
           className="w-full bg-red-600 hover:bg-red-700"
         >
           {isWaitingTx ? (
@@ -93,11 +51,9 @@ const BreakLockTab: React.FC = () => {
       <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
         <h4 className="font-medium mb-3">How it works</h4>
         <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-          Breaking the timelock early will consume your EST tokens. You will receive your original deposit plus any earned rewards.
+          Breaking the timelock allows you to withdraw your funds immediately, but a 5% penalty will be deducted from your total balance (deposit + rewards).
         </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          Note: EST tokens are non-transferable and can only be used to break timelocks.
-        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">Network gas fees apply.</p>
       </div>
     </div>
   );

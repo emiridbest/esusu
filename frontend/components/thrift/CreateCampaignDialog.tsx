@@ -14,9 +14,11 @@ export function CreateCampaignDialog() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [contributionAmount, setContributionAmount] = useState('');
+  const [maxMembers, setMaxMembers] = useState('5');
+  const [isPublic, setIsPublic] = useState(true);
   const [connected, setConnected] = useState(false);
   
-  const { createCampaign, loading, error } = useThrift();
+  const { createThriftGroup, loading, error } = useThrift();
 
   // Check if wallet is connected
   useEffect(() => {
@@ -53,14 +55,14 @@ export function CreateCampaignDialog() {
   }, []);
   
   const handleSubmit = async () => {
-    if (!name || !description || !contributionAmount) return;
+    if (!name || !description || !contributionAmount || !maxMembers) return;
     
     try {
-      await createCampaign(name, description, contributionAmount);
+      await createThriftGroup(name, description, contributionAmount, parseInt(maxMembers), isPublic);
       setOpen(false);
       resetForm();
     } catch (error) {
-      console.error('Failed to create campaign:', error);
+      console.error('Failed to create thrift group:', error);
     }
   };
   
@@ -68,6 +70,8 @@ export function CreateCampaignDialog() {
     setName('');
     setDescription('');
     setContributionAmount('');
+    setMaxMembers('5');
+    setIsPublic(true);
   };
   
 
@@ -119,7 +123,7 @@ export function CreateCampaignDialog() {
                   
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="amount" className="text-right">
-                      Monthly Amount (cUSD)
+                      Deposit Amount (cUSD)
                     </Label>
                     <Input
                       id="amount"
@@ -129,6 +133,50 @@ export function CreateCampaignDialog() {
                       className="col-span-3"
                       placeholder="100"
                     />
+                  </div>
+                  
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="maxMembers" className="text-right">
+                      Max Members
+                    </Label>
+                    <Input
+                      id="maxMembers"
+                      type="number"
+                      min="2"
+                      max="10"
+                      value={maxMembers}
+                      onChange={(e) => setMaxMembers(e.target.value)}
+                      className="col-span-3"
+                      placeholder="5"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="isPublic" className="text-right">
+                      Group Type
+                    </Label>
+                    <div className="col-span-3 flex items-center gap-4">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="groupType"
+                          checked={isPublic}
+                          onChange={() => setIsPublic(true)}
+                          className="text-primary"
+                        />
+                        <span>Public</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="groupType"
+                          checked={!isPublic}
+                          onChange={() => setIsPublic(false)}
+                          className="text-primary"
+                        />
+                        <span>Private</span>
+                      </label>
+                    </div>
                   </div>
                   
                   {error && (
@@ -150,7 +198,7 @@ export function CreateCampaignDialog() {
             <Button 
               onClick={handleSubmit} 
                className="mb-2 rounded-full"
-              disabled={loading || !connected || !name || !description || !contributionAmount}
+              disabled={loading || !connected || !name || !description || !contributionAmount || !maxMembers}
             >
               {loading ? 'Creating...' : 'Create Group'}
             </Button>

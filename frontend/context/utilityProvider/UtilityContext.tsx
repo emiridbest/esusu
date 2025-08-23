@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, use, useCallback } from 'react';
 import { toast } from 'sonner';
-import { ethers, Interface } from "ethers";
+import { parseUnits, encodeFunctionData, parseAbi } from "viem";
+import { ethers } from 'ethers';
 import {
   useAccount,
   useSendTransaction,
@@ -31,7 +32,7 @@ type UtilityContextType = {
   countryData: CountryData | null;
   setIsProcessing: (processing: boolean) => void;
   convertCurrency: (amount: string, base_currency: string) => Promise<number>;
-  handleTransaction: (params: TransactionParams) => Promise<`0x${string}` | undefined>;
+  handleTransaction: (params: TransactionParams) => Promise<TransactionResult>;
   getTransactionMemo: (type: 'data' | 'electricity' | 'airtime', metadata: Record<string, any>) => string;
   formatCurrencyAmount: (amount: string | number) => string;
 
@@ -56,6 +57,14 @@ type TransactionParams = {
   token: string;
   recipient: string;
   metadata: Record<string, any>;
+};
+
+// Result returned by handleTransaction
+type TransactionResult = {
+  success: boolean;
+  transactionHash?: string;
+  convertedAmount?: string;
+  paymentToken?: string;
 };
 
 type UtilityProviderProps = {
@@ -194,12 +203,12 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
 
   // Enhanced transaction handler for all utility types
-  const handleTransaction = async ({ type, amount, token, recipient, metadata }: TransactionParams): Promise<`0x${string}` | undefined> => {
+  const handleTransaction = async ({ type, amount, token, recipient, metadata }: TransactionParams): Promise<TransactionResult> => {
 
 
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
       toast.error('Please enter a valid amount');
-      return;
+      return { success: false };
     }
     setIsProcessing(true);
     try {
@@ -209,7 +218,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
       if (convertedAmount <= 0) {
         toast.error('Currency conversion failed. Please try again.');
-        return;
+        return { success: false };
       }
 
 
@@ -222,13 +231,21 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         const memo = getTransactionMemo(type, metadata);
 
         // Parse amount with correct decimals
-        let paymentAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
+        let paymentAmount = parseUnits(convertedAmount.toString(), decimals);
+
+        // Apply token-specific multipliers for better rates
+        if (token === 'G$') {
+          paymentAmount = paymentAmount * BigInt(10000);
+        }
+        if (token === 'CELO') {
+          paymentAmount = paymentAmount * BigInt(2.8); // Rounded up from 2.8 for safety
+        }
 
         // Prepare token transfer
-        const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
-        
+        const erc20Abi = parseAbi(["function transfer(address to, uint256 value) returns (bool)"]);
+
         // Encode the transfer function
-        const transferInterface = new Interface(tokenAbi);
+        const transferInterface = new ethers.Interface(erc20Abi);
         if (token === 'G$') {
           paymentAmount = paymentAmount * BigInt(10000);
         }
@@ -246,6 +263,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         // Append the Divvi data suffix
         const dataWithSuffix = transferData + dataSuffix;
         // Send the transaction
+        setIsWaitingTx(true);
         const tx = await sendTransactionAsync({
           to: tokenAddress as `0x${string}`,
           data: dataWithSuffix as `0x${string}`,
@@ -274,10 +292,15 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
             break;
         }
         toast.success(successMessage);
-        return tx.hash as `0x${string}`;
+        return { 
+          success: true, 
+          transactionHash: tx.hash, 
+          convertedAmount: convertedAmount.toString(),
+          paymentToken: token 
+        };
       } else {
         toast.error('Ethereum provider not found. Please install a Web3 wallet.');
-        return;
+        return { success: false };
       }
     } catch (error) {
       console.error('Transaction failed:', error);
@@ -291,9 +314,10 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           error instanceof Error ? error.message : 'Unknown error'
         );
       }
-      return;
+      return { success: false };
     } finally {
       setIsProcessing(false);
+      setIsWaitingTx(false);
     }
   };
 
@@ -412,7 +436,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     setCurrentOperation,
     setIsTransactionDialogOpen,
     isTransactionDialogOpen,
-    isWaitingTx: false,
+    isWaitingTx,
     setIsWaitingTx,
     closeTransactionDialog,
     openTransactionDialog,
@@ -425,7 +449,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
       {children}
 
       {/* Multi-step Transaction Dialog */}
-      <Dialog open={isTransactionDialogOpen} onOpenChange={(open) => !isWaitingTx && !open && closeTransactionDialog()}>
+      <Dialog open={isTransactionDialogOpen} onOpenChange={(open: boolean) => !isWaitingTx && !open && closeTransactionDialog()}>
         <DialogContent className="sm:max-w-md border rounded-lg">
           <DialogHeader>
             <DialogTitle className='text-black/90 dark:text-white/90'>{getDialogTitle()}</DialogTitle>

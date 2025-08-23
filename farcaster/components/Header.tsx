@@ -486,10 +486,3 @@ export default function Header() {
     </header>
   );
 }
-
-declare global {
-  interface Window {
-    ethereum: any;
-    farcaster: any;
-  }
-}

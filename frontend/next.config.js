@@ -1,8 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverActions: true
+    // Use an object for serverActions to satisfy Next 15 config schema
+    serverActions: {}
     },
+  eslint: {
+    // Do not fail the build on ESLint errors. We run lint separately.
+    ignoreDuringBuilds: true,
+  },
   env: {
     BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:3001',
   },

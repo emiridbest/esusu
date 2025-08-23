@@ -1,9 +1,10 @@
+"use client";
 import React, { useEffect, useState } from 'react';
-import { celo } from 'viem/chains';
+import { Celo } from '@celo/rainbowkit-celo/chains';
 import { createPublicClient, http, decodeFunctionData } from 'viem';
 import { useAccount } from 'wagmi';
 import { stableTokenABI } from "@celo/abis";
-import { useAddRecentTransaction } from '@rainbow-me/rainbowkit';
+// import { useAddRecentTransaction } from '@rainbow-me/rainbowkit';
 import { 
   ArrowDownIcon,
   ArrowUpIcon,
@@ -72,8 +73,26 @@ const TransactionList: React.FC = () => {
   const [page, setPage] = useState(1);
   const [transactionFilter, setTransactionFilter] = useState<'all' | 'sent' | 'received'>('all');
   const { address } = useAccount();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    const CELOSCAN_API_KEY = process.env.NEXT_PUBLIC_CELOSCAN_API_KEY || '';
+    const CELOSCAN_API_BASE = process.env.NEXT_PUBLIC_CELOSCAN_API_BASE || 'https://api.celoscan.io/api';
+    const withApiKey = (qs: string) => `${qs}${CELOSCAN_API_KEY ? `&apikey=${CELOSCAN_API_KEY}` : ''}`;
+    const fetchCeloscan = async (qs: string) => {
+      const url = `${CELOSCAN_API_BASE}?${withApiKey(qs)}`;
+      const res = await fetch(url, { signal });
+      if (!res.ok) throw new Error(`Celoscan HTTP ${res.status}`);
+      const data = await res.json();
+      return data;
+    };
+    if (!CELOSCAN_API_KEY) {
+      console.warn('NEXT_PUBLIC_CELOSCAN_API_KEY not set; Celoscan requests may be rate-limited.');
+    }
+
     const fetchTransactions = async () => {
       if (!address) {
         // Don't show error, just set loading to false and wait for address
@@ -83,8 +102,9 @@ const TransactionList: React.FC = () => {
 
       try {
         setIsLoading(true);
+        setError(null);
         const publicClient = createPublicClient({
-          chain: celo,
+          chain: Celo,
           transport: http(),
         });
 
@@ -92,25 +112,35 @@ const TransactionList: React.FC = () => {
           const currentTime = Math.floor(Date.now() / 1000);
           const oneYearAgoTime = currentTime - 365 * 24 * 60 * 60; 
 
-          const response = await fetch(`https://api.celoscan.io/api?module=block&action=getblocknobytime&timestamp=${oneYearAgoTime}&closest=after&apikey=PEAMBX9SFYMY8MBJTJXTFDV568WBDIB3VK`);
-          const data = await response.json();
-
-          return data.result;
+          try {
+            const data = await fetchCeloscan(`module=block&action=getblocknobytime&timestamp=${oneYearAgoTime}&closest=after`);
+            if (data?.status === '1' && data?.result) return data.result;
+          } catch (e) {
+            // ignore and fallback
+          }
+          // Fallback: earliest block
+          return '0';
         };
 
         const getCurrentBlockNumber = async (publicClient: any) => {
           const currentTime = Math.floor(Date.now() / 1000);
-          const response = await fetch(`https://api.celoscan.io/api?module=block&action=getblocknobytime&timestamp=${currentTime}&closest=after&apikey=PEAMBX9SFYMY8MBJTJXTFDV568WBDIB3VK`);
-          const data = await response.json();
-
-          return data.result;
+          try {
+            const data = await fetchCeloscan(`module=block&action=getblocknobytime&timestamp=${currentTime}&closest=after`);
+            if (data?.status === '1' && data?.result) return data.result;
+          } catch (e) {
+            // ignore and fallback
+          }
+          // Fallback to RPC latest block
+          const latest = await publicClient.getBlockNumber();
+          return latest.toString();
         };
         
         const pastYearBlockNumber = await getPastYearBlockNumber(publicClient);
         const latestBlock = await getCurrentBlockNumber(publicClient);
 
-        const response = await fetch(`https://api.celoscan.io/api?module=account&action=txlist&address=${address}&startblock=${pastYearBlockNumber}&endblock=${latestBlock}&page=${page}&offset=10&sort=desc&apikey=PEAMBX9SFYMY8MBJTJXTFDV568WBDIB3VK`);
-        const data = await response.json();
+        const data = await fetchCeloscan(
+          `module=account&action=txlist&address=${address}&startblock=${pastYearBlockNumber}&endblock=${latestBlock}&page=${page}&offset=10&sort=desc`
+        );
 
         if (Array.isArray(data.result)) {
           const txList: Transaction[] = data.result.map((tx: any, index: number) => {
@@ -139,16 +169,37 @@ const TransactionList: React.FC = () => {
             };
           });
 
-          setTransactions((prevTransactions) => [...prevTransactions, ...txList]);
+          setTransactions((prev) => {
+            const seen = new Set(prev.map(t => t.transactionHash));
+            const merged = [...prev];
+            for (const t of txList) {
+              if (!seen.has(t.transactionHash)) merged.push(t);
+            }
+            return merged;
+          });
+        } else {
+          // API returned an error or unexpected result
+          if (data?.message === 'No transactions found') {
+            // Not an error; simply no results for this page/range
+            return;
+          }
+          if (data?.message) {
+            setError(`Celoscan: ${data.message}`);
+          } else {
+            setError('Failed to load some transactions. Showing partial data.');
+          }
         }
       } catch (error) {
+        if ((error as any)?.name === 'AbortError') return;
         console.error('Error fetching transactions:', error);
+        setError('Could not fetch transactions. Please try again later.');
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchTransactions();
+    return () => controller.abort();
   }, [address, page]); 
 
   function formatValue(value: string, decimals = 2): string {
@@ -182,6 +233,11 @@ const TransactionList: React.FC = () => {
             <CardDescription>
               View your recent activity on Celo blockchain
             </CardDescription>
+            {error && (
+              <div className="mt-2 text-xs text-red-500 dark:text-red-400">
+                {error}
+              </div>
+            )}
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

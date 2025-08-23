@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    externalDir: true,
+  },
   // Specify custom server port for the backend
   serverRuntimeConfig: {
     port: process.env.PORT || 3001,
