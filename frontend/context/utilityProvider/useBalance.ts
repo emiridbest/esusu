@@ -99,8 +99,8 @@ export const useBalance = () => {
       if (tokenId === 'G$') {
         const balance = await publicClient.getBalance({ address });
         const convertedAmount = await convertCurrency(amount, currencyCode)
-        const requiredAmount = BigInt(ethers.parseUnits(convertedAmount.toString(), decimals));
-        return balance >= BigInt(requiredAmount.toString());
+        const requiredAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
+        return balance >= requiredAmount;
       }
       // For ERC20 tokens
       const erc20Abi = [

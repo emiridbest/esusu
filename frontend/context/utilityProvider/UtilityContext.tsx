@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, use, useCallback } from 'react';
 import { toast } from 'sonner';
 import { parseUnits, encodeFunctionData, parseAbi } from "viem";
+import { ethers } from 'ethers';
 import {
   useAccount,
   useSendTransaction,
@@ -237,18 +238,24 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           paymentAmount = paymentAmount * BigInt(10000);
         }
         if (token === 'CELO') {
-          paymentAmount = paymentAmount * BigInt(3); // Rounded up from 2.8 for safety
+          paymentAmount = paymentAmount * BigInt(2.8); // Rounded up from 2.8 for safety
         }
 
         // Prepare token transfer
         const erc20Abi = parseAbi(["function transfer(address to, uint256 value) returns (bool)"]);
 
         // Encode the transfer function
-        const transferData = encodeFunctionData({
-          abi: erc20Abi,
-          functionName: "transfer",
-          args: [RECIPIENT_WALLET as `0x${string}`, paymentAmount]
-        });
+        const transferInterface = new ethers.Interface(erc20Abi);
+        if (token === 'G$') {
+          paymentAmount = paymentAmount * BigInt(10000);
+        }
+        if (token === 'CELO') {
+          paymentAmount = paymentAmount * BigInt(2.8);
+        }
+        const transferData = transferInterface.encodeFunctionData("transfer", [
+          RECIPIENT_WALLET,
+          paymentAmount
+        ]);
         const dataSuffix = getReferralTag({
           user: address,
           consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
