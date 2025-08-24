@@ -1,4 +1,9 @@
-import { Schema, model, models, Document, Types } from 'mongoose';
+import mongoose, { Schema, model, models, Document, Types } from 'mongoose';
+
+// Ensure schemas do not buffer operations waiting for connection
+// This avoids 10s "buffering timed out" errors and surfaces connection issues early
+mongoose.set('bufferCommands', false);
+mongoose.set('strictQuery', true);
 
 // User Schema
 export interface IUser extends Document {
@@ -38,7 +43,8 @@ const UserSchema = new Schema<IUser>({
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  toObject: { virtuals: true },
+  bufferCommands: false
 });
 
 // Transaction Schema - Comprehensive transaction management
@@ -119,7 +125,8 @@ const TransactionSchema = new Schema<ITransaction>({
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  toObject: { virtuals: true },
+  bufferCommands: false
 });
 
 // Group Schema - 5-member thrift groups
@@ -189,7 +196,8 @@ const GroupSchema = new Schema<IGroup>({
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  toObject: { virtuals: true },
+  bufferCommands: false
 });
 
 // Notification Schema
@@ -237,7 +245,8 @@ const NotificationSchema = new Schema<INotification>({
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  toObject: { virtuals: true },
+  bufferCommands: false
 });
 
 // Analytics Schema
@@ -273,7 +282,8 @@ const AnalyticsSchema = new Schema<IAnalytics>({
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  toObject: { virtuals: true },
+  bufferCommands: false
 });
 
 // Payment Hash Tracking - Prevent transaction replay attacks
@@ -297,7 +307,8 @@ const PaymentHashSchema = new Schema<IPaymentHash>({
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  toObject: { virtuals: true },
+  bufferCommands: false
 });
 
 // Export models
@@ -309,11 +320,8 @@ export const Analytics = models.Analytics || model<IAnalytics>('Analytics', Anal
 export const PaymentHash = models.PaymentHash || model<IPaymentHash>('PaymentHash', PaymentHashSchema);
 
  // Add indexes for performance
- UserSchema.index({ 'walletAddress': 1 });
- TransactionSchema.index({ 'user': 1, 'createdAt': -1 });
- TransactionSchema.index({ 'type': 1, 'status': 1 });
- GroupSchema.index({ 'members.user': 1 });
- GroupSchema.index({ 'status': 1 });
- NotificationSchema.index({ 'user': 1, 'read': 1, 'createdAt': -1 });
- AnalyticsSchema.index({ 'user': 1, 'period': 1, 'date': -1 });
- PaymentHashSchema.index({ 'used': 1 });
+  TransactionSchema.index({ 'user': 1, 'createdAt': -1 });
+  TransactionSchema.index({ 'type': 1, 'status': 1 });
+  GroupSchema.index({ 'members.user': 1 });
+  NotificationSchema.index({ 'user': 1, 'read': 1, 'createdAt': -1 });
+  AnalyticsSchema.index({ 'user': 1, 'period': 1, 'date': -1 });

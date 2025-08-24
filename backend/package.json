@@ -3,10 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3001",
+    "dev": "node scripts/dev-with-db.js",
+    "dev:next": "next dev -p 3001",
     "build": "next build",
     "start": "next start -p 3001",
-    "lint": "next lint"
+    "lint": "next lint",
+    "deploy:setup": "node ../scripts/deploy-setup.js",
+    "db:init": "node -e \"require('./lib/database/connection').default()\"",
+    "db:migrate": "node -e \"require('./lib/database/migrations').MigrationService.runMigrations()\"",
+    "db:health": "curl -X GET http://localhost:3001/api/db/health 2>/dev/null || echo 'Health endpoint not available'"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.1.11",

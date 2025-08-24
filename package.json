@@ -6,6 +6,8 @@
         "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
         "dev:frontend": "cd frontend && npm run dev",
         "dev:backend": "cd backend && npm run dev",
+        "dev:backend-only": "cd backend && npm run dev",
+        "dev:db-first": "cd backend && npm run db:init && npm run dev:next",
         "build": "npm run build:frontend && npm run build:backend",
         "build:frontend": "cd frontend && npm run build",
         "build:backend": "cd backend && npm run build",
@@ -14,7 +16,12 @@
         "start:backend": "cd backend && npm run start",
         "install:all": "npm install && npm run install:frontend && npm run install:backend",
         "install:frontend": "cd frontend && npm install",
-        "install:backend": "cd backend && npm install"
+        "install:backend": "cd backend && npm install",
+        "deploy:setup": "node scripts/deploy-setup.js",
+        "deploy:prod": "npm run deploy:setup && npm run build && npm run start",
+        "db:init": "cd backend && npm run db:init",
+        "db:migrate": "cd backend && npm run db:migrate", 
+        "db:health": "cd backend && npm run db:health"
     },
     "devDependencies": {
         "@types/node": "^22.15.3",

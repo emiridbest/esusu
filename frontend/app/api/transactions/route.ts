@@ -3,10 +3,20 @@ import dbConnect from '../../../../backend/lib/database/connection';
 import { TransactionService } from '../../../../backend/lib/services/transactionService';
 import { UserService } from '../../../../backend/lib/services/userService';
 
+// Simple in-memory cache with TTL and in-flight de-duplication
+type CacheEntry = { data: any; expiresAt: number; inFlight?: Promise<any> };
+const cache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 15_000; // 15s: recent transactions rarely change more frequently
+
+function makeKey(wallet: string, type?: string, status?: string, limit?: number, offset?: number) {
+  return [wallet?.toLowerCase(), type || '', status || '', limit || 50, offset || 0].join('|');
+}
+
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+  console.log('🔍 Transactions API request started');
+  
   try {
-    await dbConnect();
-    
     const { searchParams } = new URL(request.url);
     const walletAddress = searchParams.get('wallet');
     const typeParam = searchParams.get('type') || undefined;
@@ -14,22 +24,56 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
+    console.log('📋 Request params:', { walletAddress, typeParam, statusParam, limit, offset });
+
     if (!walletAddress) {
+      console.log('❌ Missing wallet address');
       return NextResponse.json(
         { success: false, error: 'Wallet address is required' },
         { status: 400 }
       );
     }
 
-    const user = await UserService.getUserByWallet(walletAddress);
-    if (!user) {
-      return NextResponse.json({ success: true, transactions: [], total: 0 });
+    const cacheKey = makeKey(walletAddress, typeParam, statusParam, limit, offset);
+    const now = Date.now();
+    const existing = cache.get(cacheKey);
+    if (existing && existing.expiresAt > now && !existing.inFlight) {
+      console.log('⚡ Serving transactions from cache');
+      return NextResponse.json({ success: true, transactions: existing.data, total: existing.data.length });
     }
 
-    const transactions = await TransactionService.getUserTransactions(
+    // De-dupe concurrent identical requests
+    if (existing?.inFlight) {
+      console.log('⏳ Awaiting in-flight transactions request');
+      const data = await existing.inFlight;
+      return NextResponse.json({ success: true, transactions: data, total: data.length });
+    }
+
+    console.log('🔌 Connecting to database...');
+    await dbConnect();
+    console.log('✅ Database connected successfully');
+
+    console.log('👤 Looking up user for wallet:', walletAddress.substring(0, 10) + '...');
+    const user = await UserService.getUserByWallet(walletAddress);
+    
+    if (!user) {
+      console.log('👤 User not found, returning empty results');
+      return NextResponse.json({ success: true, transactions: [], total: 0 });
+    }
+    
+    console.log('👤 User found:', (user as any)._id);
+
+    console.log('📊 Fetching transactions...');
+    const inFlight = TransactionService.getUserTransactions(
       walletAddress,
       { type: typeParam, status: statusParam, limit, offset }
     );
+    cache.set(cacheKey, { data: null, expiresAt: 0, inFlight });
+    const transactions = await inFlight;
+    cache.set(cacheKey, { data: transactions, expiresAt: Date.now() + CACHE_TTL_MS });
+
+    const endTime = Date.now();
+    console.log(`✅ Transactions API completed in ${endTime - startTime}ms, found ${transactions.length} transactions`);
 
     return NextResponse.json({
       success: true,
@@ -38,9 +82,30 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Error fetching transactions:', error);
+    const endTime = Date.now();
+    console.error(`❌ Transactions API error after ${endTime - startTime}ms:`, {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
+    // More specific error handling
+    if (error.name === 'MongooseServerSelectionError') {
+      return NextResponse.json(
+        { success: false, error: 'Database connection failed' },
+        { status: 503 }
+      );
+    }
+    
+    if (error.name === 'MongooseTimeoutError') {
+      return NextResponse.json(
+        { success: false, error: 'Database query timeout' },
+        { status: 504 }
+      );
+    }
+
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: 'Internal server error', details: error.message },
       { status: 500 }
     );
   }
