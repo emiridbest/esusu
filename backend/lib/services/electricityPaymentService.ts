@@ -21,6 +21,8 @@ export interface ElectricityValidationRequest {
 export interface ElectricityValidationResponse {
   valid: boolean;
   customerName?: string;
+  customerAddress?: string;
+  tariff?: string;
   outstandingAmount?: number;
   error?: string;
 }
@@ -203,9 +205,16 @@ class ReloadlyElectricityService {
         }
       });
 
+      const data: any = response.data || {};
       return {
         valid: response.status === 200,
-        customerName: response.data.customerName || 'N/A'
+        customerName: data.customerName || 'N/A',
+        customerAddress: data.customerAddress,
+        tariff: data.tariff,
+        outstandingAmount:
+          typeof data.outstandingAmount === 'number'
+            ? data.outstandingAmount
+            : (data.outstandingAmount ? parseFloat(data.outstandingAmount) : undefined)
       };
     } catch (error: any) {
       return {

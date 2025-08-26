@@ -2,8 +2,9 @@
 const nextConfig = {
   experimental: {
     // Use an object for serverActions to satisfy Next 15 config schema
-    serverActions: {}
-    },
+    serverActions: {},
+    externalDir: true
+  },
   eslint: {
     // Do not fail the build on ESLint errors. We run lint separately.
     ignoreDuringBuilds: true,

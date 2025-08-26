@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from 'react';
+
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
@@ -26,6 +28,37 @@ import { useFreebiesLogic } from '@/hooks/useFreebies';
 import { useClaimProcessor } from "@/context/utilityProvider/ClaimContextProvider";
 
 export default function Freebies() {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+
+    if (!mounted) {
+        return (
+            <div className="container py-8 bg-gradient-to-br from-yellow-50 to-white dark:from-black/90 dark:to-black min-h-screen">
+                <div className="max-w-md mx-auto">
+                    <Card className="bg-white dark:bg-black border-2 border-yellow-400 dark:border-yellow-500">
+                        <CardHeader>
+                            <CardTitle className="text-2xl font-bold"> Free Data Bundle</CardTitle>
+                            <CardDescription> Claim once every 24 hours</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex justify-center py-6">
+                                <Loader2 className="h-6 w-6 animate-spin text-yellow-600 dark:text-yellow-400" />
+                                <span className="ml-2 text-yellow-800 dark:text-yellow-300">Loading...</span>
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button className="w-full" disabled>Preparing...</Button>
+                        </CardFooter>
+                    </Card>
+                </div>
+            </div>
+        );
+    }
+
+    return <FreebiesContent />;
+}
+
+function FreebiesContent() {
     const {
         form,
         watchCountry,
@@ -193,15 +226,17 @@ export default function Freebies() {
                                                             </SelectTrigger>
                                                         </FormControl>
                                                         <SelectContent className="bg-white dark:bg-black border-yellow-300 dark:border-yellow-700">
-                                                            {availablePlans.map((plan) => (
-                                                                <SelectItem
-                                                                    key={plan.id}
-                                                                    value={plan.id}
-                                                                    className="text-black dark:text-yellow-100 hover:bg-yellow-100 dark:hover:bg-yellow-900/30"
-                                                                >
-                                                                    {plan.name} - {plan.price}
-                                                                </SelectItem>
-                                                            ))}
+                                                            {availablePlans
+                                                                .filter((p) => p && typeof p.id === 'string')
+                                                                .map((plan) => (
+                                                                    <SelectItem
+                                                                        key={plan.id}
+                                                                        value={plan.id}
+                                                                        className="text-black dark:text-yellow-100 hover:bg-yellow-100 dark:hover:bg-yellow-900/30"
+                                                                    >
+                                                                        {plan.name} - {plan.price}
+                                                                    </SelectItem>
+                                                                ))}
                                                         </SelectContent>
                                                     </Select>
                                                     {isLoading && (

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { useThrift, Campaign, CampaignMember } from '@/context/thrift/ThriftContext';
+import { useThrift, ThriftGroup, ThriftMember } from '@/context/thrift/ThriftContext';
 import { useAccount } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,13 +31,13 @@ export default function CampaignDetailsPage() {
   const router = useRouter();
   const campaignId = typeof id === 'string' ? parseInt(id) : -1;
   
-  const { userCampaigns, allCampaigns, joinCampaign, contribute, withdraw, getCampaignMembers, generateShareLink, loading, error } = useThrift();
+  const { userGroups, allGroups, joinThriftGroup, makeContribution, distributePayout, getThriftGroupMembers, generateShareLink, loading, error } = useThrift();
   const { isConnected, address } = useAccount();
   const { toast } = useToast();
   
-  const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [campaign, setCampaign] = useState<ThriftGroup | null>(null);
   const [isUserMember, setIsUserMember] = useState(false);
-  const [campaignMembers, setCampaignMembers] = useState<CampaignMember[]>([]);
+  const [campaignMembers, setCampaignMembers] = useState<ThriftMember[]>([]);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [contributeDialogOpen, setContributeDialogOpen] = useState(false);
   const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
@@ -51,7 +51,7 @@ export default function CampaignDetailsPage() {
     if (campaignId === -1) return;
     
     // First try to find in user campaigns
-    let foundCampaign = userCampaigns.find(c => c.id === campaignId);
+    let foundCampaign = userGroups.find((c: ThriftGroup) => c.id === campaignId);
     if (foundCampaign) {
       setCampaign(foundCampaign);
       setIsUserMember(true);
@@ -59,14 +59,14 @@ export default function CampaignDetailsPage() {
     }
     
 
-    foundCampaign = allCampaigns.find(c => c.id === campaignId);
+    foundCampaign = allGroups.find((c: ThriftGroup) => c.id === campaignId);
     if (foundCampaign) {
       setCampaign(foundCampaign);
       return;
     }
     
 
-  }, [campaignId, userCampaigns, allCampaigns]);
+  }, [campaignId, userGroups, allGroups]);
   
   // Load campaign members
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function CampaignDetailsPage() {
       if (!campaign) return;
       
       try {
-        const members = await getCampaignMembers(campaign.id);
+        const members = await getThriftGroupMembers(campaign.id);
         setCampaignMembers(members);
       } catch (error) {
         console.error("Failed to fetch members:", error);
@@ -82,7 +82,7 @@ export default function CampaignDetailsPage() {
     };
     
     loadMembers();
-  }, [campaign, getCampaignMembers]);
+  }, [campaign, getThriftGroupMembers]);
   
   // Open join dialog if join=true in URL and not already a member
   useEffect(() => {
@@ -97,7 +97,7 @@ export default function CampaignDetailsPage() {
   
   const handleContributeClick = () => {
     if (!campaign) return;
-    setContributionAmount(campaign.contributionAmount);
+    setContributionAmount(campaign.depositAmount);
     setContributeDialogOpen(true);
   };
   
@@ -112,14 +112,11 @@ export default function CampaignDetailsPage() {
   };
   
   const handleJoinCampaign = async () => {
-    if (!campaign || !userName) return;
+    if (!campaign) return;
     
     try {
-      // Default to cUSD
-      const tokenAddress = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1";
-      await joinCampaign(campaign.id, tokenAddress, userName);
+      await joinThriftGroup(campaign.id);
       setJoinDialogOpen(false);
-      setUserName('');
       setIsUserMember(true);
       
       toast({
@@ -140,18 +137,16 @@ export default function CampaignDetailsPage() {
   };
   
   const handleContribute = async () => {
-    if (!campaign || !contributionAmount) return;
+    if (!campaign) return;
     
     try {
-      // Default to cUSD
-      const tokenAddress = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1";
-      await contribute(campaign.id, tokenAddress, contributionAmount);
+      await makeContribution(campaign.id);
       setContributeDialogOpen(false);
       setContributionAmount('');
       
       toast({
         title: "Contribution successful",
-        description: `You've contributed ${contributionAmount} cUSD to the thrift group.`,
+        description: `You've contributed to the thrift group.`,
       });
     } catch (error) {
       console.error("Failed to contribute:", error);
@@ -167,7 +162,7 @@ export default function CampaignDetailsPage() {
     if (!campaign) return;
     
     try {
-      await withdraw(campaign.id);
+      await distributePayout(campaign.id);
       setWithdrawDialogOpen(false);
       
       toast({
@@ -241,7 +236,7 @@ export default function CampaignDetailsPage() {
           <div className="flex justify-between items-start">
             <CardTitle className="text-2xl font-bold">{campaign.name}</CardTitle>
             <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-              {parseFloat(campaign.contributionAmount)} cUSD / month
+              {parseFloat(campaign.depositAmount)} cUSD / month
             </Badge>
           </div>
         </CardHeader>
@@ -256,7 +251,7 @@ export default function CampaignDetailsPage() {
               <TabsTrigger value="members">Members</TabsTrigger>
               <TabsTrigger value="contributions">Contributions</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="overview">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <Card>
@@ -264,7 +259,7 @@ export default function CampaignDetailsPage() {
                     <CardTitle className="text-sm font-medium text-gray-500">Monthly Contribution</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold">{campaign.contributionAmount} cUSD</p>
+                    <p className="text-2xl font-bold">{campaign.depositAmount} cUSD</p>
                   </CardContent>
                 </Card>
                 
@@ -273,7 +268,7 @@ export default function CampaignDetailsPage() {
                     <CardTitle className="text-sm font-medium text-gray-500">Total Members</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold">{campaign.totalContributions || '0'}/5</p>
+                    <p className="text-2xl font-bold">{campaign.totalMembers}/{campaign.maxMembers}</p>
                   </CardContent>
                 </Card>
                 
@@ -297,7 +292,7 @@ export default function CampaignDetailsPage() {
                 <div className="flex flex-wrap gap-3 text-sm text-gray-500">
                   <div className="flex items-center gap-1">
                     <UsersIcon className="h-4 w-4" />
-                    <span>Current recipient: {campaignMembers.length > 0 ? campaignMembers[0].userName : 'Pending'}</span>
+                    <span>Current recipient: {campaignMembers.length > 0 ? `${campaignMembers[0].address.substring(0, 6)}...${campaignMembers[0].address.substring(campaignMembers[0].address.length - 4)}` : 'Pending'}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <CalendarIcon className="h-4 w-4" />
@@ -309,7 +304,7 @@ export default function CampaignDetailsPage() {
               <div className="bg-primary/5 rounded-lg p-4 text-sm">
                 <h3 className="font-medium mb-2">How This Thrift Group Works</h3>
                 <ul className="list-disc pl-5 space-y-1">
-                  <li>Each member contributes <strong>{campaign.contributionAmount} cUSD</strong> monthly</li>
+                  <li>Each member contributes <strong>{campaign.depositAmount} cUSD</strong> monthly</li>
                   <li>The total pool is distributed to one member each month</li>
                   <li>Order is determined when you join the group</li>
                   <li>Everyone gets a turn to receive the full pool amount</li>
@@ -327,19 +322,19 @@ export default function CampaignDetailsPage() {
                       <TableHead>Name</TableHead>
                       <TableHead>Wallet Address</TableHead>
                       <TableHead>Join Date</TableHead>
-                      <TableHead className="text-right">Withdrawal Month</TableHead>
+                      <TableHead className="text-right">Payout Position</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {campaignMembers.length > 0 ? (
                       campaignMembers.map((member, index) => (
                         <TableRow key={index}>
-                          <TableCell>{member.userName}</TableCell>
+                          <TableCell>{`Member ${index + 1}`}</TableCell>
                           <TableCell className="font-mono text-xs">
                             {member.address.substring(0, 6)}...{member.address.substring(member.address.length - 4)}
                           </TableCell>
                           <TableCell>{new Date(member.joinDate).toLocaleDateString()}</TableCell>
-                          <TableCell className="text-right">{member.withdrawalMonth || 'Pending'}</TableCell>
+                          <TableCell className="text-right">{member.payoutPosition !== undefined ? member.payoutPosition + 1 : index + 1}</TableCell>
                         </TableRow>
                       ))
                     ) : (
@@ -369,8 +364,8 @@ export default function CampaignDetailsPage() {
                     {campaignMembers.length > 0 ? (
                       <TableRow>
                         <TableCell>{new Date().toLocaleDateString()}</TableCell>
-                        <TableCell>{campaignMembers[0].userName}</TableCell>
-                        <TableCell className="text-right">{campaign.contributionAmount} cUSD</TableCell>
+                        <TableCell>{campaignMembers[0].address.substring(0, 6)}...{campaignMembers[0].address.substring(campaignMembers[0].address.length - 4)}</TableCell>
+                        <TableCell className="text-right">{campaign.depositAmount} cUSD</TableCell>
                       </TableRow>
                     ) : (
                       <TableRow>
@@ -383,8 +378,10 @@ export default function CampaignDetailsPage() {
                 </Table>
               </div>
             </TabsContent>
+
           </Tabs>
         </CardContent>
+
         <CardFooter className="border-t pt-4 flex flex-wrap gap-2">
           {isUserMember ? (
             <>
@@ -400,7 +397,7 @@ export default function CampaignDetailsPage() {
                 variant="outline"
                 className="flex items-center gap-1"
                 onClick={handleWithdrawClick}
-                disabled={true} // Disabled until it's the user's turn
+                disabled={true}
               >
                 <ArrowDownIcon className="h-4 w-4" />
                 Withdraw
@@ -426,7 +423,7 @@ export default function CampaignDetailsPage() {
           )}
         </CardFooter>
       </Card>
-      
+
       {/* Join Dialog */}
       <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
@@ -436,19 +433,9 @@ export default function CampaignDetailsPage() {
           <div className="py-4">
             <p className="mb-4">You are requesting to join: <strong>{campaign.name}</strong></p>
             <p className="text-sm text-gray-500 mb-6">
-              Monthly contribution: {campaign.contributionAmount} cUSD
+              Monthly contribution: {campaign.depositAmount} cUSD
             </p>
             <div className="grid gap-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="userName" className="text-right">Your Name</Label>
-                <Input 
-                  id="userName" 
-                  value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
-                  className="col-span-3" 
-                  placeholder="Enter your name" 
-                />
-              </div>
               <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800">
                 <p>Your request will be reviewed by the group creator before you can join.</p>
               </div>
@@ -457,7 +444,6 @@ export default function CampaignDetailsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => {
               setJoinDialogOpen(false);
-              // Remove join param from URL
               if (isJoinRequest) {
                 router.replace(`/thrift/${campaignId}`);
               }
@@ -466,14 +452,14 @@ export default function CampaignDetailsPage() {
             </Button>
             <Button 
               onClick={handleJoinCampaign}
-              disabled={loading || !userName || !isConnected}
+              disabled={loading || !isConnected}
             >
               {loading ? 'Processing...' : 'Submit Request'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Contribute Dialog */}
       <Dialog open={contributeDialogOpen} onOpenChange={setContributeDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
@@ -501,14 +487,14 @@ export default function CampaignDetailsPage() {
             <Button variant="outline" onClick={() => setContributeDialogOpen(false)}>Cancel</Button>
             <Button 
               onClick={handleContribute}
-              disabled={loading || !contributionAmount}
+              disabled={loading}
             >
               {loading ? 'Processing...' : 'Contribute'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Withdraw Dialog */}
       <Dialog open={withdrawDialogOpen} onOpenChange={setWithdrawDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
@@ -521,7 +507,7 @@ export default function CampaignDetailsPage() {
               You are about to withdraw the full pool amount:
             </p>
             <p className="text-2xl font-bold mb-6">
-              {parseFloat(campaign.contributionAmount) * 5} cUSD
+              {parseFloat(campaign.depositAmount) * 5} cUSD
             </p>
             
             <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800">
