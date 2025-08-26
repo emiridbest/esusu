@@ -21,7 +21,8 @@ export class EsusuService {
             to: this.contractAddress,
             abi: this.abi,
             functionName: 'deposit',
-            args: [parameters.celoTokenAddress, parameters.amount]
+            args: [parameters.celoTokenAddress, BigInt(parameters.amount)],
+            value: BigInt(parameters.amount)
         });
         return tx.hash;
     }
@@ -38,7 +39,7 @@ export class EsusuService {
             to: this.contractAddress,
             abi: this.abi,
             functionName: 'deposit',
-            args: [parameters.cusdTokenAddress, parameters.amount]
+            args: [parameters.cusdTokenAddress, BigInt(parameters.amount)]
         });
         return tx.hash;
     }
@@ -55,7 +56,7 @@ export class EsusuService {
             to: this.contractAddress,
             abi: this.abi,
             functionName: 'withdraw',
-            args: [parameters.celoTokenAddress, parameters.cusdTokenAddress, parameters.account]
+            args: [parameters.tokenAddress]
         });
         return tx.hash;
     }
@@ -89,7 +90,7 @@ export class EsusuService {
             to: this.contractAddress,
             abi: this.abi,
             functionName: 'breakTimelock',
-            args: [parameters.celoTokenAddress, parameters.cusdTokenAddress]
+            args: [parameters.tokenAddress]
         });
         return tx.hash;
     }
@@ -108,7 +109,7 @@ export class EsusuService {
             functionName: 'getDownliners',
             args: [parameters.account]
         });
-        return downliners.toString().split(',');
+        return downliners as string[];
     }
     // @ts-ignore
     @Tool({
