@@ -1,39 +1,66 @@
-import { openai } from "@ai-sdk/openai";
-import { getOnChainTools } from "@goat-sdk/adapter-vercel-ai";
-import { viem } from "@goat-sdk/wallet-viem";
-import { createWalletClient, http } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { celo } from "viem/chains";
+// @ts-nocheck
+const { openai } = require("@ai-sdk/openai");
+const { streamText } = require("ai");
+const { getOnChainTools } = require("@goat-sdk/adapter-vercel-ai");
+const { viem } = require("@goat-sdk/wallet-viem");
+const { createWalletClient, http } = require("viem");
+const { privateKeyToAccount } = require("viem/accounts");
+const { celo } = require("viem/chains");
+const { esusu } = require("../../agent/src");
+
 require("dotenv").config();
-import { streamText } from 'ai';
 
-import { esusu } from "@/agent/src";
-
-const account = privateKeyToAccount(process.env.WALLET_PRIVATE_KEY as `0x${string}`);
-
-const walletClient = createWalletClient({
-    account: account,
-    transport: http(process.env.RPC_PROVIDER_URL),
-    chain: celo,
-});
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 // Change to named export for Next.js App Router
 export async function POST(req: Request) {
-    const { messages } = await req.json();
-    const tools = await getOnChainTools({
-        // @ts-ignore
-        wallet: viem(walletClient),
-        plugins: [esusu()],
-    });
+    try {
+        const { messages } = await req.json();
+        
+        const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY;
+        const RPC_URL = process.env.RPC_PROVIDER_URL;
+        
+        if (!PRIVATE_KEY || !RPC_URL) {
+            return Response.json(
+                { error: 'Server misconfigured: missing WALLET_PRIVATE_KEY or RPC_PROVIDER_URL' },
+                { status: 500 }
+            );
+        }
 
-    const result = streamText({
-        model: openai("gpt-4o-mini"),
-        system: "You are a helpful agent that performs onchain transactions like sending celo,cusd, implement dolar-cost-averaging using balmy protocol, tokens etc and provides onchain advice based on data given",
-        //@ts-ignore
-        tools: tools,
-        maxSteps: 20,
-        messages,
-    });
+        const account = privateKeyToAccount(PRIVATE_KEY as `0x${string}`);
+        const walletClient = createWalletClient({
+            account: account as any,
+            transport: http(RPC_URL),
+            chain: celo as any,
+        });
 
-    return result.toDataStreamResponse();
+        // Completely bypass TypeScript for GOAT SDK to avoid type depth issues
+        let tools: any = {};
+        try {
+            tools = await getOnChainTools({
+                wallet: viem(walletClient),
+                plugins: [esusu()],
+            });
+        } catch (toolsError) {
+            console.error('Failed to initialize tools:', toolsError);
+            tools = {};
+        }
+
+        const result = streamText({
+            model: openai("gpt-4o-mini"),
+            system: "You are a helpful agent that performs onchain transactions like sending celo,cusd, implement dolar-cost-averaging using balmy protocol, tokens etc and provides onchain advice based on data given",
+            tools: tools as any,
+            maxSteps: 20,
+            messages,
+        });
+
+        return result.toDataStreamResponse();
+    } catch (error: any) {
+        console.error('Error in /api/chat:', error);
+        return Response.json(
+            { error: error?.message || 'Internal server error' },
+            { status: 500 }
+        );
+    }
 }
