@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useContext, createContext, ReactNode, useMemo, useEffect, useRef } from 'react';
-import { ethers, utils } from "ethers";
+import { ethers } from "ethers";
 import { useAccount, useSendTransaction, useSwitchChain } from "wagmi";
 import { toast } from 'sonner';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
@@ -126,14 +126,14 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     }
     return null;
   }, [isConnected, address]);
-  const identitySDK = useMemo(() => {
+const identitySDK = useMemo(() => {
     if (isConnected && publicClient && walletClient) {
       try {
-        return new IdentitySDK({
-          publicClient: publicClient as PublicClient,
-          walletClient: walletClient as WalletClient,
-          env: 'production',
-        });
+        return new IdentitySDK(
+          publicClient as unknown as PublicClient,
+          walletClient as unknown as WalletClient,
+          "production"
+        );
       } catch (error) {
         console.error("Failed to initialize IdentitySDK:", error);
         return null;
@@ -288,7 +288,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     const tokenAddress = getTokenAddress(selectedToken, TOKENS);
 
     const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
-    const transferInterface = new utils.Interface(tokenAbi);
+    const transferInterface = new ethers.Interface(tokenAbi);
     const transferData = transferInterface.encodeFunctionData("transfer", [
       RECIPIENT_WALLET,
       entitlement
