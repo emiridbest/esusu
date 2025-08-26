@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             valid: validationResult.valid,
             customerName: validationResult.customerName,
-           // customerAddress: validationResult.customerAddress,
-          //  tariff: validationResult.tariff,
+            customerAddress: validationResult.customerAddress,
+            tariff: validationResult.tariff,
             outstandingAmount: validationResult.outstandingAmount,
             error: validationResult.error
         });
