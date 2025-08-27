@@ -3,8 +3,8 @@ import { getOnChainTools } from "@goat-sdk/adapter-vercel-ai";
 import { viem } from "@goat-sdk/wallet-viem";
 import { createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { Celo } from "@celo/rainbowkit-celo/chains";
-require("dotenv").config();
+import { celo } from "viem/chains";
+ 
 import { streamText } from 'ai';
 import { NextResponse } from 'next/server';
 
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
         const walletClient = createWalletClient({
             account,
             transport: http(RPC_URL),
-            chain: Celo,
+            chain: celo,
         });
 
         const tools = await getOnChainTools({
