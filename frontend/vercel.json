@@ -4,7 +4,7 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "functions": {
-    "api/**": {
+    "app/api/**": {
       "maxDuration": 60,
       "memory": 1024
     }

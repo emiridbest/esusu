@@ -5,6 +5,10 @@ const nextConfig = {
     serverActions: {},
     externalDir: true
   },
+  // Ensure Vercel/Next includes external backend files used by API routes
+  outputFileTracingIncludes: {
+    'app/api/**': ['../backend/lib/**']
+  },
   eslint: {
     // Do not fail the build on ESLint errors. We run lint separately.
     ignoreDuringBuilds: true,
