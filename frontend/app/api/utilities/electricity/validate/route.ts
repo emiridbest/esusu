@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { electricityPaymentService } from '../../../../../../backend/lib/services/electricityPaymentService';
+import { electricityPaymentService } from '@esusu/backend/lib/services/electricityPaymentService';
 
 export async function POST(request: NextRequest) {
     try {

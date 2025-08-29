@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '../../../../backend/lib/database/connection';
-import { TransactionService } from '../../../../backend/lib/services/transactionService';
-import { UserService } from '../../../../backend/lib/services/userService';
+import dbConnect from '@esusu/backend/lib/database/connection';
+import { TransactionService } from '@esusu/backend/lib/services/transactionService';
+import { UserService } from '@esusu/backend/lib/services/userService';
 
 // Simple in-memory cache with TTL and in-flight de-duplication
 type CacheEntry = { data: any; expiresAt: number; inFlight?: Promise<any> };

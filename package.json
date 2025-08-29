@@ -2,6 +2,10 @@
     "name": "esusu-monorepo",
     "version": "0.1.0",
     "private": true,
+    "workspaces": [
+        "frontend",
+        "backend"
+    ],
     "scripts": {
         "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
         "dev:frontend": "cd frontend && npm run dev",

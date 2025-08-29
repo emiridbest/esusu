@@ -11,6 +11,7 @@
     "test:watch": "jest --watch --config jest.config.js"
   },
   "dependencies": {
+    "@esusu/backend": "*",
     "@ai-sdk/google": "^1.1.2",
     "@ai-sdk/openai": "^1.1.11",
     "@celo/abis": "^11.0.0",
@@ -109,8 +110,8 @@
     "@types/hast": "^3.0.4",
     "@types/mdast": "^4.0.4",
     "@types/node": "^20.19.11",
-    "@types/react": "^19.1.10",
-    "@types/react-dom": "^19.1.7",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
     "@types/unist": "^3.0.3",
     "autoprefixer": "^10.4.14",
     "eslint": "^8.40.0",

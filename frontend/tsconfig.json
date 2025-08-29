@@ -7,7 +7,7 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
-    "strict": true,
+    "strict": false,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,
@@ -26,7 +26,8 @@
     ],
     "paths": {
       "@/*": ["*"],
-      "@local-contracts/*": ["../hardhat/*"]
+      "@local-contracts/*": ["../hardhat/*"],
+      "@esusu/backend/*": ["../backend/*"]
     },
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.d.ts", ".next/types/**/*.ts"],

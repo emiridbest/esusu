@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ethers } from 'ethers';
-import dbConnect from '../../../../backend/lib/database/connection';
-import { TransactionService } from '../../../../backend/lib/services/transactionService';
-import { NotificationService } from '../../../../backend/lib/services/notificationService';
-import { AnalyticsService } from '../../../../backend/lib/services/analyticsService';
+import dbConnect from '@esusu/backend/lib/database/connection';
+import { TransactionService } from '@esusu/backend/lib/services/transactionService';
+import { NotificationService } from '@esusu/backend/lib/services/notificationService';
+import { AnalyticsService } from '@esusu/backend/lib/services/analyticsService';
 
 
 // Rate limiting and API key configuration

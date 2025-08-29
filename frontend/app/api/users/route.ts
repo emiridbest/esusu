@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '../../../../backend/lib/database/connection';
-import { UserService } from '../../../../backend/lib/services/userService';
+import dbConnect from '@esusu/backend/lib/database/connection';
+import { UserService } from '@esusu/backend/lib/services/userService';
 
 export async function GET(request: NextRequest) {
   try {

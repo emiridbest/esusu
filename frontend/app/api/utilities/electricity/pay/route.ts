@@ -1,11 +1,11 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
-import { electricityPaymentService } from '../../../../../../backend/lib/services/electricityPaymentService';
-import { TransactionService } from '../../../../../../backend/lib/services/transactionService';
+import { electricityPaymentService } from '@esusu/backend/lib/services/electricityPaymentService';
+import { TransactionService } from '@esusu/backend/lib/services/transactionService';
 import { v4 as uuidv4 } from 'uuid';
 import { ethers } from 'ethers';
-import { NotificationService } from '../../../../../../backend/lib/services/notificationService';
-import { AnalyticsService } from '../../../../../../backend/lib/services/analyticsService';
+import { NotificationService } from '@esusu/backend/lib/services/notificationService';
+import { AnalyticsService } from '@esusu/backend/lib/services/analyticsService';
 
 // Simple in-memory rate limiter and API key check
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
