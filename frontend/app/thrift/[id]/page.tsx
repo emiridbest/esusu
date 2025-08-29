@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useThrift, ThriftGroup, ThriftMember } from '@/context/thrift/ThriftContext';
-import { useAccount } from 'wagmi';
+import { useActiveAccount } from 'thirdweb/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +32,9 @@ export default function CampaignDetailsPage() {
   const campaignId = typeof id === 'string' ? parseInt(id) : -1;
   
   const { userGroups, allGroups, joinThriftGroup, makeContribution, distributePayout, getThriftGroupMembers, generateShareLink, loading, error } = useThrift();
-  const { isConnected, address } = useAccount();
+  const account = useActiveAccount();
+  const address = account?.address;
+  const isConnected = !!address;
   const { toast } = useToast();
   
   const [campaign, setCampaign] = useState<ThriftGroup | null>(null);

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react"
 import { useIdentitySDK } from "@goodsdks/identity-sdk"
-import { useAccount } from "wagmi"
+import { useActiveAccount } from "thirdweb/react"
 import { Card, CardContent } from "@/components/ui/card"
 
 export const IdentityCard: React.FC = () => {
-  const { address } = useAccount()
+  const account = useActiveAccount()
+  const address = account?.address
   const identitySDK = useIdentitySDK("development")
   const [expiry, setExpiry] = useState<string | undefined>(undefined)
 
@@ -12,7 +13,7 @@ export const IdentityCard: React.FC = () => {
     const fetchExpiry = async () => {
       if (!identitySDK || !address) return
 
-      const identityExpiry = await identitySDK.getIdentityExpiryData(address)
+      const identityExpiry = await identitySDK.getIdentityExpiryData(address as `0x${string}`)
 
       const { expiryTimestamp } = identitySDK.calculateIdentityExpiry(
         identityExpiry?.lastAuthenticated ?? BigInt(0),

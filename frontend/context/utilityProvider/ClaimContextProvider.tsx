@@ -2,7 +2,7 @@
 
 import React, { useState, useContext, createContext, ReactNode, useMemo, useEffect, useRef } from 'react';
 import { encodeFunctionData, parseAbi } from 'viem';
-import { useAccount, useSendTransaction, useContractWrite } from "wagmi";
+import { useActiveAccount, useActiveWallet } from "thirdweb/react";
 import { toast } from 'sonner';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { Celo } from '@celo/rainbowkit-celo/chains';
@@ -23,7 +23,7 @@ import { createWalletClient, custom } from 'viem'
 // import { celo } from 'viem/chains'
 import { PublicClient, WalletClient } from "viem"
 import { txCountABI, txCountAddress } from '@/utils/pay';
-import { writeContract } from '@wagmi/core';
+// Removed wagmi writeContract - using Thirdweb v5 instead
 import { ethers } from 'ethers';
 // Constants
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
@@ -47,7 +47,7 @@ const getTokenAddress = (token: string, tokens: any): string => {
 type ClaimProcessorType = {
   isProcessing: boolean;
   setIsProcessing: (isProcessing: boolean) => void;
-  sendTransactionAsync: any;
+  // Removed sendTransactionAsync - using Thirdweb v5 directly
   entitlement: bigint | null;
   canClaim: boolean;
   handleClaim: () => Promise<void>;
@@ -79,7 +79,10 @@ const ClaimProcessorContext = createContext<ClaimProcessorType | undefined>(unde
 // Provider component - this should be a component, not a hook
 export function ClaimProvider({ children }: ClaimProviderProps) {
 
-  const { address, isConnected } = useAccount();
+  const account = useActiveAccount();
+  const wallet = useActiveWallet();
+  const address = account?.address;
+  const isConnected = !!address;
   const [isProcessing, setIsProcessing] = useState(false);
   const [entitlement, setEntitlement] = useState<bigint | null>(null);
   const [canClaim, setCanClaim] = useState(false);
@@ -88,7 +91,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const [currentOperation, setCurrentOperation] = useState<'data' | null>(null);
   const [isWaitingTx, setIsWaitingTx] = useState(false);
   const [recipient, setRecipient] = useState<string>('');
-  const { sendTransactionAsync } = useSendTransaction();
+  // Using Thirdweb v5 sendTransaction instead of wagmi
   const [claimSDK, setClaimSDK] = useState<any>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const initializationAttempted = useRef(false);
@@ -280,7 +283,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     }
 
     const dataSuffix = getReferralTag({
-      user: address,
+      user: address as `0x${string}`,
       consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
     });
     const txInterface = new ethers.Interface(txCountABI);
@@ -291,12 +294,23 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     const txWithSuffix = txData + dataSuffix;
     toast.info("Processing payment for data bundle...");
     try {
-      const tx = await sendTransactionAsync({
+      if (!wallet || !account) throw new Error('Wallet not connected');
+      
+      const { sendTransaction, prepareTransaction } = await import('thirdweb');
+      const { client, activeChain } = await import('@/lib/thirdweb');
+      
+      const transaction = await prepareTransaction({
         to: txCountAddress as `0x${string}`,
         data: txWithSuffix as `0x${string}`,
+        client,
+        chain: activeChain,
+      });
+      const tx = await sendTransaction({
+        account,
+        transaction,
       });
       await submitReferral({
-        txHash: tx.hash as unknown as `0x${string}`,
+        txHash: tx.transactionHash,
         chainId: Celo.id,
       });
     } catch (error) {
@@ -319,14 +333,25 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     toast.info("Processing payment for data bundle...");
     try {
       setIsWaitingTx(true);
-      const tx = await sendTransactionAsync({
+      if (!wallet || !account) throw new Error('Wallet not connected');
+      
+      const { sendTransaction, prepareTransaction } = await import('thirdweb');
+      const { client, activeChain } = await import('@/lib/thirdweb');
+      
+      const transaction = await prepareTransaction({
         to: tokenAddress as `0x${string}`,
         data: dataWithSuffix as `0x${string}`,
+        client,
+        chain: activeChain,
+      });
+      const tx = await sendTransaction({
+        account,
+        transaction,
       });
 
       try {
         await submitReferral({
-          txHash: tx.hash as unknown as `0x${string}`,
+          txHash: tx.transactionHash,
           chainId: Celo.id,
         });
       } catch (referralError) {
@@ -413,7 +438,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const value = {
     isProcessing,
     setIsProcessing,
-    sendTransactionAsync,
+    // Removed sendTransactionAsync - using Thirdweb v5 directly
     entitlement,
     canClaim,
     handleClaim,

@@ -1,6 +1,10 @@
 // hooks/useFreebiesLogic.js
-import { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+"use client";
+import { useState, useEffect, useMemo } from "react";
+import {
+  useActiveAccount,
+  useActiveWallet,
+} from "thirdweb/react";
 import { toast } from 'sonner';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,7 +43,10 @@ const formSchema = z.object({
 });
 
 export const useFreebiesLogic = () => {
-    const { address, isConnected } = useAccount();
+    const account = useActiveAccount();
+    const wallet = useActiveWallet();
+    const address = account?.address;
+    const isConnected = !!account && !!wallet;
     const {
 
         updateStepStatus,
@@ -117,21 +124,28 @@ export const useFreebiesLogic = () => {
                 form.setValue("plan", "");
 
                 try {
-                    const response = await fetch(`/api/utilities/data/free?country=${watchCountry}`,
-                    {
-                        method: 'GET'
+                    const response = await fetch("/api/topup", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            phoneNumber: form.getValues("phoneNumber"),
+                            country: form.getValues("country"),
+                            network: form.getValues("network"),
+                            plan: form.getValues("plan"),
+                            transactionHash: address as `0x${string}`, // Using wallet address as transaction reference
+                            paymentToken: form.getValues("paymentToken"),
+                            email: form.getValues("email")
+                        }),
                     });
-                    if (!response.ok) {
-                        throw new Error(`Failed to fetch data plans: ${response.statusText}`);
-                    }
-
-                const operators: NetworkOperator[] = await response.json();
-                // Filter out MTN Nigeria extra data
-                const filteredOperators = operators.filter(operator => 
-                    !(operator.name.toLowerCase().includes('mtn nigeria extra data') ||
-                    (operator.name.toLowerCase().includes('smile uganda data')))
-                );
-                setNetworks(filteredOperators);
+                    const operators: NetworkOperator[] = await response.json();
+                    // Filter out MTN Nigeria extra data
+                    const filteredOperators = operators.filter(operator => 
+                        !(operator.name.toLowerCase().includes('mtn nigeria extra data') ||
+                        (operator.name.toLowerCase().includes('smile uganda data')))
+                    );
+                    setNetworks(filteredOperators);
                 } catch (error) {
                     console.error("Error fetching mobile operators:", error);
                     toast.error("Failed to load network providers. Please try again.");
@@ -177,7 +191,7 @@ export const useFreebiesLogic = () => {
                 try {
                     setLoadingWhitelist(true);
                     const { isWhitelisted: whitelisted } =
-                        (await identitySDK?.getWhitelistedRoot(address)) ?? {};
+                        (await identitySDK?.getWhitelistedRoot(address as `0x${string}`)) ?? {};
 
                     setIsWhitelisted(whitelisted);
                     setIsVerified(whitelisted ?? false);
@@ -286,6 +300,17 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
         const selectedPlan = availablePlans.find(plan => plan.id === values.plan) || null;
 
         // Validation checks
+        if (!address) {
+            toast.error("Please connect your wallet first");
+            return;
+        }
+
+        // Validate address format
+        if (!address.startsWith('0x') || address.length !== 42) {
+            toast.error("Invalid wallet address format");
+            return;
+        }
+
         if (!isConnected) {
             toast.error("Please connect your wallet");
             return;

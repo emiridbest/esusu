@@ -1,7 +1,7 @@
 import React from "react"
 import { Button } from "../ui/button"
 import { useIdentitySDK } from "@goodsdks/identity-sdk"
-import { useAccount } from "wagmi"
+import { useActiveAccount } from "thirdweb/react"
 import { toast } from "sonner"
 
 interface VerifyButtonProps {
@@ -11,7 +11,8 @@ interface VerifyButtonProps {
 export const VerifyButton: React.FC<VerifyButtonProps> = ({
   onVerificationSuccess,
 }) => {
-  const { address } = useAccount()
+  const account = useActiveAccount()
+  const address = account?.address
   const identitySDK = useIdentitySDK("production")
 
   const handleVerify = async () => {

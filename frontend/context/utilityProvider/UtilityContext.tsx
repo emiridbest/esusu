@@ -1,13 +1,15 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect, use, useCallback } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { parseUnits, encodeFunctionData, parseAbi } from "viem";
 import { ethers } from 'ethers';
 import {
-  useAccount,
-  useSendTransaction,
-} from "wagmi";
+  useActiveAccount,
+  useActiveWallet,
+  useActiveWalletChain,
+} from "thirdweb/react";
+import { client, activeChain } from "@/lib/thirdweb";
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { CountryData } from '@/utils/countryData';
 import { Celo } from '@celo/rainbowkit-celo/chains';
@@ -89,12 +91,11 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [countryData, setCountryData] = useState<CountryData | null>(null);
-  const { address } = useAccount();
-
-  const {
-    sendTransactionAsync
-  } = useSendTransaction()
-
+  const account = useActiveAccount();
+  const wallet = useActiveWallet();
+  const chain = useActiveWalletChain();
+  
+  const address = account?.address;
 
   const convertCurrency = async (
     amount: string,
@@ -257,17 +258,30 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           paymentAmount
         ]);
         const dataSuffix = getReferralTag({
-          user: address,
+          user: address as `0x${string}`,
           consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
         })
         // Append the Divvi data suffix
         const dataWithSuffix = transferData + dataSuffix;
         // Send the transaction
         setIsWaitingTx(true);
-        const tx = await sendTransactionAsync({
+        
+        if (!wallet || !account) throw new Error('Wallet not connected');
+        
+        // Send transaction using Thirdweb v5 pattern
+        const { sendTransaction, prepareTransaction } = await import('thirdweb');
+        const transaction = await prepareTransaction({
           to: tokenAddress as `0x${string}`,
           data: dataWithSuffix as `0x${string}`,
+          client,
+          chain: activeChain,
         });
+        const txResult = await sendTransaction({
+          account,
+          transaction,
+        });
+        
+        const tx = { hash: txResult.transactionHash };
 
         // Submit the referral to Divvi
         try {

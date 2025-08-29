@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { AppProvider } from "@/app/providers";
+import { Providers } from "@/app/providers";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import FloatingChat from "@/components/FloatingChat";
@@ -16,7 +16,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <ThemeProvider>
-          <AppProvider>
+          <Providers>
               <div className="min-h-screen bg-gradient-radial from-white via-gray-50 to-gray-100 dark:from-black dark:via-black dark:to-black">
                 <Header />
                 <main className="py-6 px-4 sm:px-6 lg:px-8">
@@ -28,7 +28,7 @@ export default function RootLayout({
                 <FloatingChat />
                 <Footer />
               </div>
-          </AppProvider>
+          </Providers>
         </ThemeProvider>
       </body>
     </html>

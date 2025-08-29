@@ -1,7 +1,7 @@
 import React from "react"
 import { Button } from "@/components/ui/button"
 import { useIdentitySDK } from "@goodsdks/identity-sdk"
-import { useAccount } from "wagmi"
+import { useActiveAccount } from "thirdweb/react"
 
 interface VerifyButtonProps {
   onVerificationSuccess: () => void
@@ -10,7 +10,8 @@ interface VerifyButtonProps {
 export const VerifyButton: React.FC<VerifyButtonProps> = ({
   onVerificationSuccess,
 }) => {
-  const { address } = useAccount()
+  const account = useActiveAccount()
+  const address = account?.address
   const identitySDK = useIdentitySDK("development")
 
   const handleVerify = async () => {

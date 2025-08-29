@@ -34,7 +34,9 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import ReceiptsMini from "@/components/receipts/ReceiptsMini";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { ConnectButton } from "thirdweb/react";
+import { inAppWallet, createWallet } from "thirdweb/wallets";
+import { client, activeChain } from "../lib/thirdweb";
 
 export default function Header() {
   const [searchVisible, setSearchVisible] = useState(false);
@@ -192,7 +194,30 @@ export default function Header() {
               )}
             </div>
 
-            <ConnectButton />
+            <ConnectButton 
+              client={client}
+              chain={activeChain}
+              wallets={[
+                inAppWallet({
+                  auth: {
+                    options: ["google", "discord", "telegram", "email", "phone"]
+                  }
+                }),
+                createWallet("io.metamask"),
+                createWallet("com.coinbase.wallet"),
+                createWallet("me.rainbow"),
+                createWallet("io.rabby"),
+                createWallet("com.trustwallet.app")
+              ]}
+              connectModal={{
+                size: "wide",
+                title: "Connect to Esusu",
+                welcomeScreen: {
+                  title: "Welcome to Esusu",
+                  subtitle: "Connect your wallet or create a new one to get started"
+                }
+              }}
+            />
 
             <Popover>
               <PopoverTrigger asChild>

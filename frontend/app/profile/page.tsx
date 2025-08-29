@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState, Suspense } from "react"
-import { useAccount } from 'wagmi';
+import { useActiveAccount } from 'thirdweb/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useIdentitySDK } from "@goodsdks/identity-sdk"
 import Link from "next/link";
@@ -13,7 +13,9 @@ import { SigningModal } from "@/components/profile/SigningModal"
 import UserInfoTabs from "@/components/profile/UserInfoTabs";
 
 function ProfileContent() {
-  const { isConnected, address } = useAccount();
+  const account = useActiveAccount();
+  const address = account?.address;
+  const isConnected = !!address;
   const router = useRouter();
   const [isSigningModalOpen, setIsSigningModalOpen] = useState(false)
   const [isVerified, setIsVerified] = useState<boolean | undefined>(false)
@@ -46,7 +48,7 @@ function ProfileContent() {
           setLoadingWhitelist(true)
           setConnectedAccount(address)
           const { isWhitelisted } =
-            (await identitySDK?.getWhitelistedRoot(address)) ?? {}
+            (await identitySDK?.getWhitelistedRoot(address as `0x${string}`)) ?? {}
 
           setIsWhitelisted(isWhitelisted)
           setIsVerified(isWhitelisted ?? false)
