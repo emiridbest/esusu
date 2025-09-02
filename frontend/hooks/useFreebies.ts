@@ -17,7 +17,9 @@ import {
     type DataPlan
 } from '../services/utility/utilityServices';
 import { useClaimProcessor } from '../context/utilityProvider/ClaimContextProvider';
-import { useIdentitySDK } from '@goodsdks/identity-sdk';
+import { IdentitySDK } from '@goodsdks/citizen-sdk';
+import { createPublicClient, createWalletClient, custom, http } from 'viem';
+import { celo } from 'viem/chains';
 
 const formSchema = z.object({
     country: z.string({
@@ -74,7 +76,40 @@ export const useFreebiesLogic = () => {
     const [loadingWhitelist, setLoadingWhitelist] = useState<boolean | undefined>(undefined);
     const [txID, setTxID] = useState<string | null>(null);
 
-    const identitySDK = useIdentitySDK('production');
+    // Initialize IdentitySDK with proper viem clients
+    const publicClient = useMemo(() => {
+        return createPublicClient({
+            chain: celo,
+            transport: http()
+        });
+    }, []);
+
+    const walletClient = useMemo(() => {
+        if (isConnected && typeof window !== 'undefined' && window.ethereum && address) {
+            return createWalletClient({
+                account: address as `0x${string}`,
+                chain: celo,
+                transport: custom(window.ethereum)
+            });
+        }
+        return null;
+    }, [isConnected, address]);
+
+    const identitySDK = useMemo(() => {
+        if (isConnected && publicClient && walletClient) {
+            try {
+                return new IdentitySDK({
+                    publicClient: publicClient as any,
+                    walletClient: walletClient as any,
+                    env: 'production'
+                });
+            } catch (error) {
+                console.error('Failed to initialize IdentitySDK:', error);
+                return null;
+            }
+        }
+        return null;
+    }, [publicClient, walletClient, isConnected]);
 
     // When wallet changes, check if user has previously verified via GoodDollar to avoid re-prompting
     useEffect(() => {
@@ -124,26 +159,12 @@ export const useFreebiesLogic = () => {
                 form.setValue("plan", "");
 
                 try {
-                    const response = await fetch("/api/topup", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            phoneNumber: form.getValues("phoneNumber"),
-                            country: form.getValues("country"),
-                            network: form.getValues("network"),
-                            plan: form.getValues("plan"),
-                            transactionHash: address as `0x${string}`, // Using wallet address as transaction reference
-                            paymentToken: form.getValues("paymentToken"),
-                            email: form.getValues("email")
-                        }),
-                    });
-                    const operators: NetworkOperator[] = await response.json();
-                    // Filter out MTN Nigeria extra data
+                    // Use the existing utility service function instead of direct fetch
+                    const operators = await fetchMobileOperators(watchCountry);
+                    // Filter out MTN Nigeria extra data and Smile Uganda data
                     const filteredOperators = operators.filter(operator => 
                         !(operator.name.toLowerCase().includes('mtn nigeria extra data') ||
-                        (operator.name.toLowerCase().includes('smile uganda data')))
+                        operator.name.toLowerCase().includes('smile uganda data'))
                     );
                     setNetworks(filteredOperators);
                 } catch (error) {

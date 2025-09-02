@@ -1,8 +1,10 @@
-import React from "react"
+import React, { useMemo } from "react"
 import { Button } from "../ui/button"
-import { useIdentitySDK } from "@goodsdks/identity-sdk"
+import { IdentitySDK } from "@goodsdks/citizen-sdk"
 import { useActiveAccount } from "thirdweb/react"
 import { toast } from "sonner"
+import { createPublicClient, createWalletClient, custom, http } from 'viem';
+import { celo } from 'viem/chains';
 
 interface VerifyButtonProps {
   onVerificationSuccess: () => void
@@ -13,7 +15,43 @@ export const VerifyButton: React.FC<VerifyButtonProps> = ({
 }) => {
   const account = useActiveAccount()
   const address = account?.address
-  const identitySDK = useIdentitySDK("production")
+  const isConnected = !!address
+  
+  // Initialize IdentitySDK with proper viem clients
+  const publicClient = useMemo(() => {
+    return createPublicClient({
+      chain: celo,
+      transport: http()
+    });
+  }, []);
+
+  const walletClient = useMemo(() => {
+    if (isConnected && typeof window !== 'undefined' && window.ethereum && address) {
+      return createWalletClient({
+        account: address as `0x${string}`,
+        chain: celo,
+        transport: custom(window.ethereum)
+      });
+    }
+    return null;
+  }, [isConnected, address]);
+
+  const identitySDK = useMemo(() => {
+    if (isConnected && publicClient && walletClient) {
+      try {
+        const identitySDK = new IdentitySDK({
+          publicClient: publicClient as any,
+          walletClient: walletClient as any,
+          env: "production"
+        });
+        return identitySDK;
+      } catch (error) {
+        console.error('Failed to initialize IdentitySDK:', error);
+        return null;
+      }
+    }
+    return null;
+  }, [publicClient, walletClient, isConnected]);
 
   const handleVerify = async () => {
     if (!identitySDK || !address) return

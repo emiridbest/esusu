@@ -1,12 +1,49 @@
-import React, { useEffect, useState } from "react"
-import { useIdentitySDK } from "@goodsdks/identity-sdk"
+import React, { useEffect, useState, useMemo } from "react"
+import { IdentitySDK } from "@goodsdks/citizen-sdk"
 import { useActiveAccount } from "thirdweb/react"
 import { Card, CardContent } from "@/components/ui/card"
+import { createPublicClient, createWalletClient, custom, http } from 'viem';
+import { celo } from 'viem/chains';
 
 export const IdentityCard: React.FC = () => {
   const account = useActiveAccount()
   const address = account?.address
-  const identitySDK = useIdentitySDK("development")
+  const isConnected = !!address
+  
+  // Initialize IdentitySDK with proper viem clients
+  const publicClient = useMemo(() => {
+    return createPublicClient({
+      chain: celo,
+      transport: http()
+    });
+  }, []);
+
+  const walletClient = useMemo(() => {
+    if (isConnected && typeof window !== 'undefined' && window.ethereum && address) {
+      return createWalletClient({
+        account: address as `0x${string}`,
+        chain: celo,
+        transport: custom(window.ethereum)
+      });
+    }
+    return null;
+  }, [isConnected, address]);
+
+  const identitySDK = useMemo(() => {
+    if (isConnected && publicClient && walletClient) {
+      try {
+        return new IdentitySDK({
+          publicClient: publicClient as any,
+          walletClient: walletClient as any,
+          env: 'production'
+        });
+      } catch (error) {
+        console.error('Failed to initialize IdentitySDK:', error);
+        return null;
+      }
+    }
+    return null;
+  }, [publicClient, walletClient, isConnected]);
   const [expiry, setExpiry] = useState<string | undefined>(undefined)
 
   useEffect(() => {

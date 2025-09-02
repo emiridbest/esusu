@@ -1,11 +1,13 @@
 "use client";
-import React, { useEffect, useState, Suspense } from "react"
+import React, { useEffect, useState, Suspense, useMemo } from "react"
 import { useActiveAccount } from 'thirdweb/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useIdentitySDK } from "@goodsdks/identity-sdk"
+import { IdentitySDK } from "@goodsdks/citizen-sdk"
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { createPublicClient, createWalletClient, custom, http } from 'viem';
+import { celo } from 'viem/chains';
 
 import { VerifyButton } from "@/components/profile/VerifyButton"
 import { IdentityCard } from "@/components/profile/IdentityCard"
@@ -30,7 +32,40 @@ function ProfileContent() {
   const [connectedAccount, setConnectedAccount] = useState<string | undefined>(
     undefined,
   )
-  const identitySDK = useIdentitySDK("development")
+  // Initialize IdentitySDK with proper viem clients
+  const publicClient = useMemo(() => {
+    return createPublicClient({
+      chain: celo,
+      transport: http()
+    });
+  }, []);
+
+  const walletClient = useMemo(() => {
+    if (isConnected && typeof window !== 'undefined' && window.ethereum && address) {
+      return createWalletClient({
+        account: address as `0x${string}`,
+        chain: celo,
+        transport: custom(window.ethereum)
+      });
+    }
+    return null;
+  }, [isConnected, address]);
+
+  const identitySDK = useMemo(() => {
+    if (isConnected && publicClient && walletClient) {
+      try {
+        return new IdentitySDK({
+          publicClient: publicClient as any,
+          walletClient: walletClient as any,
+          env: 'development'
+        });
+      } catch (error) {
+        console.error('Failed to initialize IdentitySDK:', error);
+        return null;
+      }
+    }
+    return null;
+  }, [publicClient, walletClient, isConnected]);
 
   useEffect(() => {
     const verified = searchParams?.get("verified");

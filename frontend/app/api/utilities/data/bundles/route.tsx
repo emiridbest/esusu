@@ -228,8 +228,13 @@ export async function GET(request: NextRequest) {
     let bundles: any = null;
     let bundlesSource = '';
     
+    // Debug logging for fixedAmountsDescriptions
+    console.log('fixedAmountsDescriptions exists:', !!operatorDetails.fixedAmountsDescriptions);
+    console.log('fixedAmountsDescriptions type:', typeof operatorDetails.fixedAmountsDescriptions);
+    console.log('fixedAmountsDescriptions keys:', operatorDetails.fixedAmountsDescriptions ? Object.keys(operatorDetails.fixedAmountsDescriptions) : 'null/undefined');
+    
     // 1. Try fixedAmountsDescriptions as object (PRIORITY - contains descriptions!)
-    if (operatorDetails.fixedAmountsDescriptions && typeof operatorDetails.fixedAmountsDescriptions === 'object' && Object.keys(operatorDetails.fixedAmountsDescriptions).length > 0) {
+    if (operatorDetails.fixedAmountsDescriptions && typeof operatorDetails.fixedAmountsDescriptions === 'object' && !Array.isArray(operatorDetails.fixedAmountsDescriptions) && Object.keys(operatorDetails.fixedAmountsDescriptions).length > 0) {
       bundles = operatorDetails.fixedAmountsDescriptions;
       bundlesSource = 'fixedAmountsDescriptions-object';
       console.log('Using fixedAmountsDescriptions as object:', Object.keys(bundles).length, 'entries found');
@@ -307,12 +312,26 @@ export async function GET(request: NextRequest) {
 
     console.log(`Formatted bundles from ${bundlesSource}:`, formattedBundles.length, 'bundles');
     
+    // Debug first few bundles before filtering
+    console.log('Sample bundles before filtering:', formattedBundles.slice(0, 3));
+    
     // Filter out any bundles with invalid data
-    const validBundles = formattedBundles.filter(bundle => 
-      bundle.price && bundle.price !== '0' && bundle.name && bundle.name.trim() !== ''
-    );
+    const validBundles = formattedBundles.filter((bundle, index) => {
+      const isValid = bundle.price && bundle.price !== '0' && bundle.name && bundle.name.trim() !== '';
+      if (!isValid && index < 3) {
+        console.log(`Bundle ${index} filtered out:`, {
+          price: bundle.price,
+          name: bundle.name,
+          description: bundle.description
+        });
+      }
+      return isValid;
+    });
     
     console.log('Valid bundles after filtering:', validBundles.length, 'bundles');
+    if (validBundles.length > 0) {
+      console.log('Sample valid bundles:', validBundles.slice(0, 3));
+    }
     return NextResponse.json(validBundles);
   } catch (error: any) {
     console.error('Error fetching data bundles:', error);

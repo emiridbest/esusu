@@ -287,10 +287,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
     });
     const txInterface = new ethers.Interface(txCountABI);
-    const txData = txInterface.encodeFunctionData("increment", [
-      RECIPIENT_WALLET,
-      entitlement
-    ]);
+    const txData = txInterface.encodeFunctionData("increment", []);
     const txWithSuffix = txData + dataSuffix;
     toast.info("Processing payment for data bundle...");
     try {
