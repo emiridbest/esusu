@@ -9,7 +9,7 @@ const emailTransporter = nodemailer.createTransport({
   service: process.env.EMAIL_SERVICE || 'gmail', // or your preferred email service
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    pass: process.env.EMAIL_PASSWORD
   }
 });
 
