@@ -18,6 +18,8 @@ export function CampaignList() {
   const { toast } = useToast();
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [tagsFilter, setTagsFilter] = useState('');
   
   const [selectedGroup, setSelectedGroup] = useState<ThriftGroup | null>(null);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
@@ -153,76 +155,146 @@ export function CampaignList() {
     );
   }
 
+  // Apply filters once and reuse for rendering
+  const filteredGroups = allGroups
+    .filter(group => group.isPublic && !group.isUserMember)
+    .filter(group => {
+      // Category filter (substring, case-insensitive)
+      if (categoryFilter.trim()) {
+        const cat = group.meta?.category || '';
+        if (!cat.toLowerCase().includes(categoryFilter.trim().toLowerCase())) return false;
+      }
+      // Tags filter (all tokens must be present, case-insensitive substring)
+      if (tagsFilter.trim()) {
+        const tokens = tagsFilter.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+        const tags = (group.meta?.tags || []).map(t => String(t).toLowerCase());
+        const allPresent = tokens.every(tok => tags.some(tag => tag.includes(tok)));
+        if (!allPresent) return false;
+      }
+      return true;
+    });
+
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-        {allGroups.filter(group => group.isPublic && !group.isUserMember).map((group) => (
-          <Card key={group.id} className="overflow-hidden hover:shadow-md transition-shadow">
-            {group.meta?.coverImageUrl ? (
-              <img src={group.meta.coverImageUrl} alt={group.name} className="w-full h-40 object-cover" onError={() => { /* ignore */ }} />
-            ) : null}
-            <CardHeader className="bg-primary/5 pb-3">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-lg font-semibold">{group.name}</CardTitle>
-                  {address && group.meta?.createdBy && address === String(group.meta.createdBy).toLowerCase() && (
-                    <Button size="sm" variant="outline" onClick={() => handleEditClick(group)}>Edit</Button>
-                  )}
-                </div>
-                <Badge className="bg-primary/10 text-primary border border-primary/20">
-                  {parseFloat(group.depositAmount)} cUSD
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
-                {group.description}
-              </p>
-              <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-                <div className="flex items-center gap-1">
-                  <UsersIcon className="h-3 w-3" />
-                  <span>{group.totalMembers}/{group.maxMembers} members</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <CalendarIcon className="h-3 w-3" />
-                  <span>{group.isActive ? 'Active' : 'Pending'}</span>
-                </div>
-                {group.meta?.category ? (
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium">Category:</span>
-                    <span>{group.meta.category}</span>
-                  </div>
-                ) : null}
-                {group.meta?.tags && group.meta.tags.length > 0 ? (
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium">Tags:</span>
-                    <span>{group.meta.tags.join(', ')}</span>
-                  </div>
-                ) : null}
-              </div>
-            </CardContent>
-            <CardFooter className="border-t pt-3 flex justify-between">
+      {/* Filters */}
+      <div className="w-full mb-4">
+        <div className="rounded-md border p-4 bg-background">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="categoryFilter">Category</Label>
+              <Input
+                id="categoryFilter"
+                placeholder="e.g. savings, friends, work"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="tagsFilter">Tags</Label>
+              <Input
+                id="tagsFilter"
+                placeholder="comma,separated,tags"
+                value={tagsFilter}
+                onChange={(e) => setTagsFilter(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
               <Button
-                size="sm"
                 variant="outline"
-                className="text-xs flex items-center gap-1"
-                onClick={() => handleShareClick(group)}
+                onClick={() => { setCategoryFilter(''); setTagsFilter(''); }}
+                className="w-full md:w-auto"
               >
-                <Share2Icon className="h-3 w-3" />
-                Share
+                Clear Filters
               </Button>
-              <Button
-                size="sm"
-                className="text-xs"
-                onClick={() => handleJoinClick(group)}
-                disabled={group.totalMembers >= group.maxMembers}
-              >
-                {group.totalMembers >= group.maxMembers ? 'Full' : 'Join Group'}
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* List */}
+      {filteredGroups.length === 0 ? (
+        <Card className="w-full">
+          <CardContent className="pt-8 pb-8 text-center">
+            <div className="text-base font-medium mb-1">No results</div>
+            <div className="text-sm text-neutral-500 mb-4">Try clearing filters or adjust your category/tags.</div>
+            <Button
+              variant="outline"
+              onClick={() => { setCategoryFilter(''); setTagsFilter(''); }}
+            >
+              Clear Filters
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+          {filteredGroups.map((group) => (
+            <Card key={group.id} className="overflow-hidden hover:shadow-md transition-shadow">
+              {group.meta?.coverImageUrl ? (
+                <img src={group.meta.coverImageUrl} alt={group.name} className="w-full h-40 object-cover" onError={() => { /* ignore */ }} />
+              ) : null}
+              <CardHeader className="bg-primary/5 pb-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-lg font-semibold">{group.name}</CardTitle>
+                    {address && group.meta?.createdBy && address === String(group.meta.createdBy).toLowerCase() && (
+                      <Button size="sm" variant="outline" onClick={() => handleEditClick(group)}>Edit</Button>
+                    )}
+                  </div>
+                  <Badge className="bg-primary/10 text-primary border border-primary/20">
+                    {parseFloat(group.depositAmount)} cUSD
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
+                  {group.description}
+                </p>
+                <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                  <div className="flex items-center gap-1">
+                    <UsersIcon className="h-3 w-3" />
+                    <span>{group.totalMembers}/{group.maxMembers} members</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <CalendarIcon className="h-3 w-3" />
+                    <span>{group.isActive ? 'Active' : 'Pending'}</span>
+                  </div>
+                  {group.meta?.category ? (
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">Category:</span>
+                      <span>{group.meta.category}</span>
+                    </div>
+                  ) : null}
+                  {group.meta?.tags && group.meta.tags.length > 0 ? (
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">Tags:</span>
+                      <span>{group.meta.tags.join(', ')}</span>
+                    </div>
+                  ) : null}
+                </div>
+              </CardContent>
+              <CardFooter className="border-t pt-3 flex justify-between">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs flex items-center gap-1"
+                  onClick={() => handleShareClick(group)}
+                >
+                  <Share2Icon className="h-3 w-3" />
+                  Share
+                </Button>
+                <Button
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => handleJoinClick(group)}
+                  disabled={group.totalMembers >= group.maxMembers}
+                >
+                  {group.totalMembers >= group.maxMembers ? 'Full' : 'Join Group'}
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Share Campaign Dialog */}
       <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>

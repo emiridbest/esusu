@@ -51,6 +51,7 @@ export default function CampaignDetailsPage() {
   const [shareableLink, setShareableLink] = useState('');
   const [editOpen, setEditOpen] = useState(false);
   const [metaCreatedBy, setMetaCreatedBy] = useState<string | null>(null);
+  const [metadata, setMetadata] = useState<any | null>(null);
   
   // Find the campaign in user campaigns or all campaigns
   useEffect(() => {
@@ -90,7 +91,7 @@ export default function CampaignDetailsPage() {
     loadMembers();
   }, [campaign, getThriftGroupMembers]);
 
-  // Load metadata to determine creator (for edit permissions)
+  // Load metadata for creator (permissions) and history view
   useEffect(() => {
     const loadMetadata = async () => {
       if (!campaign) return;
@@ -100,6 +101,7 @@ export default function CampaignDetailsPage() {
           const data = await res.json();
           const doc = Array.isArray(data?.items) ? data.items.find((it: any) => Number(it.groupId) === campaign.id) : null;
           setMetaCreatedBy(doc?.createdBy ? String(doc.createdBy).toLowerCase() : null);
+          setMetadata(doc || null);
         }
       } catch (e) {
         console.warn('Failed to load thrift metadata:', e);
@@ -279,6 +281,7 @@ export default function CampaignDetailsPage() {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="members">Members</TabsTrigger>
               <TabsTrigger value="contributions">Contributions</TabsTrigger>
+              <TabsTrigger value="history">History</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">
@@ -417,6 +420,54 @@ export default function CampaignDetailsPage() {
                         <TableCell colSpan={3} className="text-center py-4">
                           No contributions yet
                         </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="history">
+              <h3 className="text-lg font-medium mb-4">Metadata History</h3>
+              <div className="rounded-md border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>By</TableHead>
+                      <TableHead>Changes</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {metadata?.updateLog && metadata.updateLog.length > 0 ? (
+                      [...metadata.updateLog].reverse().map((entry: any, idx: number) => {
+                        const when = entry?.at ? new Date(entry.at) : null;
+                        const by = entry?.by || '';
+                        const changes = entry?.changes || {};
+                        const fields = Object.keys(changes).filter((k) => changes[k] !== undefined);
+                        return (
+                          <TableRow key={idx}>
+                            <TableCell className="whitespace-nowrap">{when ? when.toLocaleString() : '-'}</TableCell>
+                            <TableCell className="font-mono text-xs">{by ? `${by.substring(0,6)}...${by.substring(by.length-4)}` : '-'}</TableCell>
+                            <TableCell>
+                              {fields.length > 0 ? (
+                                <div className="flex flex-wrap gap-2 text-xs">
+                                  {fields.map((f) => (
+                                    <span key={f} className="inline-flex items-center rounded border px-2 py-0.5 bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800">
+                                      {f}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-neutral-500">No field changes recorded</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-4">No history yet</TableCell>
                       </TableRow>
                     )}
                   </TableBody>

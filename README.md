@@ -121,6 +121,24 @@ esusu/
 - **Mini Safe**: Secure savings feature
 - **Thrift**: Group savings feature
 - **Chat Assistant**: AI-powered assistant for performing on-chain transactions
+  
+### UI Enhancements (Thrift)
+
+- **Edit Details**: Group creators can edit off-chain metadata (name, description, cover image URL, category, tags) from:
+  - Group card (public list)
+  - Your groups table
+  - Group details page header
+  - Auth: Uses SIWE session to avoid repeated signing; automatically falls back to one-off signed message when needed.
+
+- **Metadata History**: A new `History` tab on the group details page shows the audit trail from `updateLog`, including:
+  - Editor wallet (shortened)
+  - Timestamp
+  - Which fields changed (name, description, coverImageUrl, category, tags)
+
+- **List Filters**: Simple filters above the public group list:
+  - Category: substring match (case-insensitive)
+  - Tags: comma-separated tokens; all tokens must be present (AND) in the group’s tags (case-insensitive substring)
+  - Clear Filters button to reset filters
 
 ## Getting Started
 
