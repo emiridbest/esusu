@@ -22,6 +22,8 @@ import {
 import { ArrowUpIcon, ArrowDownIcon, Share2Icon, UsersIcon, CalendarIcon, ArrowLeftIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
+import { contractAddress } from '@/utils/abi';
 
 export default function CampaignDetailsPage() {
   const params = useParams();
@@ -47,6 +49,8 @@ export default function CampaignDetailsPage() {
   const [userName, setUserName] = useState('');
   const [contributionAmount, setContributionAmount] = useState('');
   const [shareableLink, setShareableLink] = useState('');
+  const [editOpen, setEditOpen] = useState(false);
+  const [metaCreatedBy, setMetaCreatedBy] = useState<string | null>(null);
   
   // Find the campaign in user campaigns or all campaigns
   useEffect(() => {
@@ -85,6 +89,24 @@ export default function CampaignDetailsPage() {
     
     loadMembers();
   }, [campaign, getThriftGroupMembers]);
+
+  // Load metadata to determine creator (for edit permissions)
+  useEffect(() => {
+    const loadMetadata = async () => {
+      if (!campaign) return;
+      try {
+        const res = await fetch(`/api/thrift/metadata?contract=${contractAddress}&ids=${campaign.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          const doc = Array.isArray(data?.items) ? data.items.find((it: any) => Number(it.groupId) === campaign.id) : null;
+          setMetaCreatedBy(doc?.createdBy ? String(doc.createdBy).toLowerCase() : null);
+        }
+      } catch (e) {
+        console.warn('Failed to load thrift metadata:', e);
+      }
+    };
+    loadMetadata();
+  }, [campaign]);
   
   // Open join dialog if join=true in URL and not already a member
   useEffect(() => {
@@ -236,8 +258,13 @@ export default function CampaignDetailsPage() {
       <Card className="overflow-hidden border-primary/20 mb-8">
         <CardHeader className="bg-primary/5 pb-3">
           <div className="flex justify-between items-start">
-            <CardTitle className="text-2xl font-bold">{campaign.name}</CardTitle>
-            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-2xl font-bold">{campaign.name}</CardTitle>
+              {address && metaCreatedBy && address.toLowerCase() === metaCreatedBy && (
+                <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>Edit</Button>
+              )}
+            </div>
+            <Badge className="bg-primary/10 text-primary border border-primary/20">
               {parseFloat(campaign.depositAmount)} cUSD / month
             </Badge>
           </div>
@@ -264,6 +291,22 @@ export default function CampaignDetailsPage() {
                     <p className="text-2xl font-bold">{campaign.depositAmount} cUSD</p>
                   </CardContent>
                 </Card>
+
+      {/* Edit Metadata Dialog */}
+      <EditMetadataDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        contractAddress={contractAddress}
+        groupId={campaign.id}
+        initialName={campaign.name}
+        initialDescription={campaign.description}
+        initialCoverImageUrl={campaign.meta?.coverImageUrl}
+        initialCategory={campaign.meta?.category}
+        initialTags={campaign.meta?.tags}
+        onSaved={({ name, description }) => {
+          setCampaign((prev) => prev ? { ...prev, name, description: description || prev.description } : prev);
+        }}
+      />
                 
                 <Card>
                   <CardHeader className="pb-2">

@@ -13,11 +13,16 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
+import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
+import { contractAddress } from '@/utils/abi';
 
 export function UserCampaigns() {
   const { userGroups, getThriftGroupMembers, loading, error } = useThrift();
   const [groupMembers, setGroupMembers] = useState<{ [key: number]: ThriftMember[] }>({});
   const [connected, setConnected] = useState(false);
+  const [address, setAddress] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editGroup, setEditGroup] = useState<ThriftGroup | null>(null);
   
   // Check if wallet is connected
   useEffect(() => {
@@ -26,6 +31,7 @@ export function UserCampaigns() {
         try {
           const accounts = await window.ethereum.request({ method: 'eth_accounts' });
           setConnected(accounts && accounts.length > 0);
+          setAddress(accounts && accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
         } catch (error) {
           console.error("Error checking connection:", error);
           setConnected(false);
@@ -41,6 +47,7 @@ export function UserCampaigns() {
     if (typeof window !== 'undefined' && window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
         setConnected(accounts.length > 0);
+        setAddress(accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
       };
       
       window.ethereum.on('accountsChanged', handleAccountsChanged);
@@ -145,6 +152,7 @@ export function UserCampaigns() {
                     <TableHead>Description</TableHead>
                     <TableHead>Deposit</TableHead>
                     <TableHead>Members</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -163,6 +171,16 @@ export function UserCampaigns() {
                       </TableCell>
                       <TableCell>{parseFloat(group.depositAmount)} cUSD</TableCell>
                       <TableCell>{group.totalMembers}/{group.maxMembers}</TableCell>
+                      <TableCell>
+                        {address && group.meta?.createdBy && address === String(group.meta.createdBy).toLowerCase() ? (
+                          <button
+                            className="text-xs px-3 py-1 border rounded hover:bg-muted"
+                            onClick={() => { setEditGroup(group); setEditOpen(true); }}
+                          >
+                            Edit
+                          </button>
+                        ) : null}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -203,7 +221,7 @@ export function UserCampaigns() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={group.isActive ? "bg-green-50 text-green-700 border-green-200" : "bg-yellow-50 text-yellow-700 border-yellow-200"}>
+                        <Badge className={(group.isActive ? "bg-green-50 text-green-700 border-green-200" : "bg-yellow-50 text-yellow-700 border-yellow-200") + " border"}>
                           {group.isActive ? 'Active' : 'Pending'}
                         </Badge>
                       </TableCell>
@@ -251,6 +269,24 @@ export function UserCampaigns() {
           </TabsContent>
         </Tabs>
       </CardContent>
+      {/* Edit Metadata Dialog */}
+      {editGroup ? (
+        <EditMetadataDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          contractAddress={contractAddress}
+          groupId={editGroup.id}
+          initialName={editGroup.name}
+          initialDescription={editGroup.description}
+          initialCoverImageUrl={editGroup.meta?.coverImageUrl}
+          initialCategory={editGroup.meta?.category}
+          initialTags={editGroup.meta?.tags}
+          onSaved={() => {
+            setEditOpen(false);
+            // no direct refresh function here; rely on ThriftContext updates triggered elsewhere or reload page
+          }}
+        />
+      ) : null}
     </Card>
   );
 }

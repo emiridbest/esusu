@@ -20,6 +20,12 @@ export interface ThriftGroup {
   payoutOrder: string[];
   completedPayouts: number;
   isUserMember?: boolean;
+  meta?: {
+    createdBy?: string;
+    coverImageUrl?: string;
+    category?: string;
+    tags?: string[];
+  };
 }
 
 export interface ThriftMember {
@@ -218,9 +224,24 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       }
 
-      // Persist off-chain metadata (best-effort)
+      // Persist off-chain metadata (best-effort) with signature auth
       try {
-        if (newGroupId) {
+        if (newGroupId && provider && account) {
+          const ts = Date.now();
+          const msg = [
+            'Esusu: Thrift Metadata Update',
+            `contractAddress=${contractAddress.toLowerCase()}`,
+            `groupId=${newGroupId}`,
+            `name=${name}`,
+            `description=${description || ''}`,
+            `coverImageUrl=`,
+            `category=`,
+            `tags=`,
+            `timestamp=${ts}`,
+          ].join('\n');
+          const signer = await provider.getSigner();
+          const signature = await signer.signMessage(msg);
+
           await fetch('/api/thrift/metadata', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -229,7 +250,9 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               groupId: newGroupId,
               name,
               description,
-              createdBy: account || undefined,
+              signerAddress: account,
+              signature,
+              timestamp: ts,
             }),
           });
         }
@@ -462,6 +485,12 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               if (m) {
                 g.name = m.name || g.name;
                 if (m.description) g.description = m.description;
+                g.meta = {
+                  createdBy: m.createdBy,
+                  coverImageUrl: m.coverImageUrl,
+                  category: m.category,
+                  tags: Array.isArray(m.tags) ? m.tags : [],
+                };
               }
             }
           }

@@ -6,6 +6,7 @@ import {
   Notification, 
   Analytics, 
   PaymentHash,
+  ThriftGroupMetadata,
   IUser,
   ITransaction 
 } from './schemas';
@@ -27,11 +28,9 @@ export class DatabaseInitializer {
     if (this.initialized) {
       return;
     }
-
     if (this.initializationPromise) {
       return this.initializationPromise;
     }
-
     this.initializationPromise = this._performInitialization();
     return this.initializationPromise;
   }
@@ -51,7 +50,8 @@ export class DatabaseInitializer {
         this._ensureCollectionExists('groups'),
         this._ensureCollectionExists('notifications'),
         this._ensureCollectionExists('analytics'),
-        this._ensureCollectionExists('paymenthashes')
+        this._ensureCollectionExists('paymenthashes'),
+        this._ensureCollectionExists('thriftgroupmetadatas'),
       ]);
 
       // Step 3: Create indexes (parallel for performance)
@@ -61,7 +61,8 @@ export class DatabaseInitializer {
         this._createGroupIndexes(),
         this._createNotificationIndexes(),
         this._createAnalyticsIndexes(),
-        this._createPaymentHashIndexes()
+        this._createPaymentHashIndexes(),
+        this._createThriftMetadataIndexes(),
       ]);
 
       // Step 4: Run database migrations
@@ -184,6 +185,19 @@ export class DatabaseInitializer {
       console.log('🔍 PaymentHash indexes created');
     } catch (error) {
       console.warn('⚠️ PaymentHash indexes may already exist:', (error as Error).message);
+    }
+  }
+
+  private static async _createThriftMetadataIndexes(): Promise<void> {
+    try {
+      await ThriftGroupMetadata.collection.createIndexes([
+        { key: { contractAddress: 1, groupId: 1 }, unique: true, background: true },
+        { key: { createdBy: 1 }, background: true },
+        { key: { updatedAt: -1 }, background: true },
+      ]);
+      console.log('🔍 ThriftGroupMetadata indexes created');
+    } catch (error) {
+      console.warn('⚠️ ThriftGroupMetadata indexes may already exist:', (error as Error).message);
     }
   }
 

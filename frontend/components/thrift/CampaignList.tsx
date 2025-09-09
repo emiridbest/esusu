@@ -10,17 +10,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
+import { contractAddress } from '@/utils/abi';
 
 export function CampaignList() {
-  const { allGroups, joinThriftGroup, generateShareLink, loading, error } = useThrift();
+  const { allGroups, joinThriftGroup, generateShareLink, loading, error, refreshGroups } = useThrift();
   const { toast } = useToast();
   const [connected, setConnected] = useState(false);
+  const [address, setAddress] = useState<string | null>(null);
   
   const [selectedGroup, setSelectedGroup] = useState<ThriftGroup | null>(null);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [userName, setUserName] = useState('');
   const [shareableLink, setShareableLink] = useState('');
+  const [editOpen, setEditOpen] = useState(false);
+  const [editGroup, setEditGroup] = useState<ThriftGroup | null>(null);
 
   // Check if wallet is connected
   useEffect(() => {
@@ -29,6 +34,7 @@ export function CampaignList() {
         try {
           const accounts = await window.ethereum.request({ method: 'eth_accounts' });
           setConnected(accounts && accounts.length > 0);
+          setAddress(accounts && accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
         } catch (error) {
           console.error("Error checking connection:", error);
           setConnected(false);
@@ -44,6 +50,7 @@ export function CampaignList() {
     if (typeof window !== 'undefined' && window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
         setConnected(accounts.length > 0);
+        setAddress(accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
       };
       
       window.ethereum.on('accountsChanged', handleAccountsChanged);
@@ -65,6 +72,11 @@ export function CampaignList() {
     setSelectedGroup(group);
     setShareableLink(generateShareLink(group.id));
     setShareDialogOpen(true);
+  };
+
+  const handleEditClick = (group: ThriftGroup) => {
+    setEditGroup(group);
+    setEditOpen(true);
   };
 
   const handleJoinGroup = async () => {
@@ -146,10 +158,18 @@ export function CampaignList() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
         {allGroups.filter(group => group.isPublic && !group.isUserMember).map((group) => (
           <Card key={group.id} className="overflow-hidden hover:shadow-md transition-shadow">
+            {group.meta?.coverImageUrl ? (
+              <img src={group.meta.coverImageUrl} alt={group.name} className="w-full h-40 object-cover" onError={() => { /* ignore */ }} />
+            ) : null}
             <CardHeader className="bg-primary/5 pb-3">
               <div className="flex justify-between items-start">
-                <CardTitle className="text-lg font-semibold">{group.name}</CardTitle>
-                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-lg font-semibold">{group.name}</CardTitle>
+                  {address && group.meta?.createdBy && address === String(group.meta.createdBy).toLowerCase() && (
+                    <Button size="sm" variant="outline" onClick={() => handleEditClick(group)}>Edit</Button>
+                  )}
+                </div>
+                <Badge className="bg-primary/10 text-primary border border-primary/20">
                   {parseFloat(group.depositAmount)} cUSD
                 </Badge>
               </div>
@@ -167,6 +187,18 @@ export function CampaignList() {
                   <CalendarIcon className="h-3 w-3" />
                   <span>{group.isActive ? 'Active' : 'Pending'}</span>
                 </div>
+                {group.meta?.category ? (
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium">Category:</span>
+                    <span>{group.meta.category}</span>
+                  </div>
+                ) : null}
+                {group.meta?.tags && group.meta.tags.length > 0 ? (
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium">Tags:</span>
+                    <span>{group.meta.tags.join(', ')}</span>
+                  </div>
+                ) : null}
               </div>
             </CardContent>
             <CardFooter className="border-t pt-3 flex justify-between">
@@ -226,6 +258,25 @@ export function CampaignList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Metadata Dialog */}
+      {editGroup ? (
+        <EditMetadataDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          contractAddress={contractAddress}
+          groupId={editGroup.id}
+          initialName={editGroup.name}
+          initialDescription={editGroup.description}
+          initialCoverImageUrl={editGroup.meta?.coverImageUrl}
+          initialCategory={editGroup.meta?.category}
+          initialTags={editGroup.meta?.tags}
+          onSaved={() => {
+            setEditOpen(false);
+            setTimeout(() => refreshGroups(), 50);
+          }}
+        />
+      ) : null}
 
       {/* Join Campaign Dialog */}
       <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>

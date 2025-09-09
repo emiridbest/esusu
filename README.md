@@ -156,6 +156,7 @@ Create `.env.local` files in `frontend/` and `backend/` (and optionally `farcast
 - Frontend (client + server routes)
   - Required
     - `NEXT_PUBLIC_THIRDWEB_CLIENT_ID` – Thirdweb client ID used in `frontend/lib/thirdweb.ts`.
+    - `NEXTAUTH_SECRET` or `SIWE_JWT_SECRET` – Secret for signing SIWE session JWT (used by `/api/auth/*` and `/api/thrift/metadata`).
   - MiniSafe and UX
     - `NEXT_PUBLIC_TOKEN_ADDRESS` – Default ERC20 token used by MiniSafe (optional, defaults to G$ fallback).
     - `NEXT_PUBLIC_REWARD_TOKEN_ADDRESS` – Reward token (EST) for balance display (optional).
@@ -238,6 +239,31 @@ Critical endpoints like `frontend/app/api/topup/route.ts` (airtime/data) and `fr
   - Body: `{ country, providerId, customerId, customerEmail, amount, transactionHash, expectedAmount, paymentToken }`
 - `GET /api/analytics` and `POST /api/analytics` (frontend app) – User analytics history and generation.
 - `GET /api/dashboard` (frontend app) – User or platform dashboard aggregates.
+
+#### Thrift Metadata (off‑chain) & Auth
+
+- `GET /api/thrift/metadata?contract=0x...&ids=1,2,3` – Batch fetch thrift metadata for groups. Returns array of documents keyed by `(contractAddress, groupId)` with fields `{ name, description, coverImageUrl, category, tags, createdBy, updatedBy, updateLog, createdAt, updatedAt }`.
+- `POST /api/thrift/metadata` – Create/update thrift metadata with secure auth.
+  - Prefers SIWE session via `esusu_session` httpOnly cookie. Fallback to signed message.
+  - Request body (session): `{ contractAddress, groupId, name, description?, coverImageUrl?, category?, tags? }`
+  - Request body (signature fallback): add `{ signerAddress, signature, timestamp }` and sign the canonical message:
+    ```
+    Esusu: Thrift Metadata Update
+    contractAddress=<lowercased address>
+    groupId=<id>
+    name=<name>
+    description=<description or empty>
+    coverImageUrl=<url or empty>
+    category=<category or empty>
+    tags=<comma separated or empty>
+    timestamp=<unix ms>
+    ```
+  - Only the creator (`createdBy`) can update. All updates append to `updateLog`.
+
+Auth (SIWE):
+- `GET /api/auth/siwe/message?address=0x...&chainId=42220&domain=<host>&uri=<origin>` – Build SIWE message.
+- `POST /api/auth/siwe/verify` – Verify signature and set `esusu_session` cookie.
+- `GET /api/auth/session` – Return `{ authenticated, address }` if session is valid.
 
 Note: Frontend API routes import backend services (e.g., `@esusu/backend/lib/services/*`) thanks to `externalDir: true`.
 

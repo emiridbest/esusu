@@ -326,6 +326,15 @@ export interface IThriftGroupMetadata extends Document {
   name: string;
   description?: string;
   createdBy?: string;
+  updatedBy?: string;
+  updateLog?: Array<{
+    by: string;
+    at: Date;
+    changes: Partial<Pick<IThriftGroupMetadata, 'name' | 'description' | 'coverImageUrl' | 'category' | 'tags'>>;
+  }>;
+  coverImageUrl?: string;
+  category?: string;
+  tags?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -335,7 +344,22 @@ const ThriftGroupMetadataSchema = new Schema<IThriftGroupMetadata>({
   groupId: { type: Number, required: true, index: true },
   name: { type: String, required: true },
   description: { type: String },
-  createdBy: { type: String }
+  createdBy: { type: String },
+  updatedBy: { type: String },
+  updateLog: [{
+    by: { type: String, required: true },
+    at: { type: Date, required: true },
+    changes: {
+      name: { type: String },
+      description: { type: String },
+      coverImageUrl: { type: String },
+      category: { type: String },
+      tags: [{ type: String }],
+    }
+  }],
+  coverImageUrl: { type: String },
+  category: { type: String },
+  tags: [{ type: String }]
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -345,6 +369,8 @@ const ThriftGroupMetadataSchema = new Schema<IThriftGroupMetadata>({
 
 // Ensure uniqueness per chain/contract and group id
 ThriftGroupMetadataSchema.index({ contractAddress: 1, groupId: 1 }, { unique: true });
+ThriftGroupMetadataSchema.index({ category: 1, updatedAt: -1 });
+ThriftGroupMetadataSchema.index({ tags: 1 });
 
 export const ThriftGroupMetadata = models.ThriftGroupMetadata 
   || model<IThriftGroupMetadata>('ThriftGroupMetadata', ThriftGroupMetadataSchema);
