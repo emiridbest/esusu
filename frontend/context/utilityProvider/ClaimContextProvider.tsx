@@ -246,6 +246,9 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           operatorId: values.network,
           amount: selectedPrice.toString(),
           customId: values.customId,
+          transactionHash: values.transactionHash,
+          expectedAmount: values.expectedAmount,
+          paymentToken: values.paymentToken,
           recipientPhone: {
             country: values.country,
             phoneNumber: cleanPhoneNumber
@@ -345,7 +348,13 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         account,
         transaction,
       });
-
+      // Wait for on-chain confirmation before proceeding to top-up
+      const { waitForReceipt } = await import('thirdweb');
+      const receipt = await waitForReceipt({
+        client,
+        chain: activeChain,
+        transactionHash: tx.transactionHash,
+      });
       try {
         await submitReferral({
           txHash: tx.transactionHash,
@@ -355,7 +364,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         console.error("Referral submission error:", referralError);
       }
 
-      toast.success("Payment transaction completed. Processing data top-up...");
+      toast.success("Payment confirmed on-chain. Processing data top-up...");
       return tx;
     } catch (error) {
       console.error("Payment transaction failed:", error);
@@ -405,6 +414,12 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           id: 'claim-ubi',
           title: 'Claim UBI',
           description: `Claiming Universal Basic Income for ${recipient}`,
+          status: 'inactive'
+        },
+        {
+          id: 'payment',
+          title: 'Payment',
+          description: 'Waiting for on-chain confirmation...',
           status: 'inactive'
         },
         {

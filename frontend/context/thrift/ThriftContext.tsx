@@ -1,6 +1,6 @@
 "use client";
 import React, { createContext, useState, useCallback, useContext, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { toast } from '@/hooks/use-toast';
 import { contractAddress, MiniSafeAave } from '@/utils/abi';
 import { BrowserProvider, formatUnits, parseUnits } from "ethers";
 
@@ -17,7 +17,7 @@ export interface ThriftGroup {
   totalMembers: number;
   members: string[];
   contributions: { [address: string]: string };
-  payoutOrder: number[];
+  payoutOrder: string[];
   completedPayouts: number;
   isUserMember?: boolean;
 }
@@ -137,15 +137,60 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setError(null);
       
       const amount = parseUnits(depositAmount, 18);
-      const tx = await contract.createThriftGroup(name, description, amount, maxMembers, isPublic);
+      const startDate = Math.floor(Date.now() / 1000);
+
+      // Determine a supported token to use
+      const supportedTokens: string[] = await contract.getSupportedTokens();
+      if (!supportedTokens || supportedTokens.length === 0) {
+        const msg = 'No supported tokens configured on the contract. Please contact the admin to add supported tokens.';
+        setError(msg);
+        toast({ title: 'Unsupported token', description: msg });
+        return;
+      }
+
+      // Preferred token: env override -> cUSD -> first supported
+      const preferredEnv = (process.env.NEXT_PUBLIC_THRIFT_TOKEN_ADDRESS || '').toLowerCase();
+      const tokenAddress = (supportedTokens.find(a => a.toLowerCase() === preferredEnv)
+        || supportedTokens.find(a => a.toLowerCase() === CUSD_TOKEN_ADDRESS.toLowerCase())
+        || supportedTokens[0]) as string;
+
+      // Validate chosen token
+      const valid = await contract.isValidToken(tokenAddress);
+      if (!valid) {
+        const msg = `Chosen token ${tokenAddress} is not supported by the contract.`;
+        setError(msg);
+        toast({ title: 'Unsupported token', description: msg });
+        return;
+      }
+
+      // Enforce minimum contribution
+      let minContribution: any = undefined;
+      try {
+        // MIN_CONTRIBUTION is a view constant in ABI
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        minContribution = await (contract as any).contract.MIN_CONTRIBUTION();
+      } catch (_) {
+        // If not accessible, proceed without check
+      }
+      if (minContribution !== undefined) {
+        // Both are bigint in ethers v6; avoid BigInt literals by comparing directly
+        if (amount < minContribution) {
+          const msg = `Deposit amount is below the minimum contribution: ${formatUnits(minContribution, 18)}.`;
+          setError(msg);
+          toast({ title: 'Amount too low', description: msg });
+          return;
+        }
+      }
+
+      const tx = await contract.createThriftGroup(amount, startDate, isPublic, tokenAddress);
       await tx.wait();
       
       await refreshGroups();
-      toast.success("Thrift group created successfully!");
+      toast({ title: "Success", description: "Thrift group created successfully!" });
     } catch (err) {
       console.error("Failed to create thrift group:", err);
       setError(`Failed to create thrift group: ${err instanceof Error ? err.message : String(err)}`);
-      toast.error(`Failed to create thrift group: ${err instanceof Error ? err.message : String(err)}`);
+      toast({ title: "Error", description: `Failed to create thrift group: ${err instanceof Error ? err.message : String(err)}` });
     } finally {
       setLoading(false);
     }
@@ -165,11 +210,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       await tx.wait();
       
       await refreshGroups();
-      toast.success("Successfully joined the thrift group!");
+      toast({ title: "Success", description: "Successfully joined the thrift group!" });
     } catch (err) {
       console.error("Failed to join thrift group:", err);
       setError(`Failed to join thrift group: ${err instanceof Error ? err.message : String(err)}`);
-      toast.error(`Failed to join thrift group: ${err instanceof Error ? err.message : String(err)}`);
+      toast({ title: "Error", description: `Failed to join thrift group: ${err instanceof Error ? err.message : String(err)}` });
     } finally {
       setLoading(false);
     }
@@ -189,11 +234,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       await tx.wait();
       
       await refreshGroups();
-      toast.success("Member added successfully!");
+      toast({ title: "Success", description: "Member added successfully!" });
     } catch (err) {
       console.error("Failed to add member:", err);
       setError(`Failed to add member: ${err instanceof Error ? err.message : String(err)}`);
-      toast.error(`Failed to add member: ${err instanceof Error ? err.message : String(err)}`);
+      toast({ title: "Error", description: `Failed to add member: ${err instanceof Error ? err.message : String(err)}` });
     } finally {
       setLoading(false);
     }
@@ -213,11 +258,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       await tx.wait();
       
       await refreshGroups();
-      toast.success("Contribution successful!");
+      toast({ title: "Success", description: "Contribution successful!" });
     } catch (err) {
       console.error("Failed to contribute:", err);
       setError(`Failed to contribute: ${err instanceof Error ? err.message : String(err)}`);
-      toast.error(`Failed to contribute: ${err instanceof Error ? err.message : String(err)}`);
+      toast({ title: "Error", description: `Failed to contribute: ${err instanceof Error ? err.message : String(err)}` });
     } finally {
       setLoading(false);
     }
@@ -230,9 +275,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     try {
-      // Get group data to access members array
-      const groupData = await contract.getThriftGroup(groupId);
-      const members = groupData.members || [];
+      // Fetch members via contract method
+      const members: string[] = await contract.getGroupMembers(groupId);
       
       return members.map((address: string, index: number) => ({
         address,
@@ -261,11 +305,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       await tx.wait();
       
       await refreshGroups();
-      toast.success("Payout distributed successfully!");
+      toast({ title: "Success", description: "Payout distributed successfully!" });
     } catch (err) {
       console.error("Failed to distribute payout:", err);
       setError(`Failed to distribute payout: ${err instanceof Error ? err.message : String(err)}`);
-      toast.error(`Failed to distribute payout: ${err instanceof Error ? err.message : String(err)}`);
+      toast({ title: "Error", description: `Failed to distribute payout: ${err instanceof Error ? err.message : String(err)}` });
     } finally {
       setLoading(false);
     }
@@ -290,45 +334,64 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
 
-      // Get user's groups first
-      const userGroupIds = await contract.getUserGroups(account);
       const fetchedGroups: ThriftGroup[] = [];
       const userGroupsTemp: ThriftGroup[] = [];
 
-      // For demo purposes, we'll create some mock groups
-      // In production, you would iterate through actual group IDs from events or contract state
-      const mockGroupIds = [1, 2, 3];
-      
-      for (const groupId of mockGroupIds) {
-        try {
-          const groupData = await contract.getThriftGroup(groupId);
-          
-          if (!groupData) continue;
+      // Determine total groups from contract and iterate 1..total
+      const totalGroupsBn = await contract.totalThriftGroups();
+      const totalGroups = Number(totalGroupsBn);
+      if (totalGroups === 0) {
+        setAllGroups([]);
+        setUserGroups([]);
+        return;
+      }
 
-          // Parse group data structure based on contract ABI
+      const groupIds = Array.from({ length: totalGroups }, (_, i) => i + 1);
+
+      // Fetch all groups in parallel per group for better UX
+      for (const groupId of groupIds) {
+        try {
+          // Parallel fetch
+          const [info, members, payoutOrder, isMember] = await Promise.all([
+            contract.getGroupInfo(groupId),
+            contract.getGroupMembers(groupId),
+            contract.getPayoutOrder(groupId),
+            account ? contract.isGroupMember(groupId, account) : Promise.resolve(false),
+          ]);
+
+          // Skip uninitialized groups (contributionAmount == 0) without using BigInt literals
+          const contributionAmountStr = info?.contributionAmount?.toString?.() ?? '0';
+          if (!info || contributionAmountStr === '0') continue;
+
+          // Try to get maxMembers from thriftGroups mapping; if it fails, fallback to members.length
+          let maxMembers = members?.length ?? 0;
+          try {
+            const tg = await contract.getThriftGroup(groupId);
+            // Support both object and array returns
+            maxMembers = Number((tg.maxMembers ?? tg[5] ?? maxMembers));
+          } catch (_) {
+            // ignore
+          }
+
           const group: ThriftGroup = {
             id: groupId,
-            name: groupData.name || `Group ${groupId}`,
-            description: groupData.description || 'Thrift Group',
-            depositAmount: formatUnits(groupData.depositAmount || '0', 18),
-            maxMembers: Number(groupData.maxMembers || 5),
-            isPublic: Boolean(groupData.isPublic),
-            isActive: Boolean(groupData.isActive),
-            currentRound: Number(groupData.currentRound || 0),
-            totalMembers: Number(groupData.totalMembers || 0),
-            members: groupData.members || [],
-            contributions: groupData.contributions || {},
-            payoutOrder: groupData.payoutOrder || [],
-            completedPayouts: Number(groupData.completedPayouts || 0),
-            isUserMember: userGroupIds.includes(groupId)
+            name: `Group ${groupId}`,
+            description: 'Thrift Group',
+            depositAmount: formatUnits(info.contributionAmount ?? 0, 18),
+            maxMembers,
+            isPublic: Boolean(info.isPublic),
+            isActive: Boolean(info.isActive),
+            currentRound: Number(info.currentRound ?? 0),
+            totalMembers: Number(info.memberCount ?? members.length ?? 0),
+            members: members ?? [],
+            contributions: {},
+            payoutOrder: payoutOrder ?? [],
+            completedPayouts: Number(info.currentCycle ?? 0),
+            isUserMember: Boolean(isMember),
           };
 
           fetchedGroups.push(group);
-          
-          // If user is a member, add to user groups
-          if (group.isUserMember) {
-            userGroupsTemp.push(group);
-          }
+          if (group.isUserMember) userGroupsTemp.push(group);
         } catch (err) {
           console.error(`Error fetching group ${groupId}:`, err);
         }

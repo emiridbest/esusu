@@ -18,7 +18,7 @@ import {
 } from '../services/utility/utilityServices';
 import { useClaimProcessor } from '../context/utilityProvider/ClaimContextProvider';
 import { IdentitySDK } from '@goodsdks/citizen-sdk';
-import { createPublicClient, createWalletClient, custom, http } from 'viem';
+import { createPublicClient, createWalletClient, custom, http, formatUnits } from 'viem';
 import { celo } from 'viem/chains';
 
 const formSchema = z.object({
@@ -50,14 +50,14 @@ export const useFreebiesLogic = () => {
     const address = account?.address;
     const isConnected = !!account && !!wallet;
     const {
-
         updateStepStatus,
         openTransactionDialog,
         isProcessing,
         setIsProcessing,
         handleClaim,
         processDataTopUp,
-        processPayment
+        processPayment,
+        entitlement,
     } = useClaimProcessor();
 
     // State variables
@@ -429,8 +429,8 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
         let transactionHash: string | null = null;
         try {
             const tx = await processPayment();
-            transactionHash = tx.hash;
-            setTxID(transactionHash);
+            transactionHash = tx?.transactionHash || null;
+            setTxID(transactionHash || null);
             updateStepStatus('payment', 'success');
         } catch (paymentError) {
             console.error("Payment processing failed:", paymentError);
@@ -454,6 +454,9 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
             }
 
             const networks = [{ id: networkId, name: 'Network' }];
+            // Derive expectedAmount from entitlement (bigint base units) to human-readable decimal string
+            const expectedAmount = entitlement ? formatUnits(entitlement as bigint, 18) : selectedPrice.toString();
+            const paymentToken = 'G$';
             updateStepStatus('top-up', 'loading');
             
             const topupResult = await processDataTopUp(
@@ -462,7 +465,10 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                     country,
                     network: networkId,
                     email: emailAddress,
-                    customId: transactionHash // Use the transactionHash instead of txID
+                    customId: transactionHash, // Use the transactionHash instead of txID
+                    transactionHash,
+                    expectedAmount,
+                    paymentToken,
                 },
                 selectedPrice,
                 availablePlans,

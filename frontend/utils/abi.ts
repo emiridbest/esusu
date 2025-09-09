@@ -1,7 +1,7 @@
 import { ethers, type ContractRunner, type BigNumberish, type Contract } from 'ethers';
 import MiniSafeAaveUpgradeableABI from './abis/MiniSafeAaveUpgradeable.json';
 
-export const contractAddress = "0x9fAB2C3310a906f9306ACaA76303BcEb46cA5478";
+export const contractAddress = "0x3082Deaab1DeA29Ec1AA3C53Ef707c4bf6928D41";
 export const abi = MiniSafeAaveUpgradeableABI;
 
 /**
@@ -37,13 +37,9 @@ export class MiniSafeAave {
     return await this.getBalance(userAddress, tokenAddress);
   }
 
-  async updateUserBalance(userAddress: string, tokenAddress: string, amount: BigNumberish, isDeposit: boolean) {
-    return await this.contract.updateUserBalance(userAddress, tokenAddress, amount, isDeposit);
-  }
-
   // Thrift Group Operations
-  async createThriftGroup(name: string, description: string, depositAmount: BigNumberish, maxMembers: BigNumberish, isPublic: boolean) {
-    return await this.contract.createThriftGroup(name, description, depositAmount, maxMembers, isPublic);
+  async createThriftGroup(contributionAmount: BigNumberish, startDate: BigNumberish, isPublic: boolean, tokenAddress: string) {
+    return await this.contract.createThriftGroup(contributionAmount, startDate, isPublic, tokenAddress);
   }
 
   async joinPublicGroup(groupId: BigNumberish) {
@@ -75,20 +71,48 @@ export class MiniSafeAave {
   }
 
   async getThriftGroup(groupId: BigNumberish) {
-    return await this.contract.getThriftGroup(groupId);
+    return await this.contract.thriftGroups(groupId);
+  }
+
+  async getPayoutOrder(groupId: BigNumberish) {
+    return await this.contract.getPayoutOrder(groupId);
+  }
+
+  async isGroupMember(groupId: BigNumberish, member: string) {
+    return await this.contract.isGroupMember(groupId, member);
+  }
+
+  async totalThriftGroups() {
+    return await this.contract.totalThriftGroups();
+  }
+
+  async getSupportedTokens() {
+    return await this.contract.getSupportedTokens();
+  }
+
+  async isValidToken(tokenAddress: string) {
+    return await this.contract.isValidToken(tokenAddress);
   }
 
   async getUserGroups(userAddress: string) {
-    return await this.contract.getUserGroups(userAddress);
+    // This function doesn't exist in the ABI
+    // For now, return empty array to prevent errors
+    return [];
   }
 
-  async checkContributionDue(groupId: BigNumberish, memberAddress: string) {
-    return await this.contract.checkContributionDue(groupId, memberAddress);
+  async getGroupInfo(groupId: BigNumberish) {
+    return await this.contract.getGroupInfo(groupId);
   }
+
+  async getGroupMembers(groupId: BigNumberish) {
+    return await this.contract.getGroupMembers(groupId);
+  }
+
+  // Note: checkContributionDue is not present in the ABI
 
   // Emergency Functions
-  async executeEmergencyWithdrawal(tokenAddress: string, amount: BigNumberish) {
-    return await this.contract.executeEmergencyWithdrawal(tokenAddress, amount);
+  async executeEmergencyWithdrawal(tokenAddress: string) {
+    return await this.contract.executeEmergencyWithdrawal(tokenAddress);
   }
 
   async pause() {
@@ -103,22 +127,16 @@ export class MiniSafeAave {
     return await this.contract.paused();
   }
 
-  // Admin Functions
-  async setManagerAuthorization(managerAddress: string, isAuthorized: boolean) {
-    return await this.contract.setManagerAuthorization(managerAddress, isAuthorized);
-  }
-
-  async isAuthorizedManager(managerAddress: string) {
-    return await this.contract.authorizedManagers(managerAddress);
-  }
+  // Admin Functions: none beyond standard Ownable/Pausable in the ABI
 
   // Events
-  onDeposit(callback: (...args: unknown[]) => void) {
-    return this.contract.on('Deposit', callback);
+  // Example event helpers (only those present in the ABI)
+  onDeposited(callback: (...args: unknown[]) => void) {
+    return this.contract.on('Deposited', callback);
   }
 
-  onWithdrawal(callback: (...args: unknown[]) => void) {
-    return this.contract.on('Withdrawal', callback);
+  onWithdrawn(callback: (...args: unknown[]) => void) {
+    return this.contract.on('Withdrawn', callback);
   }
 
   onThriftGroupCreated(callback: (...args: unknown[]) => void) {
