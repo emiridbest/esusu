@@ -183,8 +183,60 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       const tx = await contract.createThriftGroup(amount, startDate, isPublic, tokenAddress);
-      await tx.wait();
-      
+      const receipt = await tx.wait();
+
+      // Try to parse the emitted event to get the new groupId
+      let newGroupId: number | null = null;
+      try {
+        // Use the underlying ethers Contract interface from our wrapper to parse logs
+        const iface = (contract as any).contract.interface;
+        for (const log of receipt.logs ?? []) {
+          try {
+            const parsed = iface.parseLog(log);
+            if (parsed?.name === 'ThriftGroupCreated') {
+              const arg = (parsed.args as any)?.groupId ?? (parsed.args as any)?.[0];
+              if (arg !== undefined && arg !== null) {
+                newGroupId = Number(arg.toString());
+                break;
+              }
+            }
+          } catch (_) {
+            // not our event
+          }
+        }
+      } catch (e) {
+        console.warn('Unable to parse ThriftGroupCreated event:', e);
+      }
+
+      // Fallback: use totalThriftGroups as the latest id if event parsing failed
+      if (!newGroupId) {
+        try {
+          const total = await contract.totalThriftGroups();
+          newGroupId = Number(total);
+        } catch (_) {
+          // ignore
+        }
+      }
+
+      // Persist off-chain metadata (best-effort)
+      try {
+        if (newGroupId) {
+          await fetch('/api/thrift/metadata', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contractAddress,
+              groupId: newGroupId,
+              name,
+              description,
+              createdBy: account || undefined,
+            }),
+          });
+        }
+      } catch (metaErr) {
+        console.warn('Failed to save thrift metadata:', metaErr);
+      }
+
       await refreshGroups();
       toast({ title: "Success", description: "Thrift group created successfully!" });
     } catch (err) {
@@ -395,6 +447,27 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         } catch (err) {
           console.error(`Error fetching group ${groupId}:`, err);
         }
+      }
+
+      // Hydrate off-chain metadata for names/descriptions in a single batch request
+      try {
+        const ids = fetchedGroups.map(g => g.id).join(',');
+        if (ids) {
+          const res = await fetch(`/api/thrift/metadata?contract=${contractAddress}&ids=${ids}`);
+          if (res.ok) {
+            const { items } = await res.json();
+            const metaMap = new Map<number, any>((items || []).map((it: any) => [Number(it.groupId), it]));
+            for (const g of fetchedGroups) {
+              const m = metaMap.get(g.id);
+              if (m) {
+                g.name = m.name || g.name;
+                if (m.description) g.description = m.description;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to hydrate thrift metadata:', e);
       }
 
       setAllGroups(fetchedGroups);

@@ -319,6 +319,36 @@ export const Notification = models.Notification || model<INotification>('Notific
 export const Analytics = models.Analytics || model<IAnalytics>('Analytics', AnalyticsSchema);
 export const PaymentHash = models.PaymentHash || model<IPaymentHash>('PaymentHash', PaymentHashSchema);
 
+// Thrift Group Metadata Schema - off-chain metadata for on-chain groups
+export interface IThriftGroupMetadata extends Document {
+  contractAddress: string;
+  groupId: number;
+  name: string;
+  description?: string;
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const ThriftGroupMetadataSchema = new Schema<IThriftGroupMetadata>({
+  contractAddress: { type: String, required: true, index: true },
+  groupId: { type: Number, required: true, index: true },
+  name: { type: String, required: true },
+  description: { type: String },
+  createdBy: { type: String }
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+  bufferCommands: false
+});
+
+// Ensure uniqueness per chain/contract and group id
+ThriftGroupMetadataSchema.index({ contractAddress: 1, groupId: 1 }, { unique: true });
+
+export const ThriftGroupMetadata = models.ThriftGroupMetadata 
+  || model<IThriftGroupMetadata>('ThriftGroupMetadata', ThriftGroupMetadataSchema);
+
  // Add indexes for performance
   TransactionSchema.index({ 'user': 1, 'createdAt': -1 });
   TransactionSchema.index({ 'type': 1, 'status': 1 });
