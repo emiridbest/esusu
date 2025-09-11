@@ -13,6 +13,13 @@
 - Launched referral campaign for early community members with rewards payout of over $250 so far
 - Ensured GitOps pipeline is functional
 
+# Proof of Ship 7
+
+- Implemented robust user management and profile service (wallet-based identity, email/phone linking, MongoDB integration)
+- Centralized transaction management for savings, withdrawals, utility payments, group contributions, and payouts with blockchain tracking
+- Developed group thrift and rotating savings service (5-member groups, automated scheduling, strong validation)
+- Built utility and electricity payment service with secure API integration and auditable flows
+- Added notification and multi-channel alert service (email, SMS, push) for key user and group events
 
 ## Overview
 
