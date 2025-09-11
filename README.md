@@ -31,7 +31,13 @@ Esusu is a decentralised application (DApp) built on the Celo Mainnet that moder
 - Earn MST (MiniSafe Tokens) as rewards for maintaining locked savings
 - Incentivizes financial discipline and long-term planning
 
-### 3. Bill Payment System
+### 3. AI-Powered Chat Assistant
+- Intelligent conversational interface for performing on-chain transactions
+- Supports sending CELO, cUSD, and other tokens
+- Implements dollar-cost averaging using Balmy protocol
+- Provides on-chain advice based on user data
+
+### 4. Bill Payment System
 - Pay utility bills directly through the platform
 - Make charitable donations to various projects
 - Low-cost transactions using Celo's efficient blockchain
@@ -118,9 +124,9 @@ esusu/
 
 ## Features
 
-- **Mini Safe**: Secure savings feature
-- **Thrift**: Group savings feature
-- **Chat Assistant**: AI-powered assistant for performing on-chain transactions
+- **Mini Safe**: Secure savings feature with time-locking capabilities
+- **Thrift**: Group savings feature with collaborative contributions
+- **Chat Assistant**: AI-powered assistant for performing on-chain transactions and financial advice
   
 ### UI Enhancements (Thrift)
 
