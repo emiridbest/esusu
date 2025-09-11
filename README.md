@@ -2,25 +2,6 @@
 
 ![Esusu Logo](https://github.com/user-attachments/assets/c1e4d15e-d400-477f-a302-98ba9e40135d)
 
-
-# Proof of Ship 6 
-- Made smart contracts upgradable
-- Added test suite with above 85% coverage
-- Implemented G$ face verification on Farcaster
-- Accepting Celo as a means of payment via MentoSDK exchange rate
-- Onboard additional users, increasing the community base by over 150%
-- Ran a monthly community giveaway scheme
-- Launched referral campaign for early community members with rewards payout of over $250 so far
-- Ensured GitOps pipeline is functional
-
-# Proof of Ship 7
-
-- Implemented robust user management and profile service (wallet-based identity, email/phone linking, MongoDB integration)
-- Centralized transaction management for savings, withdrawals, utility payments, group contributions, and payouts with blockchain tracking
-- Developed group thrift and rotating savings service (5-member groups, automated scheduling, strong validation)
-- Built utility and electricity payment service with secure API integration and auditable flows
-- Added notification and multi-channel alert service (email, SMS, push) for key user and group events
-
 ## Overview
 
 Esusu is a decentralised application (DApp) built on the Celo Mainnet that modernizes traditional community savings systems. It enables financial inclusion through a 3-in-1 solution that combines collaborative savings, personal finance management, and bill payment capabilities.
@@ -49,10 +30,28 @@ Esusu is a decentralised application (DApp) built on the Celo Mainnet that moder
 - Make charitable donations to various projects
 - Low-cost transactions using Celo's efficient blockchain
 
+### 5. Recent Accomplishments
+
+#### Proof of Ship 6
+- Made smart contracts upgradable
+- Added test suite with above 85% coverage
+- Implemented G$ face verification on Farcaster
+- Accepting Celo as a means of payment via MentoSDK exchange rate
+- Onboard additional users, increasing the community base by over 150%
+- Ran a monthly community giveaway scheme
+- Launched referral campaign for early community members with rewards payout of over $250 so far
+- Ensured GitOps pipeline is functional
+
+#### Proof of Ship 7
+- Implemented robust user management and profile service (wallet-based identity, email/phone linking, MongoDB integration)
+- Centralized transaction management for savings, withdrawals, utility payments, group contributions, and payouts with blockchain tracking
+- Developed group thrift and rotating savings service (5-member groups, automated scheduling, strong validation)
+- Built utility and electricity payment service with secure API integration and auditable flows
+- Added notification and multi-channel alert service (email, SMS, push) for key user and group events
+
 ## Problem Statement
 
 Financial exclusion remains a significant challenge across developing economies, particularly in Africa. Limited banking access and weakening savings culture, exacerbated by economic pressures and increased impulse spending, have created barriers to financial stability. Traditional community savings systems (like Esusu) face trust and efficiency challenges, while formal banking remains inaccessible to many.
-
 
 ## Our Solution
 
@@ -72,14 +71,40 @@ Esusu bridges traditional community savings practices with blockchain technology
 - **SDK**: Goat SDK
 
 ## Contract Information
-The Esusu protocol has been deployed to the following contracts:
+The Esusu protocol has been upgraded to use UUPS (Universal Upgradeable Proxy Standard) upgradeable contracts with a multi-sig governance system. This architecture allows for secure and controlled upgrades while maintaining the same proxy addresses for client integrations.
 
+### Smart Contract Architecture
+
+The system now follows an upgradeable proxy pattern with the following components:
+
+- **Proxy Contracts**: These are the addresses that remain constant across upgrades and should be used for client integrations
+- **Implementation Contracts**: These contain the actual logic and can be upgraded via the governance system
+- **Multi-sig Governance**: A 3-of-5 multi-sig wallet controls contract upgrades through a Timelock Controller
+
+### Key Benefits
+
+- Proxy addresses remain the same across upgrades
+- Implementation contracts can be upgraded securely via governance
+- Multi-sig requires 3 of 5 signers for critical operations
+- Enhanced security through timelock mechanism
+
+### Contract Addresses
+
+PLACEHOLDER: Contract addresses will be added here in the format:
 | Network | Contract | Address |
 |---------|----------|---------|
-| Celo | MiniSafeAave | `0x9fAB2C3310a906f9306ACaA76303BcEb46cA5478` |
-| Celo | MiniSafeAaveIntegration | `0xB58c8917eD9e2ba632f6f446cA0509781dd676B2` |
-| Celo | MiniSafeAave | `0x67fDEC406b8d3bABaf4D59627aCde3C5cD4BA90A` |
+| Celo | MiniSafeFactoryUpgradeable Proxy | `0x...` |
+| Celo | MiniSafe Implementation | `0x...` |
+| Celo | TokenStorage Implementation | `0x...` |
+| Celo | AaveIntegration Implementation | `0x...` |
+| Celo | Timelock Controller | `0x...` |
+| Celo | Token Storage Proxy | `0x...` |
+| Celo | Aave Integration Proxy | `0x...` |
+| Celo | MiniSafe Proxy | `0x...` |
+
 Full Contract Repo: https://github.com/emiridbest/esusu-contracts/
+
+## Architecture
 
 ```
 esusu/
@@ -268,10 +293,13 @@ Critical endpoints like `frontend/app/api/topup/route.ts` (airtime/data) and `fr
   - Body: `{ operatorId, amount, recipientPhone, email, transactionHash, expectedAmount, paymentToken }`
 - `POST /api/utilities/electricity/pay` (frontend app) – Country/provider‑specific electricity payments.
   - Body: `{ country, providerId, customerId, customerEmail, amount, transactionHash, expectedAmount, paymentToken }`
+
+### Analytics & Dashboard
+
 - `GET /api/analytics` and `POST /api/analytics` (frontend app) – User analytics history and generation.
 - `GET /api/dashboard` (frontend app) – User or platform dashboard aggregates.
 
-#### Thrift Metadata (off‑chain) & Auth
+### Thrift Metadata (off‑chain) & Authentication
 
 - `GET /api/thrift/metadata?contract=0x...&ids=1,2,3` – Batch fetch thrift metadata for groups. Returns array of documents keyed by `(contractAddress, groupId)` with fields `{ name, description, coverImageUrl, category, tags, createdBy, updatedBy, updateLog, createdAt, updatedAt }`.
 - `POST /api/thrift/metadata` – Create/update thrift metadata with secure auth.
@@ -291,12 +319,25 @@ Critical endpoints like `frontend/app/api/topup/route.ts` (airtime/data) and `fr
     ```
   - Only the creator (`createdBy`) can update. All updates append to `updateLog`.
 
-Auth (SIWE):
+### Authentication (SIWE)
+
 - `GET /api/auth/siwe/message?address=0x...&chainId=42220&domain=<host>&uri=<origin>` – Build SIWE message.
 - `POST /api/auth/siwe/verify` – Verify signature and set `esusu_session` cookie.
 - `GET /api/auth/session` – Return `{ authenticated, address }` if session is valid.
 
-Note: Frontend API routes import backend services (e.g., `@esusu/backend/lib/services/*`) thanks to `externalDir: true`.
+Note: Frontend API routes import backend services thanks to `externalDir: true`.
+
+## Security Model for Utility Payments
+
+Critical endpoints like `frontend/app/api/topup/route.ts` (airtime/data) and `frontend/app/api/utilities/electricity/pay/route.ts` enforce on‑chain payment validation before calling providers:
+- Decode the ERC20 `transfer(to, amount)` from the provided `transactionHash`.
+- Verify the token contract matches the allowed list (cUSD, USDC, USDT on Celo).
+- Require at least 1 confirmation and a max transaction age window (10 minutes) to limit replay.
+- Derive token decimals dynamically with fallback to ensure amount checks are accurate.
+- Enforce recipient equals `RECIPIENT_WALLET` and that `amount >= expectedAmount`.
+- Prevent hash replay via `TransactionService.isPaymentHashUsed(transactionHash)`.
+- Optional API key and in‑memory rate limiting per IP and per wallet.
+- Record transactions in MongoDB and send notifications; mark `completed` or `failed` based on provider result.
 
 ### Mobile Access
 
