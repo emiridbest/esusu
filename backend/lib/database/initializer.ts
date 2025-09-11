@@ -205,6 +205,7 @@ export class DatabaseInitializer {
     console.log('🌱 Checking for initial data seeding...');
     
     // Check if we need to seed data (only in development or first deployment)
+    // @ts-ignore - Mongoose union type compatibility issue
     const userCount = await User.countDocuments();
     
     if (userCount === 0 && process.env.NODE_ENV === 'development') {
@@ -218,7 +219,7 @@ export class DatabaseInitializer {
     console.log('🌱 Seeding development data...');
     
     // Create test user
-    const testUser = await User.create({
+    const testUser = new User({
       walletAddress: '0x5b2e388403b60972777873e359a5d04a832836b3',
       email: 'test@esusu.com',
       profileData: {
@@ -233,46 +234,48 @@ export class DatabaseInitializer {
         currentAPY: 0
       }
     });
+    await testUser.save();
 
     // Create sample transactions
-    await Transaction.create([
-      {
-        user: testUser._id,
-        transactionHash: '0x1234567890abcdef1234567890abcdef12345678',
-        type: 'utility_payment',
-        subType: 'airtime',
-        amount: 5.0,
-        token: 'cUSD',
-        status: 'completed',
-        blockchainStatus: {
-          confirmed: true,
-          confirmations: 5
-        },
-        utilityDetails: {
-          recipient: '+234123456789',
-          provider: 'MTN Nigeria',
-          country: 'NG',
-          metadata: {}
-        }
+    const transaction1 = new Transaction({
+      user: testUser._id,
+      transactionHash: '0x1234567890abcdef1234567890abcdef12345678',
+      type: 'utility_payment',
+      subType: 'airtime',
+      amount: 5.0,
+      token: 'cUSD',
+      status: 'completed',
+      blockchainStatus: {
+        confirmed: true,
+        confirmations: 5
       },
-      {
-        user: testUser._id,
-        transactionHash: '0x2345678901bcdef23456789012bcdef234567890',
-        type: 'savings',
-        subType: 'aave_deposit',
-        amount: 50.0,
-        token: 'cUSD',
-        status: 'completed',
-        blockchainStatus: {
-          confirmed: true,
-          confirmations: 10
-        },
-        aaveDetails: {
-          underlyingAsset: 'cUSD',
-          apy: 4.2
-        }
+      utilityDetails: {
+        recipient: '+234123456789',
+        provider: 'MTN Nigeria',
+        country: 'NG',
+        metadata: {}
       }
-    ]);
+    });
+    await transaction1.save();
+
+    const transaction2 = new Transaction({
+      user: testUser._id,
+      transactionHash: '0x2345678901bcdef23456789012bcdef234567890',
+      type: 'savings',
+      subType: 'aave_deposit',
+      amount: 50.0,
+      token: 'cUSD',
+      status: 'completed',
+      blockchainStatus: {
+        confirmed: true,
+        confirmations: 10
+      },
+      aaveDetails: {
+        underlyingAsset: 'cUSD',
+        apy: 4.2
+      }
+    });
+    await transaction2.save();
 
     console.log('✅ Development data seeded');
   }
@@ -293,24 +296,22 @@ export class DatabaseInitializer {
   private static async _verifyDatabaseHealth(): Promise<void> {
     console.log('🏥 Verifying database health...');
     
-    // Test basic operations on each collection
-    const healthChecks = await Promise.allSettled([
-      User.findOne().lean(),
-      Transaction.findOne().lean(),
-      Group.findOne().lean(),
-      Notification.findOne().lean(),
-      Analytics.findOne().lean(),
-      PaymentHash.findOne().lean()
-    ]);
-
-    const failures = healthChecks.filter(result => result.status === 'rejected');
-    
-    if (failures.length > 0) {
-      console.error('❌ Database health check failed:', failures);
+    try {
+      // Simple health check - just try to access each collection
+      await Promise.all([
+        (User.collection as any).stats(),
+        (Transaction.collection as any).stats(),
+        (Group.collection as any).stats(),
+        (Notification.collection as any).stats(),
+        (Analytics.collection as any).stats(),
+        (PaymentHash.collection as any).stats()
+      ]);
+      
+      console.log('✅ Database health verified');
+    } catch (error) {
+      console.error('❌ Database health check failed:', error);
       throw new Error('Database health verification failed');
     }
-
-    console.log('✅ Database health verified');
   }
 
   /**

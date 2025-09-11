@@ -9,14 +9,12 @@ const nextConfig = {
     '@goat-sdk/wallet-viem',
     '@goat-sdk/wallet-evm',
   ],
-  eslint: {
-    // Do not fail the build on ESLint errors. We run lint separately.
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    // Don't fail the build on TypeScript errors during Vercel deployment
-    ignoreBuildErrors: true,
-  },
+
+
+  // typescript: {
+  //   // Don't fail the build on TypeScript errors during Vercel deployment
+  //   ignoreBuildErrors: true,
+  // },
   // Specify custom server port for the backend
   serverRuntimeConfig: {
     port: process.env.PORT || 3001,

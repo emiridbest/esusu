@@ -1,13 +1,14 @@
 import { openai } from "@ai-sdk/openai";
+// @ts-ignore - Version conflict with viem
 import { getOnChainTools } from "@goat-sdk/adapter-vercel-ai";
+// @ts-ignore - Version conflict with viem
 import { viem } from "@goat-sdk/wallet-viem";
 import { createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { celo } from "viem/chains";
- 
 import { streamText } from 'ai';
 import { NextResponse } from 'next/server';
-
+// @ts-ignore - Optional import
 import { esusu } from "@/agent/src";
 
 export const runtime = 'nodejs';

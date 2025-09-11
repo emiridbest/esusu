@@ -118,7 +118,7 @@ export default function ElectricityBillForm() {
     };
 
     getProviders();
-  }, [watchCountry, form, toast]);
+  }, [watchCountry, form]);
 
   // Update amount when amount changes
   useEffect(() => {
@@ -467,7 +467,7 @@ export default function ElectricityBillForm() {
                   />
                 </FormControl>
                 <FormDescription className="text-xs text-gray-600 dark:text-gray-300">
-                  We'll send payment confirmation to this email.
+                  We&apos;ll send payment confirmation to this email.
                 </FormDescription>
                 <FormMessage className="text-red-600 dark:text-yellow-300" />
               </FormItem>

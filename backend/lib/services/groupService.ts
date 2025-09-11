@@ -57,6 +57,7 @@ export class GroupService {
   static async joinGroup(groupId: string, memberWallet: string): Promise<IGroup> {
     await dbConnect();
 
+    // @ts-ignore - Mongoose union type compatibility issue
     const group = await Group.findById(groupId);
     if (!group) {
       throw new Error('Group not found');
@@ -97,6 +98,7 @@ export class GroupService {
 
     // Send notifications to all members
     for (const member of group.members) {
+      // @ts-ignore - Mongoose union type compatibility issue
       const memberUser = await User.findById(member.user);
       if (memberUser) {
         await NotificationService.createNotification({
@@ -154,6 +156,7 @@ export class GroupService {
   ): Promise<{ success: boolean; message: string }> {
     await dbConnect();
 
+    // @ts-ignore - Mongoose union type compatibility issue
     const group = await Group.findById(groupId).populate('members.user');
     if (!group) {
       throw new Error('Group not found');
@@ -218,6 +221,7 @@ export class GroupService {
     await group.save();
 
     // Send notifications
+    // @ts-ignore - Mongoose union type compatibility issue
     const recipient = await User.findById(payoutInfo.recipient);
     if (recipient) {
       await NotificationService.createNotification({
@@ -232,6 +236,7 @@ export class GroupService {
     // Notify other members
     for (const member of group.members) {
       if (member.user.toString() !== payoutInfo.recipient.toString()) {
+        // @ts-ignore - Mongoose union type compatibility issue
         const memberUser = await User.findById(member.user);
         if (memberUser) {
           await NotificationService.createNotification({
@@ -252,6 +257,7 @@ export class GroupService {
     const user = await UserService.getUserByWallet(walletAddress);
     if (!user) return [];
 
+    // @ts-ignore - Mongoose union type compatibility issue
     return Group.find({
       'members.user': user._id,
       'members.isActive': true
@@ -264,6 +270,7 @@ export class GroupService {
   static async getGroupById(groupId: string): Promise<IGroup | null> {
     await dbConnect();
     
+    // @ts-ignore - Mongoose union type compatibility issue
     return Group.findById(groupId)
       .populate('members.user', 'walletAddress profileData')
       .populate('payoutSchedule.recipient', 'walletAddress profileData');
@@ -272,6 +279,7 @@ export class GroupService {
   static async getAvailableGroups(limit: number = 20): Promise<IGroup[]> {
     await dbConnect();
     
+    // @ts-ignore - Mongoose union type compatibility issue
     return Group.find({
       status: 'forming',
       $expr: { $lt: [{ $size: '$members' }, '$settings.maxMembers'] }
@@ -284,6 +292,7 @@ export class GroupService {
   static async leaveGroup(groupId: string, memberWallet: string): Promise<{ success: boolean; message: string }> {
     await dbConnect();
 
+    // @ts-ignore - Mongoose union type compatibility issue
     const group = await Group.findById(groupId);
     if (!group) {
       throw new Error('Group not found');
@@ -311,6 +320,7 @@ export class GroupService {
     
     // If no members left, delete the group
     if (group.members.length === 0) {
+      // @ts-ignore - Mongoose union type compatibility issue
       await Group.findByIdAndDelete(groupId);
       return { success: true, message: 'Group deleted as no members remain' };
     }
@@ -336,6 +346,7 @@ export class GroupService {
   }> {
     await dbConnect();
 
+    // @ts-ignore - Mongoose union type compatibility issue
     const group = await Group.findById(groupId).populate('payoutSchedule.recipient', 'walletAddress');
     if (!group) {
       throw new Error('Group not found');

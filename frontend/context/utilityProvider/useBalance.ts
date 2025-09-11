@@ -106,7 +106,7 @@ export const useBalance = () => {
         const { getRpcClient } = await import('thirdweb/rpc');
         const rpc = getRpcClient({ client, chain: activeChain });
         const balanceResult = await rpc({ method: 'eth_getBalance', params: [address, 'latest'] });
-        balance = BigInt(balanceResult);
+        balance = BigInt(balanceResult as string);
         console.log(`CELO Balance: ${balance.toString()}`);
       } else {
         // For ERC20 tokens - use Thirdweb v5 contract

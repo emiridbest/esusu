@@ -41,7 +41,7 @@ export default function EditMetadataDialog(props: EditMetadataDialogProps) {
       setCategory(initialCategory || "");
       setTags(Array.isArray(initialTags) ? initialTags.join(", ") : "");
     }
-  }, [open, initialName, initialDescription]);
+  }, [open, initialName, initialDescription, initialCoverImageUrl, initialCategory, initialTags]);
 
   const disabled = useMemo(() => !name || saving, [name, saving]);
 

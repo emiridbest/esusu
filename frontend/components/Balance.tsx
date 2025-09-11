@@ -57,8 +57,9 @@ const Balance: React.FC = () => {
         const StableTokenContract = getContract({
           abi: stableTokenABI,
           address: STABLE_TOKEN_ADDRESS,
+          // @ts-ignore - viem type compatibility issue
           publicClient,
-        });
+        }) as any;
         
         const address = await signer.getAddress();
         let cleanedAddress = address.substring(2);

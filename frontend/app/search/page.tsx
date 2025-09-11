@@ -51,7 +51,7 @@ function SearchResults() {
     <div className="container mx-auto px-4 py-8">
       <Card>
         <CardHeader>
-          <CardTitle>Search Results for "{query}"</CardTitle>
+          <CardTitle>Search Results for &quot;{query}&quot;</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -82,7 +82,7 @@ function SearchResults() {
               ))}
             </ul>
           ) : (
-            <p>No results found for "{query}".</p>
+            <p>No results found for &quot;{query}&quot;.</p>
           )}
         </CardContent>
       </Card>

@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Providers } from "@/app/providers";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
@@ -10,7 +10,7 @@ import { Toaster } from "@/components/ui/sonner";
 export default function RootLayout({
   children,
 }: {
-  children: ReactNode
+  children: React.ReactNode
 }) {
   return (
     <html lang="en">

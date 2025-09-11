@@ -1,7 +1,9 @@
 "use client";
 import { Button } from "../../components/ui/button";
+import * as React from "react";
+
+// @ts-ignore - lucide-react type compatibility issue
 import { ExternalLink, MessageCircle, Users, Clock, Headphones } from "lucide-react";
-import React from "react";
 
 export default function ContactPage() {
   const telegramLink = "https://t.me/+kYeSswiKgB9lMjZk"; 

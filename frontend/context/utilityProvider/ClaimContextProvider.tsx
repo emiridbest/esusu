@@ -311,7 +311,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       });
       await submitReferral({
         txHash: tx.transactionHash,
-        chainId: Celo.id,
+        chainId: activeChain.id,
       });
     } catch (error) {
       console.error("Error during transaction count update:", error);

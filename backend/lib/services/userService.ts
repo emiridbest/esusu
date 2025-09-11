@@ -5,6 +5,7 @@ export class UserService {
   static async createOrUpdateUser(walletAddress: string, userData?: Partial<IUser>): Promise<IUser> {
     await dbConnect();
     
+    // @ts-ignore - Mongoose union type compatibility issue
     const user = await User.findOneAndUpdate(
       { walletAddress: walletAddress.toLowerCase() },
       { 
@@ -32,11 +33,13 @@ export class UserService {
 
   static async getUserByWallet(walletAddress: string): Promise<IUser | null> {
     await dbConnect();
+    // @ts-ignore - Mongoose union type compatibility issue
     return User.findOne({ walletAddress: walletAddress.toLowerCase() });
   }
 
   static async getUserById(userId: string): Promise<IUser | null> {
     await dbConnect();
+    // @ts-ignore - Mongoose union type compatibility issue
     return User.findById(userId);
   }
 
@@ -47,6 +50,7 @@ export class UserService {
   }): Promise<IUser | null> {
     await dbConnect();
     
+    // @ts-ignore - Mongoose union type compatibility issue
     return User.findOneAndUpdate(
       { walletAddress: walletAddress.toLowerCase() },
       { 
@@ -79,6 +83,7 @@ export class UserService {
     if (profileData.email) updateData.email = profileData.email;
     if (profileData.phone) updateData.phone = profileData.phone;
 
+    // @ts-ignore - Mongoose union type compatibility issue
     return User.findOneAndUpdate(
       { walletAddress: walletAddress.toLowerCase() },
       { $set: updateData },
@@ -88,6 +93,7 @@ export class UserService {
 
   static async getAllUsers(limit: number = 100, offset: number = 0): Promise<IUser[]> {
     await dbConnect();
+    // @ts-ignore - Mongoose union type compatibility issue
     return User.find({})
       .skip(offset)
       .limit(limit)

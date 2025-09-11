@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     // Session-first auth: use SIWE session if present
     let recovered = '';
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('esusu_session')?.value;
     const jwtSecret = process.env.NEXTAUTH_SECRET || process.env.SIWE_JWT_SECRET || 'dev_secret_change_me';
     if (sessionCookie) {
@@ -88,10 +88,12 @@ export async function POST(req: NextRequest) {
     await dbConnect();
 
     const key = { contractAddress: contractAddress.toLowerCase(), groupId };
+    // @ts-ignore - Mongoose union type compatibility issue
     const existing = await ThriftGroupMetadata.findOne(key);
 
     if (!existing) {
       // Create new metadata, set createdBy = recovered
+      // @ts-ignore - Mongoose union type compatibility issue
       const created = await ThriftGroupMetadata.create({
         ...key,
         name,
@@ -131,6 +133,7 @@ export async function POST(req: NextRequest) {
     existing.updatedBy = recovered.toLowerCase();
     existing.updateLog = existing.updateLog || [];
     existing.updateLog.push({ by: recovered.toLowerCase(), at: new Date(), changes });
+    // @ts-ignore - Mongoose union type compatibility issue
     await existing.save();
 
     return NextResponse.json({ item: existing.toObject() });
@@ -161,6 +164,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // @ts-ignore - Mongoose union type compatibility issue
     const docs = await ThriftGroupMetadata.find(query).lean();
     return NextResponse.json({ items: docs });
   } catch (error: any) {

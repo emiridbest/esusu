@@ -9,14 +9,11 @@ const nextConfig = {
   outputFileTracingIncludes: {
     'app/api/**': ['../backend/lib/**']
   },
-  eslint: {
-    // Do not fail the build on ESLint errors. We run lint separately.
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    // Don't fail the build on TypeScript errors during Vercel deployment
-    ignoreBuildErrors: true,
-  },
+
+  // typescript: {
+  //   // Don't fail the build on TypeScript errors during Vercel deployment
+  //   ignoreBuildErrors: true,
+  // },
   webpack: (config, { isServer }) => {
     // Handle MongoDB and other Node.js modules for client-side rendering
     if (!isServer) {

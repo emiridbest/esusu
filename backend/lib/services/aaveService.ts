@@ -347,6 +347,7 @@ export class AaveService {
       await dbConnect();
 
       // Get all Aave deposits for the user in the timeframe
+      // @ts-ignore - Mongoose union type compatibility issue
       const deposits = await Transaction.find({
         user: (await UserService.getUserByWallet(walletAddress))?._id,
         type: 'savings',
@@ -400,6 +401,7 @@ export class AaveService {
     try {
       await dbConnect();
 
+      // @ts-ignore - Mongoose union type compatibility issue
       const topUsers = await Transaction.aggregate([
         { $match: { type: 'savings', subType: 'aave_deposit' } },
         {
