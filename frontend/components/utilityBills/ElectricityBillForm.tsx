@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -185,9 +184,6 @@ return (
                   <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 dark:from-yellow-400/10 to-transparent pointer-events-none rounded-lg"></div>
                 </div>
               </FormControl>
-              <FormDescription className="text-xs text-gray-600 dark:text-gray-300">
-                Select the country for the electricity service.
-              </FormDescription>
               <FormMessage className="text-red-600 dark:text-yellow-300" />
             </FormItem>
           )}
@@ -224,9 +220,7 @@ return (
               {isLoading && <div className="text-sm text-gray-600 dark:text-yellow-300 mt-1 flex items-center">
                 <Loader2 className="h-3 w-3 animate-spin mr-1 text-yellow-500 dark:text-yellow-400" /> Loading providers...
               </div>}
-              <FormDescription className="text-xs text-gray-600 dark:text-gray-300">
-                {providers.length === 0 && "Please select a country first to see available providers"}
-              </FormDescription>
+
               <FormMessage className="text-red-600 dark:text-yellow-300" />
             </FormItem>
           )}
@@ -245,9 +239,6 @@ return (
                   className="text-xs bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-gray-900 dark:text-white transition-all duration-200"
                 />
               </FormControl>
-              <FormDescription className="text-xs text-gray-600 dark:text-gray-300">
-                Enter your electricity meter number.
-              </FormDescription>
               <FormMessage className="text-red-600 dark:text-yellow-300" />
             </FormItem>
           )}
@@ -267,9 +258,6 @@ return (
                   className="text-xs bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-gray-900 dark:text-white transition-all duration-200"
                 />
               </FormControl>
-              <FormDescription className="text-xs text-gray-600 dark:text-gray-300">
-                Enter the amount you want to pay.
-              </FormDescription>
               <FormMessage className="text-red-600 dark:text-yellow-300" />
             </FormItem>
           )}
@@ -299,9 +287,6 @@ return (
                   ))}
                 </SelectContent>
               </Select>
-              <FormDescription className="text-xs text-gray-600 dark:text-gray-300">
-                All token amounts are converted to USD equivalent
-              </FormDescription>
               <FormMessage className="text-red-600 dark:text-yellow-300" />
             </FormItem>
           )}
