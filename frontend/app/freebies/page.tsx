@@ -7,7 +7,6 @@ import CountrySelector from '@/components/utilityBills/CountrySelector';
 import {
     Form,
     FormControl,
-    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -118,7 +117,7 @@ export default function Freebies() {
                                             render={({ field }) => (
                                                 <FormItem className="bg-yellow-50 dark:bg-gray-900/50 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
                                                     <FormLabel className="text-black dark:text-yellow-200 font-semibold flex items-center gap-2">
-                                                        🌍 Country
+                                                        Country
                                                     </FormLabel>
                                                     <FormControl>
                                                         <CountrySelector
@@ -129,9 +128,6 @@ export default function Freebies() {
                                                             }}
                                                         />
                                                     </FormControl>
-                                                    <FormDescription className="text-black/70 dark:text-yellow-300">
-                                                        Select the country for the mobile data service.
-                                                    </FormDescription>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -144,7 +140,7 @@ export default function Freebies() {
                                             render={({ field }) => (
                                                 <FormItem className="bg-yellow-50 dark:bg-gray-900/50 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
                                                     <FormLabel className="text-black dark:text-yellow-200 font-semibold flex items-center gap-2">
-                                                        📡 Network Provider
+                                                        Network Provider
                                                     </FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || !watchCountry || networks.length === 0}>
                                                         <FormControl>
@@ -180,7 +176,7 @@ export default function Freebies() {
                                             render={({ field }) => (
                                                 <FormItem className="bg-yellow-50 dark:bg-gray-900/50 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
                                                     <FormLabel className="text-black dark:text-yellow-200 font-semibold flex items-center gap-2">
-                                                        📊 Data Plan
+                                                    Data Plan
                                                     </FormLabel>
                                                     <Select
                                                         onValueChange={field.onChange}
@@ -219,7 +215,7 @@ export default function Freebies() {
                                             render={({ field }) => (
                                                 <FormItem className="bg-yellow-50 dark:bg-gray-900/50 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
                                                     <FormLabel className="text-black dark:text-yellow-200 font-semibold flex items-center gap-2">
-                                                        📞 Phone Number
+                                                        Phone Number
                                                     </FormLabel>
                                                     <FormControl>
                                                         <Input
@@ -228,9 +224,6 @@ export default function Freebies() {
                                                             className="border-yellow-300 dark:border-yellow-700 focus:border-yellow-500 dark:focus:border-yellow-500 bg-white dark:bg-black text-black dark:text-yellow-100"
                                                         />
                                                     </FormControl>
-                                                    <FormDescription className="text-black/70 dark:text-yellow-300">
-                                                        Enter the phone number to recharge.
-                                                    </FormDescription>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -241,7 +234,7 @@ export default function Freebies() {
                                             render={({ field }) => (
                                                 <FormItem className="bg-yellow-50 dark:bg-gray-900/50 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
                                                     <FormLabel className="text-black dark:text-yellow-200 font-semibold flex items-center gap-2">
-                                                        📧 Email
+                                                        Email
                                                     </FormLabel>
                                                     <FormControl>
                                                         <Input
@@ -250,9 +243,6 @@ export default function Freebies() {
                                                             className="border-yellow-300 dark:border-yellow-700 focus:border-yellow-500 dark:focus:border-yellow-500 bg-white dark:bg-black text-black dark:text-yellow-100"
                                                         />
                                                     </FormControl>
-                                                    <FormDescription className="text-black/70 dark:text-yellow-300">
-                                                        Enter your email for transaction receipt.
-                                                    </FormDescription>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
