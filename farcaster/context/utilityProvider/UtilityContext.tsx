@@ -187,7 +187,6 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         setMento(mentoInstance);
       } catch (error) {
         console.error('Failed to initialize Mento:', error);
-        toast.error('Failed to initialize exchange service');
       }
     };
 
