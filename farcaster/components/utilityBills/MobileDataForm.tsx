@@ -9,7 +9,6 @@ import { useUtility } from '../../context/utilityProvider/UtilityContext';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -374,9 +373,6 @@ export default function MobileDataForm() {
                     <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 dark:from-yellow-400/10 to-transparent pointer-events-none rounded-lg"></div>
                   </div>
                 </FormControl>
-                <FormDescription className="text-xs text-black/60 dark:text-white/30">
-                  Select the country for the mobile data service.
-                </FormDescription>
                 <FormMessage className="text-red-600 dark:text-yellow-300" />
               </FormItem>
             )}
@@ -515,9 +511,6 @@ export default function MobileDataForm() {
                     className="text-xs bg-white dark:bg-black/90 border-2 border-black/70 hover:border-primary/900 dark:hover:border-yellow-400 focus:border-primary/900 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-black-500 dark:placeholder:text-black-400 text-black-900 dark:text-white/90 transition-all duration-200"
                   />
                 </FormControl>
-                <FormDescription className="text-xs text-black-600 dark:text-black-300">
-                  Enter your email for transaction receipt.
-                </FormDescription>
                 <FormMessage className="text-red-600 dark:text-yellow-300" />
               </FormItem>
             )}
@@ -536,9 +529,6 @@ export default function MobileDataForm() {
 
                   />
                 </FormControl>
-                <FormDescription className="text-xs text-black-600 dark:text-black-300">
-                  Enter the phone number to recharge.
-                </FormDescription>
                 <FormMessage className="text-red-600 dark:text-yellow-300" />
               </FormItem>
             )}
@@ -573,9 +563,6 @@ export default function MobileDataForm() {
                     ))}
                   </SelectContent>
                 </Select>
-                <FormDescription className="text-xs text-black-600 dark:text-black-300">
-                  All token amounts are converted to USD equivalent
-                </FormDescription>
                 <FormMessage className="text-red-600 dark:text-yellow-300" />
               </FormItem>
             )}

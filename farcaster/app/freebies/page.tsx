@@ -7,7 +7,6 @@ import CountrySelector from '../../components/utilityBills/CountrySelector';
 import {
     Form,
     FormControl,
-    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -49,17 +48,17 @@ export default function FreebiesPage() {
     <div className="container py-8 bg-gradient-to-br from-white/90 to-white dark:from-black/90 dark:to-black min-h-screen">
 
         <p className="text-center mb-8 text-xl font-semibold text-black dark:text-yellow-100 bg-yellow-200 dark:bg-yellow-900/30 py-3 px-6 rounded-full mx-auto max-w-2xl shadow-lg">
-            ⚡ Claim your free daily data bundle powered by GoodDollar UBI ⚡
+            Claim your free daily data bundle powered by GoodDollar UBI ⚡
         </p>
 
         <div className="max-w-md mx-auto">
             <Card className="bg-white dark:bg-black border-2 border-yellow-400 dark:border-yellow-500 shadow-2xl shadow-yellow-500/20 dark:shadow-yellow-500/30">
                 <CardHeader className="bg-gradient-to-r from-yellow-400 to-yellow-500 dark:from-yellow-600 dark:to-yellow-700 text-black dark:text-white rounded-t-lg">
                     <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                        📱 Free Data Bundle
+                        Free Data Bundle
                     </CardTitle>
                     <CardDescription className="text-black/80 dark:text-yellow-100 font-medium">
-                        🕐 Claim once every 24 hours
+                        Claim once every 24 hours
                     </CardDescription>
                 </CardHeader>
 
@@ -72,13 +71,13 @@ export default function FreebiesPage() {
                     ) : !isConnected ? (
                         <div className="text-center py-4 bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/30 dark:to-black rounded-lg border border-yellow-300 dark:border-yellow-700">
                             <p className="mb-4 text-black dark:text-yellow-100 font-medium">
-                                🔗 Connect your wallet to claim your free data bundle
+                             Connect your wallet to claim your free data bundle
                             </p>
                         </div>
                     ) : !isWhitelisted ? (
                         <div className="text-center py-4 bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/30 dark:to-black rounded-lg border border-yellow-300 dark:border-yellow-700">
                             <p className="mb-4 text-black dark:text-yellow-100 font-medium">
-                                ⚠️ You need to be verified and whitelisted to claim this bundle.
+                             You need to be verified and whitelisted to claim this bundle.
                             </p>
                             <Button 
                                 onClick={() => window.location.href = '/identity'} 
@@ -119,7 +118,7 @@ export default function FreebiesPage() {
                                         render={({ field }) => (
                                             <FormItem className="bg-yellow-50 dark:bg-gray-900/50 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
                                                 <FormLabel className="text-black dark:text-yellow-200 font-semibold flex items-center gap-2">
-                                                    🌍 Country
+                                                Country
                                                 </FormLabel>
                                                 <FormControl>
                                                     <CountrySelector
@@ -130,9 +129,6 @@ export default function FreebiesPage() {
                                                         }}
                                                     />
                                                 </FormControl>
-                                                <FormDescription className="text-black/70 dark:text-yellow-300">
-                                                    Select the country for the mobile data service.
-                                                </FormDescription>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -144,7 +140,7 @@ export default function FreebiesPage() {
                                         render={({ field }) => (
                                             <FormItem className="bg-yellow-50 dark:bg-gray-900/50 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
                                                 <FormLabel className="text-black dark:text-yellow-200 font-semibold flex items-center gap-2">
-                                                    📞 Phone Number
+                                                    Phone Number
                                                 </FormLabel>
                                                 <FormControl>
                                                     <Input 
@@ -153,9 +149,6 @@ export default function FreebiesPage() {
                                                         className="border-yellow-300 dark:border-yellow-700 focus:border-yellow-500 dark:focus:border-yellow-500 bg-white dark:bg-black text-black dark:text-yellow-100"
                                                     />
                                                 </FormControl>
-                                                <FormDescription className="text-black/70 dark:text-yellow-300">
-                                                    Enter the phone number to recharge.
-                                                </FormDescription>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -167,7 +160,7 @@ export default function FreebiesPage() {
                                         render={({ field }) => (
                                             <FormItem className="bg-yellow-50 dark:bg-gray-900/50 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
                                                 <FormLabel className="text-black dark:text-yellow-200 font-semibold flex items-center gap-2">
-                                                    📡 Network Provider
+                                                    Network Provider
                                                 </FormLabel>
                                                 <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || networks.length === 0}>
                                                     <FormControl>
@@ -203,7 +196,7 @@ export default function FreebiesPage() {
                                         render={({ field }) => (
                                             <FormItem className="bg-yellow-50 dark:bg-gray-900/50 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
                                                 <FormLabel className="text-black dark:text-yellow-200 font-semibold flex items-center gap-2">
-                                                    📊 Data Plan
+                                                    Data Plan
                                                 </FormLabel>
                                                 <Select
                                                     onValueChange={field.onChange}
@@ -243,7 +236,7 @@ export default function FreebiesPage() {
                                         render={({ field }) => (
                                             <FormItem className="bg-yellow-50 dark:bg-gray-900/50 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
                                                 <FormLabel className="text-black dark:text-yellow-200 font-semibold flex items-center gap-2">
-                                                    📧 Email
+                                                    Email
                                                 </FormLabel>
                                                 <FormControl>
                                                     <Input 
@@ -252,9 +245,6 @@ export default function FreebiesPage() {
                                                         className="border-yellow-300 dark:border-yellow-700 focus:border-yellow-500 dark:focus:border-yellow-500 bg-white dark:bg-black text-black dark:text-yellow-100"
                                                     />
                                                 </FormControl>
-                                                <FormDescription className="text-black/70 dark:text-yellow-300">
-                                                    Enter your email for transaction receipt.
-                                                </FormDescription>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
