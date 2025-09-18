@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useCallback, useEffect } from 'react';
 import { getContract, formatEther, createPublicClient, http } from "viem";
-import { Celo } from "@celo/rainbowkit-celo/chains";
+import { celo } from "viem/chains";
 import { BrowserProvider } from 'ethers';
 import { stableTokenABI } from "@celo/abis";
 import { motion } from "framer-motion";
@@ -50,20 +50,18 @@ const Balance: React.FC = () => {
         const signer = await provider.getSigner();
 
         const publicClient = createPublicClient({
-          chain: Celo,
-          transport: http(),
+          chain: celo,
+          transport: http('https://forno.celo.org'),
         });
 
         const StableTokenContract = getContract({
-          abi: stableTokenABI,
           address: STABLE_TOKEN_ADDRESS,
-          // @ts-ignore - viem type compatibility issue
-          publicClient,
+          abi: stableTokenABI,
+          client: publicClient as any,
         }) as any;
         
         const address = await signer.getAddress();
-        let cleanedAddress = address.substring(2);
-        const balanceInBigNumber = await StableTokenContract.read.balanceOf([`0x${cleanedAddress}`]);
+        const balanceInBigNumber = await (StableTokenContract as any).read.balanceOf([address]);
         const balanceInWei = balanceInBigNumber;
         const balanceInEthers = formatEther(balanceInWei);
 

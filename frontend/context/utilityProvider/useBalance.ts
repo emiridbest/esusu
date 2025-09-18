@@ -6,7 +6,7 @@ import { getContract, readContract } from 'thirdweb';
 import { client, activeChain } from '@/lib/thirdweb';
 import { ethers } from 'ethers';
 import { toast } from 'sonner';
-import { Celo } from '@celo/rainbowkit-celo/chains';
+import { celo } from 'wagmi/chains';
 
 const TOKEN_ADDRESSES = {
   CUSD: '0x765DE816845861e75A25fCA122bb6898B8B1282a',
@@ -96,7 +96,15 @@ export const useBalance = () => {
       console.log(`Checking balance for ${tokenId} (${tokenAddress})`);
 
       const convertedAmount = await convertCurrency(amount, currencyCode);
-      const requiredAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
+      let requiredAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
+
+      // Apply the same multipliers used in transactions
+      if (tokenId === 'G$') {
+        requiredAmount = requiredAmount * BigInt(10000);
+      }
+      if (tokenId === 'CELO') {
+        requiredAmount = (requiredAmount * BigInt(14)) / BigInt(5); // 2.8 multiplier using integer arithmetic
+      }
 
       let balance: bigint;
 

@@ -14,6 +14,28 @@ const tokenCache = {
 const rateCache = new Map<string, { rate: number, timestamp: number }>();
 const RATE_CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
+// Resolve a representative operatorId for a given local currency.
+// Note: FX rates are operator-specific in Reloadly; choose a stable, widely-used operator per country.
+function resolveOperatorIdForCurrency(currencyCode: string): number {
+  const code = (currencyCode || '').toUpperCase();
+  switch (code) {
+    case 'NGN':
+    case 'NG':
+      return 341; // MTN Nigeria
+    case 'GHS':
+    case 'GH':
+      return 643; // MTN Ghana
+    case 'KES':
+    case 'KE':
+      return 265; // Safaricom Kenya
+    case 'UGX':
+    case 'UG':
+      return 1152; // MTN Uganda
+    default:
+      throw new Error(`Unsupported or unknown currency for FX: ${currencyCode}`);
+  }
+}
+
 /**
  * Get access token
  * @returns Access token
@@ -27,7 +49,7 @@ async function getAccessToken(): Promise<string> {
   try {
     const clientId = process.env.NEXT_CLIENT_ID;
     const clientSecret = process.env.NEXT_CLIENT_SECRET;
-    const isSandbox =process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
+    const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
 
     if (!clientId || !clientSecret || !AUTH_URL) {
       throw new Error('API credentials or AUTH_URL not configured');
@@ -39,7 +61,7 @@ async function getAccessToken(): Promise<string> {
         ? (process.env.NEXT_PUBLIC_SANDBOX_API_URL)
         : (process.env.NEXT_PUBLIC_API_URL));
 
-      const options = {
+    const options = {
       method: 'POST',
       headers: {'Content-Type': 'application/json', 
         Accept: 'application/json'},
@@ -100,19 +122,20 @@ async function getExchangeRate(base_currency: string, targetCurrency: string): P
     if (!fxEndpoint) {
       throw new Error('FX API endpoint not configured');
     }
-    
-    let operator;
-    if(base_currency === "ng") {
-      operator = 341
-    } else if (base_currency === "gh") {
-      operator = 643
-    } else if (base_currency === "ke") {
-      operator = 265
-    } else if (base_currency === "ug") {
-      operator = 1152
-    } else {
-      return 0;
+
+    // Determine which currency to use for operator resolution.
+    // If converting from USD -> local, base_currency will be 'USD', so use targetCurrency instead.
+    const currencyForOperator = (base_currency || '').toUpperCase() === 'USD'
+      ? targetCurrency
+      : base_currency;
+    const operator = resolveOperatorIdForCurrency(currencyForOperator);
+
+    // Normalize endpoint in case ENV is misconfigured (e.g., contains /{id}/fx-rate suffix)
+    let normalizedFxEndpoint = fxEndpoint;
+    if (/\/operators\/fx-rate\/\d+\/fx-rate$/.test(normalizedFxEndpoint)) {
+      normalizedFxEndpoint = normalizedFxEndpoint.replace(/\/operators\/fx-rate\/\d+\/fx-rate$/, '/operators/fx-rate');
     }
+
     const options = {
       method: 'POST',
       headers: {
@@ -120,17 +143,20 @@ async function getExchangeRate(base_currency: string, targetCurrency: string): P
         Accept: 'application/com.reloadly.topups-v1+json',
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify({operatorId: operator, amount: 1})
+      body: JSON.stringify({ operatorId: operator, amount: 1 })
     };
-    
-    fetch(fxEndpoint, options)
-      .then(res => res.json())
-      .catch(err => console.error('error:' + err));
 
-    const response = await fetch(fxEndpoint, options)
+    // Debug context for troubleshooting
+    console.log('🔍 Calling Reloadly FX endpoint:', normalizedFxEndpoint);
+    console.log('📤 Request body:', options.body);
+
+    const response = await fetch(normalizedFxEndpoint, options);
 
     if (!response.ok) {
-      throw new Error(`Failed to get exchange rate: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('📥 FX API response status:', response.status);
+      console.error('❌ FX API error response:', errorText);
+      throw new Error(`Reloadly FX API failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json() as {
@@ -146,14 +172,21 @@ async function getExchangeRate(base_currency: string, targetCurrency: string): P
       fxRate = data.fxRate;
     } else if (data.rate) {
       fxRate = data.rate;
-    } else if (data.source && data.target) {
-      // Fallback if rate is not in expected format
-      const fromAmount = parseFloat(data.source.amount);
-      const toAmount = parseFloat(data.target.amount);
-      fxRate = toAmount / fromAmount;
-    } else {
-      throw new Error('Could not determine exchange rate from API response');
+    } else if (data.target && data.source) {
+      // Calculate rate from target/source amounts
+      const targetAmount = parseFloat(data.target.amount);
+      const sourceAmount = parseFloat(data.source.amount);
+      if (!isNaN(targetAmount) && !isNaN(sourceAmount) && sourceAmount !== 0) {
+        fxRate = targetAmount / sourceAmount;
+      }
     }
+    
+    if (!fxRate || typeof fxRate !== 'number' || isNaN(fxRate)) {
+      console.error('❌ Could not extract valid exchange rate from response:', data);
+      throw new Error('Could not determine exchange rate from Reloadly FX API response');
+    }
+    
+    console.log('💱 Final exchange rate for', base_currency, '->', targetCurrency, ':', fxRate);
     
     // Cache the rate
     rateCache.set(cacheKey, {

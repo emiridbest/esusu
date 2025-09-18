@@ -141,16 +141,14 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
   return response.json();
 }
 
-// Interface for operator details - flexible to handle various API response formats
+// Interface for operator details
 interface OperatorDetails {
   operatorId: number;
-  name?: string;
   data?: boolean;
   localFixedAmountsDescriptions?: any[] | any;
   dataBundles?: any[];
-  fixedAmounts?: any[];
-  fixedAmountsDescriptions?: any[];
-  [key: string]: any; // Allow additional fields for flexibility
+  fixedAmountsDescriptions?: any;
+  [key: string]: any;
 }
 /**
  * Gets details of a specific operator
@@ -165,19 +163,7 @@ async function getOperator(operatorId: number) {
   }
 }
 
-/**
- * Gets data bundles for a specific operator using dedicated endpoint
- * @param operatorId The ID of the operator
- */
-async function getDataBundles(operatorId: number) {
-  try {
-    return await apiRequest(`/operators/${operatorId}/data-bundles`);
-  } catch (error) {
-    console.error(`Error fetching data bundles for operator ${operatorId}:`, error);
-    // Don't throw error here, we'll fall back to operator details
-    return null;
-  }
-}
+// Removed getDataBundles function - we'll use operator details directly
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -189,30 +175,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const operatorId = parseInt(provider);
-    
-    // First try the dedicated data bundles endpoint
-    const dataBundlesResponse = await getDataBundles(operatorId);
-    
-    if (dataBundlesResponse && Array.isArray(dataBundlesResponse) && dataBundlesResponse.length > 0) {
-      console.log('Using dedicated data bundles endpoint:', dataBundlesResponse.length, 'bundles found');
-      
-      const formattedBundles = dataBundlesResponse.map((bundle: any) => ({
-        id: bundle.bundleId?.toString() || bundle.id?.toString() || `${operatorId}-${bundle.amount || bundle.price}`,
-        name: bundle.name || bundle.title || `${bundle.dataAmount || bundle.data || ''} ${bundle.validity || bundle.validityPeriod || ''}`,
-        price: (bundle.amount || bundle.price || bundle.localAmount)?.toString() || '',
-        description: bundle.description || bundle.name || bundle.title || '',
-        dataAmount: bundle.dataAmount || bundle.data || extractDataAmount(bundle.description || bundle.name || ''),
-        validity: bundle.validity || bundle.validityPeriod || extractValidity(bundle.description || bundle.name || '') || '30 Days'
-      }));
-      
-      console.log('Formatted bundles from dedicated endpoint:', formattedBundles.length, 'bundles');
-      return NextResponse.json(formattedBundles);
-    }
-    
-    // Fallback to operator details endpoint
     const operatorDetails = await getOperator(operatorId) as OperatorDetails;
-    
-    console.log('Full operator response:', JSON.stringify(operatorDetails, null, 2));
     
     if (!operatorDetails) {
       return NextResponse.json({ error: 'Operator not found' }, { status: 404 });
@@ -220,85 +183,32 @@ export async function GET(request: NextRequest) {
 
     // Check if this operator supports data bundles
     if (!operatorDetails.data) {
-      console.log('Operator does not support data:', operatorDetails.operatorId);
       return NextResponse.json([]);
     }
 
-    // Try multiple sources for bundles data in priority order
-    let bundles: any = null;
-    let bundlesSource = '';
+    // Get the bundles for this operator - prioritize fixedAmountsDescriptions, then localFixedAmountsDescriptions
+    // Use local currency prices (like working version)
+    let bundles: any = operatorDetails.localFixedAmountsDescriptions;
     
-    // Debug logging for fixedAmountsDescriptions
-    console.log('fixedAmountsDescriptions exists:', !!operatorDetails.fixedAmountsDescriptions);
-    console.log('fixedAmountsDescriptions type:', typeof operatorDetails.fixedAmountsDescriptions);
-    console.log('fixedAmountsDescriptions keys:', operatorDetails.fixedAmountsDescriptions ? Object.keys(operatorDetails.fixedAmountsDescriptions) : 'null/undefined');
-    
-    // 1. Try fixedAmountsDescriptions as object (PRIORITY - contains descriptions!)
-    if (operatorDetails.fixedAmountsDescriptions && typeof operatorDetails.fixedAmountsDescriptions === 'object' && !Array.isArray(operatorDetails.fixedAmountsDescriptions) && Object.keys(operatorDetails.fixedAmountsDescriptions).length > 0) {
-      bundles = operatorDetails.fixedAmountsDescriptions;
-      bundlesSource = 'fixedAmountsDescriptions-object';
-      console.log('Using fixedAmountsDescriptions as object:', Object.keys(bundles).length, 'entries found');
-    }
-    // 2. Try dataBundles field (newer API format)
-    else if (operatorDetails.dataBundles && Array.isArray(operatorDetails.dataBundles) && operatorDetails.dataBundles.length > 0) {
+    // If no bundles found, try dataBundles field
+    if (!bundles) {
       bundles = operatorDetails.dataBundles;
-      bundlesSource = 'dataBundles';
-      console.log('Using dataBundles field:', bundles.length, 'bundles found');
-    }
-    // 3. Try localFixedAmountsDescriptions as array
-    else if (Array.isArray(operatorDetails.localFixedAmountsDescriptions) && operatorDetails.localFixedAmountsDescriptions.length > 0) {
-      bundles = operatorDetails.localFixedAmountsDescriptions;
-      bundlesSource = 'localFixedAmountsDescriptions-array';
-      console.log('Using localFixedAmountsDescriptions as array:', bundles.length, 'bundles found');
-    }
-    // 4. Try localFixedAmountsDescriptions as object
-    else if (operatorDetails.localFixedAmountsDescriptions && typeof operatorDetails.localFixedAmountsDescriptions === 'object') {
-      bundles = operatorDetails.localFixedAmountsDescriptions;
-      bundlesSource = 'localFixedAmountsDescriptions-object';
-      console.log('Using localFixedAmountsDescriptions as object:', Object.keys(bundles).length, 'entries found');
-    }
-    // 5. Try fixedAmounts as last resort (only amounts, no descriptions)
-    else if (operatorDetails.fixedAmounts && Array.isArray(operatorDetails.fixedAmounts)) {
-      bundles = operatorDetails.fixedAmounts;
-      bundlesSource = 'fixedAmounts';
-      console.log('Using fixedAmounts field:', bundles.length, 'amounts found');
-    }
-    // 5. Try any other array fields that might contain bundles
-    else {
-      // Look for any array fields that might contain bundle data
-      const possibleBundleFields = Object.keys(operatorDetails).filter(key => 
-        Array.isArray(operatorDetails[key]) && operatorDetails[key].length > 0
-      );
-      
-      for (const field of possibleBundleFields) {
-        if (field.toLowerCase().includes('bundle') || field.toLowerCase().includes('amount') || field.toLowerCase().includes('plan')) {
-          bundles = operatorDetails[field];
-          bundlesSource = field;
-          console.log(`Using field ${field}:`, bundles.length, 'items found');
-          break;
-        }
-      }
-    }
-    
-    if (!bundles || (Array.isArray(bundles) && bundles.length === 0)) {
-      console.log('No bundles data found in operator response. Available fields:', Object.keys(operatorDetails));
-      return NextResponse.json([]);
     }
 
     let formattedBundles: { id: string; name: string; price: string; description: string; dataAmount: string; validity: string }[] = [];
 
-    // Handle array format
+    // Check if bundles is an array
     if (Array.isArray(bundles)) {
-      formattedBundles = bundles.map((bundle: any, index: number) => ({
-        id: bundle.bundleId?.toString() || bundle.id?.toString() || `${operatorDetails.operatorId}-${bundle.amount || bundle.price || index}`,
-        name: bundle.name || bundle.title || bundle.description || `${bundle.dataAmount || bundle.data || 'Data Plan'} ${bundle.validity || bundle.validityPeriod || ''}`.trim(),
-        price: (bundle.amount || bundle.price || bundle.localAmount || bundle.suggestedRetailPrice)?.toString() || '0',
-        description: bundle.description || bundle.name || bundle.title || `Data bundle for ${operatorDetails.name || 'operator'}`,
-        dataAmount: bundle.dataAmount || bundle.data || extractDataAmount(bundle.description || bundle.name || '') || 'N/A',
-        validity: bundle.validity || bundle.validityPeriod || extractValidity(bundle.description || bundle.name || '') || '30 Days'
+      formattedBundles = bundles.map((bundle: any) => ({
+        id: bundle.bundleId?.toString() || `${operatorDetails.operatorId}-${bundle.amount}`,
+        name: bundle.name || `${bundle.dataAmount || ''} ${bundle.validity || ''}`,
+        price: bundle.amount?.toString() || '',
+        description: bundle.description || '',
+        dataAmount: bundle.dataAmount || '',
+        validity: bundle.validity || '30 Days'
       }));
     }
-    // Handle object format
+    // Check if bundles is an object
     else if (bundles && typeof bundles === 'object') {
       formattedBundles = Object.entries(bundles).map(([price, description]) => ({
         id: `${operatorDetails.operatorId}-${price}`,
@@ -310,29 +220,7 @@ export async function GET(request: NextRequest) {
       }));
     }
 
-    console.log(`Formatted bundles from ${bundlesSource}:`, formattedBundles.length, 'bundles');
-    
-    // Debug first few bundles before filtering
-    console.log('Sample bundles before filtering:', formattedBundles.slice(0, 3));
-    
-    // Filter out any bundles with invalid data
-    const validBundles = formattedBundles.filter((bundle, index) => {
-      const isValid = bundle.price && bundle.price !== '0' && bundle.name && bundle.name.trim() !== '';
-      if (!isValid && index < 3) {
-        console.log(`Bundle ${index} filtered out:`, {
-          price: bundle.price,
-          name: bundle.name,
-          description: bundle.description
-        });
-      }
-      return isValid;
-    });
-    
-    console.log('Valid bundles after filtering:', validBundles.length, 'bundles');
-    if (validBundles.length > 0) {
-      console.log('Sample valid bundles:', validBundles.slice(0, 3));
-    }
-    return NextResponse.json(validBundles);
+    return NextResponse.json(formattedBundles);
   } catch (error: any) {
     console.error('Error fetching data bundles:', error);
     return NextResponse.json(

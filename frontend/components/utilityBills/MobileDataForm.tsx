@@ -238,7 +238,7 @@ export default function MobileDataForm() {
       updateStepStatus('check-balance', 'loading');
 
       // Check if the user has enough token balance
-      const hasEnoughBalance = await checkTokenBalance(selectedToken, selectedPrice.toString(), values.country);
+      const hasEnoughBalance = await checkTokenBalance(selectedPrice.toString(),selectedToken,  values.country);
       if (!hasEnoughBalance) {
         toast.error(`Insufficient ${selectedToken} balance to complete this transaction.`);
         updateStepStatus('check-balance', 'error', `Insufficient ${selectedToken} balance`);

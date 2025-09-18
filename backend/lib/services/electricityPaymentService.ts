@@ -190,11 +190,33 @@ class ReloadlyElectricityService {
   async validateCustomer(request: ElectricityValidationRequest): Promise<ElectricityValidationResponse> {
     try {
       const token = await this.getAccessToken();
-      
+      // Fetch providers and get minAmount for the selected provider
+      let minAmount: number | undefined;
+      try {
+        const providers = await this.getElectricityProviders(request.country);
+        const provider = providers.find(p => p.id === request.providerId);
+        if (provider && provider.minAmount) {
+          minAmount = provider.minAmount;
+        }
+      } catch (err) {
+        // If provider fetch fails, return error for validation
+        return {
+          valid: false,
+          error: 'Unable to fetch provider minimum amount for validation. Please try again or contact support.'
+        };
+      }
+
+      if (minAmount === undefined) {
+        return {
+          valid: false,
+          error: 'Provider minimum amount not found. Please select a valid provider.'
+        };
+      }
+
       const response = await axios.post(`${this.baseUrl}/pay`, {
         billerId: parseInt(request.providerId),
         subscriberAccountNumber: request.customerId,
-        amount: 1, // Minimum validation amount
+        amount: minAmount, // Use provider's minAmount for validation
         useLocalAmount: true,
         validate: true // Validation only
       }, {

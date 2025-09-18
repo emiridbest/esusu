@@ -64,11 +64,7 @@ function MainContent() {
               <AirtimeForm />
             </TabsContent>
             <TabsContent value="electricity-bill">
-              <Card className="mt-4">
-                <CardContent>
-                  <ElectricityBillForm />
-                </CardContent>
-              </Card>
+              <ElectricityBillForm />
             </TabsContent>
 
           </Tabs>

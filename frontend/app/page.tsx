@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import Image from "next/image";
 import { motion } from "framer-motion";
 import TransactionList from '@/components/TransactionList';
-import Balance from '@/components/Balance';
 import Hero from '@/components/Hero';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -72,15 +71,6 @@ const Esusu: React.FC = () => {
   
   return (
     <div className="max-w-screen-xl mx-auto px-4 md:px-8 pb-20">
-      {/* Balance Card with Animation */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Balance />
-      </motion.div>
-      
       {/* Quick Actions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

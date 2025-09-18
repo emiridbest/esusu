@@ -61,14 +61,17 @@ Esusu bridges traditional community savings practices with blockchain technology
 - Provides accessible financial tools via mobile devices with minimal bandwidth requirements
 - Promotes community cooperation through decentralised technology
 
-## Technology Stack
+### Technology Stack
 
-- **Frontend**: Next.js, Tailwind CSS, Shadcn UI components, TypeScript
+- **Frontend**: Next.js 15, Tailwind CSS, Shadcn UI components, TypeScript, React 18
 - **Blockchain**: Celo Mainnet
-- **Smart Contracts**: Solidity, Foundry
+- **Smart Contracts**: Solidity, Foundry, UUPS Upgradeable Proxy Standard
 - **Development Framework**: Celo Composer
-- **Data Storage**: MongoDB
-- **SDK**: Goat SDK
+- **Data Storage**: MongoDB with Mongoose
+- **Wallet Integration**: Thirdweb v5 (Frontend), Wagmi v2 (Farcaster frames only)
+- **AI SDK**: Vercel AI SDK with GOAT SDK
+- **Notifications**: Nodemailer (Email), Twilio (SMS)
+- **Deployment**: Vercel with GitOps pipeline
 
 ## Contract Information
 The Esusu protocol has been upgraded to use UUPS (Universal Upgradeable Proxy Standard) upgradeable contracts with a multi-sig governance system. This architecture allows for secure and controlled upgrades while maintaining the same proxy addresses for client integrations.
@@ -184,11 +187,18 @@ esusu/
 
 - Node.js 18.17.0 or later
 - npm or yarn
+- MongoDB database (local or Atlas)
+- Git
 
 ### Installation
 
-1. Install dependencies for both frontend and backend:
+1. Clone the repository:
+```bash
+git clone https://github.com/emiridbest/esusu.git
+cd esusu
+```
 
+2. Install dependencies for both frontend and backend:
 ```bash
 npm run install:all
 ```
@@ -266,7 +276,7 @@ npm run start
 ## Technologies Used
 
 - Next.js 15 (App Router across `frontend/`, `backend/`, `farcaster/`)
-- React 18 + TypeScript
+- React 18 + TypeScript (with strict type checking)
 - Tailwind CSS + shadcn/ui components
 - Thirdweb v5 (frontend wallet, transactions) and Viem (ABI encoding)
 - Wagmi v2 (Farcaster frame connectors, no wallet UI)
@@ -274,6 +284,24 @@ npm run start
 - MongoDB + Mongoose (connection caching, migrations/initializer)
 - Notifications: Nodemailer (email) and Twilio (SMS)
 - AI: Vercel AI SDK (`ai`, `@ai-sdk/*`) and GOAT SDK
+- Testing: Jest with React Testing Library
+
+### Recent Updates & Fixes
+
+### Recent Updates & Fixes
+
+- Improved validation for all utility payment forms (electricity, airtime, data):
+  - Amount, meter number, phone, and plan fields now have stricter checks and clear error messages.
+- Enhanced error handling and user feedback:
+  - Payment and currency conversion errors are surfaced to users and logged for easier debugging.
+- Updated dependency versions (viem, twilio, mongoose, etc.):
+  - Ensures compatibility with latest APIs and fixes known type issues.
+- Optimized payment logic and token balance checks:
+  - All supported tokens (CUSD, USDC, USDT, CELO, G$) use correct decimals and multipliers for accurate payments.
+- Refactored UI components for consistency and mobile experience:
+  - Unified form layouts, improved color contrast, and standardized feedback across all utility flows.
+- Fixed race conditions and edge cases in form validation and submission:
+  - Prevents double submissions, handles async validation, and ensures robust user experience.
 
 ### Security Model for Utility Payments
 

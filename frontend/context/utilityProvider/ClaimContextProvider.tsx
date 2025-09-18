@@ -5,7 +5,7 @@ import { encodeFunctionData, parseAbi } from 'viem';
 import { useActiveAccount, useActiveWallet } from "thirdweb/react";
 import { toast } from 'sonner';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
-import { Celo } from '@celo/rainbowkit-celo/chains';
+import { celo } from 'wagmi/chains';
 import { createPublicClient, http } from 'viem'
 import { IdentitySDK, ClaimSDK } from "@goodsdks/citizen-sdk"
 
@@ -98,14 +98,14 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
 
   const publicClient = createPublicClient({
-    chain: Celo,
+    chain: celo,
     transport: http()
   })
   const walletClient = useMemo(() => {
     if (isConnected && window.ethereum && address) {
       return createWalletClient({
         account: address as `0x${string}`,
-        chain: Celo,
+        chain: celo,
         transport: custom(window.ethereum)
       });
     }
@@ -358,7 +358,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       try {
         await submitReferral({
           txHash: tx.transactionHash,
-          chainId: Celo.id,
+          chainId: celo.id,
         });
       } catch (referralError) {
         console.error("Referral submission error:", referralError);

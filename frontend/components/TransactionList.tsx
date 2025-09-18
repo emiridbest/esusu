@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { Celo } from '@celo/rainbowkit-celo/chains';
+import { celo } from 'wagmi/chains';
 import { createPublicClient, http, decodeFunctionData } from 'viem';
 import { useActiveAccount } from 'thirdweb/react';
 import { stableTokenABI } from "@celo/abis";
@@ -105,7 +105,7 @@ const TransactionList: React.FC = () => {
         setIsLoading(true);
         setError(null);
         const publicClient = createPublicClient({
-          chain: Celo,
+          chain: celo,
           transport: http(),
         });
 

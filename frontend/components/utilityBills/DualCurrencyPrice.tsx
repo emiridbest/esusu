@@ -66,8 +66,11 @@ export default function DualCurrencyPrice({
         // Convert local currency to USD
         let usdAmount;
         try {
+          // Convert local currency amount to USD
+          console.log('Converting amount:', parsedAmount, 'from currency:', countryCurrency);
+          usdAmount = await convertCurrency(parsedAmount.toString(), countryCurrency);
+          console.log('Converted USD amount:', usdAmount);
           if (stablecoin === 'G$') {
-            usdAmount = await convertCurrency(parsedAmount.toString(), countryCurrency);
             const gDollarAmount = usdAmount / 0.0001;
             setUsdEquivalent(gDollarAmount);
             setCryptoDisplay(`${stablecoin} ${gDollarAmount.toFixed(2)}`);

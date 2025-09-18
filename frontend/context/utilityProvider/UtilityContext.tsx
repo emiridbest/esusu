@@ -12,7 +12,7 @@ import {
 import { client, activeChain } from "@/lib/thirdweb";
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { CountryData } from '@/utils/countryData';
-import { Celo } from '@celo/rainbowkit-celo/chains';
+import { celo } from 'wagmi/chains';
 import {
   Dialog,
   DialogContent,
@@ -207,39 +207,53 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const handleTransaction = async ({ type, amount, token, recipient, metadata }: TransactionParams): Promise<TransactionResult> => {
 
 
+    console.log('[handleTransaction] Params:', { type, amount, token, recipient, metadata });
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      console.error('[handleTransaction] Invalid amount:', amount);
       toast.error('Please enter a valid amount');
+      return { success: false };
+    }
+    // Ensure currencyCode is present before conversion
+    const currencyCode = metadata?.countryCode || countryData?.currency?.code;
+    if (!currencyCode) {
+      console.error('[handleTransaction] Missing currencyCode:', metadata?.countryCode, countryData?.currency?.code);
+      toast.error('Unable to determine currency for conversion. Please select a valid country and provider.');
       return { success: false };
     }
     setIsProcessing(true);
     try {
       // Convert the local currency amount to its equivalent in USD
-      const currencyCode = metadata?.countryCode || countryData?.currency?.code;
       const convertedAmount = await convertCurrency(amount, currencyCode);
+      console.log('[handleTransaction] Converted amount:', convertedAmount);
 
       if (convertedAmount <= 0) {
+        console.error('[handleTransaction] Currency conversion failed:', convertedAmount);
         toast.error('Currency conversion failed. Please try again.');
         return { success: false };
       }
 
-
       // Get the token contract interface
       const tokenAddress = getTokenAddress(token);
       const decimals = getTokenDecimals(token);
+      console.log('[handleTransaction] Token address:', tokenAddress, 'Decimals:', decimals);
 
       if (address) {
         // Prepare transaction memo based on utility type
         const memo = getTransactionMemo(type, metadata);
+        console.log('[handleTransaction] Transaction memo:', memo);
 
         // Parse amount with correct decimals
         let paymentAmount = parseUnits(convertedAmount.toString(), decimals);
+        console.log('[handleTransaction] Payment amount (parsed):', paymentAmount);
 
         // Apply token-specific multipliers for better rates
         if (token === 'G$') {
           paymentAmount = paymentAmount * BigInt(10000);
+          console.log('[handleTransaction] G$ multiplier applied:', paymentAmount);
         }
         if (token === 'CELO') {
-          paymentAmount = paymentAmount * BigInt(2.8); // Rounded up from 2.8 for safety
+          paymentAmount = (paymentAmount * BigInt(14)) / BigInt(5); // 2.8 multiplier using integer arithmetic
+          console.log('[handleTransaction] CELO multiplier applied:', paymentAmount);
         }
 
         // Prepare token transfer
@@ -247,12 +261,6 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
         // Encode the transfer function
         const transferInterface = new ethers.Interface(erc20Abi);
-        if (token === 'G$') {
-          paymentAmount = paymentAmount * BigInt(10000);
-        }
-        if (token === 'CELO') {
-          paymentAmount = paymentAmount * BigInt(2.8);
-        }
         const transferData = transferInterface.encodeFunctionData("transfer", [
           RECIPIENT_WALLET,
           paymentAmount
@@ -266,28 +274,38 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         // Send the transaction
         setIsWaitingTx(true);
         
-        if (!wallet || !account) throw new Error('Wallet not connected');
+        if (!wallet || !account) {
+          console.error('[handleTransaction] Wallet or account not connected:', { wallet, account });
+          throw new Error('Wallet not connected');
+        }
         
         // Send transaction using Thirdweb v5 pattern
         const { sendTransaction, prepareTransaction } = await import('thirdweb');
-        const transaction = await prepareTransaction({
-          to: tokenAddress as `0x${string}`,
-          data: dataWithSuffix as `0x${string}`,
-          client,
-          chain: activeChain,
-        });
-        const txResult = await sendTransaction({
-          account,
-          transaction,
-        });
-        
+        let transaction, txResult;
+        try {
+          transaction = await prepareTransaction({
+            to: tokenAddress as `0x${string}`,
+            data: dataWithSuffix as `0x${string}`,
+            client,
+            chain: activeChain,
+          });
+          console.log('[handleTransaction] Transaction prepared:', transaction);
+          txResult = await sendTransaction({
+            account,
+            transaction,
+          });
+          console.log('[handleTransaction] Transaction sent:', txResult);
+        } catch (txError) {
+          console.error('[handleTransaction] Transaction preparation/sending failed:', txError);
+          throw txError;
+        }
         const tx = { hash: txResult.transactionHash };
 
         // Submit the referral to Divvi
         try {
           await submitReferral({
             txHash: tx.hash as unknown as `0x${string}`,
-            chainId: Celo.id
+            chainId: celo.id
           });
         } catch {
           // Do nothing

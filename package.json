@@ -24,12 +24,12 @@
         "deploy:setup": "node scripts/deploy-setup.js",
         "deploy:prod": "npm run deploy:setup && npm run build && npm run start",
         "db:init": "cd backend && npm run db:init",
-        "db:migrate": "cd backend && npm run db:migrate", 
+        "db:migrate": "cd backend && npm run db:migrate",
         "db:health": "cd backend && npm run db:health"
     },
     "devDependencies": {
         "@types/node": "^22.15.3",
-        "@types/react": "^18.3.0",
+        "@types/react": "^18.3.1",
         "@types/react-dom": "^18.3.1",
         "concurrently": "^8.2.2"
     },
@@ -37,7 +37,14 @@
         "@tanstack/react-query": "^5.83.0",
         "@testing-library/react": "^16.3.0",
         "@wagmi/core": "^1.4.13",
-        "viem": "^1.21.4",
-        "wagmi": "^1.4.13"
+        "es-abstract": "^1.24.0",
+        "eslint-plugin-react": "^7.37.5",
+        "lucide-react": "^0.544.0",
+        "object.fromentries": "^2.0.8",
+        "react": "18.3.1",
+        "react-dom": "18.3.1",
+        "twilio": "^5.9.0",
+        "viem": "^2.37.6",
+        "wagmi": "^2.9.0"
     }
 }
