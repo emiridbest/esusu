@@ -48,6 +48,25 @@ export default function DualCurrencyPrice({
   const [totalDisplay, setTotalDisplay] = useState('');
   const [gasFeeDisplay, setGasFeeDisplay] = useState('');
   const [usdEquivalent, setUsdEquivalent] = useState(0);
+  const [celoUsdPrice, setCeloUsdPrice] = useState<number | null>(null);
+  // Fetch CELO/USD price if CELO is selected
+  useEffect(() => {
+    async function fetchCeloPrice() {
+      if (stablecoin === 'CELO') {
+        try {
+          // Replace with your backend or a public API endpoint for CELO/USD
+          const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=celo&vs_currencies=usd');
+          const data = await res.json();
+          setCeloUsdPrice(data.celo.usd || 1);
+        } catch {
+          setCeloUsdPrice(1); // fallback to 1 if error
+        }
+      } else {
+        setCeloUsdPrice(null);
+      }
+    }
+    fetchCeloPrice();
+  }, [stablecoin]);
 
   useEffect(() => {
     // Clear previous state immediately for responsiveness
@@ -70,20 +89,42 @@ export default function DualCurrencyPrice({
         // Only call convertCurrency once per update
         let usdAmount = await convertCurrency(parsedAmount.toString(), countryCurrency);
 
+        // Stablecoins (cUSD, USDC, USDT) should always be 1:1 USD
+        const stablecoins = ['CUSD', 'cUSD', 'USDC', 'USDT'];
         if (stablecoin === 'G$') {
-          const gDollarAmount = usdAmount / 0.0001;
+          // GoodDollar: USD to G$ using fixed price
+          const gDollarPrice = 0.0001;
+          const gDollarAmount = usdAmount / gDollarPrice;
           setUsdEquivalent(gDollarAmount);
           setCryptoDisplay(`${stablecoin} ${gDollarAmount.toFixed(2)}`);
           if (showTotal) {
             setTotalDisplay(`${stablecoin} ${gDollarAmount.toFixed(2)}`);
           }
         } else if (stablecoin === 'CELO') {
-          setUsdEquivalent(usdAmount * 2.8);
-          setCryptoDisplay(`${stablecoin} ${(usdAmount * 2.8).toFixed(2)}`);
+          // CELO: USD to CELO using CoinGecko price
+          const celoPrice = celoUsdPrice || 0.35; // default fallback price
+          const celoAmount = celoPrice > 0 ? usdAmount / celoPrice : usdAmount;
+          setUsdEquivalent(celoAmount);
+          setCryptoDisplay(`${stablecoin} ${celoAmount.toFixed(2)}`);
           if (showTotal) {
-            setTotalDisplay(`${stablecoin} ${(usdAmount * 2.8).toFixed(2)}`);
+            const gasFeeUSD = 0.01;
+            const gasFeeCelo = gasFeeUSD;
+            const totalWithFee = celoAmount + gasFeeCelo;
+            setGasFeeDisplay(`${stablecoin} ${gasFeeCelo.toFixed(2)}`);
+            setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
+          }
+        } else if (stablecoins.includes(stablecoin)) {
+          // Stablecoins: 1 USD = 1 token
+          setUsdEquivalent(usdAmount);
+          setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
+          if (showTotal) {
+            const gasFeeUSD = 0.01;
+            const totalWithFee = usdAmount + gasFeeUSD;
+            setGasFeeDisplay(`${stablecoin} ${gasFeeUSD.toFixed(2)}`);
+            setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
           }
         } else {
+          // Fallback: treat as 1:1 USD
           setUsdEquivalent(usdAmount);
           setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
           if (showTotal) {

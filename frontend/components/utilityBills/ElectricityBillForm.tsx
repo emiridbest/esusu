@@ -310,7 +310,8 @@ export default function ElectricityBillForm() {
 
     console.log('✅ Amount validation passed, proceeding with payment...');
 
-    // Check if the user has enough token balance before proceeding
+    setIsProcessing(true);
+    openTransactionDialog("electricity", values.meterNumber);
     updateStepStatus('check-balance', 'loading');
     const hasEnoughBalance = await checkTokenBalance(values.amount, selectedToken, values.country);
     if (!hasEnoughBalance) {
@@ -319,10 +320,9 @@ export default function ElectricityBillForm() {
       setIsProcessing(false);
       return;
     }
+    updateStepStatus('check-balance', 'success');
+    updateStepStatus("send-payment", "loading");
 
-    setIsProcessing(true);
-    openTransactionDialog("electricity", values.meterNumber);
-    updateStepStatus("electricity-payment", "loading");
     try {
       const paymentResult = await handleTransaction({
         type: 'electricity',
@@ -337,6 +337,8 @@ export default function ElectricityBillForm() {
       });
 
       if (paymentResult.success && paymentResult.transactionHash) {
+        updateStepStatus("send-payment", "success");
+        updateStepStatus("electricity-payment", "loading");
         // After successful on-chain payment, call backend top-up with validation and API key
         const backendRequestBody = {
           country: values.country,
@@ -368,6 +370,7 @@ export default function ElectricityBillForm() {
             : `Electricity bill of ${data.approvedAmount} ${countryCurrency} paid successfully to ${selectedProvider?.name || 'selected provider'}.`;
           
           toast.success(successMessage);
+          updateStepStatus('electricity-payment', 'success');
           updateStepStatus('top-up', 'success');
           // Redirect to transaction status page
           router.push(`/tx/${paymentResult.transactionHash}`);
@@ -389,24 +392,29 @@ export default function ElectricityBillForm() {
           // Show backend error message if available, else generic message
           const errorMsg = data.error || data.message || "There was an issue processing your electricity bill payment. Our team has been notified.";
           toast.error(errorMsg);
+          updateStepStatus('electricity-payment', 'error', errorMsg);
           updateStepStatus('top-up', 'error', errorMsg);
         }
       } else {
         // Log backend response for debugging
         console.error('Electricity Payment API response:', paymentResult);
-        // Show more informative error if available
-        let errorMsg = 'Transaction failed. Please check your wallet and try again.';
-        if (typeof paymentResult === 'object' && paymentResult) {
+        // Show user-friendly error if transaction is declined
+        let errorMsg = 'Transaction request declined.';
+        if (typeof paymentResult === 'object' && paymentResult && paymentResult.success === false) {
+          errorMsg = 'Transaction request declined.';
+        } else if (typeof paymentResult === 'object' && paymentResult) {
           errorMsg = JSON.stringify(paymentResult);
         }
         toast.error(errorMsg);
+        updateStepStatus('send-payment', 'error', errorMsg);
         updateStepStatus('electricity-payment', 'error', errorMsg);
       }
     } catch (error) {
       console.error("Error processing payment:", error);
       const msg = error instanceof Error ? error.message : "There was an error processing your payment. Please try again.";
       toast.error(`Payment Failed: ${msg}`);
-      updateStepStatus("electricity-payment", "error");
+      updateStepStatus("send-payment", "error", msg);
+      updateStepStatus("electricity-payment", "error", msg);
     } finally {
       setIsProcessing(false);
     }
@@ -618,7 +626,7 @@ export default function ElectricityBillForm() {
             )}
           />
 
-          {amount > 0 && amountValidation.isValid && (
+          {amount > 0 && amountValidation.isValid && TOKENS.some(token => token.id === selectedToken) && watchCountry && watchProvider && !isLoading ? (
             <Card className="bg-gradient-to-r from-yellow-100 via-yellow-200 to-yellow-100 dark:from-yellow-400 dark:via-yellow-300 dark:to-yellow-400 border-2 border-yellow-300 dark:border-0 shadow-lg shadow-yellow-400/20 dark:shadow-yellow-400/30">
               <CardContent className="pt-4">
                 <div className="flex flex-col space-y-1">
@@ -632,6 +640,19 @@ export default function ElectricityBillForm() {
                       countryCurrency={watchCountry}
                       showTotal={true}
                     />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : amount > 0 && amountValidation.isValid && (isLoading || !watchProvider || !watchCountry) && (
+            <Card className="bg-gradient-to-r from-yellow-100 via-yellow-200 to-yellow-100 dark:from-yellow-400 dark:via-yellow-300 dark:to-yellow-400 border-2 border-yellow-300 dark:border-0 shadow-lg shadow-yellow-400/20 dark:shadow-yellow-400/30">
+              <CardContent className="pt-4">
+                <div className="flex flex-col space-y-1">
+                  <div className="text-sm font-medium text-gray-800 dark:text-black">
+                    Payment Amount:
+                  </div>
+                  <div className="text-gray-900 dark:text-black font-medium animate-pulse">
+                    Loading conversion...
                   </div>
                 </div>
               </CardContent>

@@ -27,6 +27,26 @@ const tokenDecimals: Record<string, number> = {
 };
 
 export const useBalance = () => {
+  // Cache token prices (CELO/USD, G$/USD)
+  const [celoUsdPrice, setCeloUsdPrice] = useState<number>(2.8); // fallback to 2.8
+  const [goodDollarUsdPrice, setGoodDollarUsdPrice] = useState<number>(0.0001); // fallback to 0.0001
+
+  // Fetch token prices once per session (or on demand)
+  useEffect(() => {
+    async function fetchPrices() {
+      try {
+        const celoRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=celo&vs_currencies=usd');
+        const celoData = await celoRes.json();
+        if (celoData.celo && celoData.celo.usd) setCeloUsdPrice(celoData.celo.usd);
+        const gdRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=gooddollar&vs_currencies=usd');
+        const gdData = await gdRes.json();
+        if (gdData.gooddollar && gdData.gooddollar.usd) setGoodDollarUsdPrice(gdData.gooddollar.usd);
+      } catch (err) {
+        // fallback to defaults
+      }
+    }
+    fetchPrices();
+  }, []);
   const account = useActiveAccount();
   const wallet = useActiveWallet();
   
@@ -98,12 +118,16 @@ export const useBalance = () => {
       const convertedAmount = await convertCurrency(amount, currencyCode);
       let requiredAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
 
-      // Apply the same multipliers used in transactions
+      // Apply token-specific conversion using cached rates
       if (tokenId === 'G$') {
-        requiredAmount = requiredAmount * BigInt(10000);
+        // Convert USD to G$ using cached rate
+        const gDollarAmount = Number(convertedAmount) / goodDollarUsdPrice;
+        requiredAmount = ethers.parseUnits(gDollarAmount.toString(), decimals);
       }
       if (tokenId === 'CELO') {
-        requiredAmount = (requiredAmount * BigInt(14)) / BigInt(5); // 2.8 multiplier using integer arithmetic
+        // Convert USD to CELO using cached rate
+        const celoAmount = Number(convertedAmount) / celoUsdPrice;
+        requiredAmount = ethers.parseUnits(celoAmount.toString(), decimals);
       }
 
       let balance: bigint;

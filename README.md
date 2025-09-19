@@ -302,7 +302,7 @@ npm run start
 - Fixed race conditions and edge cases in form validation and submission:
   - Prevents double submissions, handles async validation, and ensures robust user experience.
 - Transaction step progress for utility payments:
-  - Electricity, airtime, and data payment flows now show real-time progress for 'Check Balance', 'Send Payment', and 'Pay Electricity Bill'.
+  - Electricity now show real-time progress for 'Check Balance', 'Send Payment', and 'Pay Electricity Bill'.
   - Step status is updated in sync with backend and wallet actions, providing clear feedback for each stage (success/error/loading).
 - Payment summary and conversion improvements:
   - Payment summary and currency conversion are only shown when the entered amount is valid, preventing display of incorrect or zero values.
@@ -312,6 +312,13 @@ npm run start
   - Retry logic and error handling for backend currency conversion API (Reloadly) to improve reliability.
 - Codebase refactoring:
   - Centralized step status updates and improved context/form logic for instant UI updates and robust state management.
+- Refactored frontend currency conversion logic for utility payments (CELO, G$, cUSD, USDC, USDT)
+- Fixed DualCurrencyPrice to use correct token price logic (stablecoins 1:1 USD, CELO/G$ via CoinGecko)
+- Improved transaction feedback and error handling in ElectricityBillForm
+- Backend  `/api/utilities/electricity/pay` endpoints under review for Reloadly authentication issues
+- Identified 401 Unauthorized errors from Reloadly sandbox API; troubleshooting API key, endpoint, and network config
+- Added Postman test instructions for Reloadly sandbox electricity payments
+- Next steps: verify backend credentials, improve error handling, and ensure secure secret management
 
 ### Security Model for Utility Payments
 

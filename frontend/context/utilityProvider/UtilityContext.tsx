@@ -78,6 +78,26 @@ const UtilityContext = createContext<UtilityContextType | undefined>(undefined);
 
 // Provider component
 export const UtilityProvider = ({ children }: UtilityProviderProps) => {
+  // Cache token prices (CELO/USD, G$/USD)
+  const [celoUsdPrice, setCeloUsdPrice] = useState<number>(2.8); // fallback to 2.8
+  const [goodDollarUsdPrice, setGoodDollarUsdPrice] = useState<number>(0.0001); // fallback to 0.0001
+
+  // Fetch token prices once per session (or on demand)
+  useEffect(() => {
+    async function fetchPrices() {
+      try {
+        const celoRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=celo&vs_currencies=usd');
+        const celoData = await celoRes.json();
+        if (celoData.celo && celoData.celo.usd) setCeloUsdPrice(celoData.celo.usd);
+        const gdRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=gooddollar&vs_currencies=usd');
+        const gdData = await gdRes.json();
+        if (gdData.gooddollar && gdData.gooddollar.usd) setGoodDollarUsdPrice(gdData.gooddollar.usd);
+      } catch (err) {
+        // fallback to defaults
+      }
+    }
+    fetchPrices();
+  }, []);
   const usdcAddress = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
   const cusdAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
   const usdtAddress = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e";
@@ -246,14 +266,18 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         let paymentAmount = parseUnits(convertedAmount.toString(), decimals);
         console.log('[handleTransaction] Payment amount (parsed):', paymentAmount);
 
-        // Apply token-specific multipliers for better rates
+        // Apply token-specific conversion using cached rates
         if (token === 'G$') {
-          paymentAmount = paymentAmount * BigInt(10000);
-          console.log('[handleTransaction] G$ multiplier applied:', paymentAmount);
+          // Convert USD to G$ using cached rate
+          const gDollarAmount = Number(convertedAmount) / goodDollarUsdPrice;
+          paymentAmount = parseUnits(gDollarAmount.toString(), decimals);
+          console.log('[handleTransaction] G$ conversion applied:', paymentAmount);
         }
         if (token === 'CELO') {
-          paymentAmount = (paymentAmount * BigInt(14)) / BigInt(5); // 2.8 multiplier using integer arithmetic
-          console.log('[handleTransaction] CELO multiplier applied:', paymentAmount);
+          // Convert USD to CELO using cached rate
+          const celoAmount = Number(convertedAmount) / celoUsdPrice;
+          paymentAmount = parseUnits(celoAmount.toString(), decimals);
+          console.log('[handleTransaction] CELO conversion applied:', paymentAmount);
         }
 
         // Prepare token transfer
