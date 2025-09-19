@@ -1,3 +1,16 @@
+// Helper: fetch with retry and exponential backoff
+async function fetchWithRetry(url: string, options: RequestInit, retries = 3, delay = 2000): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url, options);
+      if (response.ok) return response;
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
+    }
+  }
+  throw new Error('Failed to fetch after retries');
+}
 import { NextRequest, NextResponse } from 'next/server';
 
 // Reloadly API configuration
@@ -150,7 +163,7 @@ async function getExchangeRate(base_currency: string, targetCurrency: string): P
     console.log('🔍 Calling Reloadly FX endpoint:', normalizedFxEndpoint);
     console.log('📤 Request body:', options.body);
 
-    const response = await fetch(normalizedFxEndpoint, options);
+  const response = await fetchWithRetry(normalizedFxEndpoint, options, 3, 2000);
 
     if (!response.ok) {
       const errorText = await response.text();

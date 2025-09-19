@@ -403,6 +403,18 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     } else if (operation === 'electricity') {
       steps = [
         {
+          id: 'check-balance',
+          title: 'Check Balance',
+          description: `Checking your wallet balance`,
+          status: 'inactive'
+        },
+        {
+          id: 'send-payment',
+          title: 'Send Payment',
+          description: `Sending payment for meter ${recipient}`,
+          status: 'inactive'
+        },
+        {
           id: 'electricity-payment',
           title: 'Pay Electricity Bill',
           description: `Paying electricity bill for meter ${recipient}`,

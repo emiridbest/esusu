@@ -288,7 +288,6 @@ npm run start
 
 ### Recent Updates & Fixes
 
-### Recent Updates & Fixes
 
 - Improved validation for all utility payment forms (electricity, airtime, data):
   - Amount, meter number, phone, and plan fields now have stricter checks and clear error messages.
@@ -302,6 +301,17 @@ npm run start
   - Unified form layouts, improved color contrast, and standardized feedback across all utility flows.
 - Fixed race conditions and edge cases in form validation and submission:
   - Prevents double submissions, handles async validation, and ensures robust user experience.
+- Transaction step progress for utility payments:
+  - Electricity, airtime, and data payment flows now show real-time progress for 'Check Balance', 'Send Payment', and 'Pay Electricity Bill'.
+  - Step status is updated in sync with backend and wallet actions, providing clear feedback for each stage (success/error/loading).
+- Payment summary and conversion improvements:
+  - Payment summary and currency conversion are only shown when the entered amount is valid, preventing display of incorrect or zero values.
+- Robust validation and error handling:
+  - Provider limits, token balance checks, and instant UI feedback block invalid or insufficient payments before transaction initiation.
+- Backend reliability:
+  - Retry logic and error handling for backend currency conversion API (Reloadly) to improve reliability.
+- Codebase refactoring:
+  - Centralized step status updates and improved context/form logic for instant UI updates and robust state management.
 
 ### Security Model for Utility Payments
 

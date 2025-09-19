@@ -30,7 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from 'sonner';
-import { Loader2 } from "lucide-react";
+import { AlertCircle, Info, CheckCircle, Loader2 } from "lucide-react";
 import { ElectricityProvider, fetchElectricityProviders } from '@/services/utility/utilityServices';
 import { useBalance } from '@/context/utilityProvider/useBalance';
 
@@ -60,7 +60,7 @@ export default function ElectricityBillForm() {
   const [providers, setProviders] = useState<ElectricityProvider[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [countryCurrency, setCountryCurrency] = useState<string>(""); 
-  const [selectedToken, setSelectedToken] = useState<string | undefined>(undefined);
+
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{
     valid: boolean;
@@ -69,6 +69,15 @@ export default function ElectricityBillForm() {
     tariff?: string;
     outstandingAmount?: number;
     error?: string;
+  } | null>(null);
+  const [amountValidation, setAmountValidation] = useState<{
+    type: 'error' | 'warning' | 'info' | 'success' | '';
+    message: string;
+    isValid: boolean;
+  }>({ type: '', message: '', isValid: true });
+  const [providerLimits, setProviderLimits] = useState<{
+    minAmount: number;
+    maxAmount: number;
   } | null>(null);
   const { checkTokenBalance } = useBalance();
   const {
@@ -97,6 +106,9 @@ export default function ElectricityBillForm() {
   const watchMeterNumber = form.watch("meterNumber");
   const watchAmount = form.watch("amount");
   const watchPaymentToken = form.watch("paymentToken");
+  const selectedToken = watchPaymentToken;
+
+  // (Removed useEffect for selectedToken)
 
   // Fetch network providers when country changes
   useEffect(() => {
@@ -120,6 +132,20 @@ export default function ElectricityBillForm() {
     getProviders();
   }, [watchCountry, form]);
 
+    // Clear filled parameters when country changes
+    useEffect(() => {
+      if (watchCountry) {
+        form.setValue("provider", "");
+        form.setValue("meterNumber", "");
+        form.setValue("amount", "");
+        form.setValue("paymentToken", "CUSD");
+        form.setValue("email", "");
+        setAmount(0);
+        setProviderLimits(null);
+        setAmountValidation({ type: '', message: '', isValid: true });
+      }
+    }, [watchCountry]);
+
   // Update amount when amount changes
   useEffect(() => {
     if (watchAmount) {
@@ -129,15 +155,77 @@ export default function ElectricityBillForm() {
     }
   }, [watchAmount]);
 
-  // Watch payment token
+  // Update provider limits when provider is selected
   useEffect(() => {
-    if (watchPaymentToken) {
-      setSelectedToken(watchPaymentToken);
+    if (watchProvider && providers.length > 0) {
+      const selectedProvider = providers.find(p => p.id === watchProvider);
+      if (selectedProvider && selectedProvider.minLocalTransactionAmount && selectedProvider.maxLocalTransactionAmount) {
+        setProviderLimits({
+          minAmount: selectedProvider.minLocalTransactionAmount,
+          maxAmount: selectedProvider.maxLocalTransactionAmount
+        });
+      } else {
+        // No valid limits available from API
+        setProviderLimits(null);
+      }
+    } else {
+      setProviderLimits(null);
     }
-  }, [watchPaymentToken]);
+  }, [watchProvider, providers]);
 
-  // Validate customer when provider and meter number are available
+  // Validate amount (hide amount validation during meter validation)
   useEffect(() => {
+    if (isValidating) {
+      setAmountValidation({ type: '', message: '', isValid: true });
+      return;
+    }
+    if (watchAmount && watchAmount.trim() !== '') {
+      const numAmount = Number(watchAmount);
+      if (isNaN(numAmount)) {
+        setAmountValidation({
+          type: 'error',
+          message: 'Please enter a valid number',
+          isValid: false
+        });
+      } else if (numAmount <= 0) {
+        setAmountValidation({
+          type: 'error',
+          message: 'Amount must be greater than 0',
+          isValid: false
+        });
+      } else if (providerLimits && numAmount < providerLimits.minAmount) {
+        setAmountValidation({
+          type: 'error',
+          message: `Amount must be at least ${providerLimits.minAmount} ${countryCurrency}`,
+          isValid: false
+        });
+      } else if (providerLimits && numAmount > providerLimits.maxAmount) {
+        setAmountValidation({
+          type: 'error',
+          message: `Amount cannot exceed ${providerLimits.maxAmount} ${countryCurrency}`,
+          isValid: false
+        });
+      } else {
+        setAmountValidation({
+          type: 'success',
+          message: 'Valid amount',
+          isValid: true
+        });
+      }
+    } else {
+      setAmountValidation({
+        type: '',
+        message: '',
+        isValid: true
+      });
+    }
+  }, [watchAmount, providerLimits, countryCurrency, isValidating]);
+
+  // Validate customer when provider and meter number are available (INDEPENDENT of amount)
+  useEffect(() => {
+    // Only run validation when meter number, provider, or country changes
+    setValidationResult(null);
+    setAmountValidation({ type: '', message: '', isValid: true });
     const validateCustomer = async () => {
       if (!watchCountry || !watchProvider || !watchMeterNumber || watchMeterNumber.length < 8) {
         setValidationResult(null);
@@ -155,6 +243,7 @@ export default function ElectricityBillForm() {
             country: watchCountry,
             providerId: watchProvider,
             customerId: watchMeterNumber
+            // Note: Amount is NOT required for meter validation
           })
         });
 
@@ -182,18 +271,59 @@ export default function ElectricityBillForm() {
   }, [watchCountry, watchProvider, watchMeterNumber]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    // Additional validation to prevent submission with invalid amount
+    const rawAmount = values.amount;
+    const submittedAmount = Number(rawAmount);
+
+    console.log('🔍 Debug - Amount validation:', {
+      rawAmount,
+      submittedAmount,
+      isNaN: isNaN(submittedAmount),
+      isValidNumber: !isNaN(submittedAmount) && submittedAmount > 0,
+      providerLimits
+    });
+
+    if (isNaN(submittedAmount) || submittedAmount <= 0) {
+      console.error('❌ Invalid amount detected:', rawAmount);
+      toast.error(`Please enter a valid amount greater than 0. You entered: "${rawAmount}"`);
+      return;
+    }
+
+    // Custom validation for provider limits
+    if (providerLimits) {
+      console.log('🔍 Checking provider limits:', {
+        submittedAmount,
+        minAmount: providerLimits.minAmount,
+        maxAmount: providerLimits.maxAmount,
+        withinLimits: submittedAmount >= providerLimits.minAmount && submittedAmount <= providerLimits.maxAmount
+      });
+
+      if (submittedAmount < providerLimits.minAmount) {
+        toast.error(`Amount must be at least ${providerLimits.minAmount} ${countryCurrency}`);
+        return;
+      }
+      if (submittedAmount > providerLimits.maxAmount) {
+        toast.error(`Amount cannot exceed ${providerLimits.maxAmount} ${countryCurrency}`);
+        return;
+      }
+    }
+
+    console.log('✅ Amount validation passed, proceeding with payment...');
+
+    // Check if the user has enough token balance before proceeding
+    updateStepStatus('check-balance', 'loading');
+    const hasEnoughBalance = await checkTokenBalance(values.amount, selectedToken, values.country);
+    if (!hasEnoughBalance) {
+      toast.error(`Insufficient ${selectedToken} balance to complete this transaction.`);
+      updateStepStatus('check-balance', 'error', `Insufficient ${selectedToken} balance`);
+      setIsProcessing(false);
+      return;
+    }
+
     setIsProcessing(true);
     openTransactionDialog("electricity", values.meterNumber);
     updateStepStatus("electricity-payment", "loading");
     try {
-      const apiKey = process.env.NEXT_PUBLIC_PAYMENT_API_KEY;
-      if (!apiKey) {
-        toast.error("Payment temporarily unavailable: missing API key. Please contact support.");
-        updateStepStatus("electricity-payment", "error", "Missing API key");
-        setIsProcessing(false);
-        return;
-      }
-
       const paymentResult = await handleTransaction({
         type: 'electricity',
         amount: values.amount,
@@ -202,34 +332,36 @@ export default function ElectricityBillForm() {
         metadata: {
           providerId: values.provider,
           provider: providers,
+          countryCode: watchCountry,
         }
       });
 
       if (paymentResult.success && paymentResult.transactionHash) {
         // After successful on-chain payment, call backend top-up with validation and API key
-        const response = await fetch('/api/utilities/electricity/pay', {
+        const backendRequestBody = {
+          country: values.country,
+          providerId: values.provider,
+          customerId: values.meterNumber,
+          customerEmail: values.email,
+          customerPhone: values.email, // Use email as phone if not provided
+          amount: Number(values.amount),
+          // SECURITY: Payment validation fields
+          transactionHash: paymentResult.transactionHash,
+          expectedAmount: paymentResult.convertedAmount,
+          paymentToken: paymentResult.paymentToken
+        };
+        console.log('Sending to backend:', backendRequestBody);
+        const backendResponse = await fetch('/api/utilities/electricity/pay', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': process.env.NEXT_PUBLIC_PAYMENT_API_KEY || ''
+            'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            country: values.country,
-            providerId: values.provider,
-            customerId: values.meterNumber,
-            customerEmail: values.email,
-            customerPhone: values.email, // Use email as phone if not provided
-            amount: amount,
-            // SECURITY: Payment validation fields
-            transactionHash: paymentResult.transactionHash,
-            expectedAmount: paymentResult.convertedAmount,
-            paymentToken: paymentResult.paymentToken
-          }),
+          body: JSON.stringify(backendRequestBody),
         });
 
-        const data = await response.json();
+        const data = await backendResponse.json();
 
-        if (response.ok && data.success) {
+        if (backendResponse.ok && data.success) {
           const selectedProvider = providers.find(p => p.id === values.provider);
           const successMessage = data.token 
             ? `Electricity bill paid successfully! Token: ${data.token}${data.units ? `, Units: ${data.units}` : ''}` 
@@ -254,11 +386,21 @@ export default function ElectricityBillForm() {
           setValidationResult(null);
         } else {
           console.error('Electricity Payment API Error:', data);
-          toast.error(data.error || "There was an issue processing your electricity bill payment. Our team has been notified.");
-          updateStepStatus('top-up', 'error', "Electricity payment failed but blockchain payment succeeded. Please screenshot this error and contact support.");
+          // Show backend error message if available, else generic message
+          const errorMsg = data.error || data.message || "There was an issue processing your electricity bill payment. Our team has been notified.";
+          toast.error(errorMsg);
+          updateStepStatus('top-up', 'error', errorMsg);
         }
       } else {
-        throw new Error("Transaction failed");
+        // Log backend response for debugging
+        console.error('Electricity Payment API response:', paymentResult);
+        // Show more informative error if available
+        let errorMsg = 'Transaction failed. Please check your wallet and try again.';
+        if (typeof paymentResult === 'object' && paymentResult) {
+          errorMsg = JSON.stringify(paymentResult);
+        }
+        toast.error(errorMsg);
+        updateStepStatus('electricity-payment', 'error', errorMsg);
       }
     } catch (error) {
       console.error("Error processing payment:", error);
@@ -279,20 +421,20 @@ export default function ElectricityBillForm() {
             name="country"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-800 dark:text-yellow-400 font-medium text-sm">Country</FormLabel>
+                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Country</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <CountrySelector
                       value={field.value}
                       onChange={(val) => {
                         field.onChange(val);
-                        if (val) setCountryCurrency(val);
+                        if (val) setCountryCurrency(val.toUpperCase());
                       }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 dark:from-yellow-400/10 to-transparent pointer-events-none rounded-lg"></div>
                   </div>
                 </FormControl>
-                <FormDescription className="text-xs text-gray-600 dark:text-gray-300">
+                <FormDescription className="text-gray-900 dark:text-white">
                   Select the country for the electricity service.
                 </FormDescription>
                 <FormMessage className="text-red-600 dark:text-yellow-300" />
@@ -305,14 +447,14 @@ export default function ElectricityBillForm() {
             name="provider"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-800 dark:text-yellow-400 font-medium text-sm">Electricity Provider</FormLabel>
+                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Electricity Provider</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
                   disabled={isLoading || providers.length === 0}
                 >
                   <FormControl>
-                    <SelectTrigger className="bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-gray-900 dark:text-white">
+                    <SelectTrigger className="bg-white dark:black/80 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-gray-900 dark:text-white">
                       <SelectValue placeholder={providers.length === 0 ? "Select a country first" : "Select electricity provider"} className="text-xs" />
                     </SelectTrigger>
                   </FormControl>
@@ -328,10 +470,10 @@ export default function ElectricityBillForm() {
                     ))}
                   </SelectContent>
                 </Select>
-                {isLoading && <div className="text-sm text-gray-600 dark:text-yellow-300 mt-1 flex items-center">
-                  <Loader2 className="h-3 w-3 animate-spin mr-1 text-yellow-500 dark:text-yellow-400" /> Loading providers...
+                {isLoading && <div className="text-sm text-black/60 dark:text-yellow-300 mt-1 flex items-center">
+                  <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-yellow-400" /> Loading providers...
                 </div>}
-                <FormDescription className="text-xs text-gray-600 dark:text-gray-300">
+                <FormDescription className="text-gray-900 dark:text-white">
                   {providers.length === 0 && "Please select a country first to see available providers"}
                 </FormDescription>
                 <FormMessage className="text-red-600 dark:text-yellow-300" />
@@ -344,20 +486,23 @@ export default function ElectricityBillForm() {
             name="meterNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-800 dark:text-yellow-400 font-medium text-sm">Meter Number</FormLabel>
+                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Meter Number</FormLabel>
                 <FormControl>
                   <Input 
                     placeholder="Enter meter number" 
                     {...field} 
-                    className={`text-xs bg-white dark:bg-gray-800 border-2 transition-all duration-200 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 ${
+                    className={`text-xs bg-white dark:bg-black/90 border-2 border-black/70 hover:border-black/70 dark:hover:border-yellow-400 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90 placeholder:text-black-500 dark:placeholder:text-black-400 ${
                       validationResult === null 
-                        ? 'border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30'
+                        ? ''
                         : validationResult.valid
-                          ? 'border-green-400 dark:border-green-500 focus:border-green-500 dark:focus:border-green-400 focus:ring-2 focus:ring-green-400/20 dark:focus:ring-green-400/30'
-                          : 'border-red-400 dark:border-red-500 focus:border-red-500 dark:focus:border-red-400 focus:ring-2 focus:ring-red-400/20 dark:focus:ring-red-400/30'
+                          ? 'border-green-400 dark:border-green-400'
+                          : 'border-red-400 dark:border-red-400'
                     }`}
                   />
                 </FormControl>
+                <FormDescription className="text-gray-900 dark:text-white">
+                  Enter your electricity meter number.
+                </FormDescription>
                 {isValidating && (
                   <div className="text-sm text-yellow-600 dark:text-yellow-300 mt-1 flex items-center">
                     <Loader2 className="h-3 w-3 animate-spin mr-1" /> Validating meter number...
@@ -365,15 +510,12 @@ export default function ElectricityBillForm() {
                 )}
                 {validationResult && (
                   <div className={`text-sm mt-1 ${validationResult.valid ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {validationResult.valid 
+                    {validationResult.valid
                       ? `✓ Valid meter: ${validationResult.customerName || 'Meter number validated'}${validationResult.outstandingAmount ? ` (Outstanding: ${validationResult.outstandingAmount})` : ''}`
                       : `✗ ${validationResult.error || 'Invalid meter number'}`
                     }
                   </div>
                 )}
-                <FormDescription className="text-xs text-gray-600 dark:text-gray-300">
-                  Enter your electricity meter number.
-                </FormDescription>
                 <FormMessage className="text-red-600 dark:text-yellow-300" />
               </FormItem>
             )}
@@ -384,17 +526,60 @@ export default function ElectricityBillForm() {
             name="amount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-800 dark:text-yellow-400 font-medium text-sm">Amount</FormLabel>
+                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">
+                  Amount {countryCurrency && `(${countryCurrency})`}
+                </FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Enter amount"
-                    {...field}
-                    className="text-xs bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-gray-900 dark:text-white transition-all duration-200"
-                  />
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      placeholder={providerLimits 
+                        ? `Enter amount (${providerLimits.minAmount} - ${providerLimits.maxAmount})` 
+                        : countryCurrency 
+                          ? `Enter amount (${countryCurrency})` 
+                          : "Enter amount"}
+                      {...field}
+                      className={`text-xs bg-white dark:bg-black/90 border-2 ${!amountValidation.isValid
+                        ? 'border-red-400 dark:border-red-400'
+                        : amountValidation.type === 'warning'
+                          ? 'border-yellow-400 dark:border-yellow-400'
+                          : amountValidation.type === 'info'
+                            ? 'border-blue-400 dark:border-blue-400'
+                            : amountValidation.type === 'success'
+                              ? 'border-green-400 dark:border-green-400'
+                              : 'border-black/70 '
+                        } hover:border-black/70 
+                         -400 focus:ring-2 dark:focus:border-yellow-400 focus:ring-2 focus:ring-black/70 dark:focus:ring-yellow-400/30 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-black/90 dark:text-white/90 transition-all duration-200`}
+                      disabled={isLoading}
+                    />
+                    {/* Only show amount validation if not validating meter */}
+                    {!isValidating && amountValidation.message && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        {amountValidation.type === 'error' && <AlertCircle className="h-4 w-4 text-red-500" />}
+                        {amountValidation.type === 'warning' && <AlertCircle className="h-4 w-4 text-yellow-500" />}
+                        {amountValidation.type === 'info' && <Info className="h-4 w-4 text-blue-500" />}
+                        {amountValidation.type === 'success' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                      </div>
+                    )}
+                  </div>
                 </FormControl>
-                <FormDescription className="text-xs text-gray-600 dark:text-gray-300">
-                  Enter the amount you want to pay.
+
+                {/* Only show amount validation if not validating meter */}
+                {!isValidating && amountValidation.message && (
+                  <div className={`text-xs mt-1 flex items-center ${amountValidation.type === 'error'
+                    ? 'text-red-600 dark:text-red-400'
+                    : amountValidation.type === 'warning'
+                      ? 'text-yellow-600 dark:text-yellow-400'
+                      : amountValidation.type === 'info'
+                        ? 'text-blue-600 dark:text-blue-400'
+                        : 'text-green-600 dark:text-green-400'
+                    }`}>
+                    {amountValidation.message}
+                  </div>
+                )}
+
+                <FormDescription className="text-gray-900 dark:text-white">
+                  Enter the amount you want to pay for electricity.
                 </FormDescription>
                 <FormMessage className="text-red-600 dark:text-yellow-300" />
               </FormItem>
@@ -406,10 +591,10 @@ export default function ElectricityBillForm() {
             name="paymentToken"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-800 dark:text-yellow-400 font-medium text-sm">Payment Token</FormLabel>
+                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Payment Token</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-gray-900 dark:text-white">
+                    <SelectTrigger className="bg-white dark:bg-black/90 border-2 border-black/70 hover:border-black/70 dark:hover:border-yellow-400 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90">
                       <SelectValue placeholder="Select payment token" className="text-xs" />
                     </SelectTrigger>
                   </FormControl>
@@ -425,7 +610,7 @@ export default function ElectricityBillForm() {
                     ))}
                   </SelectContent>
                 </Select>
-                <FormDescription className="text-xs text-gray-600 dark:text-gray-300">
+                <FormDescription className="text-gray-900 dark:text-white">
                   All token amounts are converted to USD equivalent
                 </FormDescription>
                 <FormMessage className="text-red-600 dark:text-yellow-300" />
@@ -433,7 +618,7 @@ export default function ElectricityBillForm() {
             )}
           />
 
-          {amount > 0 && (
+          {amount > 0 && amountValidation.isValid && (
             <Card className="bg-gradient-to-r from-yellow-100 via-yellow-200 to-yellow-100 dark:from-yellow-400 dark:via-yellow-300 dark:to-yellow-400 border-2 border-yellow-300 dark:border-0 shadow-lg shadow-yellow-400/20 dark:shadow-yellow-400/30">
               <CardContent className="pt-4">
                 <div className="flex flex-col space-y-1">
@@ -442,8 +627,9 @@ export default function ElectricityBillForm() {
                   </div>
                   <div className="text-gray-900 dark:text-black font-medium">
                     <DualCurrencyPrice
-                      amount={amount}
+                      amount={Number(watchAmount)}
                       stablecoin={selectedToken}
+                      countryCurrency={watchCountry}
                       showTotal={true}
                     />
                   </div>
@@ -457,16 +643,16 @@ export default function ElectricityBillForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-800 dark:text-yellow-400 font-medium text-sm">Email Address</FormLabel>
+                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Email Address</FormLabel>
                 <FormControl>
                   <Input
                     type="email"
                     placeholder="Enter your email address"
                     {...field}
-                    className="text-xs bg-white dark:bg-gray-800 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-gray-900 dark:text-white transition-all duration-200"
+                    className="text-xs bg-white dark:bg-black/90 border-2 border-black/70 hover:border-black/70 dark:hover:border-yellow-400 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90 placeholder:text-black-500 dark:placeholder:text-black-400"
                   />
                 </FormControl>
-                <FormDescription className="text-xs text-gray-600 dark:text-gray-300">
+                <FormDescription className="text-gray-900 dark:text-white">
                   We&apos;ll send payment confirmation to this email.
                 </FormDescription>
                 <FormMessage className="text-red-600 dark:text-yellow-300" />
@@ -477,7 +663,7 @@ export default function ElectricityBillForm() {
           <Button
             type="submit"
             className="w-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-400 hover:from-yellow-500 hover:via-yellow-600 hover:to-yellow-500 dark:from-yellow-400 dark:via-yellow-500 dark:to-yellow-400 dark:hover:from-yellow-500 dark:hover:via-yellow-600 dark:hover:to-yellow-500 text-black font-medium py-3 shadow-lg shadow-yellow-400/30 dark:shadow-yellow-400/40 border-0 transition-all duration-200 hover:shadow-xl hover:shadow-yellow-400/40 dark:hover:shadow-yellow-400/50 transform hover:-translate-y-0.5"
-            disabled={isProcessing || amount <= 0 || (validationResult && !validationResult.valid) || isValidating}
+            disabled={isProcessing || !watchAmount || Number(watchAmount) <= 0 || (validationResult && !validationResult.valid) || isValidating}
           >
             {isProcessing ? (
               <>

@@ -50,67 +50,53 @@ export default function DualCurrencyPrice({
   const [usdEquivalent, setUsdEquivalent] = useState(0);
 
   useEffect(() => {
+    // Clear previous state immediately for responsiveness
+    setLocalDisplay('');
+    setCryptoDisplay('');
+    setTotalDisplay('');
+    setGasFeeDisplay('');
+    setUsdEquivalent(0);
+    setLoading(true);
+
     const fetchPrices = async () => {
       if (!amount && countryCurrency) {
         setLoading(false);
         return;
       }
-
-      setLoading(true);
       try {
         const parsedAmount = parseAmount(amount);
-
-        // Format the local currency amount
         setLocalDisplay(formatCurrency(parsedAmount, countryCurrency));
 
-        // Convert local currency to USD
-        let usdAmount;
-        try {
-          // Convert local currency amount to USD
-          console.log('Converting amount:', parsedAmount, 'from currency:', countryCurrency);
-          usdAmount = await convertCurrency(parsedAmount.toString(), countryCurrency);
-          console.log('Converted USD amount:', usdAmount);
-          if (stablecoin === 'G$') {
-            const gDollarAmount = usdAmount / 0.0001;
-            setUsdEquivalent(gDollarAmount);
-            setCryptoDisplay(`${stablecoin} ${gDollarAmount.toFixed(2)}`);
-            if (showTotal) {
-              const totalWithFee = gDollarAmount ;
-              setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
-            }
+        // Only call convertCurrency once per update
+        let usdAmount = await convertCurrency(parsedAmount.toString(), countryCurrency);
+
+        if (stablecoin === 'G$') {
+          const gDollarAmount = usdAmount / 0.0001;
+          setUsdEquivalent(gDollarAmount);
+          setCryptoDisplay(`${stablecoin} ${gDollarAmount.toFixed(2)}`);
+          if (showTotal) {
+            setTotalDisplay(`${stablecoin} ${gDollarAmount.toFixed(2)}`);
           }
-          else if (stablecoin === 'CELO') {
-            usdAmount = await convertCurrency(parsedAmount.toString(), countryCurrency);
-            setUsdEquivalent(usdAmount * 2.8);
-            setCryptoDisplay(`${stablecoin} ${(usdAmount * 2.8).toFixed(2)}`);
-            if (showTotal) {
-              const totalWithFee = usdAmount * 2.8 ;
-              setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
-            }
+        } else if (stablecoin === 'CELO') {
+          setUsdEquivalent(usdAmount * 2.8);
+          setCryptoDisplay(`${stablecoin} ${(usdAmount * 2.8).toFixed(2)}`);
+          if (showTotal) {
+            setTotalDisplay(`${stablecoin} ${(usdAmount * 2.8).toFixed(2)}`);
           }
-          else {
-            usdAmount = await convertCurrency(parseAmount(amount).toString(), countryCurrency);
-            setUsdEquivalent(usdAmount);
-            setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
-            if (showTotal) {
-              const gasFeeUSD = 0.01;
-              const totalWithFee = usdAmount + gasFeeUSD;
-              setGasFeeDisplay(`${stablecoin} ${gasFeeUSD.toFixed(2)}`);
-              setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
-            }
+        } else {
+          setUsdEquivalent(usdAmount);
+          setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
+          if (showTotal) {
+            const gasFeeUSD = 0.01;
+            const totalWithFee = usdAmount + gasFeeUSD;
+            setGasFeeDisplay(`${stablecoin} ${gasFeeUSD.toFixed(2)}`);
+            setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
           }
-        } catch (error) {
-          console.error('Error converting to USD:', error);
-          setUsdEquivalent(0);
-          throw error;
         }
       } catch (error) {
         console.error('Error fetching price data:', error);
-
-        // Use the countryCurrency already fetched at component level
         setLocalDisplay(formatCurrency(parseAmount(amount), countryCurrency));
         setCryptoDisplay(`${stablecoin} 0.00`);
-
         if (showTotal) {
           setGasFeeDisplay(`${stablecoin} 0.01`);
           setTotalDisplay(`${stablecoin} 0.01`);
@@ -120,7 +106,6 @@ export default function DualCurrencyPrice({
       }
     };
     fetchPrices();
-
   }, [amount, stablecoin, includeGasFee, showTotal, convertCurrency, countryCurrency]);
 
   if (loading) {
