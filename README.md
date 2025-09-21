@@ -1,10 +1,29 @@
-# Esusu: Decentralized Community Savings on Celo
+# Esusu: Decentralised Community Savings on Celo
 
 ![Esusu Logo](https://github.com/user-attachments/assets/c1e4d15e-d400-477f-a302-98ba9e40135d)
 
+
+# Proof of Ship 6 
+- Made smart contracts upgradable
+- Added test suite with above 85% coverage
+- Implemented G$ face verification on Farcaster
+- Accepting Celo as a means of payment via MentoSDK exchange rate
+- Onboard additional users, increasing the community base by over 150%
+- Ran a monthly community giveaway scheme
+- Launched referral campaign for early community members with rewards payout of over $250 so far
+- Ensured GitOps pipeline is functional
+
+# Proof of Ship 7
+
+- Implemented robust user management and profile service (wallet-based identity, email/phone linking, MongoDB integration)
+- Centralized transaction management for savings, withdrawals, utility payments, group contributions, and payouts with blockchain tracking
+- Developed group thrift and rotating savings service (5-member groups, automated scheduling, strong validation)
+- Built utility and electricity payment service with secure API integration and auditable flows
+- Added notification and multi-channel alert service (email, SMS, push) for key user and group events
+
 ## Overview
 
-Esusu is a decentralized application (DApp) built on the Celo Mainnet that modernizes traditional community savings systems. It enables financial inclusion through a 3-in-1 solution that combines collaborative savings, personal finance management, and bill payment capabilities.
+Esusu is a decentralised application (DApp) built on the Celo Mainnet that modernizes traditional community savings systems. It enables financial inclusion through a 3-in-1 solution that combines collaborative savings, personal finance management, and bill payment capabilities.
 
 ## Features
 
@@ -35,7 +54,7 @@ Esusu bridges traditional community savings practices with blockchain technology
 - Preserves cultural financial traditions while eliminating trust issues
 - Enables financial discipline through smart contract enforcement
 - Provides accessible financial tools via mobile devices with minimal bandwidth requirements
-- Promotes community cooperation through decentralized technology
+- Promotes community cooperation through decentralised technology
 
 ## Technology Stack
 
