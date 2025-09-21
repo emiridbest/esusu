@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import ClaimStatusDisplay from '@/components/freebies/ClaimStatusDisplay';
 import { useFreebiesLogic } from '@/hooks/useFreebies';
 import { useClaimProcessor } from "@/context/utilityProvider/ClaimContextProvider";
+import Engagement from '@/components/Engagement';
 
 export default function Freebies() {
     const {
@@ -48,8 +49,11 @@ export default function Freebies() {
     return (
         <div className="container py-8 bg-gradient-to-br from-yellow-50 to-white dark:from-black/90 dark:to-black min-h-screen">
             <p className="text-center mb-8 text-xl font-semibold text-black dark:text-yellow-100 bg-yellow-200 dark:bg-yellow-900/30 py-3 px-6 rounded-full mx-auto max-w-2xl shadow-lg">
-                ⚡ Claim your free daily data bundle powered by GoodDollar UBI ⚡
+             Claim FREE mobile data bundles  (UBI) and Earn loyalty rewards with GoodDollar tokens
             </p>
+        
+
+            {/* Mobile Data Section */}
 
             <div className="max-w-md mx-auto">
                 <Card className="bg-white dark:bg-black border-2 border-yellow-400 dark:border-yellow-500 shadow-2xl shadow-yellow-500/20 dark:shadow-yellow-500/30">
@@ -280,6 +284,11 @@ export default function Freebies() {
                         </Button>
                     </CardFooter>
                 </Card>
+            </div>
+
+                        {/* GoodDollar Rewards Section */}
+            <div className="mb-12">
+                <Engagement />
             </div>
         </div>
     );
