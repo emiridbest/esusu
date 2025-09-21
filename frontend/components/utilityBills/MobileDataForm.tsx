@@ -359,7 +359,7 @@ export default function MobileDataForm() {
     }
   }
     return (
-      <div className="bg-gradient-to-br from-white via-black-50 to-primary-50 dark:from-black dark:via-black-0 dark:to-black p-6 rounded-xl border border-primary-400/20 dark:border-primary-400/30">
+      <div className="bg-gradient-to-br from-white via-black-50 to-primary-50 dark:from-black dark:via-black-0 dark:to-black p-6 rounded-xl">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -367,7 +367,7 @@ export default function MobileDataForm() {
               name="country"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Country</FormLabel>
+                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">COUNTRY</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <CountrySelector
@@ -391,10 +391,10 @@ export default function MobileDataForm() {
               name="network"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Network Provider</FormLabel>
+                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm"> NETWORK PROVIDER</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || networks.length === 0}>
                     <FormControl className="relative">
-                      <SelectTrigger className="bg-white dark:bg-black/90 border-2 border-black/70 hover:border-black/70 dark:hover:border-yellow-400 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90">
+                      <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-black/90 dark:text-white/90">
                         <SelectValue placeholder="Select network provider" className='text-xs'>
                           {field.value && networks && networks.length > 0 && (() => {
                             const selectedNetwork = networks.find(n => n.id === field.value);
@@ -419,13 +419,12 @@ export default function MobileDataForm() {
                         </SelectValue>
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="bg-white dark:bg-black/90 border-2 dark:border-yellow-400/40">
+                    <SelectContent className="bg-white">
                       {networks.length > 0 ? (
                         networks.map((network) => (
                           <SelectItem
                             key={network.id}
                             value={network.id}
-                            className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-600 dark:focus:bg-yellow-800/30 text-black/90 dark:text-white/90"
                           >
                             <div className="flex items-center">
                               {network.logoUrls && network.logoUrls.length > 0 && (
@@ -451,7 +450,7 @@ export default function MobileDataForm() {
                     </SelectContent>
                   </Select>
                   {isLoading && <div className="text-sm text-black-600 dark:text-yellow-300 mt-1 flex items-center">
-                    <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-yellow-400" /> Loading providers...
+                    <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-white/60 " /> Loading providers...
                   </div>}
                   <FormMessage className="text-red-600 dark:text-yellow-300" />
                 </FormItem>
@@ -463,24 +462,23 @@ export default function MobileDataForm() {
               name="plan"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Data Plan</FormLabel>
+                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">DATA PLAN</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
                     disabled={isLoading || !watchNetwork || availablePlans.length === 0}
                   >
                     <FormControl>
-                      <SelectTrigger className="bg-white dark:bg-black/90 border-2 border-black/70 hover:border-black/70 dark:hover:border-yellow-400 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90">
+                      <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-black/90 dark:text-white/90">
                         <SelectValue placeholder="Select data plan" className='text-xs' />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="bg-white dark:bg-black/90 border-2 dark:border-yellow-400/40">
+                    <SelectContent className="bg-white">
                       {availablePlans.length > 0 ? (
                         availablePlans.map((plan) => (
                           <SelectItem
                             key={plan.id}
                             value={plan.id}
-                            className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-600 dark:focus:bg-yellow-800/30 text-black/90 dark:text-white/90"
                           >
                             {plan.name} - {plan.price}
                           </SelectItem>
@@ -493,7 +491,7 @@ export default function MobileDataForm() {
                     </SelectContent>
                   </Select>
                   {isLoading && <div className="text-sm text-black-600 dark:text-yellow-300 mt-1 flex items-center">
-                    <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-yellow-400" /> Loading plans...
+                    <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-white/60 " /> Loading plans...
                   </div>}
                   {!isLoading && watchNetwork && availablePlans.length === 0 && (
                     <div className="text-sm text-red-600 dark:text-yellow-300 mt-1">
@@ -511,12 +509,12 @@ export default function MobileDataForm() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Email</FormLabel>
+                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">EMAIL</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Enter your email"
                       {...field}
-                      className="text-xs bg-white dark:bg-black/90 border-2 border-black/70 hover:border-primary/900 dark:hover:border-yellow-400 focus:border-primary/900 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-black-500 dark:placeholder:text-black-400 text-black-900 dark:text-white/90 transition-all duration-200"
+                      className="text-xs bg-gray-100 dark:bg-white/10  "
                     />
                   </FormControl>
                   <FormMessage className="text-red-600 dark:text-yellow-300" />
@@ -528,12 +526,12 @@ export default function MobileDataForm() {
               name="phoneNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Phone Number</FormLabel>
+                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">PHONE NUMBER</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Enter phone number"
                       {...field}
-                      className="text-xs bg-white dark:bg-black/90 border-2 border-black/70 hover:border-primary/900 dark:hover:border-yellow-400 focus:border-primary/900 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-black-500 dark:placeholder:text-black-400 text-black-900 dark:text-white/90 transition-all duration-200"
+                      className="text-xs bg-gray-100 dark:bg-white/10  text-black-900 dark:text-white/90"
   
                     />
                   </FormControl>
@@ -546,7 +544,7 @@ export default function MobileDataForm() {
               name="paymentToken"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Payment Token</FormLabel>
+                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">PAYMENT TOKEN</FormLabel>
                   <Select
                     onValueChange={(val) => {
                       field.onChange(val);
@@ -555,16 +553,15 @@ export default function MobileDataForm() {
                     value={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger className="bg-white dark:bg-black/90 border-2 border-black/70 hover:border-black/70 dark:hover:border-yellow-400 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90">
+                      <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-black/90 dark:text-white/90">
                         <SelectValue placeholder="Select payment token" className='text-xs' />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="bg-white dark:bg-black/90 border-2 dark:border-yellow-400/40">
+                    <SelectContent className="bg-white">
                       {TOKENS.map((token) => (
                         <SelectItem
                           key={token.id}
                           value={token.id}
-                          className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-600 dark:focus:bg-yellow-800/30 text-black/90 dark:text-white/90"
                         >
                           {token.name}
                         </SelectItem>
@@ -577,10 +574,10 @@ export default function MobileDataForm() {
             />
   
             {selectedPrice > 0 && (
-              <Card className="bg-gradient-to-r from-yellow-100 via-yellow-200 to-yellow-100 dark:from-yellow-400 dark:via-yellow-300 dark:to-yellow-400 border-2 border-yellow-300 dark:border-0 shadow-lg shadow-yellow-400/20 dark:shadow-yellow-400/30">
+              <Card className="bg-gradient-to-r from-yellow-100 via-yellow-200 to-yellow-100 dark:from-yellow-400 dark:via-yellow-300 dark:to-yellow-400 ">
                 <CardContent className="pt-4">
                   <div className="flex flex-col space-y-1">
-                    <div className="text-sm font-medium text-black/80 dark:text-black">
+                    <div className="text-sm font-light text-black/80 dark:text-black">
                       Payment Amount:
                     </div>
                     <div className="text-black-900 dark:text-black font-medium">
@@ -598,7 +595,7 @@ export default function MobileDataForm() {
   
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-yellow-400 via-primary/900 to-yellow-400 hover:from-primary/900 hover:via-yellow-600 hover:to-primary/900 dark:from-yellow-400 dark:via-primary/900 dark:to-yellow-400 dark:hover:from-primary/900 dark:hover:via-yellow-600 dark:hover:to-primary/900 text-black font-medium py-3 shadow-lg shadow-yellow-400/30 dark:shadow-yellow-400/40 border-0 transition-all duration-200 hover:shadow-xl hover:shadow-yellow-400/40 dark:hover:shadow-yellow-400/50 transform hover:-translate-y-0.5"
+              className="w-full bg-gradient-to-r from-yellow-400 via-primary/900 to-yellow-400 hover:from-primary/900 hover:via-yellow-600 hover:to-primary/900 dark:from-yellow-400 dark:via-primary/900 dark:to-yellow-400 dark:hover:from-primary/900 dark:hover:via-yellow-600 dark:hover:to-primary/900 text-black font-light py-3 shadow-lg shadow-yellow-400/30 dark:shadow-yellow-400/40 "
               disabled={isProcessing || !selectedPrice}
             >
               {isProcessing ? (

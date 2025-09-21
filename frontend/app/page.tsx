@@ -92,7 +92,7 @@ const Esusu: React.FC = () => {
           <SparklesIcon className="h-5 w-5 text-primary mr-2" />
           <h2 className="text-xl font-semibold dark:text-white/70">Quick Actions</h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 dark:text-white">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 dark:text-white">
           <QuickAction 
             icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
               <rect width="20" height="14" x="2" y="5" rx="2" />
@@ -110,6 +110,16 @@ const Esusu: React.FC = () => {
             title="Join a Thrift"
             description="Save with friends and family"
             href="/thrift"
+            variant="outline"
+          />
+          <QuickAction
+            icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
+              <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z" />
+              <circle cx="12" cy="12" r="1" />
+            </svg>}
+            title="Claim Esusu Loyaty Rewards"
+            description="Get reawrded for being an Esusu OG in G$"
+            href="/rewards"
             variant="outline"
           />
           <QuickAction
