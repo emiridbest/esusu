@@ -427,8 +427,9 @@ export default function AirtimeForm() {
     }
   }
 
+
   return (
-    <div className="bg-gradient-to-br from-white via-black-50 to-primary-50 dark:from-black dark:via-black-0 dark:to-black p-6 rounded-xl border border-primary-400/20 dark:border-primary-400/30">
+    <div className="bg-gradient-to-br from-white via-black-50 to-white/90 dark:from-black dark:via-black-0 dark:to-black p-6 rounded-xl border border-primary-400/20 dark:border-primary-400/30">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
@@ -436,7 +437,7 @@ export default function AirtimeForm() {
             name="country"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-black-800 dark:text-yellow-400 font-medium text-sm">Country</FormLabel>
+                <FormLabel className="text-black-800 dark:text-white/60  font-light text-sm">COUNTRY</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <CountrySelector
@@ -448,7 +449,7 @@ export default function AirtimeForm() {
                     />
                   </div>
                 </FormControl>
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
+                <FormMessage className="text-red-600 dark:text-white/10" />
               </FormItem>
             )}
           />
@@ -458,11 +459,11 @@ export default function AirtimeForm() {
             name="network"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Network Provider</FormLabel>
+                <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">NETWORK PROVIDER</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || networks.length === 0}>
                   <FormControl className="relative">
-                    <SelectTrigger className="bg-white dark:bg-black/90 border-2 border-black/70 hover:border-black/70 
-                    -400 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90">
+                    <SelectTrigger className="bg-gray-100 
+                    text-black/90 dark:text-white/90">
                       <SelectValue placeholder="Select network provider" className='text-xs'>
                         {field.value && networks && networks.length > 0 && (() => {
                           const selectedNetwork = networks.find(n => n.id === field.value);
@@ -486,13 +487,12 @@ export default function AirtimeForm() {
                       </SelectValue>
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="bg-white dark:bg-black/90 border-2 dark:border-yellow-400/40">
+                  <SelectContent className="bg-white">
                     {networks.length > 0 ? (
                       networks.map((network) => (
                         <SelectItem
                           key={network.id}
                           value={network.id}
-                          className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-600 dark:focus:bg-yellow-800/30 text-black/90 dark:text-white/90"
                         >
                           <div className="flex items-center">
                             {network.logoUrls && network.logoUrls.length > 0 && (
@@ -516,10 +516,10 @@ export default function AirtimeForm() {
                     )}
                   </SelectContent>
                 </Select>
-                {isLoading && <div className="text-sm text-black/60 dark:text-yellow-300 mt-1 flex items-center">
-                  <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-yellow-400" /> Loading providers...
+                {isLoading && <div className="text-sm text-black/60 dark:text-white/10 mt-1 flex items-center">
+                  <Loader2 className="h-3 w-3 animate-spin mr-1 text-white/10 dark:text-white/60 " /> Loading providers...
                 </div>}
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
+                <FormMessage className="text-red-600 dark:text-white/10" />
               </FormItem>
             )}
           />
@@ -529,16 +529,15 @@ export default function AirtimeForm() {
             name="phoneNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-black-800 dark:text-yellow-400 font-medium text-sm">Phone Number</FormLabel>
+                <FormLabel className="text-black-800 dark:text-white/60  font-light text-sm">PHONE NUMBER</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Enter phone number"
                     {...field}
-                    className="text-xs bg-white dark:bg-black/90 border-2 border-black/70  hover:border-primary/900 
-                    -400 focus:border-primary/900 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-black-500 dark:placeholder:text-black-400 text-black-900 dark:text-white/90 transition-all duration-200"
+                    className="text-xs bg-white/50 dark:bg-black/50 "
                   />
                 </FormControl>
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
+                <FormMessage className="text-red-600 dark:text-white/10" />
               </FormItem>
             )}
           />
@@ -548,8 +547,8 @@ export default function AirtimeForm() {
             name="amount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-black-800 dark:text-yellow-400 font-medium text-sm">
-                  Airtime Amount {operatorRange && `(${operatorRange.currency})`}
+                <FormLabel className="text-black-800 dark:text-white/60  font-light text-sm">
+                  AIRTIME AMOUNT {operatorRange && `(${operatorRange.currency})`}
                 </FormLabel>
                 <FormControl>
                   <div className="relative">
@@ -560,12 +559,12 @@ export default function AirtimeForm() {
                       className={`text-xs bg-white dark:bg-black/80 border-2 ${!amountValidation.isValid
                         ? 'border-red-400 dark:border-red-400'
                         : amountValidation.type === 'warning'
-                          ? 'border-black/90 dark:border-yellow-400'
+                          ? 'border-black/90 dark:border-yellow-500'
                           : amountValidation.type === 'info'
                             ? 'border-blue-400 dark:border-blue-400'
                             : 'border-black/70 '
                         } hover:border-black/70 
-                         -400 focus:ring-2 dark:focus:border-yellow-400 focus:ring-2 focus:ring-black/70 dark:focus:ring-yellow-400/30 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-gray-900 dark:text-white transition-all duration-200`}
+                         `}
                       disabled={isLoading || !operatorRange}
                     />
                     {amountValidation.message && (
@@ -584,7 +583,7 @@ export default function AirtimeForm() {
                   <div className={`text-xs mt-1 flex items-center ${amountValidation.type === 'error'
                     ? 'text-red-600 dark:text-red-400'
                     : amountValidation.type === 'warning'
-                      ? 'text-yellow-600 dark:text-yellow-400'
+                      ? 'text-yellow-500 dark:text-white/60 '
                       : amountValidation.type === 'info'
                         ? 'text-blue-600 dark:text-blue-400'
                         : 'text-green-600 dark:text-green-400'
@@ -595,19 +594,19 @@ export default function AirtimeForm() {
 
                 {/* Loading state */}
                 {isLoading && watchNetwork && (
-                  <div className="text-sm text-black/60 dark:text-yellow-300 mt-1 flex items-center">
-                    <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-yellow-400" /> Loading amount limits...
+                  <div className="text-sm text-black/60 dark:text-white/10 mt-1 flex items-center">
+                    <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-white/60 " /> Loading amount limits...
                   </div>
                 )}
 
                 {/* No range available */}
                 {!isLoading && watchNetwork && !operatorRange && (
-                  <div className="text-sm text-red-600 dark:text-yellow-300 mt-1">
+                  <div className="text-sm text-red-600 dark:text-white/10 mt-1">
                     No amount limits available for this network
                   </div>
                 )}
 
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
+                <FormMessage className="text-red-600 dark:text-white/10" />
               </FormItem>
             )}
           />
@@ -618,16 +617,15 @@ export default function AirtimeForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-black-800 dark:text-yellow-400 font-medium text-sm">Email</FormLabel>
+                <FormLabel className="text-black-800 dark:text-white/60  font-light text-sm">EMAIL</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Enter your email"
                     {...field}
-                    className="text-xs bg-white dark:bg-black/90 border-2 border-black/70  hover:border-primary/900 
-                    -400 focus:border-primary/900 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-black-500 dark:placeholder:text-black-400 text-black-900 dark:text-white/90 transition-all duration-200"
+                    className="text-xs bg-gray-100 dark:bg-white/10"
                   />
                 </FormControl>
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
+                <FormMessage className="text-red-600 dark:text-white/10" />
               </FormItem>
             )}
           />
@@ -636,7 +634,7 @@ export default function AirtimeForm() {
             name="paymentToken"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Payment Token</FormLabel>
+                <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">PAYMENT TOKEN</FormLabel>
                 <Select
                   onValueChange={(val) => {
                     field.onChange(val);
@@ -645,35 +643,35 @@ export default function AirtimeForm() {
                   value={field.value}
                 >
                   <FormControl>
-                    <SelectTrigger className="bg-white dark:bg-black/90 border-2 border-black/70 hover:border-black/70 dark:hover:border-yellow-400 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90">
+                    <SelectTrigger className="bg-gray-100 dark:bg-white/10 text-black/90 dark:text-white/90">
                       <SelectValue placeholder="Select payment token" className='text-xs' />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="bg-white dark:bg-black/90 border-2 dark:border-yellow-400/40">
+                  <SelectContent className="bg-white">
                     {TOKENS.map((token) => (
                       <SelectItem
                         key={token.id}
                         value={token.id}
-                        className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-600 dark:focus:bg-yellow-800/30 text-black/90 dark:text-white/90"
+                        className="text-black/90 dark:text-white/90"
                       >
                         {token.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
+                <FormMessage className="text-red-600 dark:text-white/10" />
               </FormItem>
             )}
           />
 
           {selectedPrice > 0 && (
-            <Card className="bg-gradient-to-r from-yellow-100 via-yellow-200 to-yellow-100 dark:from-yellow-400 dark:via-yellow-300 dark:to-yellow-400 border-2 border-yellow-300 dark:border-0 shadow-lg shadow-yellow-400/20 dark:shadow-yellow-400/30">
+            <Card className="bg-gradient-to-r from-yellow-500 via-yellow-500 to-yellow-500 dark:from-yellow-500 dark:via-yellow-500 dark:to-yellow-500 ">
               <CardContent className="pt-4">
                 <div className="flex flex-col space-y-1">
-                  <div className="text-sm font-medium text-black/80 dark:text-white/90">
+                  <div className="text-sm font-light text-black/80 dark:text-white/90">
                     Payment Amount:
                   </div>
-                  <div className="text-black/90 dark:text-white/90 font-medium">
+                  <div className="text-black/90 dark:text-white/90 font-light">
                     <DualCurrencyPrice
                       amount={selectedPrice}
                       countryCurrency={form.getValues().country}
@@ -688,7 +686,7 @@ export default function AirtimeForm() {
 
           <Button
             type="submit"
-            className="w-full bg-gradient-to-r from-yellow-400 via-primary/900 to-yellow-400 hover:from-primary/900 hover:via-yellow-600 hover:to-primary/900 dark:from-yellow-400 dark:via-primary/900 dark:to-yellow-400 dark:hover:from-primary/900 dark:hover:via-yellow-600 dark:hover:to-primary/900 text-black font-medium py-3 shadow-lg shadow-yellow-400/30 dark:shadow-yellow-400/40 border-0 transition-all duration-200 hover:shadow-xl hover:shadow-yellow-400/40 dark:hover:shadow-yellow-400/50 transform hover:-translate-y-0.5"
+            className="w-full bg-gradient-to-r from-yellow-500 via-primary/900 to-yellow-500 hover:from-primary/900 hover:via-yellow-500 hover:to-primary/900 dark:from-yellow-500 dark:via-primary/900 dark:to-yellow-500 dark:hover:from-primary/900 dark:hover:via-yellow-500 dark:hover:to-primary/900 text-black font-light py-3 shadow-lg shadow-yellow-500/30 dark:shadow-yellow-500/40 border-0 transition-all duration-200 hover:shadow-xl hover:shadow-yellow-500/40 dark:hover:shadow-yellow-500/50 transform hover:-translate-y-0.5"
             disabled={isProcessing || !selectedPrice}
           >
             {isProcessing ? (
