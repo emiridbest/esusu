@@ -55,7 +55,12 @@ export default function Footer() {
                   active ? "stroke-[2.5px]" : "stroke-[1.5px]"
                 )} />
               </div>
-              <span className={active ? "font-medium" : ""}>{item.name}</span>
+              <span className={cn(
+                active ? "font-medium font-poppins" : "font-inter",
+                "text-xs"
+              )}>
+                {item.name}
+              </span>
               {active && (
                 <span className="absolute bottom-0 w-1 h-1 bg-primary rounded-full"/>
               )}
