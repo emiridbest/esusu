@@ -48,9 +48,9 @@ export default function Freebies() {
     return (
         <div className="container py-8 bg-gradient-to-br from-yellow-50 to-white dark:from-black/90 dark:to-black min-h-screen">
             <p className="text-center mb-8 text-xl font-semibold text-black dark:text-yellow-100 bg-yellow-200 dark:bg-yellow-900/30 py-3 px-6 rounded-full mx-auto max-w-2xl shadow-lg">
-             Claim FREE mobile data bundles  (UBI) and Earn loyalty rewards with GoodDollar tokens
+                Claim FREE mobile data bundles  (UBI) and Earn loyalty rewards with GoodDollar tokens
             </p>
-        
+
 
             {/* Mobile Data Section */}
 
@@ -107,7 +107,7 @@ export default function Freebies() {
                             </div>
                         ) : (
                             <>
-                                <div className="text-center bg-gradient-to-r from-yellow-200 to-yellow-300 dark:from-yellow-800 dark:to-yellow-900 rounded-lg p-4 border-2 border-yellow-400 dark:border-yellow-600">
+                                <div className="bg-gradient-to-br from-white via-black-50 to-primary-50 dark:from-black dark:via-black-0 dark:to-black p-6 rounded-xl border border-primary-400/20 dark:border-primary-400/30">
                                     <p className="text-black dark:text-yellow-100 font-bold text-lg mb-2">
                                         🎉 You can claim your free data bundle today! 🎉
                                     </p>
@@ -119,10 +119,8 @@ export default function Freebies() {
                                             control={form.control}
                                             name="country"
                                             render={({ field }) => (
-                                                <FormItem className="bg-yellow-50 dark:bg-gray-900/50 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                                                    <FormLabel className="text-black dark:text-yellow-200 font-semibold flex items-center gap-2">
-                                                        Country
-                                                    </FormLabel>
+                                                <FormItem>
+                                                    <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">COUNTRY</FormLabel>
                                                     <FormControl>
                                                         <CountrySelector
                                                             value={field.value}
@@ -131,6 +129,8 @@ export default function Freebies() {
                                                                 if (val) setCountryCurrency(val);
                                                             }}
                                                         />
+                                                        <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 dark:from-yellow-400/10 to-transparent pointer-events-none rounded-lg"></div>
+
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -142,10 +142,8 @@ export default function Freebies() {
                                             control={form.control}
                                             name="network"
                                             render={({ field }) => (
-                                                <FormItem className="bg-yellow-50 dark:bg-gray-900/50 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                                                    <FormLabel className="text-black dark:text-yellow-200 font-semibold flex items-center gap-2">
-                                                        Network Provider
-                                                    </FormLabel>
+                                                <FormItem>
+                                                    <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm"> NETWORK PROVIDER</FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || !watchCountry || networks.length === 0}>
                                                         <FormControl>
                                                             <SelectTrigger className="border-yellow-300 dark:border-yellow-700 focus:border-yellow-500 dark:focus:border-yellow-500 bg-white dark:bg-black text-black dark:text-yellow-100">
@@ -164,11 +162,9 @@ export default function Freebies() {
                                                             ))}
                                                         </SelectContent>
                                                     </Select>
-                                                    {isLoading && (
-                                                        <div className="text-sm text-yellow-700 dark:text-yellow-400 mt-1 flex items-center font-medium">
-                                                            <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading providers...
-                                                        </div>
-                                                    )}
+                                                    {isLoading && <div className="text-sm text-black-600 dark:text-yellow-300 mt-1 flex items-center">
+                                                        <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-white/60 " /> Loading providers...
+                                                    </div>}
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -178,18 +174,16 @@ export default function Freebies() {
                                             control={form.control}
                                             name="plan"
                                             render={({ field }) => (
-                                                <FormItem className="bg-yellow-50 dark:bg-gray-900/50 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                                                    <FormLabel className="text-black dark:text-yellow-200 font-semibold flex items-center gap-2">
-                                                    Data Plan
-                                                    </FormLabel>
+                                                <FormItem>
+                                                    <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">DATA PLAN</FormLabel>
                                                     <Select
                                                         onValueChange={field.onChange}
                                                         value={field.value}
                                                         disabled={isLoading || !watchNetwork || availablePlans.length === 0}
                                                     >
                                                         <FormControl>
-                                                            <SelectTrigger className="border-yellow-300 dark:border-yellow-700 focus:border-yellow-500 dark:focus:border-yellow-500 bg-white dark:bg-black text-black dark:text-yellow-100">
-                                                                <SelectValue placeholder="Select data plan" />
+                                                            <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-black/90 dark:text-white/90">
+                                                                <SelectValue placeholder="Select data plan" className='text-xs' />
                                                             </SelectTrigger>
                                                         </FormControl>
                                                         <SelectContent className="bg-white dark:bg-black border-yellow-300 dark:border-yellow-700">
@@ -217,15 +211,13 @@ export default function Freebies() {
                                             control={form.control}
                                             name="phoneNumber"
                                             render={({ field }) => (
-                                                <FormItem className="bg-yellow-50 dark:bg-gray-900/50 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                                                    <FormLabel className="text-black dark:text-yellow-200 font-semibold flex items-center gap-2">
-                                                        Phone Number
-                                                    </FormLabel>
+                                                <FormItem>
+                                                    <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">PHONE NUMBER</FormLabel>
                                                     <FormControl>
                                                         <Input
                                                             placeholder="Enter phone number"
                                                             {...field}
-                                                            className="border-yellow-300 dark:border-yellow-700 focus:border-yellow-500 dark:focus:border-yellow-500 bg-white dark:bg-black text-black dark:text-yellow-100"
+                                                            className="text-xs bg-gray-100 dark:bg-white/10  text-black-900 dark:text-white/90"
                                                         />
                                                     </FormControl>
                                                     <FormMessage />
@@ -236,15 +228,13 @@ export default function Freebies() {
                                             control={form.control}
                                             name="email"
                                             render={({ field }) => (
-                                                <FormItem className="bg-yellow-50 dark:bg-gray-900/50 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                                                    <FormLabel className="text-black dark:text-yellow-200 font-semibold flex items-center gap-2">
-                                                        Email
-                                                    </FormLabel>
+                                                <FormItem>
+                                                    <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">EMAIL</FormLabel>
                                                     <FormControl>
                                                         <Input
                                                             placeholder="Enter your email"
                                                             {...field}
-                                                            className="border-yellow-300 dark:border-yellow-700 focus:border-yellow-500 dark:focus:border-yellow-500 bg-white dark:bg-black text-black dark:text-yellow-100"
+                                                            className="text-xs bg-gray-100 dark:bg-white/10 "
                                                         />
                                                     </FormControl>
                                                     <FormMessage />
@@ -276,7 +266,7 @@ export default function Freebies() {
                 </Card>
             </div>
 
-                        {/* GoodDollar Rewards Section */}
+            {/* GoodDollar Rewards Section */}
             <div className="mb-12">
                 <Engagement />
             </div>
