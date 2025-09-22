@@ -6,11 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  Wallet, 
-  ArrowRight, 
-  CheckCircle2, 
-  AlertCircle, 
+import {
+  Wallet,
+  ArrowRight,
+  CheckCircle2,
+  AlertCircle,
   ExternalLink,
   Info,
   Clock,
@@ -18,17 +18,17 @@ import {
 } from "lucide-react";
 
 import { useEngagementRewards, DEV_REWARDS_CONTRACT } from '@goodsdks/engagement-sdk'
-import { 
-  ENGAGEMENT_CONFIG, 
-  validateUserEligibility, 
-  formatErrorMessage, 
+import {
+  ENGAGEMENT_CONFIG,
+  validateUserEligibility,
+  formatErrorMessage,
   formatTransactionHash,
   getTransactionUrl,
   validateConfiguration
 } from '@/lib/engagementHelpers'
 
 // Configuration constants - using the SDK constants as per integration guide
-const REWARDS_CONTRACT_ADDRESS = DEV_REWARDS_CONTRACT 
+const REWARDS_CONTRACT_ADDRESS = DEV_REWARDS_CONTRACT
 const APP_ADDRESS = ENGAGEMENT_CONFIG.APP_ADDRESS
 const INVITER_ADDRESS = ENGAGEMENT_CONFIG.INVITER_ADDRESS
 
@@ -57,11 +57,8 @@ async function getAppSignature(params: {
 
 export default function Engagement() {
   return (
-    <div className="min-h-screen  to-yellow-50 dark:from-slate-900 dark:to-slate-800 p-6">
-      <div className="max-w-4xl mx-auto">
-
-        <RewardsClaimCard />
-      </div>
+    <div className="max-w-4xl mx-auto mt-2">
+      <RewardsClaimCard />
     </div>
   );
 }
@@ -72,22 +69,22 @@ const RewardsClaimCard = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState<string>("")
   const [claimStep, setClaimStep] = useState<'idle' | 'checking' | 'signing' | 'submitting' | 'success' | 'error'>('idle')
-  
+
   // Check configuration on component mount
   const configValidation = validateConfiguration()
-  
+
   // SDK is ready when hook returns non-null
   if (!engagementRewards) {
     return (
       <Card className="w-full max-w-2xl mx-auto">
         <CardContent className="p-8 text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-yellow-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <div className="animate-spin w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className="text-slate-600 dark:text-slate-400">Initializing GoodDollar SDK...</p>
         </CardContent>
       </Card>
     )
   }
-  
+
   // Show configuration errors
   if (!configValidation.isValid) {
     return (
@@ -132,7 +129,7 @@ const RewardsClaimCard = () => {
         console.log("Eligibility check error:", error)
         return false
       })
-      
+
       if (!isEligible) {
         setStatus("Not eligible to claim at this time. Please ensure your wallet is verified on goodwallet.xyz and you haven't claimed recently.")
         setClaimStep('error')
@@ -148,10 +145,10 @@ const RewardsClaimCard = () => {
 
       // Generate signature for first-time users or after app re-apply
       let userSignature = "0x" as `0x${string}`
-      
+
       try {
         setStatus("Please sign the transaction in your wallet...")
-        
+
         userSignature = await engagementRewards.signClaim(
           APP_ADDRESS,
           INVITER_ADDRESS,
@@ -170,7 +167,7 @@ const RewardsClaimCard = () => {
         validUntilBlock: validUntilBlock.toString(),
         inviter: INVITER_ADDRESS
       })
-      
+
       setClaimStep('submitting')
       setStatus("Submitting to blockchain...")
 
@@ -185,15 +182,15 @@ const RewardsClaimCard = () => {
 
       const shortHash = formatTransactionHash(receipt.transactionHash)
       const txUrl = getTransactionUrl(receipt.transactionHash)
-      
+
       setStatus(`Transaction completed: ${shortHash}`)
       setClaimStep('success')
-      
+
       // Open transaction in new tab after a short delay
       setTimeout(() => {
         window.open(txUrl, '_blank')
       }, 2000)
-      
+
     } catch (error) {
       console.error("Claim failed:", error)
       const friendlyError = formatErrorMessage(error)
@@ -205,9 +202,9 @@ const RewardsClaimCard = () => {
   }
 
   const getStepIcon = (step: string) => {
-    if (claimStep === 'success') return <CheckCircle2 className="w-5 h-5 text-yellow-600" />
+    if (claimStep === 'success') return <CheckCircle2 className="w-5 h-5 text-yellow-500" />
     if (claimStep === 'error') return <AlertCircle className="w-5 h-5 text-red-600" />
-    if (isLoading) return <div className="animate-spin w-5 h-5 border-2 border-yellow-600 border-t-transparent rounded-full" />
+    if (isLoading) return <div className="animate-spin w-5 h-5 border-2 border-yellow-500 border-t-transparent rounded-full" />
     return <Wallet className="w-5 h-5 text-slate-600" />
   }
 
@@ -225,22 +222,22 @@ const RewardsClaimCard = () => {
   }
 
   return (
-    <div className="grid md:grid-cols-3 gap-8">
+    <div className="max-w-md mx-auto">
       {/* Main Claim Card */}
-      <Card className="md:col-span-2  shadow-xl">
-        <CardHeader className="pb-6">
+      <Card>
+        <CardHeader className="bg-gradient-to-r from-yellow-400 to-yellow-500  rounded-t-lg">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                Claim Your Rewards
+              <CardTitle className="text-2xl font-bold text-slate-900">
+                Claim Loyalty Rewards
               </CardTitle>
-              <CardDescription className="text-base mt-2">
+              <CardDescription className="text:black/90 dark:text-black/90">
                 Get rewarded in G$ tokens as you use Esusu
               </CardDescription>
             </div>
           </div>
         </CardHeader>
-        
+
         <CardContent className="space-y-6">
           {/* Eligibility Requirements */}
           <div className=" rounded-lg p-4">
@@ -251,7 +248,7 @@ const RewardsClaimCard = () => {
             <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
               <li className="flex items-center">
                 <CheckCircle2 className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
-                Do face verification 
+                Do face verification
               </li>
               <li className="flex items-center">
                 <CheckCircle2 className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
@@ -278,9 +275,9 @@ const RewardsClaimCard = () => {
                 </AlertDescription>
               </div>
               {claimStep === 'success' && (
-                <button 
+                <button
                   onClick={() => window.open(getTransactionUrl(status.split(': ')[1]), '_blank')}
-                  className="mt-2 text-sm text-yellow-600 hover:text-yellow-800 flex items-center"
+                  className="mt-2 text-sm text-yellow-500 hover:text-yellow-800 flex items-center"
                 >
                   View on Celo Explorer
                   <ExternalLink className="w-3 h-3 ml-1" />
@@ -291,14 +288,13 @@ const RewardsClaimCard = () => {
 
           {/* Action Button */}
           <div className="pt-4">
-            <Button 
+            <Button
               onClick={handleClaim}
               disabled={!isConnected || isLoading || claimStep === 'success'}
-              className={`w-full h-12 text-lg font-semibold transition-all duration-200 ${
-                claimStep === 'success' 
-                  ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-                  : 'bg-yellow-600 hover:bg-yellow-700 text-white'
-              }`}
+              className={`w-full h-12 text-lg font-semibold transition-all duration-200 ${claimStep === 'success'
+                  ? 'bg-yellow-500 dark:bg-yellow-500 hover:bg-yellow-600 text-black/90'
+                  : 'bg-yellow-500 dark:bg-yellow-500 hover:bg-yellow-600 text-black/90'
+                }`}
             >
               {getButtonText()}
               {!isLoading && claimStep !== 'success' && <ArrowRight className="w-5 h-5 ml-2" />}
@@ -325,7 +321,7 @@ const RewardsClaimCard = () => {
           </CardHeader>
           <CardContent className="text-sm space-y-3">
             <div className="flex items-start">
-              <div className="w-6 h-6 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center text-xs font-bold text-yellow-600 dark:text-yellow-400 mr-3 mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center text-xs font-bold text-yellow-500 dark:text-yellow-400 mr-3 mt-0.5">
                 1
               </div>
               <div>
@@ -334,7 +330,7 @@ const RewardsClaimCard = () => {
               </div>
             </div>
             <div className="flex items-start">
-              <div className="w-6 h-6 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center text-xs font-bold text-yellow-600 dark:text-yellow-400 mr-3 mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center text-xs font-bold text-yellow-500 dark:text-yellow-400 mr-3 mt-0.5">
                 2
               </div>
               <div>
@@ -343,7 +339,7 @@ const RewardsClaimCard = () => {
               </div>
             </div>
             <div className="flex items-start">
-              <div className="w-6 h-6 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center text-xs font-bold text-yellow-600 dark:text-yellow-400 mr-3 mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center text-xs font-bold text-yellow-500 dark:text-yellow-400 mr-3 mt-0.5">
                 3
               </div>
               <div>
@@ -354,13 +350,7 @@ const RewardsClaimCard = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">Powered by</div>
-            <div className="font-bold text-yellow-600">GoodDollar Protocol</div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">Engagement Rewards</div>
-          </CardContent>
-        </Card>
+
       </div>
     </div>
   )
