@@ -36,7 +36,6 @@ export default function Freebies() {
         isLoading,
         isWhitelisted,
         loadingWhitelist,
-        timeRemaining,
         networks,
         availablePlans,
         selectedPlan,
@@ -96,14 +95,6 @@ export default function Freebies() {
                                         '🔐 Go to Identity Verification'
                                     )}
                                 </Button>
-                            </div>
-                        ) : !canClaim ? (
-                            <div className="bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/30 dark:to-black rounded-lg border border-yellow-300 dark:border-yellow-700 p-4">
-                                <ClaimStatusDisplay
-                                    isLoading={isProcessing}
-                                    canClaim={canClaim}
-                                    timeRemaining={timeRemaining}
-                                />
                             </div>
                         ) : (
                             <>
