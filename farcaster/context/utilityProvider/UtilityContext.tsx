@@ -39,7 +39,7 @@ type UtilityContextType = {
   countryData: CountryData | null;
   setIsProcessing: (processing: boolean) => void;
   convertCurrency: (amount: string, base_currency: string) => Promise<number>;
-  handleTransaction: (params: TransactionParams) => Promise<boolean>;
+  handleTransaction: (params: TransactionParams) => Promise<`0x${string}` | undefined>;
   getTransactionMemo: (type: 'data' | 'electricity' | 'airtime', metadata: Record<string, any>) => string;
   formatCurrencyAmount: (amount: string | number) => string;
   mento: Mento | null;
@@ -324,10 +324,10 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
             break;
         }
         toast.success(successMessage);
-        return true;
+        return tx as `0x${string}`;
       } else {
         toast.error('Ethereum provider not found. Please install a Web3 wallet.');
-        return false;
+        return;
       }
     } catch (error) {
       console.error('Transaction failed:', error);
@@ -341,7 +341,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           error instanceof Error ? error.message : 'Unknown error'
         );
       }
-      return false;
+      return;
     } finally {
       setIsProcessing(false);
     }
