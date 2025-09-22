@@ -131,7 +131,7 @@ export default function ElectricityBillForm() {
       const success = await handleTransaction({
         type: 'electricity',
         amount: values.amount,
-        token: selectedToken,
+        token: selectedToken as "CUSD" | "USDC" | "USDT" | "CELO" | "G$",
         recipient: values.meterNumber,
         metadata: {
           providerId: values.provider,
