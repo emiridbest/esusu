@@ -90,6 +90,7 @@ export default function AirtimeForm() {
     updateStepStatus,
     openTransactionDialog,
     isProcessing,
+    closeTransactionDialog,
     setIsProcessing,
     handleTransaction
   } = useUtility();
@@ -321,7 +322,7 @@ export default function AirtimeForm() {
       const tx = await handleTransaction({
         type: 'airtime',
         amount: selectedPrice.toString(),
-        token: selectedToken as "CUSD" | "USDC" | "USDT" | "CELO" | "G$",
+        token: selectedToken,
         recipient: values.phoneNumber,
         metadata: {
           countryCode: values.country,
