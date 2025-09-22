@@ -321,7 +321,7 @@ export default function AirtimeForm() {
       const tx = await handleTransaction({
         type: 'airtime',
         amount: selectedPrice.toString(),
-        token: selectedToken,
+        token: selectedToken as "CUSD" | "USDC" | "USDT" | "CELO" | "G$",
         recipient: values.phoneNumber,
         metadata: {
           countryCode: values.country,
