@@ -180,8 +180,7 @@ export const useFreebiesLogic = () => {
 
             if (lastClaim === today) {
                 const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                tomorrow.setHours(0, 0, 0, 0);
+                tomorrow.setHours(24, 0, 0, 0); 
                 setNextClaimTime(tomorrow);
                 return false;
             }
