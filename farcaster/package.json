@@ -22,6 +22,7 @@
     "@fortawesome/fontawesome-svg-core": "^1.2.35",
     "@fortawesome/free-solid-svg-icons": "^6.5.2",
     "@fortawesome/react-fontawesome": "^0.2.2",
+    "@goodsdks/engagement-sdk": "^1.0.1",
     "@goodsdks/citizen-sdk": "^1.0.1",
     "@goodsdks/identity-sdk": "^1.0.5",
     "@headlessui/react": "^1.7.14",
