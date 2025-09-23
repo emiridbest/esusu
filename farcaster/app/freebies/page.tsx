@@ -41,7 +41,7 @@ export default function FreebiesPage() {
         availablePlans,
         selectedPlan,
         setCountryCurrency,
-        handleClaimBundle
+        onSubmit
     } = useFreebiesLogic();
      const { canClaim } = useClaimProcessor();
 
@@ -96,7 +96,7 @@ export default function FreebiesPage() {
                         ) : (
                             <>
                                 <Form {...form}>
-                                    <form onSubmit={form.handleSubmit(handleClaimBundle)} className="space-y-6">
+                                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                                         <FormField
                                             control={form.control}
                                             name="country"
@@ -121,36 +121,77 @@ export default function FreebiesPage() {
                                         />
 
 
-                                        <FormField
-                                            control={form.control}
-                                            name="network"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm"> NETWORK PROVIDER</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || !watchCountry || networks.length === 0}>
-                                                        <FormControl>
-                                                            <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-gray-900 dark:text-white">
-                                                                <SelectValue placeholder="Select network provider" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent className="bg-white">
-                                                            {networks.map((network) => (
-                                                                <SelectItem
+                                           <FormField
+                                                      control={form.control}
+                                                      name="network"
+                                                      render={({ field }) => (
+                                                        <FormItem>
+                                                          <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm"> NETWORK PROVIDER</FormLabel>
+                                                          <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || networks.length === 0}>
+                                                            <FormControl className="relative">
+                                                              <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-black/90 dark:text-white/90">
+                                                                <SelectValue placeholder="Select network provider" className='text-xs'>
+                                                                  {field.value && networks && networks.length > 0 && (() => {
+                                                                    const selectedNetwork = networks.find(n => n.id === field.value);
+                                                                    if (selectedNetwork && selectedNetwork.logoUrls && selectedNetwork.logoUrls.length > 0) {
+                                                                      return (
+                                                                        <div className="flex items-center">
+                                                                          <img 
+                                                                            src={selectedNetwork.logoUrls[0]} 
+                                                                            alt={selectedNetwork.name} 
+                                                                            className="h-4 w-4 mr-2 rounded-sm object-contain"
+                                                                            onError={(e) => {
+                                                                              // If image fails to load, hide it
+                                                                              (e.target as HTMLImageElement).style.display = 'none';
+                                                                            }}
+                                                                          />
+                                                                          <span>{selectedNetwork.name}</span>
+                                                                        </div>
+                                                                      );
+                                                                    }
+                                                                    return field.value ? field.value : "Select network provider";
+                                                                  })()}
+                                                                </SelectValue>
+                                                              </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent className="bg-white">
+                                                              {networks.length > 0 ? (
+                                                                networks.map((network) => (
+                                                                  <SelectItem
                                                                     key={network.id}
                                                                     value={network.id}
-                                                                >
-                                                                    {network.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    {isLoading && <div className="text-sm text-black/50 dark:text-white/50 mt-1 flex items-center">
-                                                        <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-white/60 " /> Loading providers...
-                                                    </div>}
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )} />
-
+                                                                  >
+                                                                    <div className="flex items-center">
+                                                                      {network.logoUrls && network.logoUrls.length > 0 && (
+                                                                        <img 
+                                                                          src={network.logoUrls[0]} 
+                                                                          alt={network.name} 
+                                                                          className="h-5 w-5 mr-2 rounded-sm object-contain"
+                                                                          onError={(e) => {
+                                                                            // If image fails to load, hide it
+                                                                            (e.target as HTMLImageElement).style.display = 'none';
+                                                                          }}
+                                                                        />
+                                                                      )}
+                                                                      <span>{network.name}</span>
+                                                                    </div>
+                                                                  </SelectItem>
+                                                                ))
+                                                              ) : (
+                                                                <div className="px-2 py-1 text-sm text-black/90 dark:text-white/90">
+                                                                  No network providers available
+                                                                </div>
+                                                              )}
+                                                            </SelectContent>
+                                                          </Select>
+                                                          {isLoading && <div className="text-sm text-black-600 dark:text-yellow-300 mt-1 flex items-center">
+                                                            <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-white/60 " /> Loading providers...
+                                                          </div>}
+                                                          <FormMessage className="text-red-600 dark:text-yellow-300" />
+                                                        </FormItem>
+                                                      )}
+                                                    /> 
+                                                    
                                         <FormField
                                             control={form.control}
                                             name="plan"
@@ -224,8 +265,8 @@ export default function FreebiesPage() {
                     <CardFooter className="bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-b-lg">
                         <Button
                             className="w-full bg-black hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-200 text-yellow-400 dark:text-black font-bold text-lg py-6 border-2 border-yellow-300 dark:border-black shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-                            disabled={!canClaim || isClaiming || isProcessing || !selectedPlan || !form.watch("phoneNumber") || form.watch("phoneNumber").length < 10}
-                            onClick={form.handleSubmit(handleClaimBundle)}
+                            disabled={!canClaim || isClaiming || isProcessing || !selectedPlan || !form.watch("phoneNumber") || form.watch("phoneNumber").length < 10 || !form.watch("email")}
+                            onClick={form.handleSubmit(onSubmit)}
                         >
                             {isClaiming || isProcessing ? (
                                 <>

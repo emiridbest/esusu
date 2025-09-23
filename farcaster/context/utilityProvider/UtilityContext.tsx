@@ -26,6 +26,7 @@ import {
 } from "../../components/ui/dialog";
 import { Button } from "../../components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '../../components/TransactionSteps';
+//@ts-ignore
 import { Mento } from "@mento-protocol/mento-sdk";
 import { Celo } from '@celo/rainbowkit-celo/chains';
 
