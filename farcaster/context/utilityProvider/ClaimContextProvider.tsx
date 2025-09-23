@@ -21,8 +21,11 @@ import { Button } from "../../components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '../../components/TransactionSteps';
 import { createWalletClient, custom } from 'viem'
 import { celo } from 'viem/chains'
+import { txCountABI, txCountAddress } from '../../utils/pay';
 import { PublicClient, WalletClient } from "viem"
 import { config } from '../../components/providers/WagmiProvider';
+import { writeContract } from '@wagmi/core';
+
 // Constants
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
@@ -54,7 +57,7 @@ type ClaimProcessorType = {
   isSwitchChainError: boolean;
   switchChainError: Error | null;
   handleSwitchChain: () => void;
-  handleClaim: () => Promise<void>;
+  handleClaim: () => Promise<boolean>;
   processDataTopUp: (values: any, selectedPrice: number, availablePlans: any[], networks: any[]) => Promise<{ success: boolean; error?: any }>;
   processPayment: () => Promise<string>;
   TOKENS: typeof TOKENS;
@@ -169,7 +172,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           env: 'production',
         });
 
-
+        handleSwitchChain();
         const initializedSDK = await sdk;
         setClaimSDK(initializedSDK);
 
@@ -206,7 +209,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     ));
   };
 
-  const handleClaim = async () => {
+  const handleClaim = async (): Promise<boolean> => {
     try {
       if (!isConnected) {
         throw new Error("Wallet not connected");
@@ -215,7 +218,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       if (!claimSDK) {
         throw new Error("ClaimSDK not initialized");
       }
-
+      handleSwitchChain();
       toast.info("Processing claim for G$ tokens...");
       setIsProcessing(true);
       // Check entitlement again after claiming
@@ -223,10 +226,10 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       setEntitlement(newEntitlement);
       const tx = await claimSDK.claim();
       if (!tx) {
-        return;
+        return false;
       }
       toast.success("Successfully claimed G$ tokens!");
-
+      return true
     } catch (error) {
       console.error("Error during claim:", error);
       toast.error("There was an error processing your claim.");
@@ -252,6 +255,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         body: JSON.stringify({
           operatorId: values.network,
           amount: selectedPrice.toString(),
+          customId: values.customId,
           recipientPhone: {
             country: values.country,
             phoneNumber: cleanPhoneNumber
@@ -283,7 +287,17 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     if (!entitlement || entitlement <= BigInt(0)) {
       throw new Error("No entitlement available for payment.");
     }
+    try {
 
+      const txCount = await writeContract(config, {
+        address: txCountAddress,
+        abi: txCountABI,
+        functionName: 'increment',
+      });
+    } catch (error) {
+      console.error("Error during transaction count update:", error);
+      toast.error("There was an error updating the transaction count.");
+    }
     const selectedToken = "G$";
     const tokenAddress = getTokenAddress(selectedToken, TOKENS);
 
