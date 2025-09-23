@@ -1,5 +1,5 @@
 "use client";
-import Engagement from '@/components/Engagement';
+import Engagement from '../../components/Engagement';
 
 export default function RewardsPage() {
   return (
