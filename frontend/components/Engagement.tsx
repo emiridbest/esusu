@@ -231,7 +231,7 @@ const RewardsClaimCard = () => {
               <CardTitle className="text-2xl font-bold text-slate-900">
                 Claim Loyalty Rewards
               </CardTitle>
-              <CardDescription className="text:black/90 dark:text-black/90">
+              <CardDescription className="text-black/90 dark:text-black/90">
                 Get rewarded in G$ tokens as you use Esusu
               </CardDescription>
             </div>
