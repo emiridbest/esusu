@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useContext, createContext, ReactNode, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useContext, createContext, ReactNode, useMemo, useEffect, useRef, useCallback } from 'react';
 import { ethers, Interface } from "ethers";
-import { useAccount, useSendTransaction, useSwitchChain } from "wagmi";
+import { useAccount, useChainId, useConnect, useSendTransaction, useSwitchChain } from "wagmi";
 import { toast } from 'sonner';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { Celo } from '@celo/rainbowkit-celo/chains';
@@ -99,6 +99,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const [claimSDK, setClaimSDK] = useState<any>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const initializationAttempted = useRef(false);
+  const { connect, connectors } = useConnect();
 
   // Setup transaction sending
   const { sendTransactionAsync } = useSendTransaction({ config });
@@ -110,10 +111,11 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     isPending: isSwitchChainPending,
   } = useSwitchChain();
 
-  const handleSwitchChain = async() => {
-    switchChain({ chainId: celoChainId });
-  };
-
+   const chainId = useChainId();
+ 
+   const handleSwitchChain = useCallback(() => {
+     switchChain({ chainId: celoChainId });
+   }, [switchChain, celoChainId]);
 
   const publicClient = createPublicClient({
     chain: celo,
@@ -131,6 +133,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   }, [isConnected, address]);
   const identitySDK = useMemo(() => {
     if (isConnected && publicClient && walletClient) {
+      
       try {
         return new IdentitySDK(
           publicClient as unknown as PublicClient,
@@ -144,7 +147,31 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     }
     return null;
   }, [publicClient, walletClient, isConnected]);
+  useEffect(() => {
+    const switchToCelo = async () => {
+      if (!isConnected || isConnected && chainId !== celoChainId) {
+        try {
+          toast.info("Switching to Celo network...");
+          handleSwitchChain();
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          if (chainId == celoChainId) {
+            const connector = connectors.find((c) => c.id === "miniAppConnector") || connectors[1];
+            connect({
+              connector,
+              chainId: celoChainId,
+            });
+            toast.success("Connected to Celo network successfully!");
+          } else {
+            throw new Error("Failed to switch to Celo network");
+          }
+        } catch (error) {
+          console.error("Connection error:", error);
+        }
+      }
+    };
 
+    switchToCelo();
+  }, [connect, connectors, chainId, celoChainId, handleSwitchChain, isConnected]);
   useEffect(() => {
     const initializeClaimSDK = async () => {
       // Skip if we're already initializing, already initialized, or missing prerequisites
@@ -161,6 +188,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       }
 
       try {
+        await handleSwitchChain();
         setIsInitializing(true);
         initializationAttempted.current = true;
 
@@ -172,7 +200,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           env: 'production',
         });
 
-      await handleSwitchChain();
         const initializedSDK = await sdk;
         setClaimSDK(initializedSDK);
 
