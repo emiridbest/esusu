@@ -110,7 +110,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     isPending: isSwitchChainPending,
   } = useSwitchChain();
 
-  const handleSwitchChain = () => {
+  const handleSwitchChain = async() => {
     switchChain({ chainId: celoChainId });
   };
 
@@ -172,7 +172,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           env: 'production',
         });
 
-        handleSwitchChain();
+      await handleSwitchChain();
         const initializedSDK = await sdk;
         setClaimSDK(initializedSDK);
 
@@ -218,7 +218,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       if (!claimSDK) {
         throw new Error("ClaimSDK not initialized");
       }
-      handleSwitchChain();
+      await handleSwitchChain();
       toast.info("Processing claim for G$ tokens...");
       setIsProcessing(true);
       // Check entitlement again after claiming
