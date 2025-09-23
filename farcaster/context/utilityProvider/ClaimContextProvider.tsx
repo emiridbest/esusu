@@ -111,11 +111,11 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     isPending: isSwitchChainPending,
   } = useSwitchChain();
 
-   const chainId = useChainId();
- 
-   const handleSwitchChain = useCallback(() => {
-     switchChain({ chainId: celoChainId });
-   }, [switchChain, celoChainId]);
+  const chainId = useChainId();
+
+  const handleSwitchChain = useCallback(() => {
+    switchChain({ chainId: celoChainId });
+  }, [switchChain, celoChainId]);
 
   const publicClient = createPublicClient({
     chain: celo,
@@ -133,7 +133,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   }, [isConnected, address]);
   const identitySDK = useMemo(() => {
     if (isConnected && publicClient && walletClient) {
-      
+
       try {
         return new IdentitySDK(
           publicClient as unknown as PublicClient,
@@ -314,13 +314,28 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     if (!entitlement || entitlement <= BigInt(0)) {
       throw new Error("No entitlement available for payment.");
     }
+    const dataSuffix = getReferralTag({
+      user: address,
+      consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
+    });
     try {
+      const txCountInterface = new Interface(txCountABI);
+      const txCountData = txCountInterface.encodeFunctionData("increment", []);
+      const dataWithSuffix = txCountData + dataSuffix;
 
-      const txCount = await writeContract(config, {
-        address: txCountAddress,
-        abi: txCountABI,
-        functionName: 'increment',
+      const txCount = await sendTransactionAsync({
+        to: txCountAddress as `0x${string}`,
+        data: dataWithSuffix as `0x${string}`,
       });
+      try {
+        await submitReferral({
+          txHash: txCount as unknown as `0x${string}`,
+          chainId: Celo.id
+        });
+      } catch (referralError) {
+        console.error("Referral submission error:", referralError);
+      }
+
     } catch (error) {
       console.error("Error during transaction count update:", error);
       toast.error("There was an error updating the transaction count.");
@@ -334,10 +349,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       RECIPIENT_WALLET,
       entitlement
     ]);
-    const dataSuffix = getReferralTag({
-      user: address, // The user address making the transaction
-      consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-    })
     const dataWithSuffix = transferData + dataSuffix;
 
     toast.info("Processing payment for data bundle...");
@@ -345,13 +356,12 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       const tx = await sendTransactionAsync({
         to: tokenAddress as `0x${string}`,
         data: dataWithSuffix as `0x${string}`,
-        gasLimit: BigInt(600000)
       });
 
       try {
         await submitReferral({
           txHash: tx as unknown as `0x${string}`,
-          chainId: celoChainId
+          chainId: Celo.id,
         });
       } catch (referralError) {
         console.error("Referral submission error:", referralError);
