@@ -131,7 +131,7 @@ const RewardsClaimCard = () => {
       })
 
       if (!isEligible) {
-        setStatus("Not eligible to claim at this time. Please ensure your wallet is verified on goodwallet.xyz and you haven't claimed recently.")
+        setStatus("Coming Soon!!!")
         setClaimStep('error')
         return
       }
