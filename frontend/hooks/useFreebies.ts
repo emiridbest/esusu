@@ -44,6 +44,7 @@ export const useFreebiesLogic = () => {
 
         updateStepStatus,
         openTransactionDialog,
+        closeTransactionDialog,
         isProcessing,
         setIsProcessing,
         handleClaim,
@@ -294,7 +295,8 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
 
             setIsVerified(true);
             toast.success("Phone number verified successfully");
-            
+            updateStepStatus('verify-phone-number', 'loading');
+
             if (verificationResult.autoSwitched && verificationResult.correctProviderId) {
                 form.setValue('network', verificationResult.correctProviderId);
                 toast.success(verificationResult.message || "Network provider switched successfully");
@@ -381,7 +383,7 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                     country,
                     network: networkId,
                     email: emailAddress,
-                    customId: transactionHash // Use the transactionHash instead of txID
+                    customId: transactionHash
                 },
                 selectedPrice,
                 availablePlans,
@@ -395,13 +397,13 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                 // Only set localStorage after successful topup
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('lastFreeClaim', new Date().toDateString());
-                    localStorage.removeItem('processingClaim'); // Clean up processing flag
+                    localStorage.removeItem('processingClaim'); 
                 }
                 
                 setSelectedPlan(null);
                 updateStepStatus('top-up', 'success');
                 form.reset();
-                
+                closeTransactionDialog()
                 toast.success("Data bundle topped up successfully! You can claim again tomorrow.");
             } else {
                 throw new Error( "Top-up failed - no success confirmation received");
