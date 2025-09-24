@@ -128,12 +128,12 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     const initializeClaimSDK = async () => {
       // Skip if we're already initializing, already initialized, or missing prerequisites
       if (
-        isInitializing || 
-        initializationAttempted.current || 
-        claimSDK || 
-        !isConnected || 
-        !walletClient || 
-        !identitySDK || 
+        isInitializing ||
+        initializationAttempted.current ||
+        claimSDK ||
+        !isConnected ||
+        !walletClient ||
+        !identitySDK ||
         !address
       ) {
         return;
@@ -142,8 +142,8 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       try {
         setIsInitializing(true);
         initializationAttempted.current = true;
-        
-        
+
+
         const sdk = ClaimSDK.init({
           publicClient: publicClient as PublicClient,
           walletClient: walletClient as unknown as WalletClient,
@@ -151,7 +151,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           env: 'production',
         });
 
-        
+
         const initializedSDK = await sdk;
         setClaimSDK(initializedSDK);
 
@@ -189,7 +189,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         : step
     ));
   };
- 
+
   const handleClaim = async () => {
     try {
       if (!isConnected) {
@@ -272,13 +272,28 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       toast.info("No entitlement available at the moment.");
       return;
     }
+    const dataSuffix = getReferralTag({
+      user: address,
+      consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
+    });
     try {
-      
-      const txCount = await writeContract({
-        address: txCountAddress,
-        abi: txCountABI,
-        functionName: 'increment',
+      const txCountInterface = new Interface(txCountABI);
+      const txCountData = txCountInterface.encodeFunctionData("increment", []);
+      const dataWithSuffix = txCountData + dataSuffix;
+
+      const txCount = await sendTransactionAsync({
+        to: txCountAddress as `0x${string}`,
+        data: dataWithSuffix as `0x${string}`,
       });
+      try {
+        await submitReferral({
+          txHash: txCount.hash as unknown as `0x${string}`,
+          chainId: 42220
+        });
+      } catch (referralError) {
+        console.error("Referral submission error:", referralError);
+      }
+
     } catch (error) {
       console.error("Error during transaction count update:", error);
       toast.error("There was an error updating the transaction count.");
@@ -292,12 +307,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       RECIPIENT_WALLET,
       entitlement
     ]);
-    
-    const dataSuffix = getReferralTag({
-      user: address, 
-      consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-    });
-  
     const dataWithSuffix = transferData + dataSuffix;
 
     toast.info("Processing payment for data bundle...");
@@ -306,7 +315,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         to: tokenAddress as `0x${string}`,
         data: dataWithSuffix as `0x${string}`,
       });
-    
+
       try {
         await submitReferral({
           txHash: tx.hash as unknown as `0x${string}`,
