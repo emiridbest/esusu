@@ -631,7 +631,7 @@ export default function ElectricityBillForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Email Address</FormLabel>
+                <FormLabel className="text-black/80 dark:text-white/60 font-light text-sm">EMAIL ADDRESS</FormLabel>
                 <FormControl>
                   <Input
                     type="email"
@@ -640,9 +640,6 @@ export default function ElectricityBillForm() {
                     className="text-xs bg-white dark:bg-black/90 border-2 border-black/70 hover:border-black/70 dark:hover:border-yellow-400 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90 placeholder:text-black-500 dark:placeholder:text-black-400"
                   />
                 </FormControl>
-                <FormDescription className="text-gray-900 dark:text-white">
-                  We&apos;ll send payment confirmation to this email.
-                </FormDescription>
                 <FormMessage className="text-red-600" />
               </FormItem>
             )}
