@@ -2,8 +2,7 @@
   "compilerOptions": {
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "moduleResolution": "node",
-    "ignoreDeprecations": "6.0",
+    "moduleResolution": "bundler",
     "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,

@@ -7,6 +7,15 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        'sans': ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        'inter': ['var(--font-inter)', 'sans-serif'],
+        'poppins': ['var(--font-poppins)', 'sans-serif'],
+        'roboto': ['var(--font-roboto)', 'sans-serif'],
+        'dancing': ['var(--font-dancing)', 'cursive'],
+        'caveat': ['var(--font-caveat)', 'cursive'],
+        'kalam': ['var(--font-kalam)', 'cursive'],
+      },
       colors: {
         // Light theme
         primary: {

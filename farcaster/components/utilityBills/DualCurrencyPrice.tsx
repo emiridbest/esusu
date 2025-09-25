@@ -5,6 +5,7 @@ import { Skeleton } from '../ui/skeleton';
 import { useUtility } from '../../context/utilityProvider/UtilityContext';
 import { getCountryData } from '../../utils/countryData';
 import { ethers } from 'ethers';
+
 interface DualCurrencyPriceProps {
   amount: number | string;
   countryCurrency?: string;
@@ -41,17 +42,14 @@ export default function DualCurrencyPrice({
   showTotal = false,
   className = ''
 }: DualCurrencyPriceProps) {
-  const { convertCurrency, mento } = useUtility();
+  const { convertCurrency } = useUtility();
   const [loading, setLoading] = useState(true);
-  const [waitingForMento, setWaitingForMento] = useState(false);
   const [localDisplay, setLocalDisplay] = useState('');
   const [cryptoDisplay, setCryptoDisplay] = useState('');
   const [totalDisplay, setTotalDisplay] = useState('');
   const [gasFeeDisplay, setGasFeeDisplay] = useState('');
   const [usdEquivalent, setUsdEquivalent] = useState(0);
-  const cusdAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
-  const celoAddress = "0x471EcE3750Da237f93B8E339c536989b8978a438";
-  const goodDollarAddress = "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A";
+
   useEffect(() => {
     const fetchPrices = async () => {
       if (!amount && countryCurrency) {
@@ -69,87 +67,41 @@ export default function DualCurrencyPrice({
         // Convert local currency to USD
         let usdAmount;
         try {
-          usdAmount = await convertCurrency(parseAmount(amount).toString(), countryCurrency);
-          setUsdEquivalent(usdAmount);
-
+          if (stablecoin === 'G$') {
+            usdAmount = await convertCurrency(parsedAmount.toString(), countryCurrency);
+            const gDollarAmount = usdAmount / 0.0001;
+            setUsdEquivalent(gDollarAmount);
+            setCryptoDisplay(`${stablecoin} ${gDollarAmount.toFixed(2)}`);
+            if (showTotal) {
+              const totalWithFee = gDollarAmount ;
+              setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
+            }
+          }
+          else if (stablecoin === 'CELO') {
+            usdAmount = await convertCurrency(parsedAmount.toString(), countryCurrency);
+            setUsdEquivalent(usdAmount * 2.8);
+            setCryptoDisplay(`${stablecoin} ${(usdAmount * 2.8).toFixed(2)}`);
+            if (showTotal) {
+              const totalWithFee = usdAmount * 2.8 ;
+              setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
+            }
+          }
+          else {
+            usdAmount = await convertCurrency(parseAmount(amount).toString(), countryCurrency);
+            setUsdEquivalent(usdAmount);
+            setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
+            if (showTotal) {
+              const gasFeeUSD = 0.01;
+              const totalWithFee = usdAmount + gasFeeUSD;
+              setGasFeeDisplay(`${stablecoin} ${gasFeeUSD.toFixed(2)}`);
+              setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
+            }
+          }
         } catch (error) {
           console.error('Error converting to USD:', error);
           setUsdEquivalent(0);
           throw error;
         }
-        if (stablecoin === 'CELO' && !mento) {
-          setWaitingForMento(true);
-          let timeoutId: NodeJS.Timeout;
-          const mentoWaitPromise = new Promise<void>((resolve, reject) => {
-            timeoutId = setTimeout(() => {
-              reject(new Error('Timeout waiting for Mento initialization'));
-            }, 5000);
-
-            const checkInterval = setInterval(() => {
-              if (mento) {
-                clearInterval(checkInterval);
-                clearTimeout(timeoutId);
-                resolve();
-              }
-            }, 100);
-          });
-
-          try {
-            await mentoWaitPromise;
-          } catch (error) {
-            console.warn('Mento initialization timed out, using fallback calculation');
-          } finally {
-            setWaitingForMento(false);
-          }
-        }
-
-        if (stablecoin === 'CELO') {
-          const amountIn = ethers.parseUnits(usdAmount.toString(), 18);
-
-          if (!mento) {
-            usdAmount = usdAmount * 3.02
-            setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
-          } else {
-            try {
-              const celoPrice = await mento.getAmountIn(
-                celoAddress,
-                cusdAddress,
-                amountIn
-              );
-              usdAmount = parseFloat(ethers.formatUnits(celoPrice, 18));
-              setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
-            } catch (error) {
-              console.error('Error getting Celo price from Mento:', error);
-              setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
-            }
-          }
-        } else if (stablecoin === 'G$') {
-          const amountIn = ethers.parseUnits(usdAmount.toString(), 18);
-          try {
-            const goodDollarPrice = await mento.getAmountIn(
-              goodDollarAddress,
-              cusdAddress,
-              amountIn
-            );
-            usdAmount = parseFloat(ethers.formatUnits(goodDollarPrice, 18));
-            setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
-          } catch (error) {
-            console.error('Error getting GoodDollar price from Mento:', error);
-            setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
-          }
-        } else {
-          setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
-        }
-
-        if (showTotal) {
-          // Standard gas fee in USD
-          const gasFeeUSD = 0.01;
-          const totalWithFee = usdAmount + gasFeeUSD;
-
-          setGasFeeDisplay(`${stablecoin} ${gasFeeUSD.toFixed(2)}`);
-          setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
-        }
-
       } catch (error) {
         console.error('Error fetching price data:', error);
 
@@ -167,7 +119,7 @@ export default function DualCurrencyPrice({
     };
     fetchPrices();
 
-  }, [amount, stablecoin, includeGasFee, showTotal, convertCurrency, countryCurrency, mento]);
+  }, [amount, stablecoin, includeGasFee, showTotal, convertCurrency, countryCurrency]);
 
   if (loading) {
     return (
@@ -175,11 +127,6 @@ export default function DualCurrencyPrice({
         <Skeleton className="h-5 w-24" />
         <Skeleton className="h-5 w-20" />
         {showTotal && <Skeleton className="h-5 w-28" />}
-        {waitingForMento && (
-          <div className="text-xs text-black/50 mt-1">
-            Initializing price converter...
-          </div>
-        )}
       </div>
     );
   }
@@ -192,7 +139,7 @@ export default function DualCurrencyPrice({
         transition={{ duration: 0.3 }}
         className="space-y-1"
       >
-        <div className="text-base font-medium dark:text-black">
+        <div className="text-base font-medium dark:text-black/70">
           {localDisplay}
         </div>
         <div className="text-sm text-gray-600 dark:text-gray-400">

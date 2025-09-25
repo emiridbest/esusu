@@ -9,7 +9,6 @@ import { useUtility } from '../../context/utilityProvider/UtilityContext';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -247,7 +246,7 @@ export default function MobileDataForm() {
       const tx = await handleTransaction({
         type: 'data',
         amount: selectedPrice.toString(),
-        token: selectedToken as "CUSD" | "USDC" | "USDT" | "CELO" | "G$",
+        token: selectedToken,
         recipient: values.phoneNumber,
         metadata: {
           countryCode: values.country,
@@ -351,272 +350,257 @@ export default function MobileDataForm() {
       setIsProcessing(false);
     }
   }
-  return (
-    <div className="bg-gradient-to-br from-white via-black-50 to-primary-50 dark:from-black dark:via-black-0 dark:to-black p-6 rounded-xl border border-primary-400/20 dark:border-primary-400/30">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="country"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Country</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <CountrySelector
-
-                      value={field.value}
-                      onChange={(val) => {
-                        field.onChange(val);
-                        if (val) setCountryCurrency(val);
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 dark:from-yellow-400/10 to-transparent pointer-events-none rounded-lg"></div>
-                  </div>
-                </FormControl>
-                <FormDescription className="text-xs text-black/60 dark:text-white/30">
-                  Select the country for the mobile data service.
-                </FormDescription>
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="network"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Network Provider</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || networks.length === 0}>
-                  <FormControl className="relative">
-                    <SelectTrigger className="bg-white dark:bg-black/90 border-2 border-black/70 hover:border-black/70 dark:hover:border-yellow-400 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90">
-                      <SelectValue placeholder="Select network provider" className='text-xs'>
-                        {field.value && networks && networks.length > 0 && (() => {
-                          const selectedNetwork = networks.find(n => n.id === field.value);
-                          if (selectedNetwork && selectedNetwork.logoUrls && selectedNetwork.logoUrls.length > 0) {
-                            return (
-                              <div className="flex items-center">
+    return (
+      <div className="bg-gradient-to-br from-white via-black-50 to-primary-50 dark:from-black dark:via-black-0 dark:to-black p-6 rounded-xl border border-primary-400/20 dark:border-primary-400/30">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="country"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">COUNTRY</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <CountrySelector
+  
+                        value={field.value}
+                        onChange={(val) => {
+                          field.onChange(val);
+                          if (val) setCountryCurrency(val);
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 dark:from-yellow-400/10 to-transparent pointer-events-none rounded-lg"></div>
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-red-600 dark:text-yellow-300" />
+                </FormItem>
+              )}
+            />
+  
+            <FormField
+              control={form.control}
+              name="network"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm"> NETWORK PROVIDER</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || networks.length === 0}>
+                    <FormControl className="relative">
+                      <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-black/90 dark:text-white/90">
+                        <SelectValue placeholder="Select network provider" className='text-xs'>
+                          {field.value && networks && networks.length > 0 && (() => {
+                            const selectedNetwork = networks.find(n => n.id === field.value);
+                            if (selectedNetwork && selectedNetwork.logoUrls && selectedNetwork.logoUrls.length > 0) {
+                              return (
+                                <div className="flex items-center">
+                                  <img 
+                                    src={selectedNetwork.logoUrls[0]} 
+                                    alt={selectedNetwork.name} 
+                                    className="h-4 w-4 mr-2 rounded-sm object-contain"
+                                    onError={(e) => {
+                                      // If image fails to load, hide it
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                  />
+                                  <span>{selectedNetwork.name}</span>
+                                </div>
+                              );
+                            }
+                            return field.value ? field.value : "Select network provider";
+                          })()}
+                        </SelectValue>
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-white">
+                      {networks.length > 0 ? (
+                        networks.map((network) => (
+                          <SelectItem
+                            key={network.id}
+                            value={network.id}
+                          >
+                            <div className="flex items-center">
+                              {network.logoUrls && network.logoUrls.length > 0 && (
                                 <img 
-                                  src={selectedNetwork.logoUrls[0]} 
-                                  alt={selectedNetwork.name} 
-                                  className="h-4 w-4 mr-2 rounded-sm object-contain"
+                                  src={network.logoUrls[0]} 
+                                  alt={network.name} 
+                                  className="h-5 w-5 mr-2 rounded-sm object-contain"
                                   onError={(e) => {
                                     // If image fails to load, hide it
                                     (e.target as HTMLImageElement).style.display = 'none';
                                   }}
                                 />
-                                <span>{selectedNetwork.name}</span>
-                              </div>
-                            );
-                          }
-                          return field.value ? field.value : "Select network provider";
-                        })()}
-                      </SelectValue>
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="bg-white dark:bg-black/90 border-2 dark:border-yellow-400/40">
-                    {networks.length > 0 ? (
-                      networks.map((network) => (
-                        <SelectItem
-                          key={network.id}
-                          value={network.id}
-                          className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-600 dark:focus:bg-yellow-800/30 text-black/90 dark:text-white/90"
-                        >
-                          <div className="flex items-center">
-                            {network.logoUrls && network.logoUrls.length > 0 && (
-                              <img 
-                                src={network.logoUrls[0]} 
-                                alt={network.name} 
-                                className="h-5 w-5 mr-2 rounded-sm object-contain"
-                                onError={(e) => {
-                                  // If image fails to load, hide it
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                }}
-                              />
-                            )}
-                            <span>{network.name}</span>
-                          </div>
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <div className="px-2 py-1 text-sm text-black/90 dark:text-white/90">
-                        No network providers available
-                      </div>
-                    )}
-                  </SelectContent>
-                </Select>
-                {isLoading && <div className="text-sm text-black-600 dark:text-yellow-300 mt-1 flex items-center">
-                  <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-yellow-400" /> Loading providers...
-                </div>}
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
-              </FormItem>
-            )}
-          /> 
-          
-                   <FormField
-            control={form.control}
-            name="plan"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Data Plan</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value}
-                  disabled={isLoading || !watchNetwork || availablePlans.length === 0}
-                >
+                              )}
+                              <span>{network.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="px-2 py-1 text-sm text-black/90 dark:text-white/90">
+                          No network providers available
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {isLoading && <div className="text-sm text-black-600 dark:text-yellow-300 mt-1 flex items-center">
+                    <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-white/60 " /> Loading providers...
+                  </div>}
+                  <FormMessage className="text-red-600 dark:text-yellow-300" />
+                </FormItem>
+              )}
+            /> 
+            
+                     <FormField
+              control={form.control}
+              name="plan"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">DATA PLAN</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={isLoading || !watchNetwork || availablePlans.length === 0}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-black/90 dark:text-white/90">
+                        <SelectValue placeholder="Select data plan" className='text-xs' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-white">
+                      {availablePlans.length > 0 ? (
+                        availablePlans.map((plan) => (
+                          <SelectItem
+                            key={plan.id}
+                            value={plan.id}
+                          >
+                            {plan.name} - {plan.price}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="px-2 py-1 text-sm text-black/90 dark:text-white/90">
+                          No data plans available
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {isLoading && <div className="text-sm text-black-600 dark:text-yellow-300 mt-1 flex items-center">
+                    <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-white/60 " /> Loading plans...
+                  </div>}
+                  {!isLoading && watchNetwork && availablePlans.length === 0 && (
+                    <div className="text-sm text-red-600 dark:text-yellow-300 mt-1">
+                      No data plans available for this network
+                    </div>
+                  )}
+                  <FormMessage className="text-red-600 dark:text-yellow-300" />
+                </FormItem>
+              )}
+            />
+  
+  
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">EMAIL</FormLabel>
                   <FormControl>
-                    <SelectTrigger className="bg-white dark:bg-black/90 border-2 border-black/70 hover:border-black/70 dark:hover:border-yellow-400 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90">
-                      <SelectValue placeholder="Select data plan" className='text-xs' />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="bg-white dark:bg-black/90 border-2 dark:border-yellow-400/40">
-                    {availablePlans.length > 0 ? (
-                      availablePlans.map((plan) => (
-                        <SelectItem
-                          key={plan.id}
-                          value={plan.id}
-                          className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-600 dark:focus:bg-yellow-800/30 text-black/90 dark:text-white/90"
-                        >
-                          {plan.name} - {plan.price}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <div className="px-2 py-1 text-sm text-black/90 dark:text-white/90">
-                        No data plans available
-                      </div>
-                    )}
-                  </SelectContent>
-                </Select>
-                {isLoading && <div className="text-sm text-black-600 dark:text-yellow-300 mt-1 flex items-center">
-                  <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-yellow-400" /> Loading plans...
-                </div>}
-                {!isLoading && watchNetwork && availablePlans.length === 0 && (
-                  <div className="text-sm text-red-600 dark:text-yellow-300 mt-1">
-                    No data plans available for this network
-                  </div>
-                )}
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
-              </FormItem>
-            )}
-          />
-
-
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Email</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter your email"
-                    {...field}
-                    className="text-xs bg-white dark:bg-black/90 border-2 border-black/70 hover:border-primary/900 dark:hover:border-yellow-400 focus:border-primary/900 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-black-500 dark:placeholder:text-black-400 text-black-900 dark:text-white/90 transition-all duration-200"
-                  />
-                </FormControl>
-                <FormDescription className="text-xs text-black-600 dark:text-black-300">
-                  Enter your email for transaction receipt.
-                </FormDescription>
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="phoneNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Phone Number</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter phone number"
-                    {...field}
-                    className="text-xs bg-white dark:bg-black/90 border-2 border-black/70 hover:border-primary/900 dark:hover:border-yellow-400 focus:border-primary/900 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 placeholder:text-black-500 dark:placeholder:text-black-400 text-black-900 dark:text-white/90 transition-all duration-200"
-
-                  />
-                </FormControl>
-                <FormDescription className="text-xs text-black-600 dark:text-black-300">
-                  Enter the phone number to recharge.
-                </FormDescription>
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="paymentToken"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Payment Token</FormLabel>
-                <Select
-                  onValueChange={(val) => {
-                    field.onChange(val);
-                    if (val) setSelectedToken(val);
-                  }}
-                  value={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger className="bg-white dark:bg-black/90 border-2 border-black/70 hover:border-black/70 dark:hover:border-yellow-400 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90">
-                      <SelectValue placeholder="Select payment token" className='text-xs' />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="bg-white dark:bg-black/90 border-2 dark:border-yellow-400/40">
-                    {TOKENS.map((token) => (
-                      <SelectItem
-                        key={token.id}
-                        value={token.id}
-                        className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-600 dark:focus:bg-yellow-800/30 text-black/90 dark:text-white/90"
-                      >
-                        {token.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormDescription className="text-xs text-black-600 dark:text-black-300">
-                  All token amounts are converted to USD equivalent
-                </FormDescription>
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
-              </FormItem>
-            )}
-          />
-
-          {selectedPrice > 0 && (
-            <Card className="bg-gradient-to-r from-yellow-100 via-yellow-200 to-yellow-100 dark:from-yellow-400 dark:via-yellow-300 dark:to-yellow-400 border-2 border-yellow-300 dark:border-0 shadow-lg shadow-yellow-400/20 dark:shadow-yellow-400/30">
-              <CardContent className="pt-4">
-                <div className="flex flex-col space-y-1">
-                  <div className="text-sm font-medium text-black/80 dark:text-black">
-                    Payment Amount:
-                  </div>
-                  <div className="text-black-900 dark:text-black font-medium">
-                    <DualCurrencyPrice
-                      amount={selectedPrice}
-                      countryCurrency={form.getValues().country}
-                      stablecoin={selectedToken}
-                      showTotal={true}
+                    <Input
+                      placeholder="Enter your email"
+                      {...field}
+                      className="text-xs bg-gray-100 dark:bg-white/10  "
                     />
+                  </FormControl>
+                  <FormMessage className="text-red-600 dark:text-yellow-300" />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="phoneNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">PHONE NUMBER</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Enter phone number"
+                      {...field}
+                      className="text-xs bg-gray-100 dark:bg-white/10  text-black-900 dark:text-white/90"
+  
+                    />
+                  </FormControl>
+                  <FormMessage className="text-red-600 dark:text-yellow-300" />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="paymentToken"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">PAYMENT TOKEN</FormLabel>
+                  <Select
+                    onValueChange={(val) => {
+                      field.onChange(val);
+                      if (val) setSelectedToken(val);
+                    }}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-black/90 dark:text-white/90">
+                        <SelectValue placeholder="Select payment token" className='text-xs' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-white">
+                      {TOKENS.map((token) => (
+                        <SelectItem
+                          key={token.id}
+                          value={token.id}
+                        >
+                          {token.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-red-600 dark:text-yellow-300" />
+                </FormItem>
+              )}
+            />
+  
+            {selectedPrice > 0 && (
+              <Card className="bg-gradient-to-r from-yellow-100 via-yellow-200 to-yellow-100 dark:from-yellow-400 dark:via-yellow-300 dark:to-yellow-400 ">
+                <CardContent className="pt-4">
+                  <div className="flex flex-col space-y-1">
+                    <div className="text-sm font-light text-black/80 dark:text-black">
+                      Payment Amount:
+                    </div>
+                    <div className="text-black-900 dark:text-black font-medium">
+                      <DualCurrencyPrice
+                        amount={selectedPrice}
+                        countryCurrency={form.getValues().country}
+                        stablecoin={selectedToken}
+                        showTotal={true}
+                      />
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <Button
-            type="submit"
-            className="w-full bg-gradient-to-r from-yellow-400 via-primary/900 to-yellow-400 hover:from-primary/900 hover:via-yellow-600 hover:to-primary/900 dark:from-yellow-400 dark:via-primary/900 dark:to-yellow-400 dark:hover:from-primary/900 dark:hover:via-yellow-600 dark:hover:to-primary/900 text-black font-medium py-3 shadow-lg shadow-yellow-400/30 dark:shadow-yellow-400/40 border-0 transition-all duration-200 hover:shadow-xl hover:shadow-yellow-400/40 dark:hover:shadow-yellow-400/50 transform hover:-translate-y-0.5"
-            disabled={isProcessing || !selectedPrice}
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin text-black" />
-                Processing...
-              </>
-            ) : (
-              `Pay with ${selectedToken}`
+                </CardContent>
+              </Card>
             )}
-          </Button>
-        </form>
-      </Form>
-    </div>
-  );
-}
+  
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-yellow-400 via-primary/900 to-yellow-400 hover:from-primary/900 hover:via-yellow-600 hover:to-primary/900 dark:from-yellow-400 dark:via-primary/900 dark:to-yellow-400 dark:hover:from-primary/900 dark:hover:via-yellow-600 dark:hover:to-primary/900 text-black font-light py-3 shadow-lg shadow-yellow-400/30 dark:shadow-yellow-400/40 "
+              disabled={isProcessing || !selectedPrice}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin text-black" />
+                  Processing...
+                </>
+              ) : (
+                `Pay with ${selectedToken}`
+              )}
+            </Button>
+          </form>
+        </Form>
+      </div>
+    );
+  }
