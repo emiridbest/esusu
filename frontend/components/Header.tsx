@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useContext } from "react";
+import { ethers } from "ethers";
+import { contractAddress, abi } from "../utils/abi";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -37,16 +39,54 @@ import ReceiptsMini from "@/components/receipts/ReceiptsMini";
 import { ConnectButton } from "thirdweb/react";
 import { inAppWallet, createWallet } from "thirdweb/wallets";
 import { client, activeChain } from "../lib/thirdweb";
+import { useActiveAccount } from "thirdweb/react";
 
 export default function Header() {
+  // Admin badge logic
+  const hardcodedAdmin = "0x5b2e388403b60972777873e359a5D04a832836b3".toLowerCase();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
+  const account = useActiveAccount();
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const walletAddress = account?.address || null;
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
 
   const { darkMode } = useContext(ThemeContext);
+  useEffect(() => {
+    async function checkAdmin() {
+      setCheckingAdmin(true);
+      try {
+        if (!walletAddress) {
+          setIsAdmin(false);
+          setCheckingAdmin(false);
+          return;
+        }
+        // Use ethers to check contract owner
+        const ethereum = (window as any).ethereum;
+        if (!ethereum) {
+          setIsAdmin(false);
+          setCheckingAdmin(false);
+          return;
+        }
+        const provider = new ethers.BrowserProvider(ethereum);
+        const contract = new ethers.Contract(contractAddress, abi, provider);
+        const owner = await contract.owner();
+        const isAdminAddress = walletAddress && (
+          walletAddress.toLowerCase() === owner.toLowerCase() || walletAddress.toLowerCase() === hardcodedAdmin
+        );
+        setIsAdmin(isAdminAddress);
+      } catch {
+        setIsAdmin(false);
+      } finally {
+        setCheckingAdmin(false);
+      }
+    }
+    checkAdmin();
+  }, [walletAddress]);
 
   const handleSearchIconClick = () => {
     setSearchVisible(true);
@@ -57,19 +97,6 @@ export default function Header() {
       setIsOpen(false);
     }
   };
-
-  // useEffect(() => {
-  //   if (isOpen) {
-  //     document.addEventListener('mousedown', handleClickOutside);
-  //   } else {
-  //     document.removeEventListener('mousedown', handleClickOutside);
-  //   }
-
-  //   return () => {
-  //     document.removeEventListener('mousedown', handleClickOutside);
-  //   };
-  // }, [isOpen]);
-
   // Navigation links
   const navLinks = [
     { title: "Simple Saver", href: "/miniSafe" },
@@ -77,7 +104,6 @@ export default function Header() {
     { title: "Pay Bills", href: "/utilityBills" },
     { title: "Freebies", href: "/freebies" },
     { title: "Chat", href: "/chat" },
-
   ];
 
   // About menu items
@@ -87,6 +113,7 @@ export default function Header() {
     { title: "FAQ", href: "/faq" },
     { title: "Jobs", href: "/jobs" },
   ];
+
 
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/80 dark:bg-black/80 border-b border-gray-200 dark:border-gray-800 shadow-sm">
@@ -125,13 +152,28 @@ export default function Header() {
                     </NavigationMenuLink>
                   </NavigationMenuItem>
                 ))}
+                {/* Admin button styled like Thrift, only for admin */}
+                {!checkingAdmin && isAdmin && walletAddress && (
+                  <NavigationMenuItem>
+                    <NavigationMenuLink
+                      href="/admin-panel"
+                      className={cn(
+                        "h-9 px-4 font-semibold rounded-lg flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-all duration-300",
+                        pathname === "/admin-panel" ? "text-primary border-b-2 border-primary" : "text-black dark:text-primary"
+                      )}
+                      title="Admin Panel"
+                    >
+                      Admin
+                    </NavigationMenuLink>
+                  </NavigationMenuItem>
+                )}
 
                 <NavigationMenuItem>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button 
                         variant="ghost" 
-                        className="h-9 gap-1 hover:bg-primary/10 text-black hover:text-primary"
+                        className="h-9 gap-1 hover:bg-primary/10 text-black dark:text-primary hover:text-primary"
                       >
                         About Us
                         <ChevronDownIcon className="h-4 w-4" />

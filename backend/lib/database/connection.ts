@@ -98,6 +98,9 @@ async function dbConnect() {
   }
 
   if (!cached.promise) {
+    // Check if URI is SRV format (MongoDB Atlas)
+    const isSrvUri = MONGODB_URI?.startsWith('mongodb+srv://');
+    
     const opts = {
       bufferCommands: false,
       serverSelectionTimeoutMS: config.database.connectionTimeout,
@@ -106,15 +109,18 @@ async function dbConnect() {
       maxPoolSize: config.database.maxPoolSize,
       minPoolSize: config.database.minPoolSize,
       maxIdleTimeMS: 30000,
-      waitQueueTimeoutMS: 5000,
+      waitQueueTimeoutMS: 30000, // Increased from 5000 to 30000ms
+      maxConnecting: 10, // Maximum number of connections being established
       family: 4, // Use IPv4, skip trying IPv6
-      directConnection: true, // Prefer direct connection for single-host URIs/proxies
+      // Only use directConnection for non-SRV URIs
+      ...(isSrvUri ? {} : { directConnection: true }),
     } as const;
 
     console.log('🔌 Connecting to MongoDB...', {
       uri: MONGODB_URI ? `${MONGODB_URI.substring(0, 20)}...` : 'NOT SET',
       env: config.app.nodeEnv,
-      pool: `${config.database.minPoolSize}-${config.database.maxPoolSize}`
+      pool: `${config.database.minPoolSize}-${config.database.maxPoolSize}`,
+      isSrvUri
     });
 
     cached.promise = mongoose

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useThrift, ThriftGroup, ThriftMember } from '@/context/thrift/ThriftContext';
 import { useActiveAccount } from 'thirdweb/react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,11 +20,12 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { ArrowUpIcon, ArrowDownIcon, Share2Icon, UsersIcon, CalendarIcon, ArrowLeftIcon } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, Share2Icon, UsersIcon, CalendarIcon, ArrowLeftIcon, SparklesIcon, Settings, Play, DollarSign, AlertTriangle, RotateCcw, GripVertical } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
 import { contractAddress } from '@/utils/abi';
+import { cn } from '@/lib/utils';
 
 export default function CampaignDetailsPage() {
   const params = useParams();
@@ -33,7 +35,7 @@ export default function CampaignDetailsPage() {
   const router = useRouter();
   const campaignId = typeof id === 'string' ? parseInt(id) : -1;
   
-  const { userGroups, allGroups, joinThriftGroup, makeContribution, distributePayout, getThriftGroupMembers, generateShareLink, loading, error } = useThrift();
+  const { userGroups, allGroups, joinThriftGroup, makeContribution, distributePayout, getThriftGroupMembers, generateShareLink, activateThriftGroup, setPayoutOrder, emergencyWithdraw, loading, error } = useThrift();
   const account = useActiveAccount();
   const address = account?.address;
   const isConnected = !!address;
@@ -52,6 +54,11 @@ export default function CampaignDetailsPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [metaCreatedBy, setMetaCreatedBy] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<any | null>(null);
+  const [isGroupAdmin, setIsGroupAdmin] = useState(false);
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [payoutOrder, setPayoutOrderInput] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [memberOrder, setMemberOrder] = useState<string[]>([]);
   
   // Find the campaign in user campaigns or all campaigns
   useEffect(() => {
@@ -71,7 +78,6 @@ export default function CampaignDetailsPage() {
       setCampaign(foundCampaign);
       return;
     }
-    
 
   }, [campaignId, userGroups, allGroups]);
   
@@ -83,6 +89,9 @@ export default function CampaignDetailsPage() {
       try {
         const members = await getThriftGroupMembers(campaign.id);
         setCampaignMembers(members);
+        // Initialize member order with current member addresses
+        const addresses = members.map(member => member.address);
+        setMemberOrder(addresses);
       } catch (error) {
         console.error("Failed to fetch members:", error);
       }
@@ -116,6 +125,38 @@ export default function CampaignDetailsPage() {
       setJoinDialogOpen(true);
     }
   }, [isJoinRequest, isUserMember, campaign, joinDialogOpen]);
+
+  // Check if user is group admin
+  useEffect(() => {
+    const checkGroupAdmin = async () => {
+      if (!campaign || !address) {
+        setIsGroupAdmin(false);
+        return;
+      }
+
+      try {
+        // Import the contract to check admin status
+        const { ethers } = await import('ethers');
+        const { contractAddress, abi } = await import('@/utils/abi');
+        
+        const ethereum = (window as any).ethereum;
+        if (!ethereum) return;
+        
+        const provider = new ethers.BrowserProvider(ethereum);
+        const contract = new ethers.Contract(contractAddress, abi, provider);
+        
+        const groupInfo = await contract.thriftGroups(campaign.id);
+        const groupAdmin = groupInfo.admin;
+        
+        setIsGroupAdmin(groupAdmin && groupAdmin.toLowerCase() === address.toLowerCase());
+      } catch (error) {
+        console.error('Failed to check group admin status:', error);
+        setIsGroupAdmin(false);
+      }
+    };
+
+    checkGroupAdmin();
+  }, [campaign, address]);
   
   const handleJoinClick = () => {
     setJoinDialogOpen(true);
@@ -165,6 +206,16 @@ export default function CampaignDetailsPage() {
   const handleContribute = async () => {
     if (!campaign) return;
     
+    // Check if group is active before attempting contribution
+    if (!campaign.isActive) {
+      toast({
+        title: "Group not active",
+        description: "This group is not active yet. Contributions will be available when the group starts. Please wait for the admin to activate the group.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       await makeContribution(campaign.id);
       setContributeDialogOpen(false);
@@ -175,10 +226,23 @@ export default function CampaignDetailsPage() {
         description: `You've contributed to the thrift group.`,
       });
     } catch (error) {
-      console.error("Failed to contribute:", error);
+      // Handle specific error cases with graceful notifications
+      let errorMessage = "An unknown error occurred";
+      if (error instanceof Error) {
+        if (error.message.includes("Group is not active")) {
+          errorMessage = "This group is not active yet. Please wait for the admin to activate the group before contributing.";
+        } else if (error.message.includes("execution reverted")) {
+          errorMessage = "Unable to contribute at this time. Please check that the group is active and try again.";
+        } else if (error.message.includes("insufficient funds")) {
+          errorMessage = "Insufficient funds. Please ensure you have enough tokens to make the contribution.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Contribution failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -218,102 +282,229 @@ export default function CampaignDetailsPage() {
         console.error("Failed to copy: ", err);
       });
   };
+
+  // Admin action handlers
+  const handleActivateGroup = async () => {
+    if (!campaign) return;
+    
+    setIsProcessing(true);
+    try {
+      await activateThriftGroup(campaign.id);
+      toast({
+        title: "Group activated",
+        description: "The thrift group has been activated successfully.",
+      });
+    } catch (error) {
+      // Handle specific error cases with graceful notifications
+      let errorMessage = "An unknown error occurred";
+      if (error instanceof Error) {
+        if (error.message.includes("Payout order not set")) {
+          errorMessage = "Please set the payout order before activating the group. Use the 'Set Payout Order' button to arrange members in the desired payment sequence.";
+        } else if (error.message.includes("Group is not active")) {
+          errorMessage = "This group is already active or cannot be activated at this time.";
+        } else if (error.message.includes("execution reverted")) {
+          errorMessage = "Unable to activate group. Please check that all requirements are met and try again.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast({
+        title: "Activation failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSetPayoutOrder = async () => {
+    if (!campaign || memberOrder.length === 0) {
+      toast({
+        title: "Invalid payout order",
+        description: "Please arrange the member order.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      await setPayoutOrder(campaign.id, memberOrder);
+      setAdminDialogOpen(false);
+      toast({
+        title: "Payout order set",
+        description: "The payout order has been set successfully.",
+      });
+    } catch (error) {
+      console.error("Failed to set payout order:", error);
+      toast({
+        title: "Failed to set payout order",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Function to move member up in order
+  const moveMemberUp = (index: number) => {
+    if (index === 0) return;
+    const newOrder = [...memberOrder];
+    [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+    setMemberOrder(newOrder);
+  };
+
+  // Function to move member down in order
+  const moveMemberDown = (index: number) => {
+    if (index === memberOrder.length - 1) return;
+    const newOrder = [...memberOrder];
+    [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+    setMemberOrder(newOrder);
+  };
+
+  const handleEmergencyWithdraw = async () => {
+    if (!campaign) return;
+    
+    if (!confirm('Are you sure you want to perform emergency withdrawal? This action cannot be undone.')) {
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      await emergencyWithdraw(campaign.id);
+      toast({
+        title: "Emergency withdrawal executed",
+        description: "Emergency withdrawal has been executed successfully.",
+      });
+    } catch (error) {
+      console.error("Failed to execute emergency withdrawal:", error);
+      toast({
+        title: "Emergency withdrawal failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
   
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-10">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex items-center justify-center min-h-[400px]"
+      >
         <div className="text-center">
-          <p>Loading thrift group details...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading thrift group details...</p>
         </div>
-      </div>
+      </motion.div>
     );
   }
   
   if (!campaign) {
     return (
-      <div className="container mx-auto px-4 py-10">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex items-center justify-center min-h-[400px]"
+      >
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Thrift Group Not Found</h1>
-          <p className="mb-6">The thrift group you are looking for does not exist or you do not have access to it.</p>
+          <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Thrift Group Not Found</h1>
+          <p className="mb-6 text-gray-600 dark:text-gray-400">The thrift group you are looking for does not exist or you do not have access to it.</p>
           <Button onClick={() => router.push('/thrift')} className="flex items-center gap-2">
             <ArrowLeftIcon className="h-4 w-4" />
             Back to Thrift Groups
           </Button>
         </div>
-      </div>
+      </motion.div>
     );
   }
   
   return (
-    <div className="container mx-auto px-4 py-10">
-      <div className="mb-6">
-        <Button 
-          variant="outline" 
-          onClick={() => router.push('/thrift')}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeftIcon className="h-4 w-4" />
-          Back to Thrift Groups
-        </Button>
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+        <div className="mb-6">
+          <Button 
+            variant="outline" 
+            onClick={() => router.push('/thrift')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeftIcon className="h-4 w-4" />
+            Back to Thrift Groups
+          </Button>
+        </div>
       
-      <Card className="overflow-hidden border-primary/20 mb-8">
-        <CardHeader className="bg-primary/5 pb-3">
-          <div className="flex justify-between items-start">
-            <div className="flex items-center gap-3">
-              <CardTitle className="text-2xl font-bold">{campaign.name}</CardTitle>
-              {address && metaCreatedBy && address.toLowerCase() === metaCreatedBy && (
-                <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>Edit</Button>
-              )}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-3">
+                <CardTitle>
+                  {campaign.name}
+                </CardTitle>
+                {address && metaCreatedBy && address.toLowerCase() === metaCreatedBy && (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => setEditOpen(true)}
+                  >
+                    Edit
+                  </Button>
+                )}
+              </div>
+              <Badge variant="secondary">
+                {parseFloat(campaign.depositAmount)} {campaign.tokenSymbol || 'cUSD'} / month
+              </Badge>
             </div>
-            <Badge className="bg-primary/10 text-primary border border-primary/20">
-              {parseFloat(campaign.depositAmount)} cUSD / month
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
-            {campaign.description}
-          </p>
+            <p className="text-muted-foreground">
+              {campaign.description}
+            </p>
+          </CardHeader>
+        <CardContent>
           
           <Tabs defaultValue="overview">
-            <TabsList className="mb-4">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="members">Members</TabsTrigger>
-              <TabsTrigger value="contributions">Contributions</TabsTrigger>
-              <TabsTrigger value="history">History</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4 gap-1">
+              <TabsTrigger value="overview" className="w-full">
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="members" className="w-full">
+                Members
+              </TabsTrigger>
+              <TabsTrigger value="contributions" className="w-full">
+                Contributions
+              </TabsTrigger>
+              <TabsTrigger value="history" className="w-full">
+                History
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-500">Monthly Contribution</CardTitle>
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Monthly Contribution
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold">{campaign.depositAmount} cUSD</p>
+                    <p className="text-2xl font-bold">{campaign.depositAmount} {campaign.tokenSymbol || 'cUSD'}</p>
                   </CardContent>
                 </Card>
-
-      {/* Edit Metadata Dialog */}
-      <EditMetadataDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        contractAddress={contractAddress}
-        groupId={campaign.id}
-        initialName={campaign.name}
-        initialDescription={campaign.description}
-        initialCoverImageUrl={campaign.meta?.coverImageUrl}
-        initialCategory={campaign.meta?.category}
-        initialTags={campaign.meta?.tags}
-        onSaved={({ name, description }) => {
-          setCampaign((prev) => prev ? { ...prev, name, description: description || prev.description } : prev);
-        }}
-      />
                 
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-500">Total Members</CardTitle>
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Total Members
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-2xl font-bold">{campaign.totalMembers}/{campaign.maxMembers}</p>
@@ -322,7 +513,9 @@ export default function CampaignDetailsPage() {
                 
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-500">Rotation Period</CardTitle>
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Rotation Period
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-2xl font-bold">30 days</p>
@@ -330,35 +523,50 @@ export default function CampaignDetailsPage() {
                 </Card>
               </div>
               
-              <div className="mb-6">
-                <h3 className="text-lg font-medium mb-2">Rotation Progress</h3>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Current Rotation</span>
-                  <span>53%</span>
-                </div>
-                <Progress value={53} className="h-2 mb-4" />
-                <div className="flex flex-wrap gap-3 text-sm text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <UsersIcon className="h-4 w-4" />
-                    <span>Current recipient: {campaignMembers.length > 0 ? `${campaignMembers[0].address.substring(0, 6)}...${campaignMembers[0].address.substring(campaignMembers[0].address.length - 4)}` : 'Pending'}</span>
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Rotation Progress</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-muted-foreground">Current Rotation</span>
+                    <span className="font-bold">
+                      {campaign.isActive 
+                        ? (campaign.currentRound === 0 ? "Round 1" : `Round ${campaign.currentRound + 1}`)
+                        : "Not Started"
+                      }
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <CalendarIcon className="h-4 w-4" />
-                    <span>Next rotation: {new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()}</span>
+                  <Progress value={campaign.currentRound * 20} className="h-2 mb-4" />
+                  <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <UsersIcon className="h-4 w-4" />
+                      <span>Past recipient: {campaign.pastRecipient ? `${campaign.pastRecipient.substring(0, 6)}...${campaign.pastRecipient.substring(campaign.pastRecipient.length - 4)}` : 'None'}</span>
+                    </div>
+                    {campaign.isActive && (
+                      <div className="flex items-center gap-1">
+                        <CalendarIcon className="h-4 w-4" />
+                        <span>Next rotation: {campaign.nextPaymentDate ? campaign.nextPaymentDate.toLocaleDateString() : 'TBD'}</span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
               
-              <div className="bg-primary/5 rounded-lg p-4 text-sm">
-                <h3 className="font-medium mb-2">How This Thrift Group Works</h3>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>Each member contributes <strong>{campaign.depositAmount} cUSD</strong> monthly</li>
-                  <li>The total pool is distributed to one member each month</li>
-                  <li>Order is determined when you join the group</li>
-                  <li>Everyone gets a turn to receive the full pool amount</li>
-                  <li>Missing a contribution may result in losing your turn</li>
-                </ul>
-              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>How This Thrift Group Works</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+                    <li>Each member contributes <strong>{campaign.depositAmount} {campaign.tokenSymbol || 'cUSD'}</strong> monthly</li>
+                    <li>The total pool is distributed to one member each month</li>
+                    <li>Order is determined when you join the group</li>
+                    <li>Everyone gets a turn to receive the full pool amount</li>
+                    <li>Missing a contribution may result in losing your turn</li>
+                  </ul>
+                </CardContent>
+              </Card>
             </TabsContent>
             
             <TabsContent value="members">
@@ -409,16 +617,28 @@ export default function CampaignDetailsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {campaignMembers.length > 0 ? (
+                    {!campaign.isActive ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-4">
+                          <div className="text-gray-500">
+                            <p className="font-medium">Group has not started yet</p>
+                            <p className="text-sm">Contributions will appear here once the group becomes active</p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : campaignMembers.length > 0 ? (
                       <TableRow>
                         <TableCell>{new Date().toLocaleDateString()}</TableCell>
                         <TableCell>{campaignMembers[0].address.substring(0, 6)}...{campaignMembers[0].address.substring(campaignMembers[0].address.length - 4)}</TableCell>
-                        <TableCell className="text-right">{campaign.depositAmount} cUSD</TableCell>
+                        <TableCell className="text-right">{campaign.depositAmount} {campaign.tokenSymbol || 'cUSD'}</TableCell>
                       </TableRow>
                     ) : (
                       <TableRow>
                         <TableCell colSpan={3} className="text-center py-4">
-                          No contributions yet
+                          <div className="text-gray-500">
+                            <p className="font-medium">No contributions yet</p>
+                            <p className="text-sm">Contributions will appear here as members make payments</p>
+                          </div>
                         </TableCell>
                       </TableRow>
                     )}
@@ -478,47 +698,136 @@ export default function CampaignDetailsPage() {
           </Tabs>
         </CardContent>
 
-        <CardFooter className="border-t pt-4 flex flex-wrap gap-2">
+        <CardFooter>
           {isUserMember ? (
             <>
               <Button
-                variant="outline"
-                className="flex items-center gap-1"
+                className="w-full"
                 onClick={handleContributeClick}
+                disabled={!campaign}
               >
-                <ArrowUpIcon className="h-4 w-4" />
+                <ArrowUpIcon className="h-4 w-4 mr-2" />
                 Contribute
               </Button>
               <Button
                 variant="outline"
-                className="flex items-center gap-1"
+                className="w-full"
                 onClick={handleWithdrawClick}
                 disabled={true}
               >
-                <ArrowDownIcon className="h-4 w-4" />
+                <ArrowDownIcon className="h-4 w-4 mr-2" />
                 Withdraw
               </Button>
               <Button
                 variant="outline"
-                className="flex items-center gap-1"
+                className="w-full"
                 onClick={handleShareClick}
               >
-                <Share2Icon className="h-4 w-4" />
+                <Share2Icon className="h-4 w-4 mr-2" />
                 Share
               </Button>
             </>
           ) : (
             <Button
-              className="flex items-center gap-1"
+              className="w-full"
               onClick={handleJoinClick}
               disabled={!isConnected}
             >
-              <UsersIcon className="h-4 w-4" />
+              <UsersIcon className="h-4 w-4 mr-2" />
               {isConnected ? 'Request to Join' : 'Connect Wallet to Join'}
             </Button>
           )}
         </CardFooter>
       </Card>
+
+      {/* Admin Controls - Only show if user is group admin */}
+      {isGroupAdmin && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Group Admin Controls
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              {/* Activate Group */}
+              {!campaign.isActive && (
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div>
+                    <h3 className="font-medium">Activate Group</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Start the thrift group to allow contributions
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleActivateGroup}
+                    disabled={isProcessing}
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Activate
+                  </Button>
+                </div>
+              )}
+
+              {/* Set Payout Order */}
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <h3 className="font-medium">Set Payout Order</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Define the order members will receive payouts
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setAdminDialogOpen(true)}
+                  variant="outline"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Set Order
+                </Button>
+              </div>
+
+              {/* Distribute Payout */}
+              {campaign.isActive && (
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div>
+                    <h3 className="font-medium">Distribute Payout</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Distribute payout to current recipient
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => distributePayout(campaign.id)}
+                    disabled={isProcessing}
+                    variant="outline"
+                  >
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Distribute
+                  </Button>
+                </div>
+              )}
+
+              {/* Emergency Withdraw */}
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <h3 className="font-medium">Emergency Withdraw</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Emergency withdrawal for critical situations
+                  </p>
+                </div>
+                <Button
+                  onClick={handleEmergencyWithdraw}
+                  disabled={isProcessing}
+                  variant="destructive"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Emergency
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Join Dialog */}
       <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
@@ -529,7 +838,7 @@ export default function CampaignDetailsPage() {
           <div className="py-4">
             <p className="mb-4">You are requesting to join: <strong>{campaign.name}</strong></p>
             <p className="text-sm text-gray-500 mb-6">
-              Monthly contribution: {campaign.depositAmount} cUSD
+              Monthly contribution: {campaign.depositAmount} {campaign.tokenSymbol || 'cUSD'}
             </p>
             <div className="grid gap-4">
               <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800">
@@ -603,7 +912,7 @@ export default function CampaignDetailsPage() {
               You are about to withdraw the full pool amount:
             </p>
             <p className="text-2xl font-bold mb-6">
-              {parseFloat(campaign.depositAmount) * 5} cUSD
+              {parseFloat(campaign.depositAmount) * 5} {campaign.tokenSymbol || 'cUSD'}
             </p>
             
             <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800">
@@ -656,6 +965,102 @@ export default function CampaignDetailsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+
+      {/* Admin Dialog - Set Payout Order */}
+      <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Set Payout Order</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="mb-4">Arrange the payout order for <strong>{campaign?.name}</strong></p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Drag members up or down to set the order they will receive payouts. The first member will receive the first payout.
+            </p>
+            
+            <div className="space-y-2">
+              {memberOrder.map((address, index) => {
+                const member = campaignMembers.find(m => m.address === address);
+                return (
+                  <div 
+                    key={address}
+                    className="flex items-center justify-between p-3 border rounded-lg bg-card"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex flex-col gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveMemberUp(index)}
+                          disabled={index === 0}
+                          className="h-6 w-6 p-0"
+                        >
+                          <ArrowUpIcon className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveMemberDown(index)}
+                          disabled={index === memberOrder.length - 1}
+                          className="h-6 w-6 p-0"
+                        >
+                          <ArrowDownIcon className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <div>
+                        <p className="font-medium">
+                          {member ? `Member ${index + 1}` : 'Unknown Member'}
+                        </p>
+                        <p className="text-sm text-muted-foreground font-mono">
+                          {address.substring(0, 6)}...{address.substring(address.length - 4)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <GripVertical className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-muted-foreground">
+                        #{index + 1}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {memberOrder.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <UsersIcon className="h-8 w-8 mx-auto mb-2" />
+                <p>No members found. Members will appear here once they join the group.</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdminDialogOpen(false)}>Cancel</Button>
+            <Button 
+              onClick={handleSetPayoutOrder}
+              disabled={memberOrder.length === 0 || isProcessing}
+            >
+              {isProcessing ? 'Processing...' : 'Set Order'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Metadata Dialog */}
+      <EditMetadataDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        contractAddress={contractAddress}
+        groupId={campaign.id}
+        initialName={campaign.name}
+        initialDescription={campaign.description}
+        initialCoverImageUrl={campaign.meta?.coverImageUrl}
+        initialCategory={campaign.meta?.category}
+        initialTags={campaign.meta?.tags}
+        onSaved={({ name, description }) => {
+          setCampaign((prev) => prev ? { ...prev, name, description: description || prev.description } : prev);
+        }}
+      />
+    </motion.div>
   );
 }

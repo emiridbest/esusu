@@ -1,7 +1,7 @@
 import { ethers, type ContractRunner, type BigNumberish, type Contract } from 'ethers';
 import MiniSafeAaveUpgradeableABI from './abis/MiniSafeAaveUpgradeable.json';
 
-export const contractAddress = "0x3082Deaab1DeA29Ec1AA3C53Ef707c4bf6928D41";
+export const contractAddress = "0x2fD5fF0270264441432659b97D0ea49008649584"; // Replace with actual deployed address
 export const abi = MiniSafeAaveUpgradeableABI;
 
 /**
@@ -96,8 +96,18 @@ export class MiniSafeAave {
 
   async getUserGroups(userAddress: string) {
     // This function doesn't exist in the ABI
-    // For now, return empty array to prevent errors
-    return [];
+    // Fetch from database via API
+    try {
+      const response = await fetch(`/api/groups?user=${userAddress}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch user groups');
+      }
+      const data = await response.json();
+      return data.groups || [];
+    } catch (error) {
+      console.error('Error fetching user groups:', error);
+      return [];
+    }
   }
 
   async getGroupInfo(groupId: BigNumberish) {
@@ -108,11 +118,58 @@ export class MiniSafeAave {
     return await this.contract.getGroupMembers(groupId);
   }
 
-  // Note: checkContributionDue is not present in the ABI
+  async getCurrentRecipient(groupId: BigNumberish) {
+    return await this.contract.getCurrentRecipient(groupId);
+  }
+
+  async getGroupPayouts(groupId: BigNumberish) {
+    return await this.contract.getGroupPayouts(groupId);
+  }
+
+  async checkContributionDue(userAddress: string, groupId: BigNumberish) {
+    // This function doesn't exist in the ABI
+    // Check contribution status via API
+    try {
+      const response = await fetch(`/api/groups/${groupId}/contribution-status?user=${userAddress}`);
+      if (!response.ok) {
+        throw new Error('Failed to check contribution status');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error checking contribution due:', error);
+      return { isDue: false, message: 'Unable to check contribution status' };
+    }
+  }
 
   // Emergency Functions
   async executeEmergencyWithdrawal(tokenAddress: string) {
     return await this.contract.executeEmergencyWithdrawal(tokenAddress);
+  }
+
+  async cancelEmergencyWithdrawal() {
+    return await this.contract.cancelEmergencyWithdrawal();
+  }
+
+  async initiateEmergencyWithdrawal() {
+    return await this.contract.initiateEmergencyWithdrawal();
+  }
+
+  // Admin Functions
+  async resumeOperations() {
+    return await this.contract.resumeOperations();
+  }
+
+  async triggerCircuitBreaker(reason: string) {
+    return await this.contract.triggerCircuitBreaker(reason);
+  }
+
+  async updateCircuitBreakerThresholds(newWithdrawalThreshold: BigNumberish, newTimeThreshold: BigNumberish) {
+    return await this.contract.updateCircuitBreakerThresholds(newWithdrawalThreshold, newTimeThreshold);
+  }
+
+  async addSupportedToken(tokenAddress: string) {
+    return await this.contract.addSupportedToken(tokenAddress);
   }
 
   async pause() {
@@ -126,8 +183,6 @@ export class MiniSafeAave {
   async paused() {
     return await this.contract.paused();
   }
-
-  // Admin Functions: none beyond standard Ownable/Pausable in the ABI
 
   // Events
   // Example event helpers (only those present in the ABI)

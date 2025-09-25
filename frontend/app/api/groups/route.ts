@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     await dbConnect();
     
     const { searchParams } = new URL(request.url);
-    const walletAddress = searchParams.get('wallet');
+    const walletAddress = searchParams.get('wallet') || searchParams.get('user');
     const status = searchParams.get('status');
     const limit = parseInt(searchParams.get('limit') || '20');
 

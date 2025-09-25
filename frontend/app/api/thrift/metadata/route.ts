@@ -164,11 +164,19 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Query the database
     // @ts-ignore - Mongoose union type compatibility issue
     const docs = await ThriftGroupMetadata.find(query).lean();
     return NextResponse.json({ items: docs });
   } catch (error: any) {
     console.error('Error fetching thrift metadata:', error);
+    
+    // Return empty array instead of error for better UX
+    if (error.message === 'Database query timeout' || error.name === 'MongoWaitQueueTimeoutError') {
+      console.warn('Database timeout, returning empty metadata');
+      return NextResponse.json({ items: [] });
+    }
+    
     return NextResponse.json({ error: error?.message || 'Failed to fetch thrift metadata' }, { status: 500 });
   }
 }

@@ -169,17 +169,33 @@ export function UserCampaigns() {
                       <TableCell className="max-w-xs truncate">
                         {group.description}
                       </TableCell>
-                      <TableCell>{parseFloat(group.depositAmount)} cUSD</TableCell>
+                      <TableCell>{parseFloat(group.depositAmount)} {group.tokenSymbol || 'cUSD'}</TableCell>
                       <TableCell>{group.totalMembers}/{group.maxMembers}</TableCell>
                       <TableCell>
-                        {address && group.meta?.createdBy && address === String(group.meta.createdBy).toLowerCase() ? (
-                          <button
-                            className="text-xs px-3 py-1 border rounded hover:bg-muted"
-                            onClick={() => { setEditGroup(group); setEditOpen(true); }}
+                        <div className="flex gap-2">
+                          <a 
+                            href={`/thrift/${group.id}`}
+                            className="text-xs px-3 py-1 border rounded hover:bg-muted text-center"
                           >
-                            Edit
-                          </button>
-                        ) : null}
+                            View
+                          </a>
+                          {address && group.meta?.createdBy && address === String(group.meta.createdBy).toLowerCase() && (
+                            <button
+                              className="text-xs px-3 py-1 border rounded hover:bg-muted"
+                              onClick={() => { setEditGroup(group); setEditOpen(true); }}
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {group.isUserMember && group.isActive && (
+                            <button
+                              className="text-xs px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                              onClick={() => {/* Add make contribution logic */}}
+                            >
+                              Contribute
+                            </button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -221,8 +237,18 @@ export function UserCampaigns() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={(group.isActive ? "bg-green-50 text-green-700 border-green-200" : "bg-yellow-50 text-yellow-700 border-yellow-200") + " border"}>
-                          {group.isActive ? 'Active' : 'Pending'}
+                        <Badge className={(
+                          group.isActive && group.totalMembers >= group.maxMembers 
+                            ? "bg-green-50 text-green-700 border-green-200" 
+                            : group.isActive 
+                              ? "bg-blue-50 text-blue-700 border-blue-200"
+                              : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                        ) + " border"}>
+                          {group.isActive && group.totalMembers >= group.maxMembers 
+                            ? 'Full' 
+                            : group.isActive 
+                              ? 'Active'
+                              : 'Pending'}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -254,12 +280,19 @@ export function UserCampaigns() {
                           {group.name}
                         </a>
                       </TableCell>
-                      <TableCell>{parseFloat(group.depositAmount)} cUSD</TableCell>
                       <TableCell>
-                        {new Date().toLocaleDateString()}
+                        {group.userContribution ? `${parseFloat(group.userContribution)} ${group.tokenSymbol || 'cUSD'}` : `${parseFloat(group.depositAmount)} ${group.tokenSymbol || 'cUSD'}`}
                       </TableCell>
                       <TableCell>
-                        Round {group.currentRound + 1}
+                        {group.userLastPayment ? group.userLastPayment.toLocaleDateString() : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {group.userNextPayment 
+                          ? group.userNextPayment.toLocaleDateString() 
+                          : group.isActive 
+                            ? (group.currentRound === 0 ? "Round 1" : `Round ${group.currentRound + 1}`)
+                            : "Not Started"
+                        }
                       </TableCell>
                     </TableRow>
                   ))}

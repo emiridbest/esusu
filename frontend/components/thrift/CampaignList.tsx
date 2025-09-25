@@ -202,7 +202,7 @@ export function CampaignList() {
               <Button
                 variant="outline"
                 onClick={() => { setCategoryFilter(''); setTagsFilter(''); }}
-                className="w-full md:w-auto"
+                className="w-full md:w-auto border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-black text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Clear Filters
               </Button>
@@ -220,6 +220,7 @@ export function CampaignList() {
             <Button
               variant="outline"
               onClick={() => { setCategoryFilter(''); setTagsFilter(''); }}
+              className="text-foreground border-border bg-background hover:bg-accent hover:text-accent-foreground"
             >
               Clear Filters
             </Button>
@@ -241,7 +242,7 @@ export function CampaignList() {
                     )}
                   </div>
                   <Badge className="bg-primary/10 text-primary border border-primary/20">
-                    {parseFloat(group.depositAmount)} cUSD
+                    {parseFloat(group.depositAmount)} {group.tokenSymbol || 'cUSD'}
                   </Badge>
                 </div>
               </CardHeader>
@@ -359,7 +360,7 @@ export function CampaignList() {
           <div className="py-4">
             <p className="mb-4">You are joining: <strong>{selectedGroup?.name}</strong></p>
             <p className="text-sm text-gray-500 mb-6">
-              Deposit amount: {selectedGroup?.depositAmount} cUSD
+              Deposit amount: {selectedGroup?.depositAmount} {selectedGroup?.tokenSymbol || 'cUSD'}
             </p>
             <div className="grid gap-4">
               <div className="grid grid-cols-4 items-center gap-4">
