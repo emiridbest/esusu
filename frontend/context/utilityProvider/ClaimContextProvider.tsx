@@ -200,7 +200,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         throw new Error("ClaimSDK not initialized");
       }
 
-      toast.info("Processing claim for G$ tokens...");
       setIsProcessing(true);
       // Check entitlement again after claiming
       const newEntitlement = await claimSDK.checkEntitlement();
@@ -269,7 +268,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       return;
     }
     if (!entitlement || entitlement <= BigInt(0)) {
-      toast.info("No entitlement available at the moment.");
       return;
     }
     const dataSuffix = getReferralTag({
@@ -309,7 +307,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     ]);
     const dataWithSuffix = transferData + dataSuffix;
 
-    toast.info("Processing payment for data bundle...");
     try {
       const tx = await sendTransactionAsync({
         to: tokenAddress as `0x${string}`,
