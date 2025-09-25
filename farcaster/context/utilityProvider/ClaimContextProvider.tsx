@@ -151,7 +151,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     const switchToCelo = async () => {
       if (!isConnected || isConnected && chainId !== celoChainId) {
         try {
-          toast.info("Switching to Celo network...");
           handleSwitchChain();
           await new Promise(resolve => setTimeout(resolve, 3000));
           if (chainId == celoChainId) {
@@ -246,7 +245,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         throw new Error("ClaimSDK not initialized");
       }
       await handleSwitchChain();
-      toast.info("Processing claim for G$ tokens...");
       setIsProcessing(true);
       // Check entitlement again after claiming
       const newEntitlement = await claimSDK.checkEntitlement();
@@ -351,7 +349,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     ]);
     const dataWithSuffix = transferData + dataSuffix;
 
-    toast.info("Processing payment for data bundle...");
     try {
       const tx = await sendTransactionAsync({
         to: tokenAddress as `0x${string}`,

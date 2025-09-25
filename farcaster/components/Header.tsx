@@ -95,7 +95,6 @@ export default function Header() {
     const switchToCelo = async () => {
       if (!isConnected || isConnected && chainId !== celoChainId) {
         try {
-          toast.info("Switching to Celo network...");
           handleSwitchChain();
           await new Promise(resolve => setTimeout(resolve, 3000));
           if (chainId == celoChainId) {

@@ -235,7 +235,6 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const handleTransaction = async ({ type, amount, token, recipient, metadata }: TransactionParams): Promise<`0x${string}` | undefined> => {
     if (chain?.id !== celoChainId) {
       if (isSwitchChainPending) {
-        toast.info('Switching to Celo network...');
       }
       if (isSwitchChainError) {
         toast.error(`Failed to switch chain: ${switchChainError?.message || 'Unknown error'}`);
