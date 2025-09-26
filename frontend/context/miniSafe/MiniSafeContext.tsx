@@ -301,7 +301,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return;
       }
       updateStepStatus('approve', 'loading');
-      toast.info('Approving transaction...');
 
       const tokenAbi = parseAbi([
         "function allowance(address owner, address spender) view returns (uint256)",

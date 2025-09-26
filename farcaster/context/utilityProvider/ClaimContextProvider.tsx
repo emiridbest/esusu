@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useContext, createContext, ReactNode, useMemo, useEffect, useRef } from 'react';
-import { ethers } from "ethers";
-import { useAccount, useSendTransaction, useSwitchChain } from "wagmi";
+import React, { useState, useContext, createContext, ReactNode, useMemo, useEffect, useRef, useCallback } from 'react';
+import { ethers, Interface } from "ethers";
+import { useAccount, useChainId, useConnect, useSendTransaction, useSwitchChain } from "wagmi";
 import { toast } from 'sonner';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { Celo } from '@celo/rainbowkit-celo/chains';
@@ -21,8 +21,11 @@ import { Button } from "../../components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '../../components/TransactionSteps';
 import { createWalletClient, custom } from 'viem'
 import { celo } from 'viem/chains'
+import { txCountABI, txCountAddress } from '../../utils/pay';
 import { PublicClient, WalletClient } from "viem"
 import { config } from '../../components/providers/WagmiProvider';
+import { writeContract } from '@wagmi/core';
+
 // Constants
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
@@ -54,7 +57,7 @@ type ClaimProcessorType = {
   isSwitchChainError: boolean;
   switchChainError: Error | null;
   handleSwitchChain: () => void;
-  handleClaim: () => Promise<void>;
+  handleClaim: () => Promise<boolean>;
   processDataTopUp: (values: any, selectedPrice: number, availablePlans: any[], networks: any[]) => Promise<{ success: boolean; error?: any }>;
   processPayment: () => Promise<string>;
   TOKENS: typeof TOKENS;
@@ -96,6 +99,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const [claimSDK, setClaimSDK] = useState<any>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const initializationAttempted = useRef(false);
+  const { connect, connectors } = useConnect();
 
   // Setup transaction sending
   const { sendTransactionAsync } = useSendTransaction({ config });
@@ -107,10 +111,11 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     isPending: isSwitchChainPending,
   } = useSwitchChain();
 
-  const handleSwitchChain = () => {
-    switchChain({ chainId: celoChainId });
-  };
+  const chainId = useChainId();
 
+  const handleSwitchChain = useCallback(() => {
+    switchChain({ chainId: celoChainId });
+  }, [switchChain, celoChainId]);
 
   const publicClient = createPublicClient({
     chain: celo,
@@ -128,6 +133,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   }, [isConnected, address]);
 const identitySDK = useMemo(() => {
     if (isConnected && publicClient && walletClient) {
+
       try {
         return new IdentitySDK(
           publicClient as unknown as PublicClient,
@@ -141,7 +147,30 @@ const identitySDK = useMemo(() => {
     }
     return null;
   }, [publicClient, walletClient, isConnected]);
+  useEffect(() => {
+    const switchToCelo = async () => {
+      if (!isConnected || isConnected && chainId !== celoChainId) {
+        try {
+          handleSwitchChain();
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          if (chainId == celoChainId) {
+            const connector = connectors.find((c) => c.id === "miniAppConnector") || connectors[1];
+            connect({
+              connector,
+              chainId: celoChainId,
+            });
+            toast.success("Connected to Celo network successfully!");
+          } else {
+            throw new Error("Failed to switch to Celo network");
+          }
+        } catch (error) {
+          console.error("Connection error:", error);
+        }
+      }
+    };
 
+    switchToCelo();
+  }, [connect, connectors, chainId, celoChainId, handleSwitchChain, isConnected]);
   useEffect(() => {
     const initializeClaimSDK = async () => {
       // Skip if we're already initializing, already initialized, or missing prerequisites
@@ -158,6 +187,7 @@ const identitySDK = useMemo(() => {
       }
 
       try {
+        await handleSwitchChain();
         setIsInitializing(true);
         initializationAttempted.current = true;
 
@@ -168,7 +198,6 @@ const identitySDK = useMemo(() => {
           identitySDK,
           env: 'production',
         });
-
 
         const initializedSDK = await sdk;
         setClaimSDK(initializedSDK);
@@ -206,7 +235,7 @@ const identitySDK = useMemo(() => {
     ));
   };
 
-  const handleClaim = async () => {
+  const handleClaim = async (): Promise<boolean> => {
     try {
       if (!isConnected) {
         throw new Error("Wallet not connected");
@@ -215,18 +244,17 @@ const identitySDK = useMemo(() => {
       if (!claimSDK) {
         throw new Error("ClaimSDK not initialized");
       }
-
-      toast.info("Processing claim for G$ tokens...");
+      await handleSwitchChain();
       setIsProcessing(true);
       // Check entitlement again after claiming
       const newEntitlement = await claimSDK.checkEntitlement();
       setEntitlement(newEntitlement);
       const tx = await claimSDK.claim();
       if (!tx) {
-        return;
+        return false;
       }
       toast.success("Successfully claimed G$ tokens!");
-
+      return true
     } catch (error) {
       console.error("Error during claim:", error);
       toast.error("There was an error processing your claim.");
@@ -252,6 +280,7 @@ const identitySDK = useMemo(() => {
         body: JSON.stringify({
           operatorId: values.network,
           amount: selectedPrice.toString(),
+          customId: values.customId,
           recipientPhone: {
             country: values.country,
             phoneNumber: cleanPhoneNumber
@@ -283,7 +312,32 @@ const identitySDK = useMemo(() => {
     if (!entitlement || entitlement <= BigInt(0)) {
       throw new Error("No entitlement available for payment.");
     }
+    const dataSuffix = getReferralTag({
+      user: address,
+      consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
+    });
+    try {
+      const txCountInterface = new Interface(txCountABI);
+      const txCountData = txCountInterface.encodeFunctionData("increment", []);
+      const dataWithSuffix = txCountData + dataSuffix;
 
+      const txCount = await sendTransactionAsync({
+        to: txCountAddress as `0x${string}`,
+        data: dataWithSuffix as `0x${string}`,
+      });
+      try {
+        await submitReferral({
+          txHash: txCount as unknown as `0x${string}`,
+          chainId: Celo.id
+        });
+      } catch (referralError) {
+        console.error("Referral submission error:", referralError);
+      }
+
+    } catch (error) {
+      console.error("Error during transaction count update:", error);
+      toast.error("There was an error updating the transaction count.");
+    }
     const selectedToken = "G$";
     const tokenAddress = getTokenAddress(selectedToken, TOKENS);
 
@@ -293,24 +347,18 @@ const identitySDK = useMemo(() => {
       RECIPIENT_WALLET,
       entitlement
     ]);
-    const dataSuffix = getReferralTag({
-      user: address, // The user address making the transaction
-      consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-    })
     const dataWithSuffix = transferData + dataSuffix;
 
-    toast.info("Processing payment for data bundle...");
     try {
       const tx = await sendTransactionAsync({
         to: tokenAddress as `0x${string}`,
         data: dataWithSuffix as `0x${string}`,
-        gasLimit: BigInt(600000)
       });
 
       try {
         await submitReferral({
           txHash: tx as unknown as `0x${string}`,
-          chainId: celoChainId
+          chainId: Celo.id,
         });
       } catch (referralError) {
         console.error("Referral submission error:", referralError);

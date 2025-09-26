@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -419,284 +418,171 @@ export default function ElectricityBillForm() {
       setIsProcessing(false);
     }
   }
-
-  return (
-    <div className="bg-gradient-to-br from-white via-black-50 to-primary-50 dark:from-black dark:via-black-0 dark:to-black p-6 rounded-xl border border-primary-400/20 dark:border-primary-400/30">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="country"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Country</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <CountrySelector
-                      value={field.value}
-                      onChange={(val) => {
-                        field.onChange(val);
-                        if (val) setCountryCurrency(val.toUpperCase());
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 dark:from-yellow-400/10 to-transparent pointer-events-none rounded-lg"></div>
-                  </div>
-                </FormControl>
-                <FormDescription className="text-gray-900 dark:text-white">
-                  Select the country for the electricity service.
-                </FormDescription>
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="provider"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Electricity Provider</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  disabled={isLoading || providers.length === 0}
-                >
-                  <FormControl>
-                    <SelectTrigger className="bg-white dark:black/80 border-2 border-yellow-400/50 dark:border-yellow-400/30 hover:border-yellow-500 dark:hover:border-yellow-400 focus:border-yellow-500 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-gray-900 dark:text-white">
-                      <SelectValue placeholder={providers.length === 0 ? "Select a country first" : "Select electricity provider"} className="text-xs" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-2 border-yellow-400/30 dark:border-yellow-400/40">
-                    {providers.map((provider) => (
-                      <SelectItem 
-                        key={provider.id} 
-                        value={provider.id}
-                        className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-gray-800 dark:text-gray-200"
-                      >
-                        {provider.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {isLoading && <div className="text-sm text-black/60 dark:text-yellow-300 mt-1 flex items-center">
-                  <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-yellow-400" /> Loading providers...
-                </div>}
-                <FormDescription className="text-gray-900 dark:text-white">
-                  {providers.length === 0 && "Please select a country first to see available providers"}
-                </FormDescription>
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="meterNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Meter Number</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="Enter meter number" 
-                    {...field} 
-                    className={`text-xs bg-white dark:bg-black/90 border-2 border-black/70 hover:border-black/70 dark:hover:border-yellow-400 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90 placeholder:text-black-500 dark:placeholder:text-black-400 ${
-                      validationResult === null 
-                        ? ''
-                        : validationResult.valid
-                          ? 'border-green-400 dark:border-green-400'
-                          : 'border-red-400 dark:border-red-400'
-                    }`}
+return (
+      <div className="bg-gradient-to-br from-white via-black-50 to-primary-50 dark:from-black dark:via-black-0 dark:to-black p-6 rounded-xl border border-primary-400/20 dark:border-primary-400/30">
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="country"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-black/80 dark:text-white/60 font-light text-sm">COUNTRY</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <CountrySelector
+                    value={field.value}
+                    onChange={(val) => {
+                      field.onChange(val);
+                      if (val) setCountryCurrency(val);
+                    }}
                   />
-                </FormControl>
-                <FormDescription className="text-gray-900 dark:text-white">
-                  Enter your electricity meter number.
-                </FormDescription>
-                {isValidating && (
-                  <div className="text-sm text-yellow-600 dark:text-yellow-300 mt-1 flex items-center">
-                    <Loader2 className="h-3 w-3 animate-spin mr-1" /> Validating meter number...
-                  </div>
-                )}
-                {validationResult && (
-                  <div className={`text-sm mt-1 ${validationResult.valid ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {validationResult.valid
-                      ? `✓ Valid meter: ${validationResult.customerName || 'Meter number validated'}${validationResult.outstandingAmount ? ` (Outstanding: ${validationResult.outstandingAmount})` : ''}`
-                      : `✗ ${validationResult.error || 'Invalid meter number'}`
-                    }
-                  </div>
-                )}
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">
-                  Amount {countryCurrency && `(${countryCurrency})`}
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      type="number"
-                      placeholder={providerLimits 
-                        ? `Enter amount (${providerLimits.minAmount} - ${providerLimits.maxAmount})` 
-                        : countryCurrency 
-                          ? `Enter amount (${countryCurrency})` 
-                          : "Enter amount"}
-                      {...field}
-                      className={`text-xs bg-white dark:bg-black/90 border-2 ${!amountValidation.isValid
-                        ? 'border-red-400 dark:border-red-400'
-                        : amountValidation.type === 'warning'
-                          ? 'border-yellow-400 dark:border-yellow-400'
-                          : amountValidation.type === 'info'
-                            ? 'border-blue-400 dark:border-blue-400'
-                            : amountValidation.type === 'success'
-                              ? 'border-green-400 dark:border-green-400'
-                              : 'border-black/70 '
-                        } hover:border-black/70 
-                         -400 focus:ring-2 dark:focus:border-yellow-400 focus:ring-2 focus:ring-black/70 dark:focus:ring-yellow-400/30 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-black/90 dark:text-white/90 transition-all duration-200`}
-                      disabled={isLoading}
-                    />
-                    {/* Only show amount validation if not validating meter */}
-                    {!isValidating && amountValidation.message && (
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                        {amountValidation.type === 'error' && <AlertCircle className="h-4 w-4 text-red-500" />}
-                        {amountValidation.type === 'warning' && <AlertCircle className="h-4 w-4 text-yellow-500" />}
-                        {amountValidation.type === 'info' && <Info className="h-4 w-4 text-blue-500" />}
-                        {amountValidation.type === 'success' && <CheckCircle className="h-4 w-4 text-green-500" />}
-                      </div>
-                    )}
-                  </div>
-                </FormControl>
-
-                {/* Only show amount validation if not validating meter */}
-                {!isValidating && amountValidation.message && (
-                  <div className={`text-xs mt-1 flex items-center ${amountValidation.type === 'error'
-                    ? 'text-red-600 dark:text-red-400'
-                    : amountValidation.type === 'warning'
-                      ? 'text-yellow-600 dark:text-yellow-400'
-                      : amountValidation.type === 'info'
-                        ? 'text-blue-600 dark:text-blue-400'
-                        : 'text-green-600 dark:text-green-400'
-                    }`}>
-                    {amountValidation.message}
-                  </div>
-                )}
-
-                <FormDescription className="text-gray-900 dark:text-white">
-                  Enter the amount you want to pay for electricity.
-                </FormDescription>
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="paymentToken"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Payment Token</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="bg-white dark:bg-black/90 border-2 border-black/70 hover:border-black/70 dark:hover:border-yellow-400 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90">
-                      <SelectValue placeholder="Select payment token" className="text-xs" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-2 border-yellow-400/30 dark:border-yellow-400/40">
-                    {TOKENS.map((token) => (
-                      <SelectItem 
-                        key={token.id} 
-                        value={token.id}
-                        className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-gray-800 dark:text-gray-200"
-                      >
-                        {token.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormDescription className="text-gray-900 dark:text-white">
-                  All token amounts are converted to USD equivalent
-                </FormDescription>
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
-              </FormItem>
-            )}
-          />
-
-          {amount > 0 && amountValidation.isValid && TOKENS.some(token => token.id === selectedToken) && watchCountry && watchProvider && !isLoading ? (
-            <Card className="bg-gradient-to-r from-yellow-100 via-yellow-200 to-yellow-100 dark:from-yellow-400 dark:via-yellow-300 dark:to-yellow-400 border-2 border-yellow-300 dark:border-0 shadow-lg shadow-yellow-400/20 dark:shadow-yellow-400/30">
-              <CardContent className="pt-4">
-                <div className="flex flex-col space-y-1">
-                  <div className="text-sm font-medium text-gray-800 dark:text-black">
-                    Payment Amount:
-                  </div>
-                  <div className="text-gray-900 dark:text-black font-medium">
-                    <DualCurrencyPrice
-                      amount={Number(watchAmount)}
-                      stablecoin={selectedToken}
-                      countryCurrency={watchCountry}
-                      showTotal={true}
-                    />
-                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 dark:from-yellow-400/10 to-transparent pointer-events-none rounded-lg"></div>
                 </div>
-              </CardContent>
-            </Card>
-          ) : amount > 0 && amountValidation.isValid && (isLoading || !watchProvider || !watchCountry) && (
-            <Card className="bg-gradient-to-r from-yellow-100 via-yellow-200 to-yellow-100 dark:from-yellow-400 dark:via-yellow-300 dark:to-yellow-400 border-2 border-yellow-300 dark:border-0 shadow-lg shadow-yellow-400/20 dark:shadow-yellow-400/30">
-              <CardContent className="pt-4">
-                <div className="flex flex-col space-y-1">
-                  <div className="text-sm font-medium text-gray-800 dark:text-black">
-                    Payment Amount:
-                  </div>
-                  <div className="text-gray-900 dark:text-black font-medium animate-pulse">
-                    Loading conversion...
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              </FormControl>
+              <FormMessage className="text-red-600" />
+            </FormItem>
           )}
+        />
 
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-yellow-400 font-medium text-sm">Email Address</FormLabel>
+        <FormField
+          control={form.control}
+          name="provider"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-black/80 dark:text-white/60 font-light text-sm">ELECTRICITY PROVIDER</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                disabled={isLoading || providers.length === 0}
+              >
                 <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="Enter your email address"
-                    {...field}
-                    className="text-xs bg-white dark:bg-black/90 border-2 border-black/70 hover:border-black/70 dark:hover:border-yellow-400 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90 placeholder:text-black-500 dark:placeholder:text-black-400"
-                  />
+                  <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-gray-900 dark:text-white">
+                    <SelectValue placeholder={providers.length === 0 ? "Select a country first" : "Select electricity provider"} className="text-xs" />
+                  </SelectTrigger>
+                  
                 </FormControl>
-                <FormDescription className="text-gray-900 dark:text-white">
-                  We&apos;ll send payment confirmation to this email.
-                </FormDescription>
-                <FormMessage className="text-red-600 dark:text-yellow-300" />
-              </FormItem>
-            )}
-          />
+                <SelectContent className="bg-white">
+                  {providers.map((provider) => (
+                    <SelectItem 
+                      key={provider.id} 
+                      value={provider.id}
+                      className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-black/80 dark:text-white/60 dark:text-gray-200"
+                    >
+                      {provider.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {isLoading && <div className="text-sm text-gray-600 mt-1 flex items-center">
+                <Loader2 className="h-3 w-3 animate-spin mr-1 text-yellow-500" /> Loading providers...
+              </div>}
+              <FormMessage className="text-red-600" />
+            </FormItem>
+          )}
+        />
 
-          <Button
-            type="submit"
-            className="w-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-400 hover:from-yellow-500 hover:via-yellow-600 hover:to-yellow-500 dark:from-yellow-400 dark:via-yellow-500 dark:to-yellow-400 dark:hover:from-yellow-500 dark:hover:via-yellow-600 dark:hover:to-yellow-500 text-black font-medium py-3 shadow-lg shadow-yellow-400/30 dark:shadow-yellow-400/40 border-0 transition-all duration-200 hover:shadow-xl hover:shadow-yellow-400/40 dark:hover:shadow-yellow-400/50 transform hover:-translate-y-0.5"
-            disabled={isProcessing || !watchAmount || Number(watchAmount) <= 0 || (validationResult && !validationResult.valid) || isValidating}
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin text-black" />
-                Processing...
-              </>
-            ) : (
-              `Pay with ${selectedToken}`
-            )}
-          </Button>
-        </form>
-      </Form>
-    </div>
-  );
+        <FormField
+          control={form.control}
+          name="meterNumber"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-black/80 dark:text-white/60 font-light text-sm">METER NUMBER</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Enter meter number" 
+                  {...field} 
+                  className="text-xs bg-gray-100 dark:bg-white/10 "
+                />
+              </FormControl>
+              <FormMessage className="text-red-600" />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="amount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-black/80 dark:text-white/60 font-light text-sm">AMOUNT</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  placeholder="Enter amount"
+                  {...field}
+                  className="text-xs bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white transition-all duration-200"
+                />
+              </FormControl>
+              <FormMessage className="text-red-600" />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="paymentToken"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-black/80 dark:text-white/60 font-light text-sm">PAYMENT TOKEN</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-gray-900 dark:text-white">
+                    <SelectValue placeholder="Select payment token" className="text-xs" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent className="bg-white">
+                  {TOKENS.map((token) => (
+                    <SelectItem 
+                      key={token.id} 
+                      value={token.id}
+                      className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-black/80 dark:text-white/60 dark:text-gray-200"
+                    >
+                      {token.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage className="text-red-600" />
+            </FormItem>
+          )}
+        />
+
+        {amount > 0 && (
+          <Card className="bg-gradient-to-r from-yellow-100 via-yellow-200 to-yellow-100 dark:from-yellow-400 dark:via-yellow-300 dark:to-yellow-400 border-2 border-yellow-300 dark:border-0 shadow-lg shadow-yellow-400/20 dark:shadow-yellow-400/30">
+            <CardContent className="pt-4">
+              <div className="flex flex-col space-y-1">
+                <div className="text-sm font-light text-black/80 dark:text-white/60 dark:text-black">
+                  Payment Amount:
+                </div>
+                <div className="text-gray-900 dark:text-black font-medium">
+                  <DualCurrencyPrice
+                    amount={amount}
+                    stablecoin={selectedToken}
+                    showTotal={true}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <Button
+          type="submit"
+          className="w-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-400 hover:from-yellow-500 hover:via-yellow-600 hover:to-yellow-500 dark:from-yellow-400 dark:via-yellow-500 dark:to-yellow-400 dark:hover:from-yellow-500 dark:hover:via-yellow-600 dark:hover:to-yellow-500 text-black font-light py-3 shadow-lg shadow-yellow-400/30 dark:shadow-yellow-400/40 border-0 transition-all duration-200 hover:shadow-xl hover:shadow-yellow-400/40 dark:hover:shadow-yellow-400/50 transform hover:-translate-y-0.5"
+          disabled={isProcessing || amount <= 0}
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin text-black" />
+              Processing...
+            </>
+          ) : (
+            `Pay with ${selectedToken}`
+          )}
+        </Button>
+      </form>
+    </Form>
+  </div>
+);
 }

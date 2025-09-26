@@ -138,6 +138,12 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         !isConnected ||
         !walletClient ||
         !identitySDK ||
+        isInitializing ||
+        initializationAttempted.current ||
+        claimSDK ||
+        !isConnected ||
+        !walletClient ||
+        !identitySDK ||
         !address
       ) {
         return;
@@ -148,12 +154,15 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         initializationAttempted.current = true;
 
 
+
+
         const sdk = ClaimSDK.init({
           publicClient: publicClient as PublicClient,
           walletClient: walletClient as unknown as WalletClient,
           identitySDK,
           env: 'production',
         });
+
 
 
         const initializedSDK = await sdk;
@@ -194,6 +203,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     ));
   };
 
+
   const handleClaim = async () => {
     try {
       if (!isConnected) {
@@ -204,7 +214,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         throw new Error("ClaimSDK not initialized");
       }
 
-      toast.info("Processing claim for G$ tokens...");
       setIsProcessing(true);
       setIsWaitingTx(true);
       updateStepStatus('claim-ubi', 'loading');
@@ -281,7 +290,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       return;
     }
     if (!entitlement || entitlement <= BigInt(0)) {
-      toast.info("No entitlement available at the moment.");
       return;
     }
 

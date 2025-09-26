@@ -13,8 +13,9 @@ const nextConfig = {
   }
 }
 
+
 module.exports = {
   reactStrictMode: true,
   pageExtensions: ['tsx', 'ts'],
-  allowedDevOrigins: ['local-origin.dev', '*.local-origin.dev', 'https://esusu-farcaster.vercel.app', 'https://concentrations-sister-childhood-bi.trycloudflare.com']
+  allowedDevOrigins: ['local-origin.dev', '*.local-origin.dev', 'https://fourth-adventures-removed-file.trycloudflare.com']
 };

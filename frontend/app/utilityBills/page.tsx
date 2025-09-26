@@ -64,7 +64,7 @@ function MainContent() {
               <AirtimeForm />
             </TabsContent>
             <TabsContent value="electricity-bill">
-              <ElectricityBillForm />
+                  <ElectricityBillForm />
             </TabsContent>
 
           </Tabs>

@@ -52,6 +52,7 @@ export const useFreebiesLogic = () => {
     const {
         updateStepStatus,
         openTransactionDialog,
+        closeTransactionDialog,
         isProcessing,
         setIsProcessing,
         handleClaim,
@@ -249,8 +250,7 @@ export const useFreebiesLogic = () => {
 
             if (lastClaim === today) {
                 const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                tomorrow.setHours(0, 0, 0, 0);
+                tomorrow.setHours(24, 0, 0, 0); 
                 setNextClaimTime(tomorrow);
                 return false;
             }
@@ -375,7 +375,8 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
 
             setIsVerified(true);
             toast.success("Phone number verified successfully");
-            
+            updateStepStatus('verify-phone-number', 'loading');
+
             if (verificationResult.autoSwitched && verificationResult.correctProviderId) {
                 form.setValue('network', verificationResult.correctProviderId);
                 toast.success(verificationResult.message || "Network provider switched successfully");
@@ -482,13 +483,13 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                 // Only set localStorage after successful topup
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('lastFreeClaim', new Date().toDateString());
-                    localStorage.removeItem('processingClaim'); // Clean up processing flag
+                    localStorage.removeItem('processingClaim'); 
                 }
                 
                 setSelectedPlan(null);
                 updateStepStatus('top-up', 'success');
                 form.reset();
-                
+                closeTransactionDialog()
                 toast.success("Data bundle topped up successfully! You can claim again tomorrow.");
             } else {
                 throw new Error( "Top-up failed - no success confirmation received");
