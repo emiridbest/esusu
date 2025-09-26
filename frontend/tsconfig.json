@@ -18,6 +18,7 @@
     "incremental": true,
     "baseUrl": ".",
     "types": ["node", "react", "react-dom"],
+    "maxNodeModuleJsDepth": 0,
     
     "plugins": [
       {

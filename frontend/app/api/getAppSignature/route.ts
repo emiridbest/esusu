@@ -50,10 +50,10 @@ try {
 const publicClient = createPublicClient({ 
   chain: celo,
   transport: http()
-})
+} as any)
 
 // Create wallet client - will be recreated with account if env vars are valid
-let walletClient: ReturnType<typeof createWalletClient> | null = null
+let walletClient: any = null
 
 // Initialize wallet client if account is available
 if (account) {
@@ -150,7 +150,7 @@ export async function POST(request: Request) {
       types, 
       primaryType: 'AppClaim',
       message
-    })
+    } as any)
 
     // Log signature request for auditing
     await logSignatureRequest({

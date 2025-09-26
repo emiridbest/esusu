@@ -1,7 +1,11 @@
 "use client";
-import { Headphones } from "lucide-react";
-import React from "react";
+
 import { Card, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import * as React from "react";
+
+// @ts-ignore - lucide-react type compatibility issue
+import { ExternalLink, MessageCircle, Users, Clock, Headphones } from "lucide-react";
 
 export default function ContactPage() {
   const telegramLink = "https://t.me/+kYeSswiKgB9lMjZk";

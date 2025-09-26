@@ -214,6 +214,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         throw new Error("ClaimSDK not initialized");
       }
 
+      toast.info("Processing claim for G$ tokens...");
       setIsProcessing(true);
       setIsWaitingTx(true);
       updateStepStatus('claim-ubi', 'loading');
@@ -290,6 +291,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       return;
     }
     if (!entitlement || entitlement <= BigInt(0)) {
+      toast.info("No entitlement available at the moment.");
       return;
     }
 

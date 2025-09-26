@@ -199,15 +199,18 @@ function FreebiesContent() {
                                                                 <SelectValue placeholder="Select data plan" className='text-xs' />
                                                             </SelectTrigger>
                                                         </FormControl>
-                                                        <SelectContent className="bg-white">
-                                                            {availablePlans.map((plan) => (
-                                                                <SelectItem
-                                                                    key={plan.id}
-                                                                    value={plan.id}
-                                                                >
-                                                                    {plan.name} - {plan.price}
-                                                                </SelectItem>
-                                                            ))}
+                                                        <SelectContent className="bg-white dark:bg-black border-yellow-300 dark:border-yellow-700">
+                                                            {availablePlans
+                                                                .filter((p) => p && typeof p.id === 'string')
+                                                                .map((plan) => (
+                                                                    <SelectItem
+                                                                        key={plan.id}
+                                                                        value={plan.id}
+                                                                        className="text-black dark:text-yellow-100 hover:bg-yellow-100 dark:hover:bg-yellow-900/30"
+                                                                    >
+                                                                        {plan.name} - {plan.price}
+                                                                    </SelectItem>
+                                                                ))}
                                                         </SelectContent>
                                                     </Select>
                                                     {isLoading && (
