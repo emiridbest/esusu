@@ -2,12 +2,7 @@
   "compilerOptions": {
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-<<<<<<<<< Temporary merge branch 1
-    "moduleResolution": "node",
-    "ignoreDeprecations": "6.0",
-=========
     "moduleResolution": "bundler",
->>>>>>>>> Temporary merge branch 2
     "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
