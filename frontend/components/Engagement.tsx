@@ -16,7 +16,7 @@ import {
   Clock,
   Shield
 } from "lucide-react";
-
+//@ts-ignore
 import { useEngagementRewards, DEV_REWARDS_CONTRACT } from '@goodsdks/engagement-sdk'
 import {
   ENGAGEMENT_CONFIG,
@@ -123,18 +123,18 @@ const RewardsClaimCard = () => {
     setClaimStep('checking')
     setStatus("Verifying eligibility...")
 
-    try {
+   try{
       // First check if user can claim
-      const isEligible = await engagementRewards.canClaim(APP_ADDRESS, userAddress!).catch((error) => {
-        console.log("Eligibility check error:", error)
-        return false
-      })
+    /**const isEligible = await engagementRewards.canClaim(APP_ADDRESS, userAddress!).catch((error: any) => {
+      console.log("Eligibility check error:", error)
+      return false
+    })
 
-      if (!isEligible) {
-        setStatus("Coming Soon!!!")
-        setClaimStep('error')
-        return
-      }
+    if (!isEligible) {
+      setStatus("Coming Soon!!!")
+      setClaimStep('error')
+      return
+    }*/
 
       setClaimStep('signing')
       setStatus("Preparing transaction...")
@@ -158,7 +158,7 @@ const RewardsClaimCard = () => {
         console.log("User signature error:", signError)
         userSignature = "0x" as `0x${string}`
       }
-
+  
       setStatus("Processing your claim...")
 
       // Get app signature from backend
