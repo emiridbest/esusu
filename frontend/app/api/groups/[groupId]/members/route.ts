@@ -32,9 +32,10 @@ export async function GET(
       );
     }
 
-    // Return members with join dates
+    // Return members with join dates and names
     const members = (group.members || []).map((member: any) => ({
       address: member.user, // This should be the wallet address
+      userName: member.userName || `Member ${Math.random().toString(36).substr(2, 9)}`, // Fallback name
       joinedAt: member.joinedAt,
       role: member.role,
       isActive: member.isActive
@@ -59,7 +60,7 @@ export async function POST(
   try {
     const { groupId } = await params;
     const body = await request.json();
-    const { userAddress, role = 'member' } = body;
+    const { userAddress, role = 'member', joinDate, userName } = body;
 
     if (!groupId || !userAddress) {
       return NextResponse.json(
@@ -92,13 +93,19 @@ export async function POST(
       );
     }
 
-    // Add member with current timestamp
+    // Use blockchain timestamp if provided, otherwise fall back to current time
+    const actualJoinDate = joinDate ? new Date(joinDate) : new Date();
+    
+    // Add member with blockchain timestamp and name
     const newMember = {
       user: userAddress,
-      joinedAt: new Date(),
+      userName: userName || `Member ${Date.now()}`, // Fallback name if not provided
+      joinedAt: actualJoinDate,
       role,
       isActive: true
     };
+
+    console.log(`Adding member ${userAddress} to group ${groupId} with join date: ${actualJoinDate.toISOString()}`);
 
     // Update the group with the new member
     await mongoose.connection.db?.collection('groups').updateOne(

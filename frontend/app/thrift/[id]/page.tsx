@@ -24,6 +24,7 @@ import { ArrowUpIcon, ArrowDownIcon, Share2Icon, UsersIcon, CalendarIcon, ArrowL
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
+import CountdownTimer from '@/components/thrift/CountdownTimer';
 import { contractAddress } from '@/utils/abi';
 import { cn } from '@/lib/utils';
 
@@ -35,7 +36,7 @@ export default function CampaignDetailsPage() {
   const router = useRouter();
   const campaignId = typeof id === 'string' ? parseInt(id) : -1;
   
-  const { userGroups, allGroups, joinThriftGroup, makeContribution, distributePayout, getThriftGroupMembers, generateShareLink, activateThriftGroup, setPayoutOrder, emergencyWithdraw, loading, error } = useThrift();
+  const { userGroups, allGroups, joinThriftGroup, checkJoinStatus, checkGroupStatus, makeContribution, distributePayout, getThriftGroupMembers, getContributionHistory, generateShareLink, activateThriftGroup, setPayoutOrder, emergencyWithdraw, loading, error } = useThrift();
   const account = useActiveAccount();
   const address = account?.address;
   const isConnected = !!address;
@@ -59,6 +60,30 @@ export default function CampaignDetailsPage() {
   const [payoutOrder, setPayoutOrderInput] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [memberOrder, setMemberOrder] = useState<string[]>([]);
+  const [joinStatus, setJoinStatus] = useState<{
+    isMember: boolean;
+    canJoin: boolean;
+    reason?: string;
+  }>({ isMember: false, canJoin: false });
+  const [joinUserName, setJoinUserName] = useState('');
+  const [groupStatus, setGroupStatus] = useState<{
+    exists: boolean;
+    isActive: boolean;
+    isStarted: boolean;
+    canContribute: boolean;
+    reason?: string;
+    startDate: Date | null;
+    timeUntilStart: number | null;
+  } | null>(null);
+  
+  const [contributionHistory, setContributionHistory] = useState<Array<{
+    date: Date;
+    member: string;
+    memberName: string;
+    amount: string;
+    tokenSymbol: string;
+    transactionHash: string;
+  }>>([]);
   
   // Find the campaign in user campaigns or all campaigns
   useEffect(() => {
@@ -72,10 +97,11 @@ export default function CampaignDetailsPage() {
       return;
     }
     
-
+    // If not in user groups, check all groups
     foundCampaign = allGroups.find((c: ThriftGroup) => c.id === campaignId);
     if (foundCampaign) {
       setCampaign(foundCampaign);
+      // Don't set isUserMember here - let the status check determine it
       return;
     }
 
@@ -119,6 +145,71 @@ export default function CampaignDetailsPage() {
     loadMetadata();
   }, [campaign]);
   
+  // Check join status when campaign or address changes
+  useEffect(() => {
+    const checkStatus = async () => {
+      if (campaign && address) {
+        try {
+          const status = await checkJoinStatus(campaign.id);
+          setJoinStatus(status);
+          setIsUserMember(status.isMember);
+        } catch (error) {
+          console.error('Failed to check join status:', error);
+        }
+      }
+    };
+    checkStatus();
+  }, [campaign, address, checkJoinStatus]);
+
+  // Test checkGroupStatus function availability and check group status
+  useEffect(() => {
+    const checkStatus = async () => {
+      if (campaign) {
+        console.log('checkGroupStatus function available:', typeof checkGroupStatus);
+        console.log('Campaign ID:', campaign.id);
+        
+        try {
+          const status = await checkGroupStatus(campaign.id);
+          setGroupStatus(status);
+          console.log('Group status updated:', status);
+        } catch (error) {
+          console.error('Failed to check group status:', error);
+        }
+      }
+    };
+    
+    checkStatus();
+  }, [campaign, checkGroupStatus]);
+
+  // Effect to fetch contribution history
+  useEffect(() => {
+    const fetchContributionHistory = async () => {
+      if (campaign && groupStatus?.isStarted) {
+        try {
+          console.log('Fetching contribution history for group:', campaign.id);
+          const history = await getContributionHistory(campaign.id);
+          setContributionHistory(history);
+          console.log('Contribution history updated:', history);
+        } catch (error) {
+          console.error('Failed to fetch contribution history:', error);
+          // Show user-friendly message for RPC errors
+          if (error instanceof Error && error.message.includes('RPC')) {
+            toast({
+              title: "Network Issue",
+              description: "Unable to fetch contribution history due to network connectivity. Please try again later.",
+              variant: "destructive",
+            });
+          }
+          setContributionHistory([]);
+        }
+      } else {
+        setContributionHistory([]);
+      }
+    };
+    
+    fetchContributionHistory();
+  }, [campaign, groupStatus?.isStarted, getContributionHistory, toast]);
+
   // Open join dialog if join=true in URL and not already a member
   useEffect(() => {
     if (isJoinRequest && !isUserMember && campaign && !joinDialogOpen) {
@@ -130,17 +221,23 @@ export default function CampaignDetailsPage() {
   useEffect(() => {
     const checkGroupAdmin = async () => {
       if (!campaign || !address) {
+        console.log('Admin check: No campaign or address');
         setIsGroupAdmin(false);
         return;
       }
 
       try {
+        console.log('Checking admin status for group:', campaign.id, 'address:', address);
+        
         // Import the contract to check admin status
         const { ethers } = await import('ethers');
         const { contractAddress, abi } = await import('@/utils/abi');
         
         const ethereum = (window as any).ethereum;
-        if (!ethereum) return;
+        if (!ethereum) {
+          console.log('Admin check: No ethereum provider');
+          return;
+        }
         
         const provider = new ethers.BrowserProvider(ethereum);
         const contract = new ethers.Contract(contractAddress, abi, provider);
@@ -148,10 +245,23 @@ export default function CampaignDetailsPage() {
         const groupInfo = await contract.thriftGroups(campaign.id);
         const groupAdmin = groupInfo.admin;
         
-        setIsGroupAdmin(groupAdmin && groupAdmin.toLowerCase() === address.toLowerCase());
+        console.log('Group admin from contract:', groupAdmin);
+        console.log('Current user address:', address);
+        
+        const isAdmin = groupAdmin && groupAdmin.toLowerCase() === address.toLowerCase();
+        console.log('Is group admin:', isAdmin);
+        
+        setIsGroupAdmin(isAdmin);
       } catch (error) {
         console.error('Failed to check group admin status:', error);
-        setIsGroupAdmin(false);
+        
+        // Fallback: Check if user is the creator based on metadata
+        if (metaCreatedBy && address && address.toLowerCase() === metaCreatedBy.toLowerCase()) {
+          console.log('Using fallback admin check - user is creator');
+          setIsGroupAdmin(true);
+        } else {
+          setIsGroupAdmin(false);
+        }
       }
     };
 
@@ -163,7 +273,12 @@ export default function CampaignDetailsPage() {
   };
   
   const handleContributeClick = () => {
-    if (!campaign) return;
+    console.log('Main contribute button clicked!');
+    if (!campaign) {
+      console.log('No campaign available');
+      return;
+    }
+    console.log('Setting contribution amount to:', campaign.depositAmount);
     setContributionAmount(campaign.depositAmount);
     setContributeDialogOpen(true);
   };
@@ -182,7 +297,7 @@ export default function CampaignDetailsPage() {
     if (!campaign) return;
     
     try {
-      await joinThriftGroup(campaign.id);
+      await joinThriftGroup(campaign.id, joinUserName);
       setJoinDialogOpen(false);
       setIsUserMember(true);
       
@@ -204,10 +319,30 @@ export default function CampaignDetailsPage() {
   };
   
   const handleContribute = async () => {
-    if (!campaign) return;
+    if (!campaign) {
+      console.log('Contribute: No campaign');
+      return;
+    }
+    
+    console.log('Contributing to group:', campaign.id);
+    console.log('Group is active:', campaign.isActive);
+    console.log('Campaign details:', {
+      id: campaign.id,
+      isActive: campaign.isActive,
+      totalMembers: campaign.totalMembers,
+      maxMembers: campaign.maxMembers,
+      depositAmount: campaign.depositAmount,
+      tokenSymbol: campaign.tokenSymbol
+    });
+    console.log('User membership status:', {
+      isUserMember,
+      address,
+      campaignMembers: campaign.members
+    });
     
     // Check if group is active before attempting contribution
     if (!campaign.isActive) {
+      console.log('Group is not active, showing error');
       toast({
         title: "Group not active",
         description: "This group is not active yet. Contributions will be available when the group starts. Please wait for the admin to activate the group.",
@@ -217,7 +352,10 @@ export default function CampaignDetailsPage() {
     }
     
     try {
+      console.log('Calling makeContribution...');
       await makeContribution(campaign.id);
+      console.log('Contribution successful');
+      
       setContributeDialogOpen(false);
       setContributionAmount('');
       
@@ -226,15 +364,21 @@ export default function CampaignDetailsPage() {
         description: `You've contributed to the thrift group.`,
       });
     } catch (error) {
+      console.error('Contribution error:', error);
+      
       // Handle specific error cases with graceful notifications
       let errorMessage = "An unknown error occurred";
       if (error instanceof Error) {
-        if (error.message.includes("Group is not active")) {
+        if (error.message.includes("Group has not started yet")) {
+          errorMessage = "This group has not started yet. Please wait for the admin to activate the group before contributing.";
+        } else if (error.message.includes("Group is not active")) {
           errorMessage = "This group is not active yet. Please wait for the admin to activate the group before contributing.";
         } else if (error.message.includes("execution reverted")) {
           errorMessage = "Unable to contribute at this time. Please check that the group is active and try again.";
         } else if (error.message.includes("insufficient funds")) {
           errorMessage = "Insufficient funds. Please ensure you have enough tokens to make the contribution.";
+        } else if (error.message.includes("user rejected")) {
+          errorMessage = "Transaction was cancelled by user.";
         } else {
           errorMessage = error.message;
         }
@@ -285,16 +429,26 @@ export default function CampaignDetailsPage() {
 
   // Admin action handlers
   const handleActivateGroup = async () => {
-    if (!campaign) return;
+    if (!campaign) {
+      console.log('Activate: No campaign');
+      return;
+    }
     
+    console.log('Activating group:', campaign.id);
     setIsProcessing(true);
+    
     try {
+      console.log('Calling activateThriftGroup...');
       await activateThriftGroup(campaign.id);
+      console.log('Group activated successfully');
+      
       toast({
         title: "Group activated",
         description: "The thrift group has been activated successfully.",
       });
     } catch (error) {
+      console.error('Activation error:', error);
+      
       // Handle specific error cases with graceful notifications
       let errorMessage = "An unknown error occurred";
       if (error instanceof Error) {
@@ -525,31 +679,62 @@ export default function CampaignDetailsPage() {
               
               <Card className="mb-6">
                 <CardHeader>
-                  <CardTitle>Rotation Progress</CardTitle>
+                  <CardTitle>
+                    {groupStatus?.isStarted ? 'Rotation Progress' : 'Group Status'}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-muted-foreground">Current Rotation</span>
-                    <span className="font-bold">
-                      {campaign.isActive 
-                        ? (campaign.currentRound === 0 ? "Round 1" : `Round ${campaign.currentRound + 1}`)
-                        : "Not Started"
-                      }
-                    </span>
-                  </div>
-                  <Progress value={campaign.currentRound * 20} className="h-2 mb-4" />
-                  <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <UsersIcon className="h-4 w-4" />
-                      <span>Past recipient: {campaign.pastRecipient ? `${campaign.pastRecipient.substring(0, 6)}...${campaign.pastRecipient.substring(campaign.pastRecipient.length - 4)}` : 'None'}</span>
-                    </div>
-                    {campaign.isActive && (
-                      <div className="flex items-center gap-1">
-                        <CalendarIcon className="h-4 w-4" />
-                        <span>Next rotation: {campaign.nextPaymentDate ? campaign.nextPaymentDate.toLocaleDateString() : 'TBD'}</span>
+                  {groupStatus?.isStarted ? (
+                    // Show rotation progress when group has started
+                    <>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-muted-foreground">Current Rotation</span>
+                        <span className="font-bold">
+                          {campaign.isActive 
+                            ? (campaign.currentRound === 0 ? "Round 1" : `Round ${campaign.currentRound + 1}`)
+                            : "Not Started"
+                          }
+                        </span>
                       </div>
-                    )}
-                  </div>
+                      <Progress value={campaign.currentRound * 20} className="h-2 mb-4" />
+                      <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <UsersIcon className="h-4 w-4" />
+                          <span>Past recipient: {campaign.pastRecipient ? `${campaign.pastRecipient.substring(0, 6)}...${campaign.pastRecipient.substring(campaign.pastRecipient.length - 4)}` : 'None'}</span>
+                        </div>
+                        {campaign.isActive && (
+                          <div className="flex items-center gap-1">
+                            <CalendarIcon className="h-4 w-4" />
+                            <span>Next rotation: {campaign.nextPaymentDate ? campaign.nextPaymentDate.toLocaleDateString() : 'TBD'}</span>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : groupStatus?.startDate ? (
+                    // Show countdown timer when group hasn't started but has a start date
+                    <CountdownTimer 
+                      targetDate={groupStatus.startDate}
+                      onComplete={() => {
+                        // Refresh group status when countdown completes
+                        if (campaign) {
+                          checkGroupStatus(campaign.id).then(setGroupStatus);
+                        }
+                      }}
+                    />
+                  ) : (
+                    // Show waiting message when group is not active
+                    <div className="text-center py-8">
+                      <div className="text-lg font-semibold text-gray-700 mb-2">
+                        {groupStatus?.isActive ? 'Group Activated' : 'Group Not Active'}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {groupStatus?.isActive 
+                          ? 'Waiting for start date...' 
+                          : 'This group has not been activated yet. Please wait for the admin to activate the group.'
+                        }
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
               
@@ -585,7 +770,7 @@ export default function CampaignDetailsPage() {
                     {campaignMembers.length > 0 ? (
                       campaignMembers.map((member, index) => (
                         <TableRow key={index}>
-                          <TableCell>{`Member ${index + 1}`}</TableCell>
+                          <TableCell>{member.userName || `Member ${index + 1}`}</TableCell>
                           <TableCell className="font-mono text-xs">
                             {member.address.substring(0, 6)}...{member.address.substring(member.address.length - 4)}
                           </TableCell>
@@ -617,7 +802,7 @@ export default function CampaignDetailsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {!campaign.isActive ? (
+                    {!groupStatus?.isStarted ? (
                       <TableRow>
                         <TableCell colSpan={3} className="text-center py-4">
                           <div className="text-gray-500">
@@ -626,21 +811,86 @@ export default function CampaignDetailsPage() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ) : campaignMembers.length > 0 ? (
-                      <TableRow>
-                        <TableCell>{new Date().toLocaleDateString()}</TableCell>
-                        <TableCell>{campaignMembers[0].address.substring(0, 6)}...{campaignMembers[0].address.substring(campaignMembers[0].address.length - 4)}</TableCell>
-                        <TableCell className="text-right">{campaign.depositAmount} {campaign.tokenSymbol || 'cUSD'}</TableCell>
-                      </TableRow>
-                    ) : (
+                    ) : contributionHistory.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={3} className="text-center py-4">
                           <div className="text-gray-500">
                             <p className="font-medium">No contributions yet</p>
                             <p className="text-sm">Contributions will appear here as members make payments</p>
+                            <div className="flex gap-2 mt-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={async () => {
+                                  if (campaign) {
+                                    console.log('Refresh History clicked for group:', campaign.id);
+                                    try {
+                                      const history = await getContributionHistory(campaign.id);
+                                      console.log('Refresh result:', history);
+                                      setContributionHistory(history);
+                                      if (history.length === 0) {
+                                        toast({
+                                          title: "No Contributions Found",
+                                          description: "No contribution events found on the blockchain for this group.",
+                                          variant: "destructive",
+                                        });
+                                      } else {
+                                        toast({
+                                          title: "History Refreshed",
+                                          description: `Found ${history.length} contribution(s).`,
+                                        });
+                                      }
+                                    } catch (error) {
+                                      console.error('Refresh failed:', error);
+                                      toast({
+                                        title: "Refresh Failed",
+                                        description: "Failed to fetch contribution history. Please try again.",
+                                        variant: "destructive",
+                                      });
+                                    }
+                                  }
+                                }}
+                              >
+                                Refresh History
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  if (campaign) {
+                                    console.log('Debug: Testing contribution history for group:', campaign.id);
+                                    console.log('Current group status:', groupStatus);
+                                    console.log('Current contribution history:', contributionHistory);
+                                    console.log('Contract available:', !!contract);
+                                    console.log('Is connected:', isConnected);
+                                  }
+                                }}
+                              >
+                                Debug
+                              </Button>
+                            </div>
                           </div>
                         </TableCell>
                       </TableRow>
+                    ) : (
+                      contributionHistory.map((contribution, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">
+                            {contribution.date.toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{contribution.memberName}</span>
+                              <span className="text-xs text-gray-500 font-mono">
+                                {contribution.member.substring(0, 6)}...{contribution.member.substring(contribution.member.length - 4)}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {contribution.amount} {contribution.tokenSymbol}
+                          </TableCell>
+                        </TableRow>
+                      ))
                     )}
                   </TableBody>
                 </Table>
@@ -703,11 +953,14 @@ export default function CampaignDetailsPage() {
             <>
               <Button
                 className="w-full"
-                onClick={handleContributeClick}
-                disabled={!campaign}
+                onClick={() => {
+                  console.log('Main contribute button clicked!');
+                  handleContributeClick();
+                }}
+                disabled={!campaign || !campaign.isActive}
               >
                 <ArrowUpIcon className="h-4 w-4 mr-2" />
-                Contribute
+                {!campaign.isActive ? 'Group Not Active' : 'Contribute'}
               </Button>
               <Button
                 variant="outline"
@@ -731,10 +984,15 @@ export default function CampaignDetailsPage() {
             <Button
               className="w-full"
               onClick={handleJoinClick}
-              disabled={!isConnected}
+              disabled={!isConnected || !joinStatus.canJoin}
             >
               <UsersIcon className="h-4 w-4 mr-2" />
-              {isConnected ? 'Request to Join' : 'Connect Wallet to Join'}
+              {!isConnected 
+                ? 'Connect Wallet to Join' 
+                : !joinStatus.canJoin 
+                  ? `Cannot Join - ${joinStatus.reason || 'Unknown reason'}`
+                  : 'Request to Join'
+              }
             </Button>
           )}
         </CardFooter>
@@ -748,8 +1006,66 @@ export default function CampaignDetailsPage() {
               <Settings className="h-5 w-5" />
               Group Admin Controls
             </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              You are the admin of this group. Admin controls are available below.
+            </p>
+    <div className="text-xs text-gray-500 mt-2">
+      Debug: isGroupAdmin={isGroupAdmin.toString()}, campaign.isActive={campaign.isActive?.toString()}, isProcessing={isProcessing.toString()}
+    </div>
           </CardHeader>
           <CardContent>
+            {/* Group Status Debug */}
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <h4 className="text-sm font-medium mb-2">Group Status Check</h4>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    console.log('Test button clicked!');
+                    alert('Button click works!');
+                  }}
+                >
+                  Test Button
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    console.log('Check Group Status button clicked!');
+                    if (campaign) {
+                      console.log('Campaign found:', campaign.id);
+                      try {
+                        console.log('Calling checkGroupStatus...');
+                        const status = await checkGroupStatus(campaign.id);
+                        console.log('Group Status result:', status);
+                        toast({
+                          title: "Group Status",
+                          description: `Exists: ${status.exists}, Active: ${status.isActive}, Started: ${status.isStarted}, Can Contribute: ${status.canContribute}${status.reason ? ` - ${status.reason}` : ''}`,
+                        });
+                      } catch (error) {
+                        console.error('Failed to check group status:', error);
+                        toast({
+                          title: "Error",
+                          description: "Failed to check group status",
+                          variant: "destructive"
+                        });
+                      }
+                    } else {
+                      console.log('No campaign found');
+                      toast({
+                        title: "Error",
+                        description: "No campaign found",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                >
+                  Check Group Status
+                </Button>
+              </div>
+            </div>
+            
             <div className="grid gap-4">
               {/* Activate Group */}
               {!campaign.isActive && (
@@ -761,11 +1077,14 @@ export default function CampaignDetailsPage() {
                     </p>
                   </div>
                   <Button
-                    onClick={handleActivateGroup}
+                    onClick={() => {
+                      console.log('Activate button clicked!');
+                      handleActivateGroup();
+                    }}
                     disabled={isProcessing}
                   >
                     <Play className="h-4 w-4 mr-2" />
-                    Activate
+                    {isProcessing ? 'Activating...' : 'Activate'}
                   </Button>
                 </div>
               )}
@@ -840,11 +1159,30 @@ export default function CampaignDetailsPage() {
             <p className="text-sm text-gray-500 mb-6">
               Monthly contribution: {campaign.depositAmount} {campaign.tokenSymbol || 'cUSD'}
             </p>
-            <div className="grid gap-4">
-              <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800">
-                <p>Your request will be reviewed by the group creator before you can join.</p>
+            
+            {!joinStatus.canJoin && joinStatus.reason && (
+              <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-800 mb-4">
+                <p><strong>Cannot join this group:</strong> {joinStatus.reason}</p>
               </div>
-            </div>
+            )}
+            
+            {joinStatus.canJoin && (
+              <div className="space-y-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800">
+                  <p>Your request will be reviewed by the group creator before you can join.</p>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="joinUserName" className="text-right">Your Name</Label>
+                  <Input 
+                    id="joinUserName" 
+                    value={joinUserName}
+                    onChange={(e) => setJoinUserName(e.target.value)}
+                    className="col-span-3" 
+                    placeholder="Enter your name" 
+                  />
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => {
@@ -857,7 +1195,7 @@ export default function CampaignDetailsPage() {
             </Button>
             <Button 
               onClick={handleJoinCampaign}
-              disabled={loading || !isConnected}
+              disabled={loading || !isConnected || !joinStatus.canJoin || !joinUserName.trim()}
             >
               {loading ? 'Processing...' : 'Submit Request'}
             </Button>
@@ -874,6 +1212,12 @@ export default function CampaignDetailsPage() {
           <div className="py-4">
             <p className="mb-4">Contributing to: <strong>{campaign.name}</strong></p>
             
+            {!campaign.isActive && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800 mb-4">
+                <p><strong>Group Not Active:</strong> This group has not been activated yet. Please wait for the admin to activate the group before contributing.</p>
+              </div>
+            )}
+            
             <div className="grid gap-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="amount" className="text-right">Amount</Label>
@@ -884,6 +1228,7 @@ export default function CampaignDetailsPage() {
                   onChange={(e) => setContributionAmount(e.target.value)}
                   className="col-span-3" 
                   placeholder="100" 
+                  disabled={!campaign.isActive}
                 />
               </div>
             </div>
@@ -891,10 +1236,13 @@ export default function CampaignDetailsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setContributeDialogOpen(false)}>Cancel</Button>
             <Button 
-              onClick={handleContribute}
-              disabled={loading}
+              onClick={() => {
+                console.log('Contribute button clicked!');
+                handleContribute();
+              }}
+              disabled={loading || !campaign.isActive}
             >
-              {loading ? 'Processing...' : 'Contribute'}
+              {loading ? 'Processing...' : !campaign.isActive ? 'Group Not Active' : 'Contribute'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1009,7 +1357,7 @@ export default function CampaignDetailsPage() {
                       </div>
                       <div>
                         <p className="font-medium">
-                          {member ? `Member ${index + 1}` : 'Unknown Member'}
+                          {member?.userName || `Member ${index + 1}`}
                         </p>
                         <p className="text-sm text-muted-foreground font-mono">
                           {address.substring(0, 6)}...{address.substring(address.length - 4)}

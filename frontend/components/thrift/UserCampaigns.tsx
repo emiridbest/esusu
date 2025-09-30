@@ -229,6 +229,7 @@ export function UserCampaigns() {
                         <div className="flex flex-col gap-1">
                           {groupMembers[group.id]?.map((member, idx) => (
                             <div key={idx} className="text-sm">
+                              <div className="font-medium">{member.userName || `Member ${idx + 1}`}</div>
                               <span className="text-xs text-gray-500">
                                 {member.address.substring(0, 6)}...{member.address.substring(member.address.length - 4)}
                               </span>
