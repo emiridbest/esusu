@@ -157,7 +157,7 @@ const Thrift: React.FC = () => {
               variant="outline"
             />
             <ThriftQuickAction
-              icon={<BellIcon className="h-6 w-6 text-green-500" />}
+              icon={<BellIcon className="h-6 w-6 text-primary" />}
               title="Manage Groups"
               description="View your active groups"
               href="#"

@@ -1,6 +1,6 @@
 "use client";
 import React, { createContext, useState, useCallback, useContext, useEffect } from 'react';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { contractAddress, MiniSafeAave } from '@/utils/abi';
 import { getTokenByAddress, TOKENS } from '@/utils/tokens';
 import { BrowserProvider, formatUnits, parseUnits, Contract, JsonRpcProvider } from "ethers";
@@ -194,7 +194,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (!supportedTokens || supportedTokens.length === 0) {
           const msg = 'No supported tokens configured on the contract. Please contact the admin to add supported tokens.';
           setError(msg);
-          toast({ title: 'Unsupported token', description: msg });
+          toast.error('Unsupported token', { description: msg });
           return;
         }
 
@@ -210,7 +210,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!valid) {
         const msg = `Chosen token ${finalTokenAddress} is not supported by the contract.`;
         setError(msg);
-        toast({ title: 'Unsupported token', description: msg });
+        toast.error('Unsupported token', { description: msg });
         return;
       }
 
@@ -233,7 +233,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (amount < minContribution) {
           const msg = `Deposit amount is below the minimum contribution: ${formatUnits(minContribution, 18)}.`;
           setError(msg);
-          toast({ title: 'Amount too low', description: msg });
+          toast.error('Amount too low', { description: msg });
           return;
         }
       }
@@ -319,11 +319,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       }, 2000);
       
-      toast({ title: "Success", description: "Thrift group created successfully!" });
+      toast.success("Thrift group created successfully!");
     } catch (err) {
       console.error("Failed to create thrift group:", err);
       setError(`Failed to create thrift group: ${err instanceof Error ? err.message : String(err)}`);
-      toast({ title: "Error", description: `Failed to create thrift group: ${err instanceof Error ? err.message : String(err)}` });
+      toast.error(`Failed to create thrift group: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -463,9 +463,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             error: errorData
           });
           // Still show success but warn about database issue
-          toast({ 
-            title: "Partially successful", 
-            description: "Joined group but couldn't store join date. Please refresh the page." 
+          toast.warning("Partially successful", {
+            description: "Joined group but couldn't store join date. Please refresh the page."
           });
         } else {
           const responseData = await response.json();
@@ -477,19 +476,18 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } catch (dbError) {
         console.error('Database storage failed:', dbError);
         // Still show success but warn about database issue
-        toast({ 
-          title: "Partially successful", 
-          description: "Joined group but couldn't store join date. Please refresh the page." 
+        toast.warning("Partially successful", {
+          description: "Joined group but couldn't store join date. Please refresh the page."
         });
       }
       
       await refreshGroups();
-      toast({ title: "Success", description: "Successfully joined the thrift group!" });
+      toast.success("Successfully joined the thrift group!");
     } catch (err) {
       console.error("Failed to join thrift group:", err);
       const errorMessage = err instanceof Error ? err.message : String(err);
       setError(`Failed to join thrift group: ${errorMessage}`);
-      toast({ title: "Error", description: `Failed to join thrift group: ${errorMessage}` });
+      toast.error(`Failed to join thrift group: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -603,11 +601,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       await tx.wait();
       
       await refreshGroups();
-      toast({ title: "Success", description: "Member added successfully!" });
+      toast.success("Member added successfully!");
     } catch (err) {
       console.error("Failed to add member:", err);
       setError(`Failed to add member: ${err instanceof Error ? err.message : String(err)}`);
-      toast({ title: "Error", description: `Failed to add member: ${err instanceof Error ? err.message : String(err)}` });
+      toast.error(`Failed to add member: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -716,15 +714,32 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           console.log('User balance:', userBalance.toString());
           
           if (userBalance < contributionAmount) {
-            throw new Error(`Insufficient token balance. You have ${formatUnits(userBalance, 18)} tokens but need ${formatUnits(contributionAmount, 18)} tokens.`);
+            const userBalanceFormatted = formatUnits(userBalance, 18);
+            const requiredAmountFormatted = formatUnits(contributionAmount, 18);
+            
+            console.log('Showing insufficient balance toast:', {
+              userBalance: userBalanceFormatted,
+              required: requiredAmountFormatted
+            });
+            
+            try {
+              toast.error("Insufficient Token Balance", {
+                description: `You have ${userBalanceFormatted} tokens but need ${requiredAmountFormatted} tokens to make this contribution.`,
+              });
+              console.log('Toast notification sent successfully');
+            } catch (toastError) {
+              console.error('Failed to show toast:', toastError);
+            }
+            
+            // Return early instead of throwing error to prevent console error
+            return;
           }
           
           // If allowance is insufficient, request approval
           if (currentAllowance < contributionAmount) {
             console.log('Insufficient allowance, requesting approval...');
-            toast({ 
-              title: "Approval Required", 
-              description: "Please approve the contract to spend your tokens. This is a one-time transaction." 
+            toast.info("Approval Required", {
+              description: "Please approve the contract to spend your tokens. This is a one-time transaction."
             });
             
             const approvalTx = await (erc20WithSigner as any).approve(contract.address, contributionAmount);
@@ -734,9 +749,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             await approvalTx.wait();
             console.log('Approval confirmed');
             
-            toast({ 
-              title: "Approval Confirmed", 
-              description: "Token approval successful. Proceeding with contribution..." 
+            toast.success("Approval Confirmed", {
+              description: "Token approval successful. Proceeding with contribution..."
             });
           } else {
             console.log('Sufficient allowance already exists');
@@ -914,15 +928,21 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
       
+      console.log('Distributing payout for groupId:', groupId);
       const tx = await contract.distributePayout(groupId);
+      console.log('Payout transaction sent:', tx.hash);
       await tx.wait();
+      console.log('Payout transaction confirmed');
+      
+      // Add small delay to ensure blockchain state is updated
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       await refreshGroups();
-      toast({ title: "Success", description: "Payout distributed successfully!" });
+      toast.success("Payout distributed successfully!");
     } catch (err) {
       console.error("Failed to distribute payout:", err);
       setError(`Failed to distribute payout: ${err instanceof Error ? err.message : String(err)}`);
-      toast({ title: "Error", description: `Failed to distribute payout: ${err instanceof Error ? err.message : String(err)}` });
+      toast.error(`Failed to distribute payout: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -1231,6 +1251,70 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setAllGroups([]);
     }
   }, [isConnected, contract]);
+
+  // Listen for PayoutDistributed events to update state in real-time
+  useEffect(() => {
+    if (!contract || !isConnected) {
+      console.log('Event listener not set up - contract or connection missing');
+      return;
+    }
+
+    console.log('Setting up PayoutDistributed event listener');
+    const handlePayoutDistributed = (groupId: number, recipient: string, amount: bigint, cycle: bigint) => {
+      console.log('PayoutDistributed event received:', { groupId, recipient, amount, cycle });
+      console.log('Updating group state for groupId:', groupId, 'to round:', Number(cycle));
+      
+      // Update the specific group's state immediately
+      setUserGroups(prevGroups => 
+        prevGroups.map(group => {
+          if (group.id === groupId) {
+            return {
+              ...group,
+              currentRound: Number(cycle),
+              pastRecipient: recipient,
+              // Update next payment date based on new cycle
+              nextPaymentDate: group.nextPaymentDate ? 
+                new Date(group.nextPaymentDate.getTime() + (7 * 24 * 60 * 60 * 1000)) : // Add 7 days
+                new Date(Date.now() + (7 * 24 * 60 * 60 * 1000))
+            };
+          }
+          return group;
+        })
+      );
+
+      // Also update allGroups if it exists
+      setAllGroups(prevGroups => 
+        prevGroups.map(group => {
+          if (group.id === groupId) {
+            return {
+              ...group,
+              currentRound: Number(cycle),
+              pastRecipient: recipient,
+              nextPaymentDate: group.nextPaymentDate ? 
+                new Date(group.nextPaymentDate.getTime() + (7 * 24 * 60 * 60 * 1000)) :
+                new Date(Date.now() + (7 * 24 * 60 * 60 * 1000))
+            };
+          }
+          return group;
+        })
+      );
+
+      // Show success notification
+      toast.success("Payout Distributed", {
+        description: `Payout of ${formatUnits(amount, 18)} tokens distributed to ${recipient.substring(0, 6)}...${recipient.substring(recipient.length - 4)}`,
+      });
+    };
+
+    // Listen for PayoutDistributed events
+    contract.contract.on('PayoutDistributed', handlePayoutDistributed);
+    console.log('PayoutDistributed event listener registered');
+
+    // Cleanup listener on unmount
+    return () => {
+      console.log('Cleaning up PayoutDistributed event listener');
+      contract.contract.off('PayoutDistributed', handlePayoutDistributed);
+    };
+  }, [contract, isConnected, toast]);
 
   // Get contribution history for a group
   const getContributionHistory = async (groupId: number) => {

@@ -36,7 +36,7 @@ export default function CampaignDetailsPage() {
   const router = useRouter();
   const campaignId = typeof id === 'string' ? parseInt(id) : -1;
   
-  const { userGroups, allGroups, joinThriftGroup, checkJoinStatus, checkGroupStatus, makeContribution, distributePayout, getThriftGroupMembers, getContributionHistory, generateShareLink, activateThriftGroup, setPayoutOrder, emergencyWithdraw, loading, error } = useThrift();
+  const { userGroups, allGroups, joinThriftGroup, checkJoinStatus, checkGroupStatus, makeContribution, distributePayout, getThriftGroupMembers, getContributionHistory, generateShareLink, activateThriftGroup, setPayoutOrder, emergencyWithdraw, refreshGroups, loading, error } = useThrift();
   const account = useActiveAccount();
   const address = account?.address;
   const isConnected = !!address;
@@ -1125,6 +1125,45 @@ export default function CampaignDetailsPage() {
                   </Button>
                 </div>
               )}
+
+              {/* Debug Refresh Button */}
+              <div className="flex items-center justify-between p-4 border rounded-lg bg-yellow-50">
+                <div>
+                  <h3 className="font-medium text-yellow-800">Debug: Manual Refresh</h3>
+                  <p className="text-sm text-yellow-600">
+                    Manually refresh group state to check for updates
+                  </p>
+                </div>
+                <Button
+                  onClick={async () => {
+                    console.log('Manual refresh clicked for group:', campaign.id);
+                    try {
+                      // Force refresh the groups
+                      await refreshGroups();
+                      // Also check group status
+                      const status = await checkGroupStatus(campaign.id);
+                      console.log('Manual refresh - Group status:', status);
+                      toast({
+                        title: "Manual Refresh Complete",
+                        description: `Group status: Round ${status.currentRound || 'Unknown'}, Active: ${status.isActive}`,
+                      });
+                    } catch (error) {
+                      console.error('Manual refresh failed:', error);
+                      toast({
+                        title: "Refresh Failed",
+                        description: "Failed to refresh group state",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  disabled={isProcessing}
+                  variant="outline"
+                  className="border-yellow-300 text-yellow-800 hover:bg-yellow-100"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Refresh State
+                </Button>
+              </div>
 
               {/* Emergency Withdraw */}
               <div className="flex items-center justify-between p-4 border rounded-lg">
