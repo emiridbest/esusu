@@ -582,135 +582,288 @@ export default function CampaignDetailsPage() {
   }
   
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-        <div className="mb-6">
+    <div className="max-w-screen-xl mx-auto px-4 md:px-8 pb-20">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mb-6"
+        >
           <Button 
             variant="outline" 
             onClick={() => router.push('/thrift')}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 hover:scale-105 transition-transform duration-200"
           >
             <ArrowLeftIcon className="h-4 w-4" />
             Back to Thrift Groups
           </Button>
-        </div>
+        </motion.div>
       
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-3">
-                <CardTitle>
-                  {campaign.name}
-                </CardTitle>
-                {address && metaCreatedBy && address.toLowerCase() === metaCreatedBy && (
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={() => setEditOpen(true)}
-                  >
-                    Edit
-                  </Button>
-                )}
-              </div>
-              <Badge variant="secondary">
-                {parseFloat(campaign.depositAmount)} {campaign.tokenSymbol || 'cUSD'} / month
-              </Badge>
-            </div>
-            <p className="text-muted-foreground">
-              {campaign.description}
-            </p>
-          </CardHeader>
-        <CardContent>
-          
-          <Tabs defaultValue="overview">
-            <TabsList className="grid w-full grid-cols-4 gap-1">
-              <TabsTrigger value="overview" className="w-full">
-                Overview
-              </TabsTrigger>
-              <TabsTrigger value="members" className="w-full">
-                Members
-              </TabsTrigger>
-              <TabsTrigger value="contributions" className="w-full">
-                Contributions
-              </TabsTrigger>
-              <TabsTrigger value="history" className="w-full">
-                History
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="overview">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Monthly Contribution
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-bold">{campaign.depositAmount} {campaign.tokenSymbol || 'cUSD'}</p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Total Members
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-bold">{campaign.totalMembers}/{campaign.maxMembers}</p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Rotation Period
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-bold">30 days</p>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle>
-                    {groupStatus?.isStarted ? 'Rotation Progress' : 'Group Status'}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Card className="border-gray-100 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <CardHeader>
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="flex justify-between items-start"
+              >
+                <div className="flex items-center gap-3">
+                  <CardTitle className="text-2xl font-bold">
+                    {campaign.name}
                   </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {groupStatus?.isStarted ? (
-                    // Show rotation progress when group has started
-                    <>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-muted-foreground">Current Rotation</span>
-                        <span className="font-bold">
-                          {campaign.isActive 
-                            ? (campaign.currentRound === 0 ? "Round 1" : `Round ${campaign.currentRound + 1}`)
-                            : "Not Started"
-                          }
-                        </span>
-                      </div>
-                      <Progress value={campaign.currentRound * 20} className="h-2 mb-4" />
-                      <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <UsersIcon className="h-4 w-4" />
-                          <span>Past recipient: {campaign.pastRecipient ? `${campaign.pastRecipient.substring(0, 6)}...${campaign.pastRecipient.substring(campaign.pastRecipient.length - 4)}` : 'None'}</span>
-                        </div>
-                        {campaign.isActive && (
-                          <div className="flex items-center gap-1">
-                            <CalendarIcon className="h-4 w-4" />
-                            <span>Next rotation: {campaign.nextPaymentDate ? campaign.nextPaymentDate.toLocaleDateString() : 'TBD'}</span>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  ) : groupStatus?.startDate ? (
+                  {address && metaCreatedBy && address.toLowerCase() === metaCreatedBy && (
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => setEditOpen(true)}
+                        className="hover:bg-primary/10 transition-colors duration-200"
+                      >
+                        Edit
+                      </Button>
+                    </motion.div>
+                  )}
+                </div>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                >
+                  <Badge variant="secondary" className="px-3 py-1 text-sm bg-primary/10 text-primary border-primary/20">
+                    {parseFloat(campaign.depositAmount)} {campaign.tokenSymbol || 'cUSD'} / month
+                  </Badge>
+                </motion.div>
+              </motion.div>
+              <motion.p 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                className="text-muted-foreground mt-2"
+              >
+                {campaign.description}
+              </motion.p>
+            </CardHeader>
+            <CardContent>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+              >
+                <Tabs defaultValue="overview">
+                  <TabsList className="grid w-full grid-cols-4 gap-1 bg-gray-50 dark:bg-gray-800/50">
+                    <TabsTrigger 
+                      value="overview" 
+                      className="w-full data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
+                    >
+                      Overview
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="members" 
+                      className="w-full data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
+                    >
+                      Members
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="contributions" 
+                      className="w-full data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
+                    >
+                      Contributions
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="history" 
+                      className="w-full data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
+                    >
+                      History
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="overview">
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: 0.6 }}
+                      className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6"
+                    >
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.7 }}
+                        whileHover={{ scale: 1.02 }}
+                        className="transition-transform duration-200"
+                      >
+                        <Card className="border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow duration-200">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                              <DollarSign className="h-4 w-4" />
+                              Monthly Contribution
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-2xl font-bold text-primary">{campaign.depositAmount} {campaign.tokenSymbol || 'cUSD'}</p>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                      
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.8 }}
+                        whileHover={{ scale: 1.02 }}
+                        className="transition-transform duration-200"
+                      >
+                        <Card className="border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow duration-200">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                              <UsersIcon className="h-4 w-4" />
+                              Total Members
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-2xl font-bold text-primary">{campaign.totalMembers}/{campaign.maxMembers}</p>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                      
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.9 }}
+                        whileHover={{ scale: 1.02 }}
+                        className="transition-transform duration-200"
+                      >
+                        <Card className="border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow duration-200">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                              <CalendarIcon className="h-4 w-4" />
+                              Rotation Period
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-2xl font-bold text-primary">30 days</p>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: 1.0 }}
+                      whileHover={{ scale: 1.01 }}
+                      className="transition-transform duration-200"
+                    >
+                      <Card className="mb-6 border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow duration-200">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <SparklesIcon className="h-5 w-5 text-primary" />
+                            {groupStatus?.isStarted ? 'Rotation Progress' : 'Group Status'}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {groupStatus?.isStarted ? (
+                            // Show rotation progress when group has started
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.5, delay: 1.1 }}
+                            >
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-muted-foreground">Current Rotation</span>
+                                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                                  {campaign.isActive 
+                                    ? (campaign.currentRound === 0 ? "Round 1" : `Round ${campaign.currentRound + 1}`)
+                                    : "Not Started"
+                                  }
+                                </Badge>
+                              </div>
+                              <div className="mb-4">
+                                <Progress 
+                                  value={campaign.totalMembers > 0 ? Math.min((campaign.currentRound / campaign.totalMembers) * 100, 100) : 0} 
+                                  className="h-3 mb-2" 
+                                />
+                                <div className="text-xs text-muted-foreground text-center">
+                                  {campaign.totalMembers > 0 ? Math.min((campaign.currentRound / campaign.totalMembers) * 100, 100).toFixed(1) : 0}% Complete
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap gap-4 text-sm">
+                                <motion.div 
+                                  initial={{ opacity: 0, x: -20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ duration: 0.5, delay: 1.2 }}
+                                  className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50"
+                                >
+                                  <UsersIcon className="h-4 w-4 text-blue-500" />
+                                  <div>
+                                    <div className="text-xs text-muted-foreground">Past recipient</div>
+                                    <div className="font-medium">
+                                      {(() => {
+                                        console.log('Debug past recipient:', {
+                                          pastRecipient: campaign.pastRecipient,
+                                          currentRound: campaign.currentRound,
+                                          payoutOrder: campaign.payoutOrder,
+                                          payoutOrderLength: campaign.payoutOrder?.length
+                                        });
+                                        
+                                        // First try to use the pastRecipient field if available
+                                        if (campaign.pastRecipient) {
+                                          return `${campaign.pastRecipient.substring(0, 6)}...${campaign.pastRecipient.substring(campaign.pastRecipient.length - 4)}`;
+                                        }
+                                        
+                                        // Fallback: calculate from payout order and current round
+                                        if (campaign.payoutOrder && campaign.payoutOrder.length > 0 && campaign.currentRound > 0) {
+                                          const pastIndex = campaign.currentRound - 1;
+                                          if (pastIndex < campaign.payoutOrder.length) {
+                                            const pastRecipient = campaign.payoutOrder[pastIndex];
+                                            return `${pastRecipient.substring(0, 6)}...${pastRecipient.substring(pastRecipient.length - 4)}`;
+                                          }
+                                        }
+                                        return 'None';
+                                      })()}
+                                    </div>
+                                  </div>
+                                </motion.div>
+                                {campaign.isActive && (
+                                  <motion.div 
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ duration: 0.5, delay: 1.3 }}
+                                    className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50"
+                                  >
+                                    <UsersIcon className="h-4 w-4 text-green-500" />
+                                    <div>
+                                      <div className="text-xs text-muted-foreground">Next recipient</div>
+                                      <div className="font-medium">
+                                        {(() => {
+                                          if (campaign.payoutOrder && campaign.payoutOrder.length > 0) {
+                                            const nextIndex = campaign.currentRound;
+                                            if (nextIndex < campaign.payoutOrder.length) {
+                                              const nextRecipient = campaign.payoutOrder[nextIndex];
+                                              return `${nextRecipient.substring(0, 6)}...${nextRecipient.substring(nextRecipient.length - 4)}`;
+                                            }
+                                            return 'TBD';
+                                          }
+                                          return 'Payout order not set';
+                                        })()}
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </div>
+                            </motion.div>
+                          ) : groupStatus?.startDate ? (
                     // Show countdown timer when group hasn't started but has a start date
                     <CountdownTimer 
                       targetDate={groupStatus.startDate}
@@ -752,6 +905,7 @@ export default function CampaignDetailsPage() {
                   </ul>
                 </CardContent>
               </Card>
+                    </motion.div>
             </TabsContent>
             
             <TabsContent value="members">
@@ -853,21 +1007,6 @@ export default function CampaignDetailsPage() {
                               >
                                 Refresh History
                               </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => {
-                                  if (campaign) {
-                                    console.log('Debug: Testing contribution history for group:', campaign.id);
-                                    console.log('Current group status:', groupStatus);
-                                    console.log('Current contribution history:', contributionHistory);
-                                    console.log('Contract available:', !!contract);
-                                    console.log('Is connected:', isConnected);
-                                  }
-                                }}
-                              >
-                                Debug
-                              </Button>
                             </div>
                           </div>
                         </TableCell>
@@ -945,247 +1084,243 @@ export default function CampaignDetailsPage() {
               </div>
             </TabsContent>
 
-          </Tabs>
-        </CardContent>
+                </Tabs>
+              </motion.div>
+            </CardContent>
 
-        <CardFooter>
-          {isUserMember ? (
-            <>
-              <Button
-                className="w-full"
-                onClick={() => {
-                  console.log('Main contribute button clicked!');
-                  handleContributeClick();
-                }}
-                disabled={!campaign || !campaign.isActive}
-              >
-                <ArrowUpIcon className="h-4 w-4 mr-2" />
-                {!campaign.isActive ? 'Group Not Active' : 'Contribute'}
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleWithdrawClick}
-                disabled={true}
-              >
-                <ArrowDownIcon className="h-4 w-4 mr-2" />
-                Withdraw
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleShareClick}
-              >
-                <Share2Icon className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-            </>
-          ) : (
-            <Button
-              className="w-full"
-              onClick={handleJoinClick}
-              disabled={!isConnected || !joinStatus.canJoin}
-            >
-              <UsersIcon className="h-4 w-4 mr-2" />
-              {!isConnected 
-                ? 'Connect Wallet to Join' 
-                : !joinStatus.canJoin 
-                  ? `Cannot Join - ${joinStatus.reason || 'Unknown reason'}`
-                  : 'Request to Join'
-              }
-            </Button>
-          )}
-        </CardFooter>
-      </Card>
-
-      {/* Admin Controls - Only show if user is group admin */}
-      {isGroupAdmin && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Group Admin Controls
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              You are the admin of this group. Admin controls are available below.
-            </p>
-    <div className="text-xs text-gray-500 mt-2">
-      Debug: isGroupAdmin={isGroupAdmin.toString()}, campaign.isActive={campaign.isActive?.toString()}, isProcessing={isProcessing.toString()}
-    </div>
-          </CardHeader>
-          <CardContent>
-            {/* Group Status Debug */}
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-              <h4 className="text-sm font-medium mb-2">Group Status Check</h4>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    console.log('Test button clicked!');
-                    alert('Button click works!');
-                  }}
-                >
-                  Test Button
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={async () => {
-                    console.log('Check Group Status button clicked!');
-                    if (campaign) {
-                      console.log('Campaign found:', campaign.id);
-                      try {
-                        console.log('Calling checkGroupStatus...');
-                        const status = await checkGroupStatus(campaign.id);
-                        console.log('Group Status result:', status);
-                        toast({
-                          title: "Group Status",
-                          description: `Exists: ${status.exists}, Active: ${status.isActive}, Started: ${status.isStarted}, Can Contribute: ${status.canContribute}${status.reason ? ` - ${status.reason}` : ''}`,
-                        });
-                      } catch (error) {
-                        console.error('Failed to check group status:', error);
-                        toast({
-                          title: "Error",
-                          description: "Failed to check group status",
-                          variant: "destructive"
-                        });
-                      }
-                    } else {
-                      console.log('No campaign found');
-                      toast({
-                        title: "Error",
-                        description: "No campaign found",
-                        variant: "destructive"
-                      });
-                    }
-                  }}
-                >
-                  Check Group Status
-                </Button>
-              </div>
-            </div>
-            
-            <div className="grid gap-4">
-              {/* Activate Group */}
-              {!campaign.isActive && (
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h3 className="font-medium">Activate Group</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Start the thrift group to allow contributions
-                    </p>
-                  </div>
-                  <Button
-                    onClick={() => {
-                      console.log('Activate button clicked!');
-                      handleActivateGroup();
-                    }}
-                    disabled={isProcessing}
+            <CardFooter className="gap-3">
+              {isUserMember ? (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 1.4 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="flex-1"
                   >
-                    <Play className="h-4 w-4 mr-2" />
-                    {isProcessing ? 'Activating...' : 'Activate'}
-                  </Button>
-                </div>
-              )}
-
-              {/* Set Payout Order */}
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h3 className="font-medium">Set Payout Order</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Define the order members will receive payouts
-                  </p>
-                </div>
-                <Button
-                  onClick={() => setAdminDialogOpen(true)}
-                  variant="outline"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Set Order
-                </Button>
-              </div>
-
-              {/* Distribute Payout */}
-              {campaign.isActive && (
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h3 className="font-medium">Distribute Payout</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Distribute payout to current recipient
-                    </p>
-                  </div>
-                  <Button
-                    onClick={() => distributePayout(campaign.id)}
-                    disabled={isProcessing}
-                    variant="outline"
+                    <Button
+                      className="w-full h-12 text-base font-semibold"
+                      onClick={() => {
+                        console.log('Main contribute button clicked!');
+                        handleContributeClick();
+                      }}
+                      disabled={!campaign || !campaign.isActive}
+                    >
+                      <ArrowUpIcon className="h-5 w-5 mr-2" />
+                      {!campaign.isActive ? 'Group Not Active' : 'Contribute'}
+                    </Button>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 1.5 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="flex-1"
                   >
-                    <DollarSign className="h-4 w-4 mr-2" />
-                    Distribute
-                  </Button>
-                </div>
-              )}
-
-              {/* Debug Refresh Button */}
-              <div className="flex items-center justify-between p-4 border rounded-lg bg-yellow-50">
-                <div>
-                  <h3 className="font-medium text-yellow-800">Debug: Manual Refresh</h3>
-                  <p className="text-sm text-yellow-600">
-                    Manually refresh group state to check for updates
-                  </p>
-                </div>
-                <Button
-                  onClick={async () => {
-                    console.log('Manual refresh clicked for group:', campaign.id);
-                    try {
-                      // Force refresh the groups
-                      await refreshGroups();
-                      // Also check group status
-                      const status = await checkGroupStatus(campaign.id);
-                      console.log('Manual refresh - Group status:', status);
-                      toast({
-                        title: "Manual Refresh Complete",
-                        description: `Group status: Round ${status.currentRound || 'Unknown'}, Active: ${status.isActive}`,
-                      });
-                    } catch (error) {
-                      console.error('Manual refresh failed:', error);
-                      toast({
-                        title: "Refresh Failed",
-                        description: "Failed to refresh group state",
-                        variant: "destructive",
-                      });
+                    <Button
+                      variant="outline"
+                      className="w-full h-12 text-base font-semibold"
+                      onClick={handleWithdrawClick}
+                      disabled={true}
+                    >
+                      <ArrowDownIcon className="h-5 w-5 mr-2" />
+                      Withdraw
+                    </Button>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 1.6 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="flex-1"
+                  >
+                    <Button
+                      variant="outline"
+                      className="w-full h-12 text-base font-semibold"
+                      onClick={handleShareClick}
+                    >
+                      <Share2Icon className="h-5 w-5 mr-2" />
+                      Share
+                    </Button>
+                  </motion.div>
+                </>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 1.4 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full"
+                >
+                  <Button
+                    className="w-full h-12 text-base font-semibold"
+                    onClick={handleJoinClick}
+                    disabled={!isConnected || !joinStatus.canJoin}
+                  >
+                    <UsersIcon className="h-5 w-5 mr-2" />
+                    {!isConnected 
+                      ? 'Connect Wallet to Join' 
+                      : !joinStatus.canJoin 
+                        ? `Cannot Join - ${joinStatus.reason || 'Unknown reason'}`
+                        : 'Request to Join'
                     }
-                  }}
-                  disabled={isProcessing}
-                  variant="outline"
-                  className="border-yellow-300 text-yellow-800 hover:bg-yellow-100"
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Refresh State
-                </Button>
-              </div>
+                  </Button>
+                </motion.div>
+              )}
+            </CardFooter>
+          </Card>
+        </motion.div>
 
-              {/* Emergency Withdraw */}
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h3 className="font-medium">Emergency Withdraw</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Emergency withdrawal for critical situations
-                  </p>
+        {/* Admin Controls - Only show if user is group admin */}
+        {isGroupAdmin && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 1.7 }}
+          >
+            <Card className="mt-6 border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Group Admin Controls
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  You are the admin of this group. Admin controls are available below.
+                </p>
+              </CardHeader>
+              <CardContent>
+                
+                <div className="grid gap-4">
+                  {/* Activate Group */}
+                  {!campaign.isActive && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.5, delay: 1.8 }}
+                      whileHover={{ scale: 1.02 }}
+                      className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50"
+                    >
+                      <div>
+                        <h3 className="font-medium">Activate Group</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Start the thrift group to allow contributions
+                        </p>
+                      </div>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Button
+                          onClick={() => {
+                            console.log('Activate button clicked!');
+                            handleActivateGroup();
+                          }}
+                          disabled={isProcessing}
+                        >
+                          <Play className="h-4 w-4 mr-2" />
+                          {isProcessing ? 'Activating...' : 'Activate'}
+                        </Button>
+                      </motion.div>
+                    </motion.div>
+                  )}
+
+                  {/* Set Payout Order */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: 1.9 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50"
+                  >
+                    <div>
+                      <h3 className="font-medium">Set Payout Order</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Define the order members will receive payouts
+                      </p>
+                    </div>
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Button
+                        onClick={() => setAdminDialogOpen(true)}
+                        variant="outline"
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        Set Order
+                      </Button>
+                    </motion.div>
+                  </motion.div>
+
+                  {/* Distribute Payout */}
+                  {campaign.isActive && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.5, delay: 2.0 }}
+                      whileHover={{ scale: 1.02 }}
+                      className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50"
+                    >
+                      <div>
+                        <h3 className="font-medium">Distribute Payout</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Distribute payout to current recipient
+                        </p>
+                      </div>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Button
+                          onClick={() => distributePayout(campaign.id)}
+                          disabled={isProcessing}
+                          variant="outline"
+                        >
+                          <DollarSign className="h-4 w-4 mr-2" />
+                          Distribute
+                        </Button>
+                      </motion.div>
+                    </motion.div>
+                  )}
+
+                  {/* Emergency Withdraw */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: 2.1 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50"
+                  >
+                    <div>
+                      <h3 className="font-medium">Emergency Withdraw</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Emergency withdrawal for critical situations
+                      </p>
+                    </div>
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Button
+                        onClick={handleEmergencyWithdraw}
+                        disabled={isProcessing}
+                        variant="destructive"
+                      >
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        Emergency
+                      </Button>
+                    </motion.div>
+                  </motion.div>
                 </div>
-                <Button
-                  onClick={handleEmergencyWithdraw}
-                  disabled={isProcessing}
-                  variant="destructive"
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Emergency
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </motion.div>
 
       {/* Join Dialog */}
       <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
@@ -1448,6 +1583,6 @@ export default function CampaignDetailsPage() {
           setCampaign((prev) => prev ? { ...prev, name, description: description || prev.description } : prev);
         }}
       />
-    </motion.div>
+    </div>
   );
 }

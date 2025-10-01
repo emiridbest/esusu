@@ -34,8 +34,10 @@ export async function GET(
       const joinDates: { [address: string]: string } = {};
       
       for (const event of events) {
-        if (event.args) {
-          const memberAddress = event.args.member;
+        // Type guard to check if event has args (EventLog)
+        if ('args' in event && event.args) {
+          const eventLog = event as ethers.EventLog;
+          const memberAddress = eventLog.args.member;
           const block = await provider.getBlock(event.blockNumber);
           const joinDate = new Date(block.timestamp * 1000);
           

@@ -39,6 +39,7 @@
         "@wagmi/core": "^1.4.13",
         "es-abstract": "^1.24.0",
         "eslint-plugin-react": "^7.37.5",
+        "ethers": "^6.15.0",
         "lucide-react": "^0.544.0",
         "object.fromentries": "^2.0.8",
         "react": "18.3.1",
