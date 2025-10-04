@@ -91,8 +91,8 @@ const TransactionList: React.FC = () => {
         const getPastYearBlockNumber = async (publicClient: any) => {
           const currentTime = Math.floor(Date.now() / 1000);
           const oneYearAgoTime = currentTime - 365 * 24 * 60 * 60; 
-
-          const response = await fetch(`https://api.celoscan.io/api?module=block&action=getblocknobytime&timestamp=${oneYearAgoTime}&closest=after&apikey=PEAMBX9SFYMY8MBJTJXTFDV568WBDIB3VK`);
+          const apiKey = process.env.CELOSCAN_API_KEY;
+          const response = await fetch(`https://api.celoscan.io/api?module=block&action=getblocknobytime&timestamp=${oneYearAgoTime}&closest=after&apikey=${apiKey}`);
           const data = await response.json();
 
           return data.result;
@@ -100,7 +100,8 @@ const TransactionList: React.FC = () => {
 
         const getCurrentBlockNumber = async (publicClient: any) => {
           const currentTime = Math.floor(Date.now() / 1000);
-          const response = await fetch(`https://api.celoscan.io/api?module=block&action=getblocknobytime&timestamp=${currentTime}&closest=after&apikey=PEAMBX9SFYMY8MBJTJXTFDV568WBDIB3VK`);
+          const apiKey = process.env.CELOSCAN_API_KEY;
+          const response = await fetch(`https://api.celoscan.io/api?module=block&action=getblocknobytime&timestamp=${currentTime}&closest=after&apikey=${apiKey}`);
           const data = await response.json();
 
           return data.result;
