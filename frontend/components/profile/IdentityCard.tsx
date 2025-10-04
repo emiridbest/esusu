@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from "react"
 import { IdentitySDK } from "@goodsdks/citizen-sdk"
 import { useActiveAccount } from "thirdweb/react"
 import { Card, CardContent } from "@/components/ui/card"
-import { createPublicClient, createWalletClient, custom, http } from 'viem';
+import { createPublicClient, createWalletClient, custom, http, webSocket, fallback } from 'viem';
 import { celo } from 'viem/chains';
 
 export const IdentityCard: React.FC = () => {
@@ -14,7 +14,10 @@ export const IdentityCard: React.FC = () => {
   const publicClient = useMemo(() => {
     return createPublicClient({
       chain: celo,
-      transport: http()
+      transport: fallback([
+        webSocket('wss://celo.drpc.org'),
+        http('https://celo.drpc.org')
+      ])
     });
   }, []);
 

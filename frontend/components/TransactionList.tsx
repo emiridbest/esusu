@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import { celo } from 'wagmi/chains';
-import { createPublicClient, http, decodeFunctionData } from 'viem';
+import { createPublicClient, http, webSocket, fallback, decodeFunctionData } from 'viem';
 import { useActiveAccount } from 'thirdweb/react';
 import { stableTokenABI } from "@celo/abis";
 // import { useAddRecentTransaction } from '@rainbow-me/rainbowkit';
@@ -106,7 +106,10 @@ const TransactionList: React.FC = () => {
         setError(null);
         const publicClient = createPublicClient({
           chain: celo,
-          transport: http(),
+          transport: fallback([
+            webSocket('wss://celo.drpc.org'),
+            http('https://celo.drpc.org'),
+          ]),
         });
 
         const getPastYearBlockNumber = async (publicClient: any) => {

@@ -6,7 +6,7 @@ import { IdentitySDK } from "@goodsdks/citizen-sdk"
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { createPublicClient, createWalletClient, custom, http } from 'viem';
+import { createPublicClient, createWalletClient, custom, http, webSocket, fallback } from 'viem';
 import { celo } from 'viem/chains';
 
 import { VerifyButton } from "@/components/identity/VerifyButton"
@@ -36,7 +36,10 @@ function IdentityVerification() {
   const publicClient = useMemo(() => {
     return createPublicClient({
       chain: celo,
-      transport: http()
+      transport: fallback([
+        webSocket('wss://celo.drpc.org'),
+        http('https://celo.drpc.org')
+      ])
     });
   }, []);
 

@@ -6,7 +6,7 @@ import { useActiveAccount, useActiveWallet } from "thirdweb/react";
 import { toast } from 'sonner';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { celo } from 'wagmi/chains';
-import { createPublicClient, http } from 'viem'
+import { createPublicClient, http, webSocket, fallback } from 'viem'
 import { IdentitySDK, ClaimSDK } from "@goodsdks/citizen-sdk"
 
 import {
@@ -99,7 +99,10 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
   const publicClient = createPublicClient({
     chain: celo,
-    transport: http()
+    transport: fallback([
+      webSocket('wss://celo.drpc.org'),
+      http('https://celo.drpc.org')
+    ])
   })
   const walletClient = useMemo(() => {
     if (isConnected && window.ethereum && address) {

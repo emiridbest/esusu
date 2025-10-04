@@ -3,7 +3,7 @@ import { openai } from "@ai-sdk/openai";
 import { getOnChainTools } from "@goat-sdk/adapter-vercel-ai";
 // @ts-ignore - Version conflict with viem
 import { viem } from "@goat-sdk/wallet-viem";
-import { createWalletClient, http } from "viem";
+import { createWalletClient, http, webSocket, fallback } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { celo } from "viem/chains";
 import { streamText } from 'ai';
@@ -21,17 +21,26 @@ export async function POST(req: Request) {
 
         const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY;
         const RPC_URL = process.env.RPC_PROVIDER_URL;
-        if (!PRIVATE_KEY || !RPC_URL) {
+        if (!PRIVATE_KEY) {
             return NextResponse.json(
-                { error: 'Server misconfigured: missing WALLET_PRIVATE_KEY or RPC_PROVIDER_URL' },
+                { error: 'Server misconfigured: missing WALLET_PRIVATE_KEY' },
                 { status: 500 }
             );
         }
 
         const account = privateKeyToAccount(PRIVATE_KEY as `0x${string}`);
+        // Use fallback RPC with dRPC WebSocket primary, HTTP fallback
+        // Can be overridden by RPC_PROVIDER_URL env var
+        const rpcTransport = RPC_URL 
+            ? (RPC_URL.startsWith('wss://') || RPC_URL.startsWith('ws://') ? webSocket(RPC_URL) : http(RPC_URL))
+            : fallback([
+                webSocket('wss://celo.drpc.org'),
+                http('https://celo.drpc.org'),
+              ]);
+        
         const walletClient = createWalletClient({
             account,
-            transport: http(RPC_URL),
+            transport: rpcTransport,
             chain: celo,
         });
 

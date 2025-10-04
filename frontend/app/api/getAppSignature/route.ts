@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createWalletClient, http, createPublicClient, Account } from 'viem'
+import { createWalletClient, http, createPublicClient, Account, webSocket, fallback } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { celo } from 'viem/chains'
 import { EngagementRewardsSDK } from '@goodsdks/engagement-sdk'
@@ -49,7 +49,10 @@ try {
 // Create clients for Celo blockchain
 const publicClient = createPublicClient({ 
   chain: celo,
-  transport: http()
+  transport: fallback([
+    webSocket('wss://celo.drpc.org'),
+    http('https://celo.drpc.org')
+  ])
 } as any)
 
 // Create wallet client - will be recreated with account if env vars are valid
@@ -59,7 +62,10 @@ let walletClient: any = null
 if (account) {
   walletClient = createWalletClient({ 
     chain: celo,
-    transport: http(),
+    transport: fallback([
+      webSocket('wss://celo.drpc.org'),
+      http('https://celo.drpc.org')
+    ]),
     account
   })
 }

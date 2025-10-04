@@ -18,7 +18,7 @@ import {
 } from '../services/utility/utilityServices';
 import { useClaimProcessor } from '../context/utilityProvider/ClaimContextProvider';
 import { IdentitySDK } from '@goodsdks/citizen-sdk';
-import { createPublicClient, createWalletClient, custom, http, formatUnits } from 'viem';
+import { createPublicClient, createWalletClient, custom, http, webSocket, fallback, formatUnits } from 'viem';
 import { celo } from 'viem/chains';
 
 const formSchema = z.object({
@@ -81,7 +81,10 @@ export const useFreebiesLogic = () => {
     const publicClient = useMemo(() => {
         return createPublicClient({
             chain: celo,
-            transport: http()
+            transport: fallback([
+                webSocket('wss://celo.drpc.org'),
+                http('https://celo.drpc.org')
+            ])
         });
     }, []);
 

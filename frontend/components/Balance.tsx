@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useCallback, useEffect } from 'react';
-import { getContract, formatEther, createPublicClient, http } from "viem";
+import { getContract, formatEther, createPublicClient, http, webSocket, fallback } from "viem";
 import { celo } from "viem/chains";
 import { BrowserProvider } from 'ethers';
 import { stableTokenABI } from "@celo/abis";
@@ -51,7 +51,10 @@ const Balance: React.FC = () => {
 
         const publicClient = createPublicClient({
           chain: celo,
-          transport: http('https://forno.celo.org'),
+          transport: fallback([
+            webSocket('wss://celo.drpc.org'),
+            http('https://celo.drpc.org'),
+          ]),
         });
 
         const StableTokenContract = getContract({

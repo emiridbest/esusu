@@ -20,19 +20,45 @@ export async function GET(
     }
 
     // Initialize provider and contract
-    const provider = new ethers.JsonRpcProvider('https://celo-mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161');
+    const provider = new ethers.JsonRpcProvider('wss://celo.drpc.org');
     const contract = new ethers.Contract(contractAddress, abi, provider);
     
     try {
+      // Get group info to find the creator (admin)
+      const groupInfo = await contract.thriftGroups(parseInt(groupId));
+      const groupCreator = groupInfo.admin;
+      
       // Get all MemberJoined events for this group
       const filter = contract.filters.MemberJoined(parseInt(groupId));
-      const events = await contract.queryFilter(filter);
+      
+      // Try to get events from a recent block range to avoid timeout
+      const currentBlock = await provider.getBlockNumber();
+      const fromBlock = Math.max(0, currentBlock - 100000); // Last ~100k blocks
+      
+      console.log(`Querying from block ${fromBlock} to ${currentBlock}`);
+      const events = await contract.queryFilter(filter, fromBlock, currentBlock);
       
       console.log(`Found ${events.length} MemberJoined events for group ${groupId}`);
+      console.log(`Group creator: ${groupCreator}`);
       
       // Process events to get join dates
       const joinDates: { [address: string]: string } = {};
       
+      // First, add the group creator with the group creation time
+      if (groupCreator && groupCreator !== ethers.ZeroAddress) {
+        try {
+          const groupCreationBlock = await provider.getBlock(groupInfo.createdAt);
+          const groupCreationDate = new Date(groupCreationBlock.timestamp * 1000);
+          joinDates[groupCreator.toLowerCase()] = groupCreationDate.toISOString();
+          console.log(`Group creator ${groupCreator} created group on ${groupCreationDate.toISOString()}`);
+        } catch (error) {
+          console.log(`Error getting group creation time: ${error.message}`);
+          // Fallback to current time if we can't get creation time
+          joinDates[groupCreator.toLowerCase()] = new Date().toISOString();
+        }
+      }
+      
+      // Then process member join events
       for (const event of events) {
         // Type guard to check if event has args (EventLog)
         if ('args' in event && event.args) {

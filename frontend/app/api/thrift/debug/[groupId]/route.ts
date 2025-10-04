@@ -17,9 +17,84 @@ export async function GET(
       return NextResponse.json({ error: 'User address required' }, { status: 400 });
     }
 
-    // Initialize provider and contract
-    const provider = new ethers.JsonRpcProvider('https://celo-mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161');
+    // Initialize provider with fallback RPC options
+    const rpcUrls = [
+      'wss://celo.drpc.org',
+      'https://celo.drpc.org',
+      'https://rpc.ankr.com/celo'
+    ];
+    
+    let provider;
+    let lastError;
+    
+    // Try each RPC URL until one works
+    for (const rpcUrl of rpcUrls) {
+      try {
+        provider = new ethers.JsonRpcProvider(rpcUrl, {
+          name: 'celo',
+          chainId: 42220,
+          ensAddress: null
+        });
+        
+        // Test the connection
+        await provider.getNetwork();
+        console.log(`Successfully connected to RPC: ${rpcUrl}`);
+        break;
+      } catch (error) {
+        console.warn(`Failed to connect to RPC ${rpcUrl}:`, error);
+        lastError = error;
+        continue;
+      }
+    }
+    
+    if (!provider) {
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to connect to any Celo RPC provider',
+        details: lastError instanceof Error ? lastError.message : String(lastError),
+        triedUrls: rpcUrls
+      }, { status: 500 });
+    }
+    
     const contract = new ethers.Contract(contractAddress, abi, provider);
+    
+    // Verify contract exists and is not paused
+    try {
+      const contractCode = await provider.getCode(contractAddress);
+      if (contractCode === '0x') {
+        return NextResponse.json({
+          success: false,
+          error: 'Contract not deployed at this address',
+          contractAddress,
+          groupId: parseInt(groupId),
+          userAddress
+        }, { status: 400 });
+      }
+      
+      // Check if contract is paused
+      const isPaused = await contract.paused();
+      if (isPaused) {
+        return NextResponse.json({
+          success: false,
+          error: 'Contract is currently paused',
+          contractAddress,
+          groupId: parseInt(groupId),
+          userAddress
+        }, { status: 400 });
+      }
+      
+      console.log('Contract verification passed');
+    } catch (verifyError) {
+      console.error('Contract verification failed:', verifyError);
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to verify contract',
+        details: verifyError instanceof Error ? verifyError.message : String(verifyError),
+        contractAddress,
+        groupId: parseInt(groupId),
+        userAddress
+      }, { status: 500 });
+    }
     
     try {
       // Get group information from smart contract

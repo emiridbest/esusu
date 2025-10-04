@@ -107,7 +107,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isConnected, setIsConnected] = useState<boolean>(false);
   
   // Custom RPC provider for event querying (fallback when wallet RPC is down)
-  const customRpcProvider = new JsonRpcProvider('https://celo-mainnet.infura.io/v3/0bbb45846bdf44d1bcbe6275327619ad');
+  const customRpcProvider = new JsonRpcProvider('wss://celo.drpc.org');
 
   // Initialize provider, account, and contract
   const initialize = useCallback(async () => {
@@ -1345,32 +1345,32 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         memberMap.set(member.address.toLowerCase(), member.userName || `Member ${Math.random().toString(36).substr(2, 9)}`);
       });
 
-      // Try to get contribution events from the blockchain using Infura as primary
+      // Try to get contribution events from the blockchain using Fono as primary
       let events = [];
       try {
-        console.log('Using Infura RPC provider for event querying...');
+        console.log('Using Fono RPC provider for event querying...');
         const customContract = new MiniSafeAave(contractAddress, customRpcProvider);
         const customFilter = customContract.contract.filters.ContributionMade(groupId);
         console.log('Filter created:', customFilter);
         
-        console.log('Querying events with Infura...');
+        console.log('Querying events with Fono...');
         events = await customContract.contract.queryFilter(customFilter);
-        console.log('Found contribution events with Infura:', events.length);
+        console.log('Found contribution events with Fono:', events.length);
         
         if (events.length > 0) {
-          console.log('First event sample from Infura:', events[0]);
+          console.log('First event sample from Fono:', events[0]);
         }
-      } catch (infuraError) {
-        console.error('Infura RPC endpoint error for event querying:', infuraError);
-        console.log('Infura error details:', {
-          message: infuraError.message,
-          code: (infuraError as any).code,
-          data: (infuraError as any).data
+      } catch (fonoError) {
+        console.error('Fono RPC endpoint error for event querying:', fonoError);
+        console.log('Fono error details:', {
+          message: fonoError.message,
+          code: (fonoError as any).code,
+          data: (fonoError as any).data
         });
         
         // Try alternative approach - query all events and filter manually
         try {
-          console.log('Trying alternative event querying approach with Infura...');
+          console.log('Trying alternative event querying approach with Fono...');
           
           // Get current block number to calculate a reasonable range
           const currentBlock = await customRpcProvider.getBlockNumber();
@@ -1386,7 +1386,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             toBlock: currentBlock,
             topics: ['0x0a4a91237423e0a1766a761c7cb029311d8b95d6b1b81db1b949a70c98b4e08e'] // ContributionMade event signature
           });
-          console.log('Total events found with Infura:', allEvents.length);
+          console.log('Total events found with Fono:', allEvents.length);
           
           // Filter for specific group ID
           events = allEvents.filter(event => {

@@ -3,7 +3,7 @@ import { Button } from "../ui/button"
 import { IdentitySDK } from "@goodsdks/citizen-sdk"
 import { useActiveAccount } from "thirdweb/react"
 import { toast } from "sonner"
-import { createPublicClient, createWalletClient, custom, http } from 'viem';
+import { createPublicClient, createWalletClient, custom, http, webSocket, fallback } from 'viem';
 import { celo } from 'viem/chains';
 
 interface VerifyButtonProps {
@@ -21,7 +21,10 @@ export const VerifyButton: React.FC<VerifyButtonProps> = ({
   const publicClient = useMemo(() => {
     return createPublicClient({
       chain: celo,
-      transport: http()
+      transport: fallback([
+        webSocket('wss://celo.drpc.org'),
+        http('https://celo.drpc.org')
+      ])
     });
   }, []);
 

@@ -333,7 +333,7 @@ export class TransactionService {
       'blockchainStatus.confirmed': false
     });
 
-    const provider = new ethers.JsonRpcProvider(process.env.CELO_RPC_URL || 'https://forno.celo.org');
+    const provider = new ethers.JsonRpcProvider(process.env.CELO_RPC_URL || 'wss://celo.drpc.org');
 
     for (const tx of pendingTransactions) {
       try {

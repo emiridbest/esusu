@@ -40,7 +40,7 @@ function requireApiKey(req: NextRequest): { ok: boolean; error?: string } {
 }
 
 // Payment validation configuration
-const CELO_RPC_URL = process.env.CELO_RPC_URL || 'https://forno.celo.org';
+const CELO_RPC_URL = process.env.CELO_RPC_URL || 'wss://celo.drpc.org';
 const RECIPIENT_WALLET = (process.env.RECIPIENT_WALLET || '0xb82896C4F251ed65186b416dbDb6f6192DFAF926');
 const MIN_CONFIRMATIONS = 1;
 const MAX_TRANSACTION_AGE_MINUTES = 10;

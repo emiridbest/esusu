@@ -1,10 +1,10 @@
-import { createConfig, http } from 'wagmi'
+import { createConfig, http, webSocket, fallback } from 'wagmi'
 import { celo } from 'viem/chains'
 import { injected, metaMask } from 'wagmi/connectors'
 import { inAppWalletConnector } from '@thirdweb-dev/wagmi-adapter'
 import { client } from '@/lib/thirdweb'
 
-// Create wagmi config with Thirdweb integration
+// Create wagmi config with Thirdweb integration and dRPC as primary RPC
 export const config = createConfig({
   chains: [celo],
   connectors: [
@@ -13,7 +13,11 @@ export const config = createConfig({
     }),
   ],
   transports: {
-    [celo.id]: http(),
+    [celo.id]: fallback([
+      webSocket('wss://celo.drpc.org'),
+      http('https://celo.drpc.org'),
+      http('https://rpc.ankr.com/celo'),
+    ]),
   },
 })
 
