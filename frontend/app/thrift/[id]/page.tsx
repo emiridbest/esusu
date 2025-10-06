@@ -45,6 +45,31 @@ export default function CampaignDetailsPage() {
   const [campaign, setCampaign] = useState<ThriftGroup | null>(null);
   const [isUserMember, setIsUserMember] = useState(false);
   const [campaignMembers, setCampaignMembers] = useState<ThriftMember[]>([]);
+  
+  // Helper function to get member name by address
+  const getMemberName = (address: string): string => {
+    if (!address) return 'Unknown';
+    
+    const member = campaignMembers.find(
+      m => m.address.toLowerCase() === address.toLowerCase()
+    );
+    
+    if (member?.userName) {
+      return member.userName;
+    }
+    
+    // Fallback to member number based on position in array
+    const memberIndex = campaignMembers.findIndex(
+      m => m.address.toLowerCase() === address.toLowerCase()
+    );
+    
+    if (memberIndex >= 0) {
+      return `Member ${memberIndex + 1}`;
+    }
+    
+    // Last resort: shortened address
+    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  };
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [contributeDialogOpen, setContributeDialogOpen] = useState(false);
   const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
@@ -810,16 +835,9 @@ export default function CampaignDetailsPage() {
                                     <div className="text-xs text-muted-foreground">Past recipient</div>
                                     <div className="font-medium">
                                       {(() => {
-                                        console.log('Debug past recipient:', {
-                                          pastRecipient: campaign.pastRecipient,
-                                          currentRound: campaign.currentRound,
-                                          payoutOrder: campaign.payoutOrder,
-                                          payoutOrderLength: campaign.payoutOrder?.length
-                                        });
-                                        
                                         // First try to use the pastRecipient field if available
                                         if (campaign.pastRecipient) {
-                                          return `${campaign.pastRecipient.substring(0, 6)}...${campaign.pastRecipient.substring(campaign.pastRecipient.length - 4)}`;
+                                          return getMemberName(campaign.pastRecipient);
                                         }
                                         
                                         // Fallback: calculate from payout order and current round
@@ -827,7 +845,7 @@ export default function CampaignDetailsPage() {
                                           const pastIndex = campaign.currentRound - 1;
                                           if (pastIndex < campaign.payoutOrder.length) {
                                             const pastRecipient = campaign.payoutOrder[pastIndex];
-                                            return `${pastRecipient.substring(0, 6)}...${pastRecipient.substring(pastRecipient.length - 4)}`;
+                                            return getMemberName(pastRecipient);
                                           }
                                         }
                                         return 'None';
@@ -851,7 +869,7 @@ export default function CampaignDetailsPage() {
                                             const nextIndex = campaign.currentRound;
                                             if (nextIndex < campaign.payoutOrder.length) {
                                               const nextRecipient = campaign.payoutOrder[nextIndex];
-                                              return `${nextRecipient.substring(0, 6)}...${nextRecipient.substring(nextRecipient.length - 4)}`;
+                                              return getMemberName(nextRecipient);
                                             }
                                             return 'TBD';
                                           }
