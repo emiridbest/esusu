@@ -107,7 +107,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isConnected, setIsConnected] = useState<boolean>(false);
   
   // Custom RPC provider for event querying (fallback when wallet RPC is down)
-  const customRpcProvider = new JsonRpcProvider('wss://celo.drpc.org');
+  const customRpcProvider = new JsonRpcProvider('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8');
 
   // Initialize provider, account, and contract
   const initialize = useCallback(async () => {
@@ -826,64 +826,33 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Primary: Fetch members from contract (authoritative blockchain data)
       const members: string[] = await contract.getGroupMembers(groupId);
       
-      // Try to get accurate join dates and names from database (these should now have blockchain timestamps)
+      // Fetch join dates from cached blockchain API (ALWAYS - this is the source of truth)
       let dbMemberData: { [address: string]: { joinDate: string; userName: string } } = {};
+      
+      console.log(`🔍 Fetching join dates from cached blockchain API for group ${groupId}`);
       try {
-        console.log(`🔍 Fetching member data from database for group ${groupId}`);
-        const response = await fetch(`/api/groups/${groupId}/members`);
-        console.log('Database response status:', response.status);
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Database response data:', data);
+        const blockchainResponse = await fetch(`/api/thrift/join-dates-cached/${groupId}`);
+        if (blockchainResponse.ok) {
+          const blockchainData = await blockchainResponse.json();
+          console.log('📅 Cached join dates response:', blockchainData);
           
-          if (data.members && data.members.length > 0) {
-            // Create a map of address -> {joinDate, userName} for quick lookup
-            data.members.forEach((member: any) => {
-              const joinDate = new Date(member.joinedAt).toISOString();
-              const userName = member.userName || `Member ${Math.random().toString(36).substr(2, 9)}`;
-              
-              dbMemberData[member.address.toLowerCase()] = {
-                joinDate,
-                userName
+          if (blockchainData.success && blockchainData.joinDates) {
+            // Use blockchain data as the primary source
+            let memberIndex = 1;
+            Object.keys(blockchainData.joinDates).forEach(address => {
+              dbMemberData[address.toLowerCase()] = {
+                joinDate: blockchainData.joinDates[address],
+                userName: `Member ${memberIndex}`
               };
-              
-              console.log(`📅 Database member data:`, {
-                address: member.address,
-                joinedAt: member.joinedAt,
-                joinDate,
-                userName: member.userName
-              });
+              console.log(`📅 Cached join date for ${address}: ${blockchainData.joinDates[address]}`);
+              memberIndex++;
             });
-            console.log(`✅ Retrieved ${Object.keys(dbMemberData).length} member data from database for group ${groupId}`);
-          } else {
-            console.log('No members found in database response');
           }
         } else {
-          console.warn('Database response not ok:', response.status, response.statusText);
+          console.warn('Cached blockchain API response not ok:', blockchainResponse.status);
         }
-      } catch (dbError) {
-        console.warn('Could not fetch member data from database, trying blockchain events:', dbError);
-        
-        // Fallback: try to get join dates from blockchain events
-        try {
-          const blockchainResponse = await fetch(`/api/thrift/join-dates/${groupId}`);
-          if (blockchainResponse.ok) {
-            const blockchainData = await blockchainResponse.json();
-            if (blockchainData.success && blockchainData.joinDates) {
-              // Convert blockchain data to our format
-              Object.keys(blockchainData.joinDates).forEach(address => {
-                dbMemberData[address.toLowerCase()] = {
-                  joinDate: blockchainData.joinDates[address],
-                  userName: `Member ${Math.random().toString(36).substr(2, 9)}`
-                };
-              });
-              console.log(`✅ Retrieved ${Object.keys(dbMemberData).length} join dates from blockchain events for group ${groupId}`);
-            }
-          }
-        } catch (blockchainError) {
-          console.warn('Could not fetch join dates from blockchain events:', blockchainError);
-        }
+      } catch (blockchainError) {
+        console.error('Failed to fetch cached join dates from blockchain:', blockchainError);
       }
       
       return members.map((address: string, index: number) => {
@@ -1318,6 +1287,66 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Get contribution history for a group
   const getContributionHistory = async (groupId: number) => {
+    try {
+      console.log('[ThriftContext] Fetching contribution history for group:', groupId);
+      
+      // Call the API route that handles MongoDB caching + blockchain syncing
+      const response = await fetch(`/api/thrift/contributions/${groupId}`);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch contributions');
+      }
+
+      console.log('[ThriftContext] Received contributions:', {
+        count: data.contributions.length,
+        cached: data.cached,
+        syncedNewEvents: data.syncedNewEvents
+      });
+
+      // Parse date strings back to Date objects for frontend
+      data.contributions = data.contributions.map((contrib: any) => ({
+        ...contrib,
+        date: new Date(contrib.date)
+      }));
+
+      // Get group members to update member names if needed
+      if (isConnected && contract) {
+        try {
+          const members = await getThriftGroupMembers(groupId);
+          const memberMap = new Map();
+          members.forEach(member => {
+            memberMap.set(member.address.toLowerCase(), member.userName || member.address);
+          });
+
+          // Update member names in contributions
+          data.contributions.forEach((contrib: any) => {
+            const memberAddress = contrib.member.toLowerCase();
+            if (memberMap.has(memberAddress)) {
+              contrib.memberName = memberMap.get(memberAddress);
+            }
+          });
+        } catch (memberError) {
+          console.warn('[ThriftContext] Could not fetch member names:', memberError);
+          // Continue with contributions without member names
+        }
+      }
+
+      return data.contributions;
+    } catch (error) {
+      console.error("[ThriftContext] Error fetching contribution history:", error);
+      toast.error("Failed to load contribution history. Please try again.");
+      return [];
+    }
+  };
+
+  // LEGACY: Old blockchain querying function (kept for reference, not used)
+  const getContributionHistoryLegacy = async (groupId: number) => {
     if (!contract || !isConnected) {
       throw new Error("Wallet not connected or contract not initialized");
     }
@@ -1345,39 +1374,43 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         memberMap.set(member.address.toLowerCase(), member.userName || `Member ${Math.random().toString(36).substr(2, 9)}`);
       });
 
-      // Try to get contribution events from the blockchain using Fono as primary
+      // Try to get contribution events from the blockchain using Ankr RPC
       let events = [];
       try {
-        console.log('Using Fono RPC provider for event querying...');
+        console.log('Using Ankr RPC provider for event querying...');
         const customContract = new MiniSafeAave(contractAddress, customRpcProvider);
         const customFilter = customContract.contract.filters.ContributionMade(groupId);
         console.log('Filter created:', customFilter);
         
-        console.log('Querying events with Fono...');
-        events = await customContract.contract.queryFilter(customFilter);
-        console.log('Found contribution events with Fono:', events.length);
+        // Get current block to limit query range (avoid "block range too large" error)
+        const currentBlock = await customRpcProvider.getBlockNumber();
+        const fromBlock = Math.max(0, currentBlock - 10000); // Last ~10k blocks (~14 hours on Celo)
+        console.log(`Querying events from block ${fromBlock} to ${currentBlock}...`);
+        
+        events = await customContract.contract.queryFilter(customFilter, fromBlock, currentBlock);
+        console.log('Found contribution events:', events.length);
         
         if (events.length > 0) {
           console.log('First event sample from Fono:', events[0]);
         }
-      } catch (fonoError) {
-        console.error('Fono RPC endpoint error for event querying:', fonoError);
-        console.log('Fono error details:', {
-          message: fonoError.message,
-          code: (fonoError as any).code,
-          data: (fonoError as any).data
+      } catch (rpcError) {
+        console.error('RPC endpoint error for event querying:', rpcError);
+        console.log('RPC error details:', {
+          message: rpcError.message,
+          code: (rpcError as any).code,
+          data: (rpcError as any).data
         });
         
-        // Try alternative approach - query all events and filter manually
+        // Try alternative approach - query using getLogs directly
         try {
-          console.log('Trying alternative event querying approach with Fono...');
+          console.log('Trying alternative event querying approach...');
           
           // Get current block number to calculate a reasonable range
           const currentBlock = await customRpcProvider.getBlockNumber();
           console.log('Current block number:', currentBlock);
           
-          // Query last 1000 blocks to avoid any limitations
-          const fromBlock = Math.max(0, currentBlock - 1000);
+          // Query last 5k blocks to avoid limitations
+          const fromBlock = Math.max(0, currentBlock - 5000);
           console.log(`Querying events from block ${fromBlock} to ${currentBlock}`);
           
           const allEvents = await (customRpcProvider as any).getLogs({
@@ -1386,7 +1419,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             toBlock: currentBlock,
             topics: ['0x0a4a91237423e0a1766a761c7cb029311d8b95d6b1b81db1b949a70c98b4e08e'] // ContributionMade event signature
           });
-          console.log('Total events found with Fono:', allEvents.length);
+          console.log('Total events found:', allEvents.length);
           
           // Filter for specific group ID
           events = allEvents.filter(event => {
@@ -1399,11 +1432,13 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         } catch (altError) {
           console.error('Alternative event querying also failed:', altError);
           
-          // Final fallback - try wallet RPC as last resort
+          // Final fallback - try wallet RPC with limited range
           try {
             console.log('Trying wallet RPC as final fallback...');
+            const currentBlock = await provider.getBlockNumber();
+            const fromBlock = Math.max(0, currentBlock - 5000);
             const filter = contract.contract.filters.ContributionMade(groupId);
-            events = await contract.contract.queryFilter(filter);
+            events = await contract.contract.queryFilter(filter, fromBlock, currentBlock);
             console.log('Found contribution events with wallet RPC:', events.length);
           } catch (walletError) {
             console.error('Wallet RPC also failed:', walletError);

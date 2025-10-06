@@ -381,3 +381,102 @@ export const ThriftGroupMetadata = models.ThriftGroupMetadata
   GroupSchema.index({ 'members.user': 1 });
   NotificationSchema.index({ 'user': 1, 'read': 1, 'createdAt': -1 });
   AnalyticsSchema.index({ 'user': 1, 'period': 1, 'date': -1 });
+
+// Contribution Event Schema - Cached blockchain events for contribution history
+export interface IContributionEvent extends Document {
+  groupId: number; // On-chain group ID
+  contributionRound: number;
+  member: string; // Wallet address
+  memberName?: string;
+  amount: string; // BigNumber as string
+  transactionHash: string;
+  blockNumber: number;
+  blockHash: string;
+  logIndex: number;
+  timestamp: Date;
+  eventData: any; // Raw event data from blockchain
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const ContributionEventSchema = new Schema<IContributionEvent>({
+  groupId: { type: Number, required: true, index: true },
+  contributionRound: { type: Number, required: true, index: true },
+  member: { type: String, required: true, index: true },
+  memberName: { type: String },
+  amount: { type: String, required: true },
+  transactionHash: { type: String, required: true },
+  blockNumber: { type: Number, required: true, index: true },
+  blockHash: { type: String, required: true },
+  logIndex: { type: Number, required: true },
+  timestamp: { type: Date, required: true, index: true },
+  eventData: { type: Schema.Types.Mixed }
+}, { 
+  timestamps: true,
+  bufferCommands: false
+});
+
+// Unique constraint: transactionHash + logIndex uniquely identifies an event
+ContributionEventSchema.index({ transactionHash: 1, logIndex: 1 }, { unique: true });
+// Composite index for efficient queries
+ContributionEventSchema.index({ groupId: 1, timestamp: -1 });
+
+export const ContributionEvent = models.ContributionEvent 
+  || model<IContributionEvent>('ContributionEvent', ContributionEventSchema);
+
+// Blockchain Sync State Schema - Track last synced block per group
+export interface IBlockchainSyncState extends Document {
+  groupId: number;
+  contractAddress: string;
+  lastSyncedBlock: number;
+  lastSyncedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const BlockchainSyncStateSchema = new Schema<IBlockchainSyncState>({
+  groupId: { type: Number, required: true },
+  contractAddress: { type: String, required: true },
+  lastSyncedBlock: { type: Number, required: true },
+  lastSyncedAt: { type: Date, required: true }
+}, { 
+  timestamps: true,
+  bufferCommands: false
+});
+
+BlockchainSyncStateSchema.index({ groupId: 1, contractAddress: 1 }, { unique: true });
+
+export const BlockchainSyncState = models.BlockchainSyncState 
+  || model<IBlockchainSyncState>('BlockchainSyncState', BlockchainSyncStateSchema);
+
+// Member Join Date Schema - Cached member join dates
+export interface IMemberJoinDate extends Document {
+  groupId: number;
+  memberAddress: string;
+  joinDate: Date;
+  joinBlockNumber: number;
+  joinTransactionHash?: string;
+  isCreator: boolean; // True if this is the group creator
+  eventData?: any; // Raw event data if available
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const MemberJoinDateSchema = new Schema<IMemberJoinDate>({
+  groupId: { type: Number, required: true, index: true },
+  memberAddress: { type: String, required: true, index: true },
+  joinDate: { type: Date, required: true, index: true },
+  joinBlockNumber: { type: Number, required: true },
+  joinTransactionHash: { type: String },
+  isCreator: { type: Boolean, default: false },
+  eventData: { type: Schema.Types.Mixed }
+}, { 
+  timestamps: true,
+  bufferCommands: false
+});
+
+// Unique constraint: one join date per member per group
+MemberJoinDateSchema.index({ groupId: 1, memberAddress: 1 }, { unique: true });
+
+export const MemberJoinDate = models.MemberJoinDate 
+  || model<IMemberJoinDate>('MemberJoinDate', MemberJoinDateSchema);

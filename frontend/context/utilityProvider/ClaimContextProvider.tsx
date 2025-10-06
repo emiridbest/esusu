@@ -99,10 +99,10 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
   const publicClient = createPublicClient({
     chain: celo,
-    transport: fallback([
-      webSocket('wss://celo.drpc.org'),
-      http('https://celo.drpc.org')
-    ])
+    transport: http('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8', {
+      timeout: 30_000,
+      retryCount: 3,
+    })
   })
   const walletClient = useMemo(() => {
     if (isConnected && window.ethereum && address) {
