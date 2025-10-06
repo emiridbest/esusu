@@ -49,7 +49,7 @@ export interface ThriftMember {
 export interface ThriftContextType {
   userGroups: ThriftGroup[];
   allGroups: ThriftGroup[];
-  createThriftGroup: (name: string, description: string, depositAmount: string, maxMembers: number, isPublic: boolean, tokenAddress?: string, startDate?: Date) => Promise<void>;
+  createThriftGroup: (name: string, description: string, depositAmount: string, maxMembers: number, isPublic: boolean, tokenAddress?: string, startDate?: Date, creatorName?: string) => Promise<void>;
   joinThriftGroup: (groupId: number, userName?: string) => Promise<void>;
   checkJoinStatus: (groupId: number) => Promise<{
     isMember: boolean;
@@ -175,7 +175,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [initialize]);
 
   // Create thrift group contract interaction
-  const createThriftGroup = async (name: string, description: string, depositAmount: string, maxMembers: number, isPublic: boolean, tokenAddress?: string, startDate?: Date) => {
+  const createThriftGroup = async (name: string, description: string, depositAmount: string, maxMembers: number, isPublic: boolean, tokenAddress?: string, startDate?: Date, creatorName?: string) => {
     if (!contract || !isConnected) {
       throw new Error("Wallet not connected or contract not initialized");
     }
@@ -308,6 +308,38 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       } catch (metaErr) {
         console.warn('Failed to save thrift metadata:', metaErr);
+      }
+
+      // Store creator as first member in the database with their name
+      if (newGroupId && account) {
+        try {
+          console.log('Storing creator in database:', {
+            groupId: newGroupId,
+            creatorAddress: account,
+            creatorName: creatorName || 'Creator'
+          });
+          
+          const creatorData = {
+            userAddress: account,
+            role: 'creator',
+            joinDate: new Date().toISOString(), // Group creation time
+            userName: creatorName || 'Creator' // Use provided name or default to 'Creator'
+          };
+          
+          const creatorResponse = await fetch(`/api/groups/${newGroupId}/members`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(creatorData),
+          });
+          
+          if (creatorResponse.ok) {
+            console.log('✅ Creator stored in database successfully');
+          } else {
+            console.warn('Failed to store creator in database:', await creatorResponse.text());
+          }
+        } catch (creatorDbError) {
+          console.warn('Failed to store creator in database:', creatorDbError);
+        }
       }
 
       // Wait a moment for the transaction to be mined before refreshing
@@ -837,12 +869,12 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           console.log('📅 Cached join dates response:', blockchainData);
           
           if (blockchainData.success && blockchainData.joinDates) {
-            // Use blockchain data as the primary source
+            // Use blockchain data as the primary source for join dates
             let memberIndex = 1;
             Object.keys(blockchainData.joinDates).forEach(address => {
               dbMemberData[address.toLowerCase()] = {
                 joinDate: blockchainData.joinDates[address],
-                userName: `Member ${memberIndex}`
+                userName: `Member ${memberIndex}` // Temporary, will be replaced by DB names
               };
               console.log(`📅 Cached join date for ${address}: ${blockchainData.joinDates[address]}`);
               memberIndex++;
@@ -853,6 +885,34 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       } catch (blockchainError) {
         console.error('Failed to fetch cached join dates from blockchain:', blockchainError);
+      }
+      
+      // Fetch usernames from database and merge with join dates
+      console.log(`🔍 Fetching usernames from database for group ${groupId}`);
+      try {
+        const dbResponse = await fetch(`/api/groups/${groupId}/members`);
+        if (dbResponse.ok) {
+          const dbData = await dbResponse.json();
+          console.log('👤 Database members response:', dbData);
+          
+          if (dbData.members && Array.isArray(dbData.members)) {
+            dbData.members.forEach((member: any) => {
+              const addr = (member.address || '').toLowerCase();
+              if (addr && dbMemberData[addr]) {
+                // Merge userName from database with existing join date
+                dbMemberData[addr].userName = member.userName || dbMemberData[addr].userName;
+                console.log(`👤 Found username for ${addr}: ${member.userName}`);
+              } else if (addr) {
+                // Member exists in DB but not in blockchain data (edge case)
+                console.warn(`👤 Member ${addr} found in DB but not in blockchain data`);
+              }
+            });
+          }
+        } else {
+          console.warn('Database members API response not ok:', dbResponse.status);
+        }
+      } catch (dbError) {
+        console.warn('Failed to fetch usernames from database:', dbError);
       }
       
       return members.map((address: string, index: number) => {

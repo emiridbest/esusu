@@ -20,6 +20,7 @@ export function CreateCampaignDialog() {
   const [isPublic, setIsPublic] = useState(true);
   const [selectedToken, setSelectedToken] = useState<string>('CUSD');
   const [startDate, setStartDate] = useState<string>('');
+  const [creatorName, setCreatorName] = useState<string>(''); // Creator's name
   const [connected, setConnected] = useState(false);
   
   const { createThriftGroup, loading, error } = useThrift();
@@ -74,7 +75,8 @@ export function CreateCampaignDialog() {
         parseInt(maxMembers), 
         isPublic,
         tokenConfig.address,
-        new Date(startDate)
+        new Date(startDate),
+        creatorName || undefined // Pass creator name
       );
       setOpen(false);
       resetForm();
@@ -91,6 +93,7 @@ export function CreateCampaignDialog() {
     setIsPublic(true);
     setSelectedToken('CUSD');
     setStartDate('');
+    setCreatorName('');
   };
   
 
@@ -119,13 +122,24 @@ export function CreateCampaignDialog() {
               ) : (
                 <>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">Name</Label>
+                    <Label htmlFor="name" className="text-right">Group Name</Label>
                     <Input
                       id="name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="col-span-3"
                       placeholder="My Thrift Group"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="creatorName" className="text-right">Your Name</Label>
+                    <Input
+                      id="creatorName"
+                      value={creatorName}
+                      onChange={(e) => setCreatorName(e.target.value)}
+                      className="col-span-3"
+                      placeholder="John Doe (optional)"
                     />
                   </div>
                   
