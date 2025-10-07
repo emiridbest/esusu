@@ -1072,10 +1072,14 @@ export default function CampaignDetailsPage() {
                         const by = entry?.by || '';
                         const changes = entry?.changes || {};
                         const fields = Object.keys(changes).filter((k) => changes[k] !== undefined);
+                        
+                        // Get display name for editor (priority: userName > member number > address)
+                        const displayName = by ? getMemberName(by) : '-';
+                        
                         return (
                           <TableRow key={idx}>
                             <TableCell className="whitespace-nowrap">{when ? when.toLocaleString() : '-'}</TableCell>
-                            <TableCell className="font-mono text-xs">{by ? `${by.substring(0,6)}...${by.substring(by.length-4)}` : '-'}</TableCell>
+                            <TableCell className="font-mono text-xs">{displayName}</TableCell>
                             <TableCell>
                               {fields.length > 0 ? (
                                 <div className="flex flex-wrap gap-2 text-xs">

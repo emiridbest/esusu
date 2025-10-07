@@ -25,21 +25,38 @@ export async function GET(
     // Since groupId is a string (like "1"), we need to find by groupId field, not _id
     const group = await mongoose.connection.db?.collection('groups').findOne({ groupId: parseInt(groupId) });
     
+    console.log('📤 GET /api/groups/[groupId]/members - Found group:', {
+      groupId,
+      groupExists: !!group,
+      memberCount: group?.members?.length || 0
+    });
+
     if (!group) {
+      console.log(`⚠️ Group ${groupId} not found in database`);
       return NextResponse.json(
-        { error: 'Group not found' },
-        { status: 404 }
+        { members: [] }, // Return empty array instead of error for better UX
+        { status: 200 }
       );
     }
 
     // Return members with join dates and names
-    const members = (group.members || []).map((member: any) => ({
-      address: member.user, // This should be the wallet address
-      userName: member.userName || `Member ${Math.random().toString(36).substr(2, 9)}`, // Fallback name
-      joinedAt: member.joinedAt,
-      role: member.role,
-      isActive: member.isActive
-    }));
+    const members = (group.members || []).map((member: any, index: number) => {
+      console.log(`👤 Member ${index + 1}:`, {
+        address: member.user,
+        userName: member.userName,
+        role: member.role
+      });
+      
+      return {
+        address: member.user, // This is the wallet address
+        userName: member.userName, // Don't fallback here, let frontend handle it
+        joinedAt: member.joinedAt,
+        role: member.role,
+        isActive: member.isActive
+      };
+    });
+
+    console.log('📤 Returning members:', members.length);
 
     return NextResponse.json({ members });
 
@@ -62,6 +79,14 @@ export async function POST(
     const body = await request.json();
     const { userAddress, role = 'member', joinDate, userName } = body;
 
+    console.log('📥 POST /api/groups/[groupId]/members - Received:', {
+      groupId,
+      userAddress,
+      role,
+      userName,
+      joinDate
+    });
+
     if (!groupId || !userAddress) {
       return NextResponse.json(
         { error: 'Group ID and user address are required' },
@@ -72,13 +97,35 @@ export async function POST(
     await dbConnect();
 
     // Find the group by groupId field
-    const group = await mongoose.connection.db?.collection('groups').findOne({ groupId: parseInt(groupId) });
+    let group = await mongoose.connection.db?.collection('groups').findOne({ groupId: parseInt(groupId) });
     
+    // If group doesn't exist, create it (this happens when creator creates group on blockchain)
     if (!group) {
-      return NextResponse.json(
-        { error: 'Group not found' },
-        { status: 404 }
-      );
+      console.log(`📝 Group ${groupId} doesn't exist in DB yet, creating it...`);
+      
+      const newGroupDoc = {
+        groupId: parseInt(groupId),
+        name: `Thrift Group ${groupId}`, // Will be updated by metadata API
+        description: '',
+        members: [],
+        settings: {
+          contributionAmount: 0,
+          contributionToken: 'CELO',
+          contributionInterval: 'monthly',
+          startDate: new Date(),
+          maxMembers: 5
+        },
+        currentRound: 0,
+        status: 'forming',
+        payoutSchedule: [],
+        totalContributions: 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      await mongoose.connection.db?.collection('groups').insertOne(newGroupDoc);
+      group = newGroupDoc as any;
+      console.log('✅ Group document created in database');
     }
 
     // Check if user is already a member
@@ -105,13 +152,21 @@ export async function POST(
       isActive: true
     };
 
-    console.log(`Adding member ${userAddress} to group ${groupId} with join date: ${actualJoinDate.toISOString()}`);
+    console.log('💾 Storing member in database:', {
+      groupId,
+      member: newMember
+    });
 
     // Update the group with the new member
-    await mongoose.connection.db?.collection('groups').updateOne(
+    const updateResult = await mongoose.connection.db?.collection('groups').updateOne(
       { groupId: parseInt(groupId) },
       { $push: { members: newMember } as any }
     );
+
+    console.log('✅ Database update result:', {
+      matchedCount: updateResult?.matchedCount,
+      modifiedCount: updateResult?.modifiedCount
+    });
 
     return NextResponse.json({ 
       success: true, 

@@ -134,9 +134,10 @@ export interface IGroup extends Document {
   name: string;
   description?: string;
   members: {
-    user: Types.ObjectId;
+    user: Types.ObjectId | string; // Can be ObjectId or wallet address string
+    userName?: string; // Optional display name
     joinedAt: Date;
-    role: 'admin' | 'member';
+    role: 'admin' | 'member' | 'creator';
     isActive: boolean;
   }[];
   settings: {
@@ -165,9 +166,10 @@ const GroupSchema = new Schema<IGroup>({
   name: { type: String, required: true },
   description: String,
   members: [{
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    user: { type: Schema.Types.Mixed, required: true }, // Can be ObjectId or wallet address string
+    userName: { type: String }, // Optional display name
     joinedAt: { type: Date, default: Date.now },
-    role: { type: String, enum: ['admin', 'member'], default: 'member' },
+    role: { type: String, enum: ['admin', 'member', 'creator'], default: 'member' },
     isActive: { type: Boolean, default: true }
   }],
   settings: {

@@ -85,11 +85,22 @@ export function CampaignList() {
     if (!selectedGroup) return;
     
     try {
-      await joinThriftGroup(selectedGroup.id);
+      console.log('📤 CampaignList - Joining group with userName:', userName);
+      await joinThriftGroup(selectedGroup.id, userName);  // ✅ Pass userName!
       setJoinDialogOpen(false);
       setUserName('');
+      
+      toast({
+        title: "Successfully joined!",
+        description: `You are now a member of ${selectedGroup.name}`,
+      });
     } catch (error) {
       console.error("Failed to join thrift group:", error);
+      toast({
+        title: "Failed to join",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      });
     }
   };
 
@@ -379,7 +390,7 @@ export function CampaignList() {
             <Button variant="outline" onClick={() => setJoinDialogOpen(false)}>Cancel</Button>
             <Button 
               onClick={handleJoinGroup}
-              disabled={loading}
+              disabled={loading || !userName.trim()}
             >
               {loading ? 'Joining...' : 'Join Group'}
             </Button>

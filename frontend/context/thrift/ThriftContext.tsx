@@ -195,6 +195,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const msg = 'No supported tokens configured on the contract. Please contact the admin to add supported tokens.';
           setError(msg);
           toast.error('Unsupported token', { description: msg });
+          
+          // Auto-clear error after 3 seconds
+          setTimeout(() => {
+            setError(null);
+          }, 3000);
           return;
         }
 
@@ -211,6 +216,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const msg = `Chosen token ${finalTokenAddress} is not supported by the contract.`;
         setError(msg);
         toast.error('Unsupported token', { description: msg });
+        
+        // Auto-clear error after 3 seconds
+        setTimeout(() => {
+          setError(null);
+        }, 3000);
         return;
       }
 
@@ -234,6 +244,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const msg = `Deposit amount is below the minimum contribution: ${formatUnits(minContribution, 18)}.`;
           setError(msg);
           toast.error('Amount too low', { description: msg });
+          
+          // Auto-clear error after 3 seconds
+          setTimeout(() => {
+            setError(null);
+          }, 3000);
           return;
         }
       }
@@ -313,18 +328,23 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Store creator as first member in the database with their name
       if (newGroupId && account) {
         try {
-          console.log('Storing creator in database:', {
+          const finalCreatorName = creatorName || 'Creator';
+          console.log('🎯 Storing creator in database:', {
             groupId: newGroupId,
             creatorAddress: account,
-            creatorName: creatorName || 'Creator'
+            creatorName: finalCreatorName,
+            receivedCreatorName: creatorName,
+            hasCreatorName: !!creatorName
           });
           
           const creatorData = {
             userAddress: account,
             role: 'creator',
             joinDate: new Date().toISOString(), // Group creation time
-            userName: creatorName || 'Creator' // Use provided name or default to 'Creator'
+            userName: finalCreatorName // Use provided name or default to 'Creator'
           };
+          
+          console.log('📤 Sending creator data to API:', creatorData);
           
           const creatorResponse = await fetch(`/api/groups/${newGroupId}/members`, {
             method: 'POST',
@@ -333,13 +353,20 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           });
           
           if (creatorResponse.ok) {
-            console.log('✅ Creator stored in database successfully');
+            const responseData = await creatorResponse.json();
+            console.log('✅ Creator stored in database successfully:', responseData);
           } else {
-            console.warn('Failed to store creator in database:', await creatorResponse.text());
+            const errorText = await creatorResponse.text();
+            console.error('❌ Failed to store creator in database:', errorText);
           }
         } catch (creatorDbError) {
-          console.warn('Failed to store creator in database:', creatorDbError);
+          console.error('❌ Exception while storing creator:', creatorDbError);
         }
+      } else {
+        console.warn('⚠️ Cannot store creator: Missing groupId or account', {
+          newGroupId,
+          account
+        });
       }
 
       // Wait a moment for the transaction to be mined before refreshing
@@ -354,8 +381,35 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       toast.success("Thrift group created successfully!");
     } catch (err) {
       console.error("Failed to create thrift group:", err);
-      setError(`Failed to create thrift group: ${err instanceof Error ? err.message : String(err)}`);
-      toast.error(`Failed to create thrift group: ${err instanceof Error ? err.message : String(err)}`);
+      
+      // Parse error message for user-friendly display
+      let userMessage = 'Failed to create thrift group';
+      
+      if (err instanceof Error) {
+        const errorMsg = err.message.toLowerCase();
+        
+        if (errorMsg.includes('user rejected') || errorMsg.includes('user denied')) {
+          userMessage = 'Transaction was cancelled.';
+        } else if (errorMsg.includes('insufficient funds')) {
+          userMessage = 'Insufficient funds to complete the transaction.';
+        } else if (errorMsg.includes('amount too low') || errorMsg.includes('minimum contribution')) {
+          userMessage = err.message; // Keep the specific minimum amount message
+        } else if (errorMsg.includes('unsupported token')) {
+          userMessage = err.message; // Keep the specific token error
+        } else {
+          userMessage = err.message;
+        }
+      } else {
+        userMessage = String(err);
+      }
+      
+      setError(userMessage);
+      toast.error(userMessage);
+      
+      // Auto-clear error after 3 seconds to prevent it from persisting
+      setTimeout(() => {
+        setError(null);
+      }, 3000);
     } finally {
       setLoading(false);
     }
@@ -424,6 +478,13 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
       
+      console.log('🎯 joinThriftGroup called with:', {
+        groupId,
+        userName,
+        hasUserName: !!userName,
+        userNameLength: userName?.length
+      });
+      
       // Check if group exists and is joinable before attempting to join
       const status = await checkJoinStatus(groupId);
       if (!status.canJoin) {
@@ -470,14 +531,19 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       // Store join date in database with the actual blockchain timestamp
       try {
+        const finalUserName = userName || `Member ${Date.now()}`;
         const memberData = {
           userAddress: account,
           role: 'member',
           joinDate: actualJoinDate.toISOString(), // Send the actual blockchain timestamp
-          userName: userName || `Member ${Date.now()}` // Send the user name
+          userName: finalUserName // Send the user name
         };
         
-        console.log('Storing member data in database:', memberData);
+        console.log('💾 Storing member data in database:', {
+          ...memberData,
+          receivedUserName: userName,
+          usingFallback: !userName
+        });
         
         const response = await fetch(`/api/groups/${groupId}/members`, {
           method: 'POST',
@@ -517,9 +583,39 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       toast.success("Successfully joined the thrift group!");
     } catch (err) {
       console.error("Failed to join thrift group:", err);
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      setError(`Failed to join thrift group: ${errorMessage}`);
-      toast.error(`Failed to join thrift group: ${errorMessage}`);
+      
+      // Parse error message for user-friendly display
+      let userMessage = 'Failed to join thrift group';
+      
+      if (err instanceof Error) {
+        const errorMsg = err.message.toLowerCase();
+        
+        if (errorMsg.includes('group has already started')) {
+          userMessage = 'This group has already started and is no longer accepting new members.';
+        } else if (errorMsg.includes('group is full')) {
+          userMessage = 'This group is full and cannot accept more members.';
+        } else if (errorMsg.includes('not a public group')) {
+          userMessage = 'This is a private group. You need an invitation to join.';
+        } else if (errorMsg.includes('already a member')) {
+          userMessage = 'You are already a member of this group.';
+        } else if (errorMsg.includes('user rejected') || errorMsg.includes('user denied')) {
+          userMessage = 'Transaction was cancelled.';
+        } else if (errorMsg.includes('insufficient funds')) {
+          userMessage = 'Insufficient funds to complete the transaction.';
+        } else {
+          userMessage = err.message;
+        }
+      } else {
+        userMessage = String(err);
+      }
+      
+      setError(userMessage);
+      toast.error(userMessage);
+      
+      // Auto-clear error after 3 seconds to prevent it from persisting
+      setTimeout(() => {
+        setError(null);
+      }, 3000);
     } finally {
       setLoading(false);
     }
@@ -636,8 +732,14 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       toast.success("Member added successfully!");
     } catch (err) {
       console.error("Failed to add member:", err);
-      setError(`Failed to add member: ${err instanceof Error ? err.message : String(err)}`);
-      toast.error(`Failed to add member: ${err instanceof Error ? err.message : String(err)}`);
+      const errorMsg = `Failed to add member: ${err instanceof Error ? err.message : String(err)}`;
+      setError(errorMsg);
+      toast.error(errorMsg);
+      
+      // Auto-clear error after 3 seconds
+      setTimeout(() => {
+        setError(null);
+      }, 3000);
     } finally {
       setLoading(false);
     }
@@ -856,10 +958,12 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     try {
       // Primary: Fetch members from contract (authoritative blockchain data)
-      const members: string[] = await contract.getGroupMembers(groupId);
+      const blockchainMembers: string[] = await contract.getGroupMembers(groupId);
+      console.log(`📋 Blockchain members for group ${groupId}:`, blockchainMembers);
       
       // Fetch join dates from cached blockchain API (ALWAYS - this is the source of truth)
       let dbMemberData: { [address: string]: { joinDate: string; userName: string } } = {};
+      let allMemberAddresses: Set<string> = new Set(blockchainMembers.map(a => a.toLowerCase()));
       
       console.log(`🔍 Fetching join dates from cached blockchain API for group ${groupId}`);
       try {
@@ -898,13 +1002,25 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (dbData.members && Array.isArray(dbData.members)) {
             dbData.members.forEach((member: any) => {
               const addr = (member.address || '').toLowerCase();
+              
+              // Add member to our tracking set (includes creators not yet on blockchain)
+              allMemberAddresses.add(addr);
+              
               if (addr && dbMemberData[addr]) {
-                // Merge userName from database with existing join date
-                dbMemberData[addr].userName = member.userName || dbMemberData[addr].userName;
-                console.log(`👤 Found username for ${addr}: ${member.userName}`);
+                // Merge userName from database with existing join date from blockchain
+                if (member.userName) {
+                  dbMemberData[addr].userName = member.userName;
+                  console.log(`👤 Updated username for ${addr}: ${member.userName}`);
+                } else {
+                  console.log(`👤 No username in DB for ${addr}, keeping default`);
+                }
               } else if (addr) {
-                // Member exists in DB but not in blockchain data (edge case)
-                console.warn(`👤 Member ${addr} found in DB but not in blockchain data`);
+                // Member exists in DB but not in blockchain yet (e.g., creator who hasn't officially joined)
+                console.log(`👤 Adding creator/member ${addr} from DB (not yet on blockchain)`);
+                dbMemberData[addr] = {
+                  joinDate: member.joinedAt || new Date().toISOString(),
+                  userName: member.userName || (member.role === 'creator' ? 'Creator' : `Member ${allMemberAddresses.size}`)
+                };
               }
             });
           }
@@ -915,7 +1031,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.warn('Failed to fetch usernames from database:', dbError);
       }
       
-      return members.map((address: string, index: number) => {
+      // Convert set back to array for mapping
+      const allMembers = Array.from(allMemberAddresses);
+      console.log(`📋 Total members (blockchain + database): ${allMembers.length}`);
+      
+      return allMembers.map((address: string, index: number) => {
         // Prioritize database data, fallback to defaults
         let joinDate: string;
         let userName: string;
@@ -970,8 +1090,14 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       toast.success("Payout distributed successfully!");
     } catch (err) {
       console.error("Failed to distribute payout:", err);
-      setError(`Failed to distribute payout: ${err instanceof Error ? err.message : String(err)}`);
-      toast.error(`Failed to distribute payout: ${err instanceof Error ? err.message : String(err)}`);
+      const errorMsg = `Failed to distribute payout: ${err instanceof Error ? err.message : String(err)}`;
+      setError(errorMsg);
+      toast.error(errorMsg);
+      
+      // Auto-clear error after 3 seconds
+      setTimeout(() => {
+        setError(null);
+      }, 3000);
     } finally {
       setLoading(false);
     }
@@ -1262,10 +1388,16 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setAllGroups(fetchedGroups);
       setUserGroups(userGroupsTemp);
     } catch (err) {
-      setError(`Failed to fetch thrift groups: ${err instanceof Error ? err.message : String(err)}`);
+      const errorMsg = `Failed to fetch thrift groups: ${err instanceof Error ? err.message : String(err)}`;
+      setError(errorMsg);
       console.error(err);
       setUserGroups([]);
       setAllGroups([]);
+      
+      // Auto-clear error after 5 seconds (longer for fetch errors)
+      setTimeout(() => {
+        setError(null);
+      }, 5000);
     } finally {
       setLoading(false);
     }
