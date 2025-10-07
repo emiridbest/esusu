@@ -151,7 +151,7 @@ export interface IGroup extends Document {
   status: 'forming' | 'active' | 'completed' | 'paused';
   payoutSchedule: {
     round: number;
-    recipient: Types.ObjectId;
+    recipient: Types.ObjectId | string; // Can be ObjectId or wallet address string
     scheduledDate: Date;
     payoutDate?: Date;
     amount: number;
@@ -188,7 +188,7 @@ const GroupSchema = new Schema<IGroup>({
   },
   payoutSchedule: [{
     round: { type: Number, required: true },
-    recipient: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    recipient: { type: Schema.Types.Mixed, required: true }, // Can be ObjectId or wallet address string
     scheduledDate: { type: Date, required: true },
     payoutDate: Date,
     amount: { type: Number, required: true },

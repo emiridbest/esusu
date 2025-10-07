@@ -1,38 +1,23 @@
-"use client";
-
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import DualCurrencyPrice from './DualCurrencyPrice';
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useUtility } from '@/context/utilityProvider/UtilityContext';
-import { TOKENS } from '@/context/utilityProvider/tokens';
-import CountrySelector from './CountrySelector';
-
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import { toast } from 'sonner';
 import { AlertCircle, Info, CheckCircle, Loader2 } from "lucide-react";
 import { ElectricityProvider, fetchElectricityProviders } from '@/services/utility/utilityServices';
 import { useBalance } from '@/context/utilityProvider/useBalance';
+import { useUtility } from "@/context/utilityProvider/UtilityContext";
+import { PaymentSuccessModal } from './PaymentSuccessModal';
+import DualCurrencyPrice from './DualCurrencyPrice';
+import CountrySelector from './CountrySelector';
+import { TOKENS } from '@/context/utilityProvider/tokens';
 
 const formSchema = z.object({
   country: z.string({
@@ -59,7 +44,9 @@ export default function ElectricityBillForm() {
   const [amount, setAmount] = useState<number>(0);
   const [providers, setProviders] = useState<ElectricityProvider[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [countryCurrency, setCountryCurrency] = useState<string>(""); 
+  const [countryCurrency, setCountryCurrency] = useState<string>("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successDetails, setSuccessDetails] = useState<any>(null); 
 
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{
@@ -365,15 +352,24 @@ export default function ElectricityBillForm() {
 
         if (backendResponse.ok && data.success) {
           const selectedProvider = providers.find(p => p.id === values.provider);
-          const successMessage = data.token 
-            ? `Electricity bill paid successfully! Token: ${data.token}${data.units ? `, Units: ${data.units}` : ''}` 
-            : `Electricity bill of ${data.approvedAmount} ${countryCurrency} paid successfully to ${selectedProvider?.name || 'selected provider'}.`;
           
-          toast.success(successMessage);
           updateStepStatus('electricity-payment', 'success');
           updateStepStatus('top-up', 'success');
-          // Redirect to transaction status page
-          router.push(`/tx/${paymentResult.transactionHash}`);
+          
+          // Show prominent success modal instead of toast
+          setSuccessDetails({
+            type: 'electricity' as const,
+            amount: values.amount,
+            currency: countryCurrency,
+            recipient: values.meterNumber,
+            transactionHash: paymentResult.transactionHash,
+            token: data.token,
+            units: data.units,
+            provider: selectedProvider?.name,
+            emailSent: data.emailSent,
+            smsSent: data.smsSent
+          });
+          setShowSuccessModal(true);
 
           // Reset the form but keep the country and payment token
           form.reset({
@@ -661,6 +657,20 @@ export default function ElectricityBillForm() {
           </Button>
         </form>
       </Form>
+
+      {/* Success Modal */}
+      {successDetails && (
+        <PaymentSuccessModal
+          open={showSuccessModal}
+          onClose={() => {
+            setShowSuccessModal(false);
+            setSuccessDetails(null);
+            // Navigate to transaction page after modal is closed
+            router.push(`/tx/${successDetails.transactionHash}`);
+          }}
+          paymentDetails={successDetails}
+        />
+      )}
     </div>
   );
 }

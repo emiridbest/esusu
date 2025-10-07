@@ -36,6 +36,7 @@ import {
   type DataPlan
 } from '@/services/utility/utilityServices';
 import { useBalance } from '@/context/utilityProvider/useBalance';
+import { PaymentSuccessModal } from './PaymentSuccessModal';
 
 const formSchema = z.object({
   country: z.string({
@@ -61,14 +62,18 @@ const formSchema = z.object({
 });
 
 export default function MobileDataForm() {
-  const [selectedPrice, setSelectedPrice] = useState(0);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isVerifying, setIsVerifying] = useState<boolean>(false);
-  const [isVerified, setIsVerified] = useState<boolean>(false);
+  const router = useRouter();
   const [networks, setNetworks] = useState<NetworkOperator[]>([]);
-  const [availablePlans, setAvailablePlans] = useState<DataPlan[]>([]);
+  const [dataPlanOptions, setDataPlanOptions] = useState<DataPlan[]>([]);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successDetails, setSuccessDetails] = useState<any>(null);
   const [countryCurrency, setCountryCurrency] = useState<string>("");
   const [selectedToken, setSelectedToken] = useState<string | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [availablePlans, setAvailablePlans] = useState<DataPlan[]>([]);
+  const [selectedPrice, setSelectedPrice] = useState<number>(0);
+  const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [isVerified, setIsVerified] = useState<boolean>(false);
   const { checkTokenBalance } = useBalance();
 
   const {
@@ -79,7 +84,6 @@ export default function MobileDataForm() {
     setIsProcessing,
     handleTransaction
   } = useUtility();
-  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -304,10 +308,21 @@ export default function MobileDataForm() {
           const data = await response.json();
 
           if (response.ok && data.success) {
-            toast.success(`Successfully topped up ${values.phoneNumber} with ${selectedPlan?.name || 'your selected plan'}.`);
             updateStepStatus('top-up', 'success');
-            // Redirect to transaction status page
-            router.push(`/tx/${paymentResult.transactionHash}`);
+            
+            // Show prominent success modal instead of toast
+            const selectedOperator = networks.find(op => op.id === values.network);
+            setSuccessDetails({
+              type: 'data' as const,
+              amount: selectedPrice.toString(),
+              currency: countryCurrency,
+              recipient: values.phoneNumber,
+              transactionHash: paymentResult.transactionHash,
+              provider: selectedOperator?.name,
+              emailSent: data.emailSent,
+              smsSent: data.smsSent
+            });
+            setShowSuccessModal(true);
 
             // Reset the form but keep the country
             form.reset({
@@ -619,7 +634,21 @@ export default function MobileDataForm() {
               )}
             </Button>
           </form>
-        </Form>
-      </div>
-    );
-  }
+      </Form>
+
+      {/* Success Modal */}
+      {successDetails && (
+        <PaymentSuccessModal
+          open={showSuccessModal}
+          onClose={() => {
+            setShowSuccessModal(false);
+            setSuccessDetails(null);
+            // Navigate to transaction page after modal is closed
+            router.push(`/tx/${successDetails.transactionHash}`);
+          }}
+          paymentDetails={successDetails}
+        />
+      )}
+    </div>
+  );
+}

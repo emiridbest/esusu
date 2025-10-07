@@ -285,17 +285,39 @@ export async function POST(request: NextRequest) {
         if (paymentResult.success) {
             await TransactionService.updateTransactionStatus(transactionHash, 'completed');
 
-            // Send success notification
-            await NotificationService.sendUtilityPaymentNotification(
-                walletAddress,
-                true,
-                {
-                    type: 'electricity',
-                    amount: parseFloat(expectedAmount),
-                    recipient: customerId.trim(),
-                    transactionHash
+            // Update user email/phone if provided (for receipt delivery)
+            try {
+                if (customerEmail) {
+                    await UserService.updateUserProfile(walletAddress, { email: customerEmail });
                 }
-            );
+                if (customerPhone) {
+                    await UserService.updateUserProfile(walletAddress, { phone: customerPhone });
+                }
+            } catch (profileUpdateError) {
+                console.warn('Failed to update user profile:', profileUpdateError);
+            }
+
+            // Send success notification with email/SMS
+            let emailSent = false;
+            let smsSent = false;
+            try {
+                const notification = await NotificationService.sendUtilityPaymentNotification(
+                    walletAddress,
+                    true,
+                    {
+                        type: 'electricity',
+                        amount: parseFloat(expectedAmount),
+                        recipient: customerId.trim(),
+                        transactionHash
+                    }
+                );
+                
+                // Check if email/SMS was sent from notification channels
+                emailSent = notification.channels?.email?.sent || false;
+                smsSent = notification.channels?.sms?.sent || false;
+            } catch (notificationError) {
+                console.error('Notification sending error:', notificationError);
+            }
 
             // Generate/update analytics
             try {
@@ -311,6 +333,8 @@ export async function POST(request: NextRequest) {
                 approvedAmount: paymentResult.approvedAmount,
                 token: paymentResult.token,
                 units: paymentResult.units,
+                emailSent,
+                smsSent,
                 message: `Electricity bill payment of ${paymentResult.approvedAmount} processed successfully${paymentResult.token ? `. Token: ${paymentResult.token}` : ''}`
             });
         } else {

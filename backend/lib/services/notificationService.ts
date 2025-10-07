@@ -56,12 +56,18 @@ export class NotificationService {
 
     // Send email notification if requested and user has email
     if (data.sendEmail !== false && user.email) {
-      await this.sendEmailNotification(user.email, data.title, data.message, savedNotification._id);
+      const emailSent = await this.sendEmailNotification(user.email, data.title, data.message, savedNotification._id.toString());
+      if (!emailSent) {
+        console.warn(`Failed to send email to ${user.email}`);
+      }
     }
 
     // Send SMS notification if requested and user has phone
     if (data.sendSMS !== false && user.phone) {
-      await this.sendSMSNotification(user.phone, data.message, savedNotification._id);
+      const smsSent = await this.sendSMSNotification(user.phone, data.message, savedNotification._id.toString());
+      if (!smsSent) {
+        console.warn(`Failed to send SMS to ${user.phone}`);
+      }
     }
 
     return savedNotification;
@@ -72,7 +78,7 @@ export class NotificationService {
     title: string,
     message: string,
     notificationId: string
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       const mailOptions = {
         from: process.env.EMAIL_FROM || 'noreply@esusu.app',
@@ -116,8 +122,10 @@ export class NotificationService {
       });
 
       console.log(`✅ Email notification sent to ${email}`);
+      return true;
     } catch (error) {
       console.error('❌ Failed to send email notification:', error);
+      return false;
     }
   }
 
@@ -125,11 +133,11 @@ export class NotificationService {
     phone: string,
     message: string,
     notificationId: string
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       if (!twilioClient) {
         console.log('⚠️ Twilio credentials not configured, skipping SMS');
-        return;
+        return false;
       }
 
       const smsMessage = `Esusu: ${message}\n\nOpen app: ${process.env.FRONTEND_URL || 'https://esusu.app'}`;
@@ -148,8 +156,10 @@ export class NotificationService {
       });
 
       console.log(`✅ SMS notification sent to ${phone}`);
+      return true;
     } catch (error) {
       console.error('❌ Failed to send SMS notification:', error);
+      return false;
     }
   }
 
@@ -266,22 +276,24 @@ export class NotificationService {
       recipient: string;
       transactionHash?: string;
     }
-  ): Promise<void> {
+  ): Promise<INotification> {
     if (success) {
-      await this.createNotification({
+      return await this.createNotification({
         userWallet: walletAddress,
         type: 'bill_payment_success',
         title: 'Bill Payment Successful ✅',
-        message: `Your ${details.type} payment of $${details.amount} to ${details.recipient} was successful.`,
+        message: `Your ${details.type} payment of $${details.amount} to ${details.recipient} was successful. Transaction: ${details.transactionHash?.substring(0, 10)}...`,
         data: { 
           transactionHash: details.transactionHash,
           type: details.type,
           amount: details.amount,
           recipient: details.recipient
-        }
+        },
+        sendEmail: true, // Explicitly send email
+        sendSMS: true    // Explicitly send SMS
       });
     } else {
-      await this.createNotification({
+      return await this.createNotification({
         userWallet: walletAddress,
         type: 'bill_payment_failed',
         title: 'Bill Payment Failed ❌',
@@ -290,7 +302,9 @@ export class NotificationService {
           type: details.type,
           amount: details.amount,
           recipient: details.recipient
-        }
+        },
+        sendEmail: true, // Explicitly send email
+        sendSMS: true    // Explicitly send SMS
       });
     }
   }

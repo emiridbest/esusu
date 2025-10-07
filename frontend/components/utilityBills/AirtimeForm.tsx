@@ -35,6 +35,7 @@ import {
 } from '@/services/utility/utilityServices';
 import { useBalance } from '@/context/utilityProvider/useBalance';
 import { getCountryData } from '@/utils/countryData';
+import { PaymentSuccessModal } from './PaymentSuccessModal';
 
 // Updated form schema to handle direct amount entry
 const formSchema = z.object({
@@ -63,16 +64,21 @@ const formSchema = z.object({
 });
 
 interface OperatorRange {
-  min: number;
-  max: number;
   currency?: string;
+  min?: number;
+  max?: number;
 }
 
 export default function AirtimeForm() {
-  const [selectedPrice, setSelectedPrice] = useState(0);
+  const router = useRouter();
+  const [operators, setOperators] = useState<AirtimeOperator[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [enteredAmount, setEnteredAmount] = useState<string>('');
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [successDetails, setSuccessDetails] = useState<any>(null);
   const [isVerified, setIsVerified] = useState<boolean>(false);
+  const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [selectedPrice, setSelectedPrice] = useState<number>(0);
   const [networks, setNetworks] = useState<AirtimeOperator[]>([]);
   const [countryCurrency, setCountryCurrency] = useState<string>("");
   const [selectedToken, setSelectedToken] = useState<string | undefined>(undefined);
@@ -95,7 +101,6 @@ export default function AirtimeForm() {
     setIsProcessing,
     handleTransaction
   } = useUtility();
-  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -377,10 +382,21 @@ useEffect(() => {
           const data = await response.json();
 
           if (response.ok && data.success) {
-            toast.success(`Successfully topped up ${values.phoneNumber} with ${enteredAmount} ${operatorRange.currency} airtime.`);
             updateStepStatus('top-up', 'success');
-            // Redirect to transaction status page
-            router.push(`/tx/${paymentResult.transactionHash}`);
+            
+            // Show prominent success modal instead of toast
+            const selectedOperator = operators.find(op => op.id === values.network);
+            setSuccessDetails({
+              type: 'airtime' as const,
+              amount: enteredAmount,
+              currency: operatorRange.currency || countryCurrency,
+              recipient: values.phoneNumber,
+              transactionHash: paymentResult.transactionHash,
+              provider: selectedOperator?.name,
+              emailSent: data.emailSent,
+              smsSent: data.smsSent
+            });
+            setShowSuccessModal(true);
 
             // Reset the form but keep the country
             form.reset({
@@ -711,6 +727,20 @@ useEffect(() => {
           </Button>
         </form>
       </Form>
+
+      {/* Success Modal */}
+      {successDetails && (
+        <PaymentSuccessModal
+          open={showSuccessModal}
+          onClose={() => {
+            setShowSuccessModal(false);
+            setSuccessDetails(null);
+            // Navigate to transaction page after modal is closed
+            router.push(`/tx/${successDetails.transactionHash}`);
+          }}
+          paymentDetails={successDetails}
+        />
+      )}
     </div>
   );
 }

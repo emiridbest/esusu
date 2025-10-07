@@ -4,6 +4,7 @@ import dbConnect from '@esusu/backend/lib/database/connection';
 import { TransactionService } from '@esusu/backend/lib/services/transactionService';
 import { NotificationService } from '@esusu/backend/lib/services/notificationService';
 import { AnalyticsService } from '@esusu/backend/lib/services/analyticsService';
+import { UserService } from '@esusu/backend/lib/services/userService';
 
 
 // Rate limiting and API key configuration
@@ -420,23 +421,45 @@ export async function POST(request: NextRequest) {
         'completed'
       );
 
-      // Send success notification
-      await NotificationService.sendUtilityPaymentNotification(
-        walletAddress,
-        true,
-        {
-          type: transaction.subType || 'utility',
-          amount: parseFloat(expectedAmount),
-          recipient: cleanedPhoneNumber,
-          transactionHash
+      // Update user email/phone if provided (for receipt delivery)
+      try {
+        if (email) {
+          await UserService.updateUserProfile(walletAddress, { email: email });
         }
-      );
+        if (recipientPhone?.phoneNumber) {
+          await UserService.updateUserProfile(walletAddress, { phone: recipientPhone.phoneNumber });
+        }
+      } catch (profileUpdateError) {
+        console.warn('Failed to update user profile:', profileUpdateError);
+      }
+
+      // Send success notification with email/SMS
+      let emailSent = false;
+      let smsSent = false;
+      try {
+        const notification = await NotificationService.sendUtilityPaymentNotification(
+          walletAddress,
+          true,
+          {
+            type: operatorId.includes('airtime') ? 'airtime' : 'data',
+            amount: parseFloat(expectedAmount),
+            recipient: cleanedPhoneNumber,
+            transactionHash
+          }
+        );
+        
+        // Check if email/SMS was sent from notification channels
+        emailSent = notification.channels?.email?.sent || false;
+        smsSent = notification.channels?.sms?.sent || false;
+      } catch (notificationError) {
+        console.error('Notification sending error:', notificationError);
+      }
 
       // Generate/update analytics
       try {
         await AnalyticsService.generateUserAnalytics(walletAddress, 'daily');
         await AnalyticsService.generateUserAnalytics(walletAddress, 'monthly');
-      } catch (analyticsError: any) {
+      } catch (analyticsError) {
         console.error('Analytics generation error:', analyticsError);
         // Don't fail the transaction for analytics errors
       }
@@ -446,12 +469,13 @@ export async function POST(request: NextRequest) {
         transactionId: result.transactionId,
         dbTransactionId: (transaction as any)._id,
         status: result.status,
+        emailSent,
+        smsSent,
         message: 'Top-up successful and recorded'
       });
 
     } catch (dbError) {
       console.error('Database error during top-up:', dbError);
-      
       // Send failure notification
       await NotificationService.sendUtilityPaymentNotification(
         walletAddress,
