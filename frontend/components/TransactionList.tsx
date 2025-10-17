@@ -86,7 +86,7 @@ const TransactionList: React.FC = () => {
 
       try {
         setIsLoading(true);
-        const apiKey = process.env.CELOSCAN_API_KEY;
+        const apiKey = process.env.NEXT_PUBLIC_CELOSCAN_API_KEY;
         const allTransactions: Transaction[] = [];
 
         // Fetch transactions from all chains
@@ -175,7 +175,7 @@ const TransactionList: React.FC = () => {
   };
 
   return (
-    <Card className="border-none bg-white/50 backdrop-blur-md dark:bg-gray-800/50">
+    <Card className="border-none bg-white/50 backdrop-blur-md dark:bg-black/90">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
