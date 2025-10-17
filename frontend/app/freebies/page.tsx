@@ -62,7 +62,7 @@ export default function Freebies() {
                 <Card >
                     <CardHeader className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black rounded-t-lg">
                         <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                            📱 Free Data Bundle 
+                            💸 Claim G$ • 📱 Exchange for Data
                         </CardTitle>
                         <CardDescription className="text-black/90 dark:text-black/90">
                             🕐 Claim once every 24 hours
