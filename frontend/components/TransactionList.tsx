@@ -73,6 +73,9 @@ const TransactionList: React.FC = () => {
   const [transactionFilter, setTransactionFilter] = useState<'all' | 'sent' | 'received'>('all');
   const { address } = useAccount();
 
+  // Supported chains for multi-chain transaction fetching
+  const chains = [42220];
+
   useEffect(() => {
     const fetchTransactions = async () => {
       if (!address) {
@@ -83,65 +86,65 @@ const TransactionList: React.FC = () => {
 
       try {
         setIsLoading(true);
-        const publicClient = createPublicClient({
-          chain: celo,
-          transport: http(),
+        const apiKey = process.env.CELOSCAN_API_KEY;
+        const allTransactions: Transaction[] = [];
+
+        // Fetch transactions from all chains
+        for (const chainId of chains) {
+          try {
+            const response = await fetch(
+              `https://api.etherscan.io/v2/api?chainid=${chainId}&module=account&action=txlist&address=${address}&page=${page}&offset=10&sort=desc&apikey=${apiKey}`
+            );
+            const data = await response.json();
+
+            if (data.status === '1' && Array.isArray(data.result)) {
+              const txList: Transaction[] = data.result.map((tx: any, index: number) => {
+                let functionName = '';
+                try {
+                  if (tx.input && tx.input !== '0x') {
+                    const decodedInput = decodeFunctionData({
+                      abi: stableTokenABI,
+                      data: tx.input,
+                    });
+                    functionName = decodedInput?.functionName || 'Transfer';
+                  } else {
+                    functionName = 'Transfer';
+                  }
+                } catch (e) {
+                  functionName = tx.input === '0x' ? 'Transfer' : 'Contract Interaction';
+                }
+
+                return {
+                  args: {
+                    from: tx.from,
+                    to: tx.to,
+                    value: tx.value,
+                    functionName,
+                  },
+                  transactionHash: tx.hash,
+                  timestamp: tx.timeStamp,
+                  key: `${chainId}-${index}`,
+                  status: tx.isError === '0',
+                };
+              });
+
+              allTransactions.push(...txList);
+            }
+          } catch (chainError) {
+            console.warn(`Error fetching transactions for chain ${chainId}:`, chainError);
+            // Continue with other chains
+          }
+        }
+
+        // Sort all transactions by timestamp (newest first)
+        allTransactions.sort((a, b) => {
+          const timeA = parseInt(a.timestamp || '0');
+          const timeB = parseInt(b.timestamp || '0');
+          return timeB - timeA;
         });
 
-        const getPastYearBlockNumber = async (publicClient: any) => {
-          const currentTime = Math.floor(Date.now() / 1000);
-          const oneYearAgoTime = currentTime - 365 * 24 * 60 * 60; 
-          const apiKey = process.env.CELOSCAN_API_KEY;
-          const response = await fetch(`https://api.celoscan.io/api?module=block&action=getblocknobytime&timestamp=${oneYearAgoTime}&closest=after&apikey=${apiKey}`);
-          const data = await response.json();
-
-          return data.result;
-        };
-
-        const getCurrentBlockNumber = async (publicClient: any) => {
-          const currentTime = Math.floor(Date.now() / 1000);
-          const apiKey = process.env.CELOSCAN_API_KEY;
-          const response = await fetch(`https://api.celoscan.io/api?module=block&action=getblocknobytime&timestamp=${currentTime}&closest=after&apikey=${apiKey}`);
-          const data = await response.json();
-
-          return data.result;
-        };
-        
-        const pastYearBlockNumber = await getPastYearBlockNumber(publicClient);
-        const latestBlock = await getCurrentBlockNumber(publicClient);
-
-        const response = await fetch(`https://api.celoscan.io/api?module=account&action=txlist&address=${address}&startblock=${pastYearBlockNumber}&endblock=${latestBlock}&page=${page}&offset=10&sort=desc&apikey=PEAMBX9SFYMY8MBJTJXTFDV568WBDIB3VK`);
-        const data = await response.json();
-
-        if (Array.isArray(data.result)) {
-          const txList: Transaction[] = data.result.map((tx: any, index: number) => {
-            let functionName = '';
-            try {
-              const decodedInput = decodeFunctionData({
-                abi: stableTokenABI,
-                data: tx.input,
-              });
-              functionName = decodedInput?.functionName || 'Transfer';
-            } catch (e) {
-              functionName = tx.input === '0x' ? 'Transfer' : 'Contract Interaction';
-            }
-
-            return {
-              args: {
-                from: tx.from,
-                to: tx.to,
-                value: tx.value,
-                functionName,
-              },
-              transactionHash: tx.hash,
-              timestamp: tx.timeStamp,
-              key: index,
-              status: tx.isError === '0',
-            };
-          });
-
-          setTransactions((prevTransactions) => [...prevTransactions, ...txList]);
-        }
+        setTransactions(allTransactions);
+        console.log(`Fetched ${allTransactions.length} transactions from ${chains.length} chains`);
       } catch (error) {
         console.error('Error fetching transactions:', error);
       } finally {
