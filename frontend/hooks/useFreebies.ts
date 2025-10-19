@@ -94,8 +94,20 @@ export const useFreebiesLogic = () => {
     // Fetch network providers when country changes
     useEffect(() => {
         const getNetworks = async () => {
+<<<<<<< HEAD
             // Reset if not Nigeria
             if (watchCountry !== "ng") {
+=======
+            if (watchCountry !== "ng") {
+                form.setValue("network", "");
+                form.setValue("plan", "");
+                setNetworks([]);
+                return;
+            }
+
+            if (watchCountry) {
+                setIsLoading(true);
+>>>>>>> 72409633bee8d5b7a283ee5a8480df81d2b378e1
                 form.setValue("network", "");
                 form.setValue("plan", "");
                 setNetworks([]);
@@ -125,7 +137,11 @@ export const useFreebiesLogic = () => {
                 // Filter out MTN Nigeria extra data
                 const filteredOperators = operators.filter(operator =>
                     !(operator.name.toLowerCase().includes('mtn nigeria extra data') ||
+<<<<<<< HEAD
                         operator.name.toLowerCase().includes('mtn nigeria data'))
+=======
+                    (operator.name.toLowerCase().includes('smile uganda data') || operator.name.toLowerCase().includes('mtn nigeria data')))
+>>>>>>> 72409633bee8d5b7a283ee5a8480df81d2b378e1
                 );
 
                 if (serviceType === 'data') {
