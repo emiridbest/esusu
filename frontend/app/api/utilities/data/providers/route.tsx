@@ -183,7 +183,6 @@ export async function GET(request: NextRequest) {
       supportsData: op.data || false,
       supportsBundles: op.bundle || false
     }));
-
     return NextResponse.json(formattedOperators);
   } catch (error: any) {
     console.error('Error fetching operators:', error);

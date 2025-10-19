@@ -52,6 +52,7 @@ type ClaimProcessorType = {
   canClaim: boolean;
   handleClaim: () => Promise<void>;
   processDataTopUp: (values: any, selectedPrice: number, availablePlans: any[], networks: any[]) => Promise<{ success: boolean; error?: any }>;
+  processAirtimeTopUp: (values: any, selectedPrice: number) => Promise<{ success: boolean; error?: any }>;
   processPayment: () => Promise<any>;
   TOKENS: typeof TOKENS;
   // Transaction dialog
@@ -220,7 +221,46 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       }
       toast.success("Successfully claimed G$ tokens!");
       updateStepStatus('claim-ubi', 'success');
+      
+      const dataSuffix = getReferralTag({
+        user: address as `0x${string}`,
+        consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
+      });
+      
+      try {
+        const txCountInterface = new ethers.Interface(txCountABI);
+        const txCountData = txCountInterface.encodeFunctionData("increment", []);
+        const dataWithSuffix = txCountData + dataSuffix;
 
+        if (!wallet || !account) throw new Error('Wallet not connected');
+        
+        const { sendTransaction, prepareTransaction } = await import('thirdweb');
+        const { client, activeChain } = await import('@/lib/thirdweb');
+        
+        const transaction = await prepareTransaction({
+          to: txCountAddress as `0x${string}`,
+          data: dataWithSuffix as `0x${string}`,
+          client,
+          chain: activeChain,
+        });
+        const txCount = await sendTransaction({
+          account,
+          transaction,
+        });
+        
+        try {
+          await submitReferral({
+            txHash: txCount.transactionHash,
+            chainId: activeChain.id,
+          });
+          console.log("Referral submitted for transaction count update.");
+        } catch (referralError) {
+          console.error("Referral submission error:", referralError);
+        }
+      } catch (error) {
+        console.error("Error during transaction count update:", error);
+        toast.error("There was an error updating the transaction count.");
+      }
     } catch (error) {
       console.error("Error during claim:", error);
       toast.error("There was an error processing your claim.");
@@ -279,6 +319,50 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     }
   };
 
+  const processAirtimeTopUp = async (values: any, selectedPrice: number) => {
+    if (!values || !values.phoneNumber || !values.country || !values.network) {
+      toast.error("Please ensure all required fields are filled out.");
+      return { success: false };
+    }
+
+    try {
+      const cleanPhoneNumber = values.phoneNumber.replace(/[\s\-\+]/g, '');
+
+      const response = await fetch('/api/topup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          operatorId: values.network,
+          amount: selectedPrice.toString(),
+          customId: values.customId,
+          recipientPhone: {
+            country: values.country,
+            phoneNumber: cleanPhoneNumber
+          },
+          email: values.email,
+          isFreeClaim: true
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success(`Successfully topped up ${values.phoneNumber} with N100.`);
+        return { success: true };
+      } else {
+        console.error("Top-up API Error:", data);
+        toast.error(data.error || "There was an issue processing your top-up. Our team has been notified.");
+        return { success: false, error: data.error };
+      }
+    } catch (error) {
+      console.error("Error during top-up:", error);
+      toast.error("There was an error processing your top-up. Our team has been notified and will resolve this shortly.");
+      return { success: false, error };
+    }
+  };
+
   const processPayment = async () => {
     if (!isConnected || !address) {
       return;
@@ -292,34 +376,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       user: address as `0x${string}`,
       consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
     });
-    const txInterface = new ethers.Interface(txCountABI);
-    const txData = txInterface.encodeFunctionData("increment", []);
-    const txWithSuffix = txData + dataSuffix;
-    toast.info("Processing payment for data bundle...");
-    try {
-      if (!wallet || !account) throw new Error('Wallet not connected');
-      
-      const { sendTransaction, prepareTransaction } = await import('thirdweb');
-      const { client, activeChain } = await import('@/lib/thirdweb');
-      
-      const transaction = await prepareTransaction({
-        to: txCountAddress as `0x${string}`,
-        data: txWithSuffix as `0x${string}`,
-        client,
-        chain: activeChain,
-      });
-      const tx = await sendTransaction({
-        account,
-        transaction,
-      });
-      await submitReferral({
-        txHash: tx.transactionHash,
-        chainId: activeChain.id,
-      });
-    } catch (error) {
-      console.error("Error during transaction count update:", error);
-      toast.error("There was an error updating the transaction count.");
-    }
     const selectedToken = "G$";
     const tokenAddress = getTokenAddress(selectedToken, TOKENS);
 
@@ -458,6 +514,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     canClaim,
     handleClaim,
     processDataTopUp,
+    processAirtimeTopUp,
     processPayment,
     TOKENS,
     // Transaction dialog state

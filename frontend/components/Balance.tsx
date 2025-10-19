@@ -20,11 +20,11 @@ import {
 import { cn } from "@/lib/utils";
 import { useRouter } from 'next/navigation';
 
-const STABLE_TOKEN_ADDRESS = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
+const STABLE_TOKEN_ADDRESS = "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A";
 
 const Balance: React.FC = () => {
   const router = useRouter();
-  const [cUSDBalance, setCUSDBalance] = useState<string>('0');
+  const [goodDollarBalance, setGoodDollarBalance] = useState<string>('0');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showBalanceDetails, setShowBalanceDetails] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -42,7 +42,7 @@ const Balance: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const getCUSDBalance = useCallback(async () => {
+  const getGoodDollarBalance = useCallback(async () => {
     if (typeof window !== 'undefined' && window.ethereum) {
       try {
         setIsLoading(true);
@@ -68,9 +68,9 @@ const Balance: React.FC = () => {
         const balanceInWei = balanceInBigNumber;
         const balanceInEthers = formatEther(balanceInWei);
 
-        setCUSDBalance(balanceInEthers);
+        setGoodDollarBalance(balanceInEthers);
       } catch (error) {
-        console.error('Error fetching cUSD balance:', error);
+        console.error('Error fetching GoodDollar balance:', error);
       } finally {
         setIsLoading(false);
         setRefreshing(false);
@@ -81,8 +81,8 @@ const Balance: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    getCUSDBalance();
-  }, [getCUSDBalance]);
+    getGoodDollarBalance();
+  }, [getGoodDollarBalance]);
 
   const toggleBalanceDetails = () => {
     setShowBalanceDetails(!showBalanceDetails);
@@ -90,10 +90,10 @@ const Balance: React.FC = () => {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    getCUSDBalance();
+    getGoodDollarBalance();
   };
 
-  function formatBalance(balance: string, decimals = 2) {
+  function formatBalance(balance: string, decimals = 3) {
     const balanceNumber = parseFloat(balance);
     if (isNaN(balanceNumber)) {
       return "0.00";
@@ -164,22 +164,22 @@ const Balance: React.FC = () => {
             ) : (
               <>
                 <motion.div
-                  key={cUSDBalance}
+                  key={goodDollarBalance}
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="flex items-baseline"
                 >
                   <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
                     {showBalanceDetails
-                      ? formatBalance(cUSDBalance)
-                      : maskBalance(formatBalance(cUSDBalance))}
+                      ? formatBalance(goodDollarBalance)
+                      : maskBalance(formatBalance(goodDollarBalance))}
                   </h1>
                   <span className="ml-2 text-lg font-medium text-gray-600 dark:text-gray-400">
-                    cUSD
+                    GoodDollar
                   </span>
                 </motion.div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  ~${formatBalance(cUSDBalance)} USD
+                  ~${formatBalance((parseFloat(goodDollarBalance) * 0.0001).toString(), 5)} USD
                 </p>
               </>
             )}

@@ -139,7 +139,7 @@ const Esusu: React.FC = () => {
             <TabsTrigger value="links">Quick Links</TabsTrigger>
           </TabsList>
           <TabsContent value="transactions" className="mt-4">
-            <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md">
+            <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-black/90 backdrop-blur-md">
               <CardContent className="pt-6">
                 <TransactionList />
               </CardContent>
