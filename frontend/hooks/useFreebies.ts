@@ -92,6 +92,13 @@ export const useFreebiesLogic = () => {
     // Fetch network providers when country changes
     useEffect(() => {
         const getNetworks = async () => {
+            if (watchCountry !== "ng") {
+                form.setValue("network", "");
+                form.setValue("plan", "");
+                setNetworks([]);
+                return;
+            }
+
             if (watchCountry) {
                 setIsLoading(true);
                 form.setValue("network", "");
