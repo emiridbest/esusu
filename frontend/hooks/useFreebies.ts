@@ -171,13 +171,21 @@ export const useFreebiesLogic = () => {
         getNetworks();
 
 
-    }, [watchCountry, serviceType, form]);
+    }, [watchCountry, form]);
 
+
+    // Reset network and plan when service type changes
+    useEffect(() => {
+        form.setValue("network", "");
+        form.setValue("plan", "");
+        setAvailablePlans([]);
+        setSelectedPlan(null);
+    }, [serviceType, form]);
 
     // Fetch data plans when network changes
     useEffect(() => {
         const getDataPlans = async () => {
-            if (watchNetwork && watchCountry) {
+            if (watchNetwork && watchCountry && serviceType === 'data') {
                 setIsLoading(true);
                 form.setValue("plan", "");
 
@@ -192,13 +200,13 @@ export const useFreebiesLogic = () => {
                 } finally {
                     setIsLoading(false);
                 }
-            } else {
+            } else if (!watchNetwork) {
                 setAvailablePlans([]);
             }
         };
 
         getDataPlans();
-    }, [watchNetwork, watchCountry, form]);
+    }, [watchNetwork, watchCountry, serviceType, form]);
 
     // Check whitelist status
     useEffect(() => {

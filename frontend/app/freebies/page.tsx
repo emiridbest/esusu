@@ -253,7 +253,7 @@ export default function Freebies() {
                                                             <Select
                                                                 onValueChange={field.onChange}
                                                                 value={field.value}
-                                                                disabled={isLoading || !watchNetwork || availablePlans.length === 0}
+                                                                disabled={isLoading || !watchNetwork || !availablePlans || availablePlans.length === 0}
                                                             >
                                                                 <FormControl>
                                                                     <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-black/90 dark:text-white/90">
@@ -261,7 +261,7 @@ export default function Freebies() {
                                                                     </SelectTrigger>
                                                                 </FormControl>
                                                                 <SelectContent className="bg-white">
-                                                                    {availablePlans.map((plan) => (
+                                                                    {availablePlans && availablePlans.map((plan) => (
                                                                         <SelectItem
                                                                             key={plan.id}
                                                                             value={plan.id}
