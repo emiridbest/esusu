@@ -34,7 +34,7 @@ export default function Freebies() {
     useEffect(() => {
         setIsMounted(true);
     }, []);
-    
+
     const {
         form,
         watchCountry,
@@ -49,7 +49,9 @@ export default function Freebies() {
         availablePlans,
         selectedPlan,
         setCountryCurrency,
-        onSubmit
+        onSubmit,
+        serviceType: hookServiceType,
+        setServiceType: setHookServiceType
     } = useFreebiesLogic();
     const { canClaim, handleClaim, entitlement } = useClaimProcessor();
 
@@ -71,12 +73,12 @@ export default function Freebies() {
 
                     <CardContent className="space-y-4 bg-white dark:bg-black p-6">
                         {!isMounted ? (
-                            <div className="flex justify-center py-8 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                            <div className="flex justify-center py-8 bg-yellow-50 dark:black/90 rounded-lg border border-yellow-200 dark:border-yellow-800">
                                 <Loader2 className="h-8 w-8 animate-spin text-yellow-600 dark:text-yellow-400" />
                                 <span className="ml-2 text-yellow-800 dark:text-black/90 font-semibold">Loading...</span>
                             </div>
                         ) : isProcessing ? (
-                            <div className="flex justify-center py-8 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                            <div className="flex justify-center py-8 bg-yellow-50 dark:black/90 rounded-lg border border-yellow-200 dark:border-yellow-800">
                                 <Loader2 className="h-8 w-8 animate-spin text-yellow-600 dark:text-yellow-400" />
                                 <span className="ml-2 text-yellow-800 dark:text-black/90 font-semibold">Processing...</span>
                             </div>
@@ -111,7 +113,7 @@ export default function Freebies() {
                                 {/* Claim Method Selection */}
                                 <div className="space-y-3">
                                     <label className="text-black/80 dark:text-white/60 font-light text-sm block">SELECT CLAIM TYPE</label>
-                                    
+
                                     <div className="space-y-2">
                                         <div className="flex items-center space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all"
                                             style={{
@@ -134,7 +136,7 @@ export default function Freebies() {
                                                 <div className={`text-xs ${claimMethod === 'claim' ? 'text-black/80' : 'text-black/60 dark:text-white/60'}`}>Directly claim G$ tokens to your wallet</div>
                                             </label>
                                         </div>
-                                        
+
                                         <div className="flex items-center space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all"
                                             style={{
                                                 borderColor: claimMethod === 'exchange' ? '#facc15' : '#e5e7eb',
@@ -163,6 +165,9 @@ export default function Freebies() {
                                 {claimMethod === 'exchange' && (
                                     <Form {...form}>
                                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4 border-t border-gray-200 dark:border-gray-800">
+                                            {/* Service Type Selection */}
+
+
                                             <FormField
                                                 control={form.control}
                                                 name="country"
@@ -185,7 +190,31 @@ export default function Freebies() {
                                                     </FormItem>
                                                 )}
                                             />
-
+                                            <div className="space-y-2">
+                                                <label className="text-black/80 dark:text-white/60 font-light text-sm block">SERVICE TYPE</label>
+                                                <div className="flex gap-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setHookServiceType('data')}
+                                                        className={`flex-1 p-3 rounded-lg border-2 transition-all ${hookServiceType === 'data'
+                                                                ? 'border-yellow-400 bg-yellow-50 dark:black/90'
+                                                                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
+                                                            }`}
+                                                    >
+                                                        <div className={`font-semibold text-sm ${hookServiceType === 'data' ? 'text-black/90' : 'text-black dark:text-white'}`}> Data</div>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setHookServiceType('airtime')}
+                                                        className={`flex-1 p-3 rounded-lg border-2 transition-all ${hookServiceType === 'airtime'
+                                                                ? 'border-yellow-400 bg-yellow-50 dark:black/90'
+                                                                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
+                                                            }`}
+                                                    >
+                                                        <div className={`font-semibold text-sm ${hookServiceType === 'airtime' ? 'text-black/90' : 'text-black dark:text-white'}`}> Airtime (₦100)</div>
+                                                    </button>
+                                                </div>
+                                            </div>
 
                                             <FormField
                                                 control={form.control}
@@ -210,9 +239,6 @@ export default function Freebies() {
                                                                 ))}
                                                             </SelectContent>
                                                         </Select>
-                                                        {isLoading && <div className="text-sm text-black/50 dark:text-white/50 mt-1 flex items-center">
-                                                            <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-white/60 " /> Loading providers...
-                                                        </div>}
                                                         <FormMessage />
                                                     </FormItem>
                                                 )} />
@@ -221,36 +247,38 @@ export default function Freebies() {
                                                 control={form.control}
                                                 name="plan"
                                                 render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">DATA PLAN</FormLabel>
-                                                        <Select
-                                                            onValueChange={field.onChange}
-                                                            value={field.value}
-                                                            disabled={isLoading || !watchNetwork || availablePlans.length === 0}
-                                                        >
-                                                            <FormControl>
-                                                                <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-black/90 dark:text-white/90">
-                                                                    <SelectValue placeholder="Select data plan" className='text-xs' />
-                                                                </SelectTrigger>
-                                                            </FormControl>
-                                                            <SelectContent className="bg-white">
-                                                                {availablePlans.map((plan) => (
-                                                                    <SelectItem
-                                                                        key={plan.id}
-                                                                        value={plan.id}
-                                                                    >
-                                                                        {plan.name} - {plan.price}
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                        {isLoading && (
-                                                            <div className="text-sm text-black/50 dark:text-white/50  mt-1 flex items-center font-medium">
-                                                                <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading plans...
-                                                            </div>
-                                                        )}
-                                                        <FormMessage />
-                                                    </FormItem>
+                                                    hookServiceType === 'data' ? (
+                                                        <FormItem>
+                                                            <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">DATA PLAN</FormLabel>
+                                                            <Select
+                                                                onValueChange={field.onChange}
+                                                                value={field.value}
+                                                                disabled={isLoading || !watchNetwork || availablePlans.length === 0}
+                                                            >
+                                                                <FormControl>
+                                                                    <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-black/90 dark:text-white/90">
+                                                                        <SelectValue placeholder="Select data plan" className='text-xs' />
+                                                                    </SelectTrigger>
+                                                                </FormControl>
+                                                                <SelectContent className="bg-white">
+                                                                    {availablePlans.map((plan) => (
+                                                                        <SelectItem
+                                                                            key={plan.id}
+                                                                            value={plan.id}
+                                                                        >
+                                                                            {plan.name} - {plan.price}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                            {isLoading && (
+                                                                <div className="text-sm text-black/50 dark:text-white/50  mt-1 flex items-center font-medium">
+                                                                    <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading plans...
+                                                                </div>
+                                                            )}
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    ) : <></>
                                                 )} />
                                             <FormField
                                                 control={form.control}
@@ -291,7 +319,19 @@ export default function Freebies() {
                     <CardFooter className="bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-b-lg">
                         <Button
                             className="w-full bg-black hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-200 text-yellow-400 dark:text-black font-bold text-lg py-6 border-2 border-black/90 dark:border-black shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-                            disabled={claimMethod === 'claim' ? (!canClaim || isClaiming || isProcessing) : (!canClaim || isClaiming || isProcessing || !selectedPlan || !form.watch("phoneNumber") || form.watch("phoneNumber").length < 10)}
+                            disabled={
+                                claimMethod === 'claim'
+                                    ? (!canClaim || isClaiming || isProcessing)
+                                    : (
+                                        !canClaim ||
+                                        isClaiming ||
+                                        isProcessing ||
+                                        // only require a selected plan when service type is data
+                                        (hookServiceType === 'data' && !selectedPlan) ||
+                                        !form.watch("phoneNumber") ||
+                                        form.watch("phoneNumber").length < 10
+                                    )
+                            }
                             onClick={() => {
                                 if (claimMethod === 'claim') {
                                     handleClaim();
