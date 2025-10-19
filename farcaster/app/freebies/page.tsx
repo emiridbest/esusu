@@ -27,7 +27,7 @@ import Engagement from '../../components/Engagement';
 import { ethers } from 'ethers';
 
 export default function Freebies() {
-    const [claimMethod, setClaimMethod] = useState<'claim' | 'exchange'>('exchange');
+    const [claimMethod, setClaimMethod] = useState<'claim' | 'exchange'>('claim');
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
