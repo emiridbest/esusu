@@ -110,7 +110,7 @@ export const useFreebiesLogic = () => {
                 // Filter out MTN Nigeria extra data
                 const filteredOperators = operators.filter(operator => 
                     !(operator.name.toLowerCase().includes('mtn nigeria extra data') ||
-                    (operator.name.toLowerCase().includes('smile uganda data')))
+                    (operator.name.toLowerCase().includes('smile uganda data') || operator.name.toLowerCase().includes('mtn nigeria data')))
                 );
                 setNetworks(filteredOperators);
                 } catch (error) {
