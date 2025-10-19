@@ -32,13 +32,6 @@ function rateLimit(key: string, limit = RATE_LIMIT_MAX, windowMs = RATE_LIMIT_WI
   return true;
 }
 
-function requireApiKey(req: NextRequest): { ok: boolean; error?: string } {
-  const required = process.env.PAYMENT_API_KEY || process.env.API_KEY;
-  if (!required) return { ok: true };
-  const header = req.headers.get('x-api-key') || (req.headers.get('authorization')?.replace(/^Bearer\s+/i, ''));
-  if (!header || header !== required) return { ok: false, error: 'Unauthorized' };
-  return { ok: true };
-}
 
 // Payment validation configuration
 const CELO_RPC_URL = process.env.CELO_RPC_URL || 'https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8';
@@ -48,6 +41,7 @@ const MAX_TRANSACTION_AGE_MINUTES = 10;
 
 // Valid token addresses for payment validation
 const VALID_TOKENS = {
+  'CELO': '0x471EcE3750Da237f93B8E339c536989b8978a438', // Wrapped CELO (wCELO)
   'cUSD': '0x765DE816845861e75A25fCA122bb6898B8B1282a',
   'USDC': '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
   'USDT': '0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e',
@@ -57,6 +51,7 @@ const VALID_TOKENS = {
 
 // Token decimals mapping for accurate amount validation
 const TOKEN_DECIMALS = {
+  CELO: 18,
   cUSD: 18,
   USDC: 6,
   USDT: 6,
@@ -140,26 +135,39 @@ async function apiRequest(endpoint: string, options: any = {}) {
   const headers = {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    'Accept': process.env.NEXT_PUBLIC_ACCEPT_HEADER || 'application/com.reloadly.topups-v1+json',
     ...options.headers
   };
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const url = `${API_URL}${endpoint}`;
+  console.log('Reloadly API Request:', {
+    url,
+    method: options.method || 'GET',
+    body: options.body ? JSON.parse(options.body) : undefined
+  });
+
+  const response = await fetch(url, {
     ...options,
     headers
   });
 
+  console.log('Reloadly API Response Status:', response.status, response.statusText);
+
   if (!response.ok) {
+    let errorData;
     try {
-      const errorData = await response.json();
-      console.error('API request failed:', errorData);
+      errorData = await response.json();
+      console.error('Reloadly API Error Response:', errorData);
       throw new Error(errorData.message || `API request failed: ${response.status}`);
     } catch (parseError) {
+      console.error('Reloadly API Error (no JSON):', response.status, response.statusText);
       throw new Error(`API request failed: ${response.status} ${response.statusText}`);
     }
   }
 
-  return response.json();
+  const responseData = await response.json();
+  console.log('Reloadly API Success Response:', responseData);
+  return responseData;
 }
 
 // Make a top-up request to Reloadly API
@@ -180,18 +188,30 @@ async function makeTopup(params: {
     throw new Error('Missing required fields for top-up');
   }
 
-  const requestBody = {
+  // Format request body according to Reloadly API specification
+  const requestBody: any = {
     operatorId: parseInt(params.operatorId),
-    amount: params.useLocalAmount ? parseFloat(params.amount) : null,
+    amount: parseFloat(params.amount), // Always send as number (Reloadly accepts both number and string)
     useLocalAmount: !!params.useLocalAmount,
-    recipientEmail: params.recipientEmail || null,
     customIdentifier: params.customId,
     recipientPhone: {
       countryCode: params.recipientPhone.country || params.recipientPhone.countryCode || '',
       number: params.recipientPhone.phoneNumber || params.recipientPhone.number || ''
-    },
-    senderPhone: null
+    }
   };
+
+  // Only add optional fields if they have values (Reloadly prefers omission over null)
+  if (params.recipientEmail) {
+    requestBody.recipientEmail = params.recipientEmail;
+  }
+
+  console.log('Making Reloadly top-up request:', {
+    operatorId: requestBody.operatorId,
+    amount: requestBody.amount,
+    useLocalAmount: requestBody.useLocalAmount,
+    recipientCountry: requestBody.recipientPhone.countryCode,
+    customId: params.customId
+  });
 
   return await apiRequest('/topups', {
     method: 'POST',
@@ -289,12 +309,10 @@ async function validatePayment(validation: PaymentValidation): Promise<{ isValid
 }
 
 export async function POST(request: NextRequest) {
+  let body: any;
+  let walletAddress: string | undefined;
+  
   try {
-    // Optional API key auth
-    const auth = requireApiKey(request);
-    if (!auth.ok) {
-      return NextResponse.json({ success: false, error: auth.error || 'Unauthorized' }, { status: 401 });
-    }
 
     // Basic IP rate limiting
     const ip = getClientIp(request);
@@ -302,7 +320,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Too many requests' }, { status: 429 });
     }
 
-    const body = await request.json();
+    // Parse request body with explicit error handling
+    try {
+      body = await request.json();
+    } catch (parseError: any) {
+      console.error('Failed to parse request body:', parseError);
+      return NextResponse.json(
+        { success: false, error: 'Invalid request body - must be valid JSON' },
+        { status: 400 }
+      );
+    }
     const { 
       operatorId, 
       amount, 
@@ -334,7 +361,16 @@ export async function POST(request: NextRequest) {
     }
 
     // SECURITY: Enforce hash replay protection early (idempotency)
-    await dbConnect();
+    try {
+      await dbConnect();
+    } catch (dbConnectError: any) {
+      console.error('Database connection failed:', dbConnectError);
+      return NextResponse.json(
+        { success: false, error: 'Database connection failed. Please try again.' },
+        { status: 503 }
+      );
+    }
+    
     const hashUsed = await TransactionService.isPaymentHashUsed(transactionHash);
     if (hashUsed) {
       return NextResponse.json(
@@ -345,12 +381,21 @@ export async function POST(request: NextRequest) {
 
     // SECURITY: Validate blockchain payment before processing top-up
     console.log('Validating payment transaction:', transactionHash);
-    const paymentValidation = await validatePayment({
-      transactionHash,
-      expectedAmount,
-      paymentToken,
-      recipientAddress: RECIPIENT_WALLET
-    });
+    let paymentValidation;
+    try {
+      paymentValidation = await validatePayment({
+        transactionHash,
+        expectedAmount,
+        paymentToken,
+        recipientAddress: RECIPIENT_WALLET
+      });
+    } catch (validationError: any) {
+      console.error('Payment validation error:', validationError);
+      return NextResponse.json(
+        { success: false, error: `Payment validation error: ${validationError?.message || 'Unknown error'}` },
+        { status: 500 }
+      );
+    }
 
     if (!paymentValidation.isValid) {
       console.error('Payment validation failed:', paymentValidation.error);
@@ -363,9 +408,20 @@ export async function POST(request: NextRequest) {
     console.log('Payment validated successfully, processing top-up...');
 
     // Extract wallet address from transaction
-    const provider = new ethers.JsonRpcProvider(CELO_RPC_URL);
-    const tx = await provider.getTransaction(transactionHash);
-    const walletAddress = tx?.from;
+    let provider;
+    let tx;
+    try {
+      provider = new ethers.JsonRpcProvider(CELO_RPC_URL);
+      tx = await provider.getTransaction(transactionHash);
+    } catch (rpcError: any) {
+      console.error('RPC error fetching transaction:', rpcError);
+      return NextResponse.json(
+        { success: false, error: `Failed to fetch transaction from blockchain: ${rpcError?.message || 'RPC error'}` },
+        { status: 503 }
+      );
+    }
+    
+    walletAddress = tx?.from;
 
     if (!walletAddress) {
       return NextResponse.json(
@@ -403,17 +459,52 @@ export async function POST(request: NextRequest) {
       const cleanedPhoneNumber = recipientPhone.phoneNumber.replace(/[\s\-\+]/g, '');
       
       // Make the top-up request
-      const result = await makeTopup({
-        operatorId,
-        amount,
-        customId: transactionHash,
-        recipientPhone: {
-          country: recipientPhone.country,
-          phoneNumber: cleanedPhoneNumber
-        },
-        recipientEmail: email,
-        useLocalAmount: true
-      });
+      let result;
+      try {
+        result = await makeTopup({
+          operatorId,
+          amount,
+          customId: transactionHash,
+          recipientPhone: {
+            country: recipientPhone.country,
+            phoneNumber: cleanedPhoneNumber
+          },
+          recipientEmail: email,
+          useLocalAmount: true
+        });
+      } catch (topupError: any) {
+        console.error('Reloadly top-up request failed:', topupError);
+        // Mark transaction as failed
+        try {
+          await TransactionService.updateTransactionStatus(transactionHash, 'failed');
+        } catch (statusErr) {
+          console.error('Failed to update transaction status:', statusErr);
+        }
+        
+        // Send failure notification
+        try {
+          await NotificationService.sendUtilityPaymentNotification(
+            walletAddress,
+            false,
+            {
+              type: 'utility',
+              amount: parseFloat(expectedAmount),
+              recipient: recipientPhone.phoneNumber
+            }
+          );
+        } catch (notifErr) {
+          console.error('Failed to send failure notification:', notifErr);
+        }
+        
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: `Top-up service error: ${topupError?.message || 'Failed to process top-up with provider'}`,
+            details: topupError?.response?.data || topupError?.message
+          },
+          { status: 502 }
+        );
+      }
 
       // Update transaction status
       await TransactionService.updateTransactionStatus(
@@ -474,18 +565,26 @@ export async function POST(request: NextRequest) {
         message: 'Top-up successful and recorded'
       });
 
-    } catch (dbError) {
+    } catch (dbError: any) {
       console.error('Database error during top-up:', dbError);
-      // Send failure notification
-      await NotificationService.sendUtilityPaymentNotification(
-        walletAddress,
-        false,
-        {
-          type: 'utility',
-          amount: parseFloat(expectedAmount),
-          recipient: recipientPhone.phoneNumber
+      
+      // Send failure notification (best effort)
+      if (walletAddress) {
+        try {
+          await NotificationService.sendUtilityPaymentNotification(
+            walletAddress,
+            false,
+            {
+              type: 'utility',
+              amount: parseFloat(expectedAmount),
+              recipient: recipientPhone.phoneNumber
+            }
+          );
+        } catch (notifErr) {
+          console.error('Failed to send failure notification:', notifErr);
         }
-      );
+      }
+      
       // Mark transaction as failed for visibility
       try {
         await TransactionService.updateTransactionStatus(transactionHash, 'failed');
@@ -494,20 +593,33 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json(
-        { success: false, error: 'Database error during transaction recording' },
+        { 
+          success: false, 
+          error: `Database error: ${dbError?.message || 'Failed to record transaction'}`,
+          details: dbError?.message
+        },
         { status: 500 }
       );
     }
   } catch (error: any) {
-    console.error('Error processing top-up:', error);
+    console.error('Unexpected error processing top-up:', error);
+    console.error('Error stack:', error?.stack);
+
+    // Ensure we always return a proper error structure
+    const errorMessage = error?.message || error?.toString() || 'An unexpected error occurred while processing your top-up';
+    const errorDetails = {
+      message: errorMessage,
+      type: error?.name || 'UnknownError',
+      code: error?.code
+    };
 
     // Handle different error types with detailed logging
     if (error.response?.data) {
-      console.error('Reloadly API error:', error.response.data);
+      console.error('Reloadly API error response:', error.response.data);
       return NextResponse.json(
         {
           success: false,
-          error: error.response.data.message || 'Failed to process topup',
+          error: error.response.data.message || errorMessage,
           details: error.response.data
         },
         { status: error.response.status || 500 }
@@ -517,7 +629,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Failed to process topup'
+        error: errorMessage,
+        details: errorDetails
       },
       { status: 500 }
     );

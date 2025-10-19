@@ -310,7 +310,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const approveData = encodeFunctionData({
         abi: tokenAbi,
         functionName: "approve",
-        args: [contractAddress, depositValue],
+        args: [contractAddress as `0x${string}`, depositValue],
       });
       const dataWithSuffix = approveData + dataSuffix;
 
@@ -415,7 +415,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const approveData = encodeFunctionData({
           abi: tokenAbi,
           functionName: "approve",
-          args: [contractAddress, depositValue],
+          args: [contractAddress as `0x${string}`, depositValue],
         });
         const approveDataWithSuffix = approveData + dataSuffix;
         

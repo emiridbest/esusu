@@ -32,13 +32,6 @@ function rateLimit(key: string, limit = RATE_LIMIT_MAX, windowMs = RATE_LIMIT_WI
   return true;
 }
 
-function requireApiKey(req: NextRequest): { ok: boolean; error?: string } {
-  const required = process.env.PAYMENT_API_KEY || process.env.API_KEY;
-  if (!required) return { ok: true };
-  const header = req.headers.get('x-api-key') || (req.headers.get('authorization')?.replace(/^Bearer\s+/i, ''));
-  if (!header || header !== required) return { ok: false, error: 'Unauthorized' };
-  return { ok: true };
-}
 
 // SECURITY: Payment validation configuration
 const CELO_RPC_URL = process.env.CELO_RPC_URL || 'https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8';
@@ -158,11 +151,6 @@ async function validatePayment(validation: PaymentValidation): Promise<{ isValid
 
 export async function POST(request: NextRequest) {
     try {
-        // Optional API key auth
-        const auth = requireApiKey(request);
-        if (!auth.ok) {
-            return NextResponse.json({ success: false, error: auth.error || 'Unauthorized' }, { status: 401 });
-        }
 
         // Basic IP rate limiting
         const ip = getClientIp(request);

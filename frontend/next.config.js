@@ -9,6 +9,8 @@ const nextConfig = {
   outputFileTracingIncludes: {
     'app/api/**': ['../backend/lib/**']
   },
+  // Set workspace root to silence multiple lockfiles warning
+  outputFileTracingRoot: require('path').join(__dirname, '..'),
 
   // typescript: {
   //   // Don't fail the build on TypeScript errors during Vercel deployment

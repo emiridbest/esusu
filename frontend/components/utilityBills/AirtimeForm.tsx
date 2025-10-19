@@ -355,8 +355,6 @@ useEffect(() => {
 
           // SECURITY: Send payment validation data to prevent bypass
           const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-          const apiKey = process.env.NEXT_PUBLIC_PAYMENT_API_KEY;
-          if (apiKey) headers['x-api-key'] = apiKey;
 
           const response = await fetch('/api/topup', {
             method: 'POST',
@@ -379,7 +377,19 @@ useEffect(() => {
             }),
           });
 
-          const data = await response.json();
+          // Parse response with better error handling
+          let data: any;
+          try {
+            const responseText = await response.text();
+            console.log('Top-up API raw response:', responseText);
+            data = responseText ? JSON.parse(responseText) : {};
+          } catch (parseError) {
+            console.error('Failed to parse API response:', parseError);
+            data = { success: false, error: 'Invalid response from server' };
+          }
+
+          console.log('Top-up API parsed data:', data);
+          console.log('Response status:', response.status, 'Response OK:', response.ok);
 
           if (response.ok && data.success) {
             updateStepStatus('top-up', 'success');
@@ -411,16 +421,33 @@ useEffect(() => {
             setSelectedPrice(0);
             closeTransactionDialog();
           } else {
-            console.error("Top-up API Error:", data);
-            toast.error(data.error || "There was an issue processing your top-up. Our team has been notified.");
+            // Extract error message with fallbacks
+            const errorMsg = data?.error || data?.message || 
+              (response.status === 503 ? 'Service temporarily unavailable. Please try again.' :
+               response.status === 502 ? 'Top-up provider error. Payment recorded, please contact support.' :
+               response.status === 500 ? 'Server error. Payment recorded, please contact support.' :
+               response.status === 403 ? 'Payment validation failed. Please verify your transaction.' :
+               'There was an issue processing your top-up. Our team has been notified.');
+            
+            console.error("Top-up API Error:", {
+              status: response.status,
+              statusText: response.statusText,
+              data,
+              errorMsg
+            });
+            
+            toast.error(errorMsg);
             updateStepStatus('top-up', 'error', "Top-up failed but payment succeeded, Please screenshot this error and contact support.");
 
             console.error("Payment succeeded but top-up failed. Manual intervention required:", {
               user: values.email,
               phone: values.phoneNumber,
               amount: enteredAmount,
-              error: data.error,
-              transactionDetails: data.details
+              transactionHash: paymentResult.transactionHash,
+              responseStatus: response.status,
+              error: data?.error || errorMsg,
+              details: data?.details,
+              fullResponse: data
             });
           }
         } catch (error) {

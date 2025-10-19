@@ -18,20 +18,8 @@ function rateLimit(key: string, limit = RATE_LIMIT_MAX, windowMs = RATE_LIMIT_WI
   return true;
 }
 
-function requireApiKey(req: NextRequest): { ok: boolean; error?: string } {
-  const required = process.env.CRON_API_KEY || process.env.PAYMENT_API_KEY || process.env.API_KEY;
-  if (!required) return { ok: true };
-  const header = req.headers.get('x-api-key') || (req.headers.get('authorization')?.replace(/^Bearer\s+/i, ''));
-  if (!header || header !== required) return { ok: false, error: 'Unauthorized' };
-  return { ok: true };
-}
 
 export async function POST(request: NextRequest) {
-  // Auth
-  const auth = requireApiKey(request);
-  if (!auth.ok) {
-    return NextResponse.json({ success: false, error: auth.error || 'Unauthorized' }, { status: 401 });
-  }
 
   // Global rate limit to avoid hammering provider/DB
   if (!rateLimit('cron:reconcile')) {
