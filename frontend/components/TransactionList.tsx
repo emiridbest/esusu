@@ -243,13 +243,10 @@ const TransactionList: React.FC = () => {
       return functionMap[functionName];
     }
     
-    // If function name is empty or just whitespace
     if (!functionName || functionName.trim() === '') {
       return 'Contract Call';
     }
-    
-    // Convert camelCase to Title Case for unknown functions
-    // e.g., "someFunction" becomes "Some Function"
+
     const formatted = functionName
       .replace(/([A-Z])/g, ' $1') // Add space before capital letters
       .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
@@ -352,12 +349,12 @@ const TransactionList: React.FC = () => {
                       
                       <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                         <span className="truncate">
-                          {hasValue ? (isSent ? 'To' : 'From') : 'Contract'} {truncateAddress(counterparty)}
+                          {hasValue ? (isSent ? 'To' : 'From') : 'Hash'} {truncateAddress(transaction.transactionHash)}
                         </span>
                         <button 
-                          onClick={() => copyToClipboard(counterparty, 'address')}
+                          onClick={() => copyToClipboard(transaction.transactionHash, 'address')}
                           className="text-gray-400 hover:text-primary flex-shrink-0"
-                          title="Copy address"
+                          title="Copy transaction hash"
                         >
                           <CopyIcon className="h-3 w-3" />
                         </button>
