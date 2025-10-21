@@ -171,7 +171,7 @@ export const useFreebiesLogic = () => {
         getNetworks();
 
 
-    }, [watchCountry, form]);
+    }, [watchCountry, serviceType, form]);
 
 
     // Reset network and plan when service type changes
@@ -206,7 +206,7 @@ export const useFreebiesLogic = () => {
         };
 
         getDataPlans();
-    }, [watchNetwork, watchCountry, serviceType, form]);
+    }, [watchNetwork, watchCountry, form]);
 
     // Check whitelist status
     useEffect(() => {
