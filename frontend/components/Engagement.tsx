@@ -318,7 +318,7 @@ const RewardsClaimCard = () => {
 
         userSignature = await engagementRewards.signClaim(
           APP_ADDRESS,
-          INVITER_ADDRESS,
+          inviterAddress as `0x${string}` || INVITER_ADDRESS,
           validUntilBlock
         )
       } catch (signError) {
@@ -332,7 +332,7 @@ const RewardsClaimCard = () => {
       const appSignature = await getAppSignature({
         user: userAddress!,
         validUntilBlock: validUntilBlock.toString(),
-        inviter: INVITER_ADDRESS
+        inviter: inviterAddress || INVITER_ADDRESS
       })
 
       setClaimStep('submitting')
@@ -341,7 +341,7 @@ const RewardsClaimCard = () => {
       // Submit claim
       const receipt = await engagementRewards.nonContractAppClaim(
         APP_ADDRESS,
-        INVITER_ADDRESS,
+        inviterAddress as `0x${string}` || INVITER_ADDRESS,
         validUntilBlock,
         userSignature,
         appSignature as `0x${string}`
@@ -384,7 +384,7 @@ const RewardsClaimCard = () => {
   const getButtonText = () => {
     if (!isConnected) return 'Connect Wallet'
     if (!isWhitelisted) return 'Verify to Claim'
-    if (isClaimable && claimStep !== 'success') return 'No Claim Available'
+    if (!isClaimable && claimStep !== 'success') return 'No Claim Available'
     if (claimStep === 'success') return 'Claim Successful!'
     if (isLoading) {
       switch (claimStep) {
@@ -457,6 +457,10 @@ const RewardsClaimCard = () => {
                     <Clock className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
                     Claim rewards once every 180 days
                   </li>
+                    <li className="flex items-center">
+                      <Clock className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
+                      Invite others using your unique referral link to earn for each successful claim they make.
+                    </li>
                 </ul>
               </div>
 
