@@ -59,6 +59,7 @@ type ClaimProcessorType = {
   handleSwitchChain: () => void;
   handleClaim: () => Promise<boolean>;
   processDataTopUp: (values: any, selectedPrice: number, availablePlans: any[], networks: any[]) => Promise<{ success: boolean; error?: any }>;
+  processAirtimeTopUp: (values: any, selectedPrice: number) => Promise<{ success: boolean; error?: any }>;
   processPayment: () => Promise<string>;
   TOKENS: typeof TOKENS;
   // Transaction dialog
@@ -253,8 +254,34 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       if (!tx) {
         return false;
       }
-      toast.success("Successfully claimed G$ tokens!");
-      return true
+    toast.success("Successfully claimed G$ tokens!");
+      const dataSuffix = getReferralTag({
+      user: address as `0x${string}`,
+      consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
+    });
+    try {
+      const txCountInterface = new Interface(txCountABI);
+      const txCountData = txCountInterface.encodeFunctionData("increment", []);
+      const dataWithSuffix = txCountData + dataSuffix;
+
+      const txCount = await sendTransactionAsync({
+        to: txCountAddress as `0x${string}`,
+        data: dataWithSuffix as `0x${string}`,
+      });
+      try {
+        await submitReferral({
+          txHash: txCount as unknown as `0x${string}`,
+          chainId: 42220
+        });
+        console.log("Referral submitted for transaction count update.");
+      } catch (referralError) {
+        console.error("Referral submission error:", referralError);
+      }
+
+    } catch (error) {
+      console.error("Error during transaction count update:", error);
+      toast.error("There was an error updating the transaction count.");
+    }
     } catch (error) {
       console.error("Error during claim:", error);
       toast.error("There was an error processing your claim.");
@@ -308,6 +335,52 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     }
   };
 
+
+  const processAirtimeTopUp = async (values: any, selectedPrice: number) => {
+    if (!values || !values.phoneNumber || !values.country || !values.network) {
+      toast.error("Please ensure all required fields are filled out.");
+      return { success: false };
+    }
+
+    try {
+      const cleanPhoneNumber = values.phoneNumber.replace(/[\s\-\+]/g, '');
+
+      const response = await fetch('/api/topup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          operatorId: values.network,
+          amount: selectedPrice.toString(),
+          customId: values.customId,
+          recipientPhone: {
+            country: values.country,
+            phoneNumber: cleanPhoneNumber
+          },
+          email: values.email,
+          isFreeClaim: true
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success(`Successfully topped up ${values.phoneNumber} with N100.`);
+        return { success: true };
+      } else {
+        console.error("Top-up API Error:", data);
+        toast.error(data.error || "There was an issue processing your top-up. Our team has been notified.");
+        return { success: false, error: data.error };
+      }
+    } catch (error) {
+      console.error("Error during top-up:", error);
+      toast.error("There was an error processing your top-up. Our team has been notified and will resolve this shortly.");
+      return { success: false, error };
+    }
+  };
+
+
   const processPayment = async () => {
     if (!entitlement || entitlement <= BigInt(0)) {
       throw new Error("No entitlement available for payment.");
@@ -316,28 +389,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       user: address,
       consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
     });
-    try {
-      const txCountInterface = new Interface(txCountABI);
-      const txCountData = txCountInterface.encodeFunctionData("increment", []);
-      const dataWithSuffix = txCountData + dataSuffix;
-
-      const txCount = await sendTransactionAsync({
-        to: txCountAddress as `0x${string}`,
-        data: dataWithSuffix as `0x${string}`,
-      });
-      try {
-        await submitReferral({
-          txHash: txCount as unknown as `0x${string}`,
-          chainId: Celo.id
-        });
-      } catch (referralError) {
-        console.error("Referral submission error:", referralError);
-      }
-
-    } catch (error) {
-      console.error("Error during transaction count update:", error);
-      toast.error("There was an error updating the transaction count.");
-    }
     const selectedToken = "G$";
     const tokenAddress = getTokenAddress(selectedToken, TOKENS);
 
@@ -441,6 +492,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     handleSwitchChain,
     handleClaim,
     processDataTopUp,
+    processAirtimeTopUp,
     processPayment,
     TOKENS,
     // Transaction dialog state

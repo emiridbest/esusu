@@ -4,7 +4,7 @@ import { useAccount } from 'wagmi';
 import { toast } from 'sonner';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { number, z } from "zod";
 import {
     fetchMobileOperators,
     fetchDataPlans,
@@ -49,6 +49,7 @@ export const useFreebiesLogic = () => {
         setIsProcessing,
         handleClaim,
         processDataTopUp,
+        processAirtimeTopUp,
         processPayment
     } = useClaimProcessor();
 
@@ -67,13 +68,14 @@ export const useFreebiesLogic = () => {
     const [isWhitelisted, setIsWhitelisted] = useState<boolean | undefined>(undefined);
     const [loadingWhitelist, setLoadingWhitelist] = useState<boolean | undefined>(undefined);
     const [txID, setTxID] = useState<string | null>(null);
+    const [serviceType, setServiceType] = useState<'data' | 'airtime'>('data');
 
     const identitySDK = useIdentitySDK('production');
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            country: "",
+            country: "ng",
             phoneNumber: "",
             network: "",
             plan: "",
@@ -92,43 +94,98 @@ export const useFreebiesLogic = () => {
     // Fetch network providers when country changes
     useEffect(() => {
         const getNetworks = async () => {
-            if (watchCountry) {
-                setIsLoading(true);
+            // Reset if not Nigeria
+            if (watchCountry !== "ng") {
                 form.setValue("network", "");
                 form.setValue("plan", "");
+                setNetworks([]);
+                return;
+            }
 
+            if (!watchCountry) return;
+
+            setIsLoading(true);
+            form.setValue("network", "");
+            form.setValue("plan", "");
+
+            try {
+                const response = await fetch(
+                    `/api/utilities/data/free?country=${watchCountry}`,
+                    {
+                        method: 'GET',
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch data plans: ${response.statusText}`);
+                }
+
+                const operators: NetworkOperator[] = await response.json();
+
+                // Filter out MTN Nigeria extra data
+                const filteredOperators = operators.filter(operator =>
+                    !(operator.name.toLowerCase().includes('mtn nigeria extra data') ||
+                        operator.name.toLowerCase().includes('mtn nigeria data'))
+                );
+
+                if (serviceType === 'data') {
+                    setNetworks(filteredOperators);
+                    return;
+                }
+
+                // Fetch airtime operators if needed
                 try {
-                    const response = await fetch(`/api/utilities/data/free?country=${watchCountry}`,
+                    const airtimeResponse = await fetch(
+                        `/api/utilities/airtime/providers?country=${watchCountry}`,
                         {
-                            method: 'GET'
-                        });
-                    if (!response.ok) {
-                        throw new Error(`Failed to fetch data plans: ${response.statusText}`);
+                            method: 'GET',
+                        }
+                    );
+                    if (!airtimeResponse.ok) {
+                        throw new Error(`Failed to fetch airtime providers: ${airtimeResponse.statusText}`);
                     }
 
-                    const operators: NetworkOperator[] = await response.json();
-                    // Filter out MTN Nigeria extra data
-                    const filteredOperators = operators.filter(operator =>
-                        !(operator.name.toLowerCase().includes('mtn nigeria extra data') ||
-                            (operator.name.toLowerCase().includes('smile uganda data')))
-                    );
-                    setNetworks(filteredOperators);
-                } catch (error) {
-                    console.error("Error fetching mobile operators:", error);
-                    toast.error("Failed to load network providers. Please try again.");
-                } finally {
-                    setIsLoading(false);
+                    const airtimeOperators: NetworkOperator[] = await airtimeResponse.json();
+
+                    if (serviceType === 'airtime') {
+                        setNetworks(airtimeOperators);
+                    }
+                } catch (airtimeError) {
+                    if (airtimeError instanceof Error && airtimeError.name === 'AbortError') {
+                        return;
+                    }
+                    console.error("Error fetching airtime operators:", airtimeError);
+                    toast.error("Failed to load some network providers. Please try again.");
                 }
+            } catch (error) {
+                if (error instanceof Error && error.name === 'AbortError') {
+                    return;
+                }
+                console.error("Error fetching mobile operators:", error);
+                toast.error("Failed to load network providers. Please try again.");
+            } finally {
+                setIsLoading(false);
             }
         };
 
         getNetworks();
-    }, [watchCountry, form]);
+
+
+    }, [watchCountry, form, serviceType]);
+
+
+    // Reset network and plan when service type changes
+    useEffect(() => {
+        form.setValue("network", "");
+        form.setValue("plan", "");
+        setAvailablePlans([]);
+        setSelectedPlan(null);
+    }, [serviceType, form]);
 
     // Fetch data plans when network changes
     useEffect(() => {
         const getDataPlans = async () => {
-            if (watchNetwork && watchCountry) {
+            if (watchNetwork && watchCountry && serviceType === 'data') {
                 setIsLoading(true);
                 form.setValue("plan", "");
 
@@ -143,7 +200,7 @@ export const useFreebiesLogic = () => {
                 } finally {
                     setIsLoading(false);
                 }
-            } else {
+            } else if (!watchNetwork) {
                 setAvailablePlans([]);
             }
         };
@@ -218,7 +275,6 @@ export const useFreebiesLogic = () => {
     }, [nextClaimTime]);
 
     // Handle claim bundle logic
-    // Handle claim bundle logic - Corrected version
     async function onSubmit(values: z.infer<typeof formSchema>) {
         // Early return if already processing to prevent race conditions
         if (isProcessing || isClaiming || !canClaimToday) {
@@ -249,7 +305,11 @@ export const useFreebiesLogic = () => {
             const country = values.country;
             const emailAddress = values.email;
             const networkId = values.network;
-            const selectedPlan = availablePlans.find(plan => plan.id === values.plan) || null;
+            
+            // Only look up plan if service type is data
+            const selectedPlan = serviceType === 'data' 
+                ? (availablePlans.find(plan => plan.id === values.plan) || null)
+                : null;
 
             // Validation checks
             if (!isConnected) {
@@ -257,7 +317,7 @@ export const useFreebiesLogic = () => {
                 return;
             }
 
-            if (!selectedPlan) {
+            if (!selectedPlan && serviceType === 'data') {
                 toast.error("Please select a data plan");
                 return;
             }
@@ -268,9 +328,11 @@ export const useFreebiesLogic = () => {
             }
 
             // Validate selectedPlan has required properties
-            if (!selectedPlan.price || typeof selectedPlan.price !== 'string') {
-                toast.error("Invalid data plan selected. Please try selecting a different plan.");
-                return;
+            if (serviceType === 'data') {
+                if (!selectedPlan || !selectedPlan.price || typeof selectedPlan.price !== 'string') {
+                    toast.error("Invalid data plan selected. Please try selecting a different plan.");
+                    return;
+                }
             }
 
             // Set early localStorage to prevent rapid duplicate submissions
@@ -295,7 +357,7 @@ export const useFreebiesLogic = () => {
 
                 setIsVerified(true);
                 toast.success("Phone number verified successfully");
-                updateStepStatus('verify-phone-number', 'success');
+                updateStepStatus('verify-phone-number', 'loading');
 
                 if (verificationResult.autoSwitched && verificationResult.correctProviderId) {
                     form.setValue('network', verificationResult.correctProviderId);
@@ -332,16 +394,10 @@ export const useFreebiesLogic = () => {
             updateStepStatus('claim-ubi', 'loading');
 
             try {
-                const tx = await handleClaim();
-                if (tx) {
-                    hasClaimedSuccessfully = true;
-                    updateStepStatus('claim-ubi', 'success');
-                    toast.success("Claim successful! Your data bundle will be activated shortly.");
-                }
-                else {
-                updateStepStatus('claim-ubi', 'error', "An error occurred during the claim process.");
-                    return
-                }
+                await handleClaim();
+                hasClaimedSuccessfully = true;
+                updateStepStatus('claim-ubi', 'success');
+                toast.success("Claim successful! Your data bundle will be activated shortly.");
             } catch (claimError) {
                 console.error("Claim failed:", claimError);
                 toast.error("Failed to claim your free data bundle. Please try again.");
@@ -349,12 +405,13 @@ export const useFreebiesLogic = () => {
                 return;
             }
 
-
+           
             // Process payment
             updateStepStatus('payment', 'loading');
             let transactionHash: string | null = null;
             try {
                 const tx = await processPayment();
+                console.log("Payment transaction result:", tx);
                 transactionHash = tx;
                 setTxID(transactionHash);
                 updateStepStatus('payment', 'success');
@@ -367,49 +424,73 @@ export const useFreebiesLogic = () => {
 
             // Process data top-up
             try {
-                const selectedPrice = parseFloat(selectedPlan.price.replace(/[^0-9.]/g, ''));
-
-                // Validate parsed price
-                if (isNaN(selectedPrice) || selectedPrice <= 0) {
-                    throw new Error("Invalid plan price");
-                }
-
-                // Ensure we have a valid transaction hash
-                if (!transactionHash) {
-                    throw new Error("Transaction hash is required for topup");
-                }
-
-                const networks = [{ id: networkId, name: 'Network' }];
                 updateStepStatus('top-up', 'loading');
+                let topupResult;
+                
+                if (serviceType === 'data') {
+                    if (!selectedPlan || !selectedPlan.price) {
+                        throw new Error("Invalid or missing data plan");
+                    }
 
-                const topupResult = await processDataTopUp(
-                    {
-                        phoneNumber,
-                        country,
-                        network: networkId,
-                        email: emailAddress,
-                        customId: transactionHash 
-                    },
-                    selectedPrice,
-                    availablePlans,
-                    networks
-                );
+                    const priceString = String(selectedPlan.price);
+                    const selectedPrice = parseFloat(priceString.replace(/[^0-9.]/g, ''));
 
-                // ...rest of the code...
+                    // Validate parsed price
+                    if (isNaN(selectedPrice) || selectedPrice <= 0) {
+                        throw new Error("Invalid plan price");
+                    }
+
+                    // Ensure we have a valid transaction hash
+                    if (!transactionHash) {
+                        throw new Error("Transaction hash is required for topup");
+                    }
+
+                    const networks = [{ id: networkId, name: 'Network' }];
+                    
+                    topupResult = await processDataTopUp(
+                        {
+                            phoneNumber,
+                            country,
+                            network: networkId,
+                            email: emailAddress,
+                            customId: transactionHash
+                        },
+                        selectedPrice,
+                        availablePlans,
+                        networks
+                    );
+                } else {
+                    // Airtime top-up
+                    if (!transactionHash) {
+                        throw new Error("Transaction hash is required for topup");
+                    }
+
+                    const amount = 100; // Fixed amount for airtime top-up
+                    topupResult = await processAirtimeTopUp(
+                        {
+                            phoneNumber,
+                            country,
+                            network: networkId,
+                            email: emailAddress,
+                            customId: transactionHash
+                        },
+                        amount
+                    );
+                }
+                
                 setCanClaimToday(false);
 
                 if (topupResult && topupResult.success) {
                     // Only set localStorage after successful topup
                     if (typeof window !== 'undefined') {
                         localStorage.setItem('lastFreeClaim', new Date().toDateString());
-                        localStorage.removeItem('processingClaim'); 
+                        localStorage.removeItem('processingClaim');
                     }
 
                     setSelectedPlan(null);
                     updateStepStatus('top-up', 'success');
                     form.reset();
-                    closeTransactionDialog()
-                    toast.success("Data bundle topped up successfully! You can claim again tomorrow.");
+                    closeTransactionDialog();
                 } else {
                     throw new Error("Top-up failed - no success confirmation received");
                 }
@@ -474,6 +555,8 @@ export const useFreebiesLogic = () => {
         loadingWhitelist,
         canClaimToday,
         timeRemaining,
+        serviceType,
+        setServiceType,
 
         // Data
         networks,
