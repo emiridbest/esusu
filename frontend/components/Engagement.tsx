@@ -492,7 +492,7 @@ const RewardsClaimCard = () => {
                 <Button
                   onClick={handleClaim}
                   disabled={!isConnected || isLoading || claimStep === 'success' || !isWhitelisted || !isClaimable || checkingWhitelist}
-                  className="w-full h-12 text-lg font-semibold bg-yellow-500 text-black/90 hover:bg-yellow-600 transition-all duration-200"
+                  className="w-full h-12 text-lg font-semibold bg-yellow-500 dark:bg-yellow-500 text-black/90 hover:bg-yellow-600 transition-all duration-200"
                 >
                   {getButtonText()}
                   {!isLoading && claimStep !== 'success' && isWhitelisted && isConnected && isClaimable && (
