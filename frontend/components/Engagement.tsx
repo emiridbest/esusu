@@ -37,7 +37,7 @@ interface InviteReward {
 }
 // Configuration constants - using the SDK constants as per integration guide
 const APP_ADDRESS = ENGAGEMENT_CONFIG.APP_ADDRESS
-const REWARDS_CONTRACT_ADDRESS = DEV_REWARDS_CONTRACT
+const REWARDS_CONTRACT_ADDRESS = REWARDS_CONTRACT
 const INVITER_ADDRESS = ENGAGEMENT_CONFIG.INVITER_ADDRESS
 
 // Helper function to call our API route
@@ -99,7 +99,6 @@ const RewardsClaimCard = () => {
   // Handle inviter storage and reward details
   useEffect(() => {
     if (!engagementRewards || !userAddress) return
-    console.log("fetching reward and events")
     const fetchRewardDetails = async () => {
       try {
         // Get reward amount and distribution percentages
@@ -109,7 +108,6 @@ const RewardsClaimCard = () => {
             engagementRewards.getAppInfo(APP_ADDRESS),
           ])
 
-        console.log(userInviterPercentage, userPercentage)
         if (amount) {
           // engagementRewards.getAppRewards returns an object with multiple bigint fields.
           // Use the appropriate bigint field (appRewards or totalRewards) rather than the whole object.
@@ -120,7 +118,6 @@ const RewardsClaimCard = () => {
             BigInt(0),
           )
         }
-
         // Calculate share percentages
         const totalUserInviter = Number(userInviterPercentage) || 0
         const userPercent = Number(userPercentage) || 0
@@ -293,7 +290,6 @@ const RewardsClaimCard = () => {
     try {
       // First check if user can claim
       /**const isEligible = await engagementRewards.canClaim(APP_ADDRESS, userAddress!).catch((error: any) => {
-        console.log("Eligibility check error:", error)
         return false
       })
   
@@ -322,7 +318,6 @@ const RewardsClaimCard = () => {
           validUntilBlock
         )
       } catch (signError) {
-        console.log("User signature error:", signError)
         userSignature = "0x" as `0x${string}`
       }
 
@@ -420,12 +415,12 @@ const RewardsClaimCard = () => {
               <div className="rounded-lg mt-4 border bg-yellow-50/80 dark:bg-black border/70 p-4 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-black/90">
-                      Available to claim
-                    </p>
-                    <p className="text-3xl font-bold text-black dark:text-white/90">
-                      {formatAmount(rewardAmount)} G$
-                    </p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-black/90">
+                    Available to claim
+                  </p>
+                  <p className="text-3xl font-bold text-black dark:text-white/90">
+                    {isClaimable ? '4000 ' : 0} G$
+                  </p>
                   </div>
                 </div>
                 <p className="text-sm text-black dark:text-white/90">
@@ -581,7 +576,7 @@ const RewardsClaimCard = () => {
                   </div>
                   <p className="text-sm text-slate-600 dark:text-slate-300">
                     {isWhitelisted
-                      ? `Share this link to earn ${inviterShare}% of ${formatAmount(rewardAmount)} G$ for each new user who joins!`
+                      ? `Share this link to earn ${inviterShare + 10}% of 4000 G$ for each new user who joins!`
                       : 'Verify your account to start sharing and earning rewards.'}
                   </p>
                 </CardContent>
