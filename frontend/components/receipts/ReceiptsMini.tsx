@@ -12,7 +12,7 @@ import { Zap, Banknote, Users, ReceiptText } from "lucide-react";
 interface ReceiptTx {
   transactionHash: string;
   type: "savings" | "withdrawal" | "utility_payment" | "group_contribution" | "group_payout";
-  subType?: "airtime" | "data" | "electricity" | "aave_deposit" | "aave_withdrawal";
+  subType?: "airtime" | "data" | "electricity" | "cable" | "aave_deposit" | "aave_withdrawal";
   amount: number;
   token: string;
   status: "pending" | "confirmed" | "failed" | "completed";

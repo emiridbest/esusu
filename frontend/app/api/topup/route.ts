@@ -337,10 +337,12 @@ export async function POST(request: NextRequest) {
       email, 
       transactionHash, 
       expectedAmount, 
-      paymentToken 
+      paymentToken,
+      serviceType,
+      type 
     } = body;
     
-    console.log('Top-up request body:', { operatorId, amount, recipientPhone, email, transactionHash });
+    console.log('Top-up request body:', { operatorId, amount, recipientPhone, email, transactionHash, serviceType });
     
     // SECURITY: Validate required fields including payment proof
     if (!operatorId || !amount || !recipientPhone || !recipientPhone.country || !recipientPhone.phoneNumber) {
@@ -436,13 +438,40 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+      // Determine subType based on serviceType/type (if provided) or operatorId
+      let subType: 'airtime' | 'data' | 'electricity' | 'cable';
+      
+      // Use serviceType (from context) or type (from components) if explicitly provided
+      const transactionType = serviceType || type;
+      if (transactionType === 'airtime') {
+        subType = 'airtime';
+      } else if (transactionType === 'data') {
+        subType = 'data';
+      } else {
+        // Fall back to operatorId-based detection
+        const operatorIdLower = String(operatorId).toLowerCase();
+        
+        if (operatorIdLower.includes('airtime') || operatorIdLower.includes('mobile-topup')) {
+          subType = 'airtime';
+        } else if (operatorIdLower.includes('data') || operatorIdLower.includes('data-bundle')) {
+          subType = 'data';
+        } else if (operatorIdLower.includes('cable') || operatorIdLower.includes('tv') || operatorIdLower.includes('cabletv')) {
+          subType = 'cable';
+        } else {
+          // Default to 'electricity' only for actual electricity payments
+          // This topup route should primarily handle airtime/data, so electricity might be unexpected here
+          subType = 'electricity';
+        }
+      }
+      
+      console.log('Determined subType:', subType, 'from serviceType/type:', transactionType, 'operatorId:', operatorId);
+
       // Record transaction in database
       const transaction = await TransactionService.createTransaction({
         walletAddress,
         transactionHash,
         type: 'utility_payment',
-        subType: (operatorId.includes('airtime') ? 'airtime' : 
-                 operatorId.includes('data') ? 'data' : 'electricity') as any,
+        subType: subType as any,
         amount: parseFloat(expectedAmount),
         token: paymentToken,
         utilityDetails: {

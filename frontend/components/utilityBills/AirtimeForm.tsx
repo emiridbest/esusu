@@ -369,7 +369,7 @@ useEffect(() => {
                 phoneNumber: cleanPhoneNumber
               },
               email: values.email,
-              type: 'airtime',
+              serviceType: 'airtime',
               // SECURITY: Payment validation fields
               transactionHash: paymentResult.transactionHash,
               expectedAmount: paymentResult.convertedAmount,

@@ -1,26 +1,37 @@
 import dbConnect from '../database/connection';
-import { Notification, INotification } from '../database/schemas';
+import { Notification, INotification, Group } from '../database/schemas';
 import { UserService } from './userService';
 import nodemailer from 'nodemailer';
 // @ts-ignore - Optional dependency
 import twilio from 'twilio';
 
-// Email configuration
-const emailTransporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || 'gmail', // or your preferred email service
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
-  }
-});
+// Email configuration (initialize only if creds exist)
+let emailTransporter: ReturnType<typeof nodemailer.createTransport> | null = null;
+if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
+  emailTransporter = nodemailer.createTransport({
+    service: process.env.EMAIL_SERVICE || 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD
+    }
+  });
+  console.log('✅ Email service configured');
+} else {
+  console.warn('⚠️ Email credentials not configured (EMAIL_USER and EMAIL_PASSWORD required)');
+}
 
-// SMS configuration (initialize only if creds exist)
+// SMS configuration (initialize only if creds exist and are valid)
 let twilioClient: ReturnType<typeof twilio> | null = null;
-if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && 
+    process.env.TWILIO_ACCOUNT_SID.startsWith('AC') && 
+    process.env.TWILIO_AUTH_TOKEN !== 'your_twilio_auth_token') {
   twilioClient = twilio(
     process.env.TWILIO_ACCOUNT_SID,
     process.env.TWILIO_AUTH_TOKEN
   );
+  console.log('✅ SMS service configured');
+} else {
+  console.warn('⚠️ Twilio credentials not configured, SMS notifications disabled');
 }
 
 export class NotificationService {
@@ -54,13 +65,29 @@ export class NotificationService {
 
     const savedNotification = await notification.save();
 
-    // Send email notification if requested and user has email
-    if (data.sendEmail !== false && user.email) {
-      const emailSent = await this.sendEmailNotification(user.email, data.title, data.message, savedNotification._id.toString());
-      if (!emailSent) {
-        console.warn(`Failed to send email to ${user.email}`);
+      // Send email notification if requested and user has email
+      if (data.sendEmail !== false && user.email) {
+        // Get user's active groups count
+        const activeGroups = await Group.countDocuments({
+          'members.user': user._id,
+          'members.isActive': true,
+          status: { $in: ['forming', 'active'] }
+        });
+
+        const emailSent = await this.sendEmailNotification(
+          user.email, 
+          data.title, 
+          data.message, 
+          savedNotification._id.toString(),
+          { 
+            totalSavings: user.savings?.totalSaved || 0, 
+            activeGroups: activeGroups 
+          }
+        );
+        if (!emailSent) {
+          console.warn(`Failed to send email to ${user.email}`);
+        }
       }
-    }
 
     // Send SMS notification if requested and user has phone
     if (data.sendSMS !== false && user.phone) {
@@ -70,45 +97,174 @@ export class NotificationService {
       }
     }
 
-    return savedNotification;
+    // Fetch the updated notification with correct channel status
+    // @ts-ignore - Mongoose union type compatibility issue
+    const updatedNotification = await Notification.findById(savedNotification._id);
+    return updatedNotification || savedNotification;
   }
 
   static async sendEmailNotification(
     email: string,
     title: string,
     message: string,
-    notificationId: string
+    notificationId: string,
+    userData?: { totalSavings?: number; activeGroups?: number }
   ): Promise<boolean> {
     try {
+      if (!emailTransporter) {
+        console.log('⚠️ Email service not configured, skipping email notification');
+        return false;
+      }
+
       const mailOptions = {
         from: process.env.EMAIL_FROM || 'noreply@esusu.app',
         to: email,
         subject: `Esusu - ${title}`,
         html: `
-          <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-            <div style="background: linear-gradient(135deg, #fbbf24, #f59e0b); padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
-              <h1 style="color: white; margin: 0; font-size: 24px;">Esusu</h1>
-              <p style="color: white; margin: 5px 0 0 0; opacity: 0.9;">Your Decentralized Savings Platform</p>
-            </div>
-            
-            <div style="background: #f9fafb; padding: 25px; border-radius: 8px; margin-bottom: 20px;">
-              <h2 style="color: #111827; margin: 0 0 15px 0; font-size: 20px;">${title}</h2>
-              <p style="color: #374151; line-height: 1.6; margin: 0;">${message}</p>
-            </div>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.FRONTEND_URL || 'https://esusu.app'}" 
-                 style="background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 600;">
-                Open Esusu App
-              </a>
-            </div>
-            
-            <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; text-align: center;">
-              <p style="color: #6b7280; font-size: 14px; margin: 0;">
-                This is an automated message from Esusu. Please do not reply to this email.
-              </p>
-            </div>
-          </div>
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="color-scheme" content="dark">
+          </head>
+          <body style="margin: 0; padding: 0; background: linear-gradient(135deg, #0a0d14 0%, #0e1018 50%, #0a0d14 100%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', 'Inter', 'Roboto', Arial, sans-serif; min-height: 100vh;">
+            <table role="presentation" style="width: 100%; border-collapse: collapse; background: linear-gradient(135deg, #0a0d14 0%, #0e1018 50%, #0a0d14 100%);">
+              <tr>
+                <td align="center" style="padding: 40px 20px;">
+                  <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #0e1018; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);">
+                    <!-- Header with Logo -->
+                    <tr>
+                      <td style="background: linear-gradient(135deg, #f7931a 0%, #ffa930 100%); padding: 40px 32px; text-align: center;">
+                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                          <tr>
+                            <td align="center" style="padding-bottom: 16px;">
+                              <img src="https://www.esusuafrica.com/_next/image?url=%2Fesusu.png&w=256&q=75" 
+                                   alt="Esusu" 
+                                   style="width: 72px; height: 72px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); background: rgba(255, 255, 255, 0.1); padding: 8px;"
+                                   onerror="this.src='${process.env.FRONTEND_URL || 'https://esusu.app'}/esusu.png'">
+                            </td>
+                          </tr>
+                          <tr>
+                            <td align="center">
+                              <div style="color: rgba(255, 255, 255, 0.95); font-size: 13px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase;">Decentralized Savings Platform</div>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    
+                    <!-- Main Content -->
+                    <tr>
+                      <td style="padding: 40px 32px; background-color: #191d26;">
+                        <!-- Title with Icon -->
+                        <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+                          <tr>
+                            <td style="border-bottom: 2px solid #282c35; padding-bottom: 20px;">
+                              <h1 style="color: #f7931a; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2;">${title}</h1>
+                            </td>
+                          </tr>
+                        </table>
+                        
+                        <!-- Message -->
+                        <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 32px;">
+                          <tr>
+                            <td>
+                              <p style="color: #d1d5db; font-size: 16px; line-height: 1.75; margin: 0; font-weight: 400;">${message}</p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    
+                    <!-- Dashboard Stats -->
+                    ${userData ? `
+                    <tr>
+                      <td style="padding: 0 32px 32px; background-color: #191d26;">
+                        <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #0e1018; border-radius: 12px; border: 1px solid #282c35; overflow: hidden;">
+                          <tr>
+                            <td style="padding: 24px;">
+                              <div style="color: #f7931a; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; text-align: center;">📊 Your Portfolio</div>
+                              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                  <td style="width: 50%; padding-right: 12px;">
+                                    <div style="background: linear-gradient(135deg, #0a0d14 0%, #0e1018 100%); border: 1px solid #282c35; border-radius: 10px; padding: 20px; text-align: center;">
+                                      <div style="color: #10b981; font-size: 28px; font-weight: 700; margin-bottom: 8px; line-height: 1;">$${userData.totalSavings || 0}</div>
+                                      <div style="color: #9ca3af; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Total Savings</div>
+                                    </div>
+                                  </td>
+                                  <td style="width: 50%; padding-left: 12px;">
+                                    <div style="background: linear-gradient(135deg, #0a0d14 0%, #0e1018 100%); border: 1px solid #282c35; border-radius: 10px; padding: 20px; text-align: center;">
+                                      <div style="color: #f7931a; font-size: 28px; font-weight: 700; margin-bottom: 8px; line-height: 1;">${userData.activeGroups || 0}</div>
+                                      <div style="color: #9ca3af; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Active Groups</div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    ` : ''}
+                    
+                    <!-- CTA Button -->
+                    <tr>
+                      <td style="padding: 0 32px 32px; background-color: #191d26; text-align: center;">
+                        <a href="${process.env.FRONTEND_URL || 'https://esusu.app'}" 
+                           style="display: inline-block; background: linear-gradient(135deg, #f7931a 0%, #ffa930 100%); color: white; padding: 16px 48px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; letter-spacing: -0.3px; box-shadow: 0 8px 24px rgba(247, 147, 26, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset; transition: all 0.2s;">
+                          Open Esusu App →
+                        </a>
+                      </td>
+                    </tr>
+                    
+                    <!-- Security Notice -->
+                    <tr>
+                      <td style="padding: 0 32px 32px; background-color: #191d26;">
+                        <table role="presentation" style="width: 100%; border-collapse: collapse; background: linear-gradient(135deg, #0a0d14 0%, #0e1018 100%); border: 1px solid #282c35; border-radius: 12px; overflow: hidden;">
+                          <tr>
+                            <td style="padding: 24px; text-align: center;">
+                              <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+                                <tr>
+                                  <td align="center" style="padding-bottom: 12px;">
+                                    <div style="display: inline-flex; align-items: center; gap: 12px;">
+                                      <div style="background: linear-gradient(135deg, #0e1018 0%, #191d26 100%); border: 1px solid #f7931a; border-radius: 8px; padding: 10px 16px;">
+                                        <span style="color: #f7931a; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; font-family: 'Courier New', 'Monaco', monospace;">ANTI-PHISHING</span>
+                                      </div>
+                                      <div style="background: linear-gradient(135deg, #0e1018 0%, #191d26 100%); border: 1px solid #10b981; border-radius: 8px; padding: 10px 16px;">
+                                        <span style="color: #10b981; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; font-family: 'Courier New', 'Monaco', monospace;">🔒 SECURE</span>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              </table>
+                              <p style="color: #9ca3af; font-size: 13px; line-height: 1.6; margin: 0;">
+                                This is an official Esusu email. Always verify transactions in your wallet.<br>
+                                <span style="color: #6b7280; font-size: 12px;">Never share your private key or recovery phrase with anyone.</span>
+                              </p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                      <td style="padding: 32px; background-color: #0e1018; border-top: 1px solid #282c35; text-align: center;">
+                        <p style="color: #6b7280; font-size: 13px; margin: 0 0 8px 0; font-weight: 500;">
+                          © ${new Date().getFullYear()} Esusu. All rights reserved.
+                        </p>
+                        <p style="color: #4b5563; font-size: 12px; margin: 0;">
+                          This is an automated message. Please do not reply to this email.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+          </html>
         `
       };
 

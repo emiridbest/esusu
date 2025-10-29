@@ -52,7 +52,7 @@ export interface ITransaction extends Document {
   user: Types.ObjectId;
   transactionHash: string; // Blockchain transaction hash
   type: 'savings' | 'withdrawal' | 'utility_payment' | 'group_contribution' | 'group_payout';
-  subType?: 'airtime' | 'data' | 'electricity' | 'aave_deposit' | 'aave_withdrawal';
+  subType?: 'airtime' | 'data' | 'electricity' | 'cable' | 'aave_deposit' | 'aave_withdrawal';
   amount: number;
   token: string;
   status: 'pending' | 'confirmed' | 'failed' | 'completed';
@@ -91,7 +91,7 @@ const TransactionSchema = new Schema<ITransaction>({
   },
   subType: { 
     type: String, 
-    enum: ['airtime', 'data', 'electricity', 'aave_deposit', 'aave_withdrawal'] 
+    enum: ['airtime', 'data', 'electricity', 'cable', 'aave_deposit', 'aave_withdrawal'] 
   },
   amount: { type: Number, required: true },
   token: { type: String, required: true },

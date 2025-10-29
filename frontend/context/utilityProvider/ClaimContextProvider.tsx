@@ -292,6 +292,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           transactionHash: values.transactionHash,
           expectedAmount: values.expectedAmount,
           paymentToken: values.paymentToken,
+          serviceType: 'data',
           recipientPhone: {
             country: values.country,
             phoneNumber: cleanPhoneNumber
@@ -337,6 +338,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           operatorId: values.network,
           amount: selectedPrice.toString(),
           customId: values.customId,
+          serviceType: 'airtime',
           recipientPhone: {
             country: values.country,
             phoneNumber: cleanPhoneNumber
@@ -349,7 +351,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        toast.success(`Successfully topped up ${values.phoneNumber} with N100.`);
+        toast.success(`Successfully topped up ${values.phoneNumber} with airtime.`);
         return { success: true };
       } else {
         console.error("Top-up API Error:", data);

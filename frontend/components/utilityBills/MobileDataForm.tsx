@@ -295,7 +295,7 @@ export default function MobileDataForm() {
                 phoneNumber: cleanPhoneNumber
               },
               email: values.email,
-              type: 'data',
+              serviceType: 'data',
               // SECURITY: Payment validation fields
               transactionHash: paymentResult.transactionHash,
               expectedAmount: paymentResult.convertedAmount,

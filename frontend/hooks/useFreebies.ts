@@ -354,61 +354,61 @@ export const useFreebiesLogic = () => {
     }, [nextClaimTime]);
 
     // Handle claim bundle logic
-    async function onSubmit(values: z.infer<typeof formSchema>) {
-        // Early return if already processing to prevent race conditions
-        if (isProcessing || isClaiming || !canClaimToday) {
+async function onSubmit(values: z.infer<typeof formSchema>) {
+    // Early return if already processing to prevent race conditions
+    if (isProcessing || isClaiming || !canClaimToday) {
+        return;
+    }
+
+    // Check localStorage before starting process
+    const checkCanClaim = () => {
+        if (typeof window === 'undefined') return true; // SSR check
+        const lastClaim = localStorage.getItem('lastFreeClaim');
+        const today = new Date().toDateString();
+        return lastClaim !== today;
+    };
+
+    if (!checkCanClaim()) {
+        toast.error("You have already claimed your free data bundle today. Please try again tomorrow.");
+        return;
+    }
+
+    // Generate unique transaction ID for idempotency
+    const transactionId = `${address}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    setIsProcessing(true);
+    let hasClaimedSuccessfully = false;
+    
+    try {
+        const phoneNumber = values.phoneNumber;
+        const country = values.country;
+        const emailAddress = values.email;
+        const networkId = values.network;
+        const selectedPlan = availablePlans.find(plan => plan.id === values.plan) || null;
+
+        // Validation checks
+        if (!address) {
+            toast.error("Please connect your wallet first");
             return;
         }
 
-        // Check localStorage before starting process
-        const checkCanClaim = () => {
-            if (typeof window === 'undefined') return true; // SSR check
-            const lastClaim = localStorage.getItem('lastFreeClaim');
-            const today = new Date().toDateString();
-            return lastClaim !== today;
-        };
-
-        if (!checkCanClaim()) {
-            toast.error("You have already claimed your free data bundle today. Please try again tomorrow.");
+        // Validate address format
+        if (!address.startsWith('0x') || address.length !== 42) {
+            toast.error("Invalid wallet address format");
             return;
         }
 
-        // Generate unique transaction ID for idempotency
-        const transactionId = `${address}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        if (!isConnected) {
+            toast.error("Please connect your wallet");
+            return;
+        }
         
-        setIsProcessing(true);
-        let hasClaimedSuccessfully = false;
-        
-        try {
-            const phoneNumber = values.phoneNumber;
-            const country = values.country;
-            const emailAddress = values.email;
-            const networkId = values.network;
-            const selectedPlan = availablePlans.find(plan => plan.id === values.plan) || null;
-
-            // Validation checks
-            if (!address) {
-                toast.error("Please connect your wallet first");
-                return;
-            }
-
-            // Validate address format
-            if (!address.startsWith('0x') || address.length !== 42) {
-                toast.error("Invalid wallet address format");
-                return;
-            }
-
-            if (!isConnected) {
-                toast.error("Please connect your wallet");
-                return;
-            }
-            
             // Only validate plan selection for data service type
             if (serviceType === 'data' && !selectedPlan) {
                 toast.error("Please select a data plan");
                 return;
             }
-            
+
             if (!phoneNumber) {
                 toast.error("Please enter your phone number");
                 return;
@@ -442,7 +442,7 @@ export const useFreebiesLogic = () => {
                 localStorage.setItem('processingClaim', 'true');
             }
 
-            setIsClaiming(true);
+        setIsClaiming(true);
             setIsVerifying(true);
 
             try {
@@ -459,23 +459,23 @@ export const useFreebiesLogic = () => {
 
                 // Step 2: Process the top-up based on service type
                 if (serviceType === 'data') {
-                    updateStepStatus('top-up', 'loading');
+            updateStepStatus('top-up', 'loading');
                     const topUpResult = await processDataTopUp(
-                        {
-                            phoneNumber,
-                            country,
-                            network: networkId,
-                            email: emailAddress,
+                {
+                    phoneNumber,
+                    country,
+                    network: networkId,
+                    email: emailAddress,
                             customId: transactionId,
                             transactionHash: paymentResult.transactionHash,
                             expectedAmount: selectedPlan?.price || '0',
                             paymentToken: 'G$'
                         },
                         parseFloat(selectedPlan?.price || '0'),
-                        availablePlans,
-                        networks
-                    );
-
+                availablePlans,
+                networks
+            );
+            
                     if (!topUpResult.success) {
                         throw new Error(topUpResult.error || "Data top-up failed");
                     }
@@ -545,7 +545,7 @@ export const useFreebiesLogic = () => {
             }
 
             // Mark as successfully claimed and update state
-            setCanClaimToday(false);
+                setCanClaimToday(false);
 
             try {
                 openTransactionDialog('data', phoneNumber);
