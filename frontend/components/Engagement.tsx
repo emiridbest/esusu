@@ -170,7 +170,7 @@ const RewardsClaimCard = () => {
     // Update invite link when wallet is connected
     if (userAddress) {
       const baseUrl = window.location.origin
-      setInviteLink(`${baseUrl}/freebies/${userAddress}`)
+      setInviteLink(`${baseUrl}/?invite=$/${userAddress}`)
     } else {
       setInviteLink("")
     }
