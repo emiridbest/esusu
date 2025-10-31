@@ -28,7 +28,7 @@ import {
   getTransactionUrl,
   validateConfiguration
 } from '@/lib/engagementHelpers'
-import { useParams } from "react-router-dom";
+import { useSearchParams } from 'next/navigation' 
 import { useIdentitySDK } from '@goodsdks/identity-sdk';
 
 interface InviteReward {
@@ -90,12 +90,16 @@ const RewardsClaimCard = () => {
   const [rewardAmount, setRewardAmount] = useState<bigint>(BigInt(0))
   const [inviterShare, setInviterShare] = useState<number>(0)
   const [isClaimable, setIsClaimable] = useState(false)
-  const { inviterAddress } = useParams()
+  const searchParams = useSearchParams()
+  const inviterAddress = searchParams.get('inviterAddress')
   const [isWhitelisted, setIsWhitelisted] = useState<boolean>(false)
   const [checkingWhitelist, setCheckingWhitelist] = useState<boolean>(true)
   const [lastTransactionHash, setLastTransactionHash] = useState<string | null>(null)
   const userWallet = userAddress
-
+ const formatAddress = (addr: string | null) => {
+    if (!addr) return '';
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
   // Handle inviter storage and reward details
   useEffect(() => {
     if (!engagementRewards || !userAddress) return
@@ -170,7 +174,7 @@ const RewardsClaimCard = () => {
     // Update invite link when wallet is connected
     if (userAddress) {
       const baseUrl = window.location.origin
-      setInviteLink(`${baseUrl}?inviterAddress=${userAddress}`) 
+      setInviteLink(`${baseUrl}/freebies?inviterAddress=${userAddress}`) 
     } else {
       setInviteLink("")
     }
@@ -554,6 +558,7 @@ const RewardsClaimCard = () => {
                 <CardHeader>
                   <CardTitle className="text-lg">Your Invite Link</CardTitle>
                   <CardDescription>
+                    <p>Inviter: ${formatAddress(inviterAddress) || formatAddress(INVITER_ADDRESS)}</p>
                     Share this link to invite friends and earn a share of their rewards.
                   </CardDescription>
                 </CardHeader>
