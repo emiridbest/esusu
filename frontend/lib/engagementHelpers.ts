@@ -74,11 +74,9 @@ export function validateConfiguration(): { isValid: boolean; errors: string[] } 
   
   
   if (!ENGAGEMENT_CONFIG.APP_ADDRESS || ENGAGEMENT_CONFIG.APP_ADDRESS === "0x4d4cC2E0c5cBC9737A0dEc28d7C2510E2BEF5A09") {
-    console.log('Using default APP_ADDRESS for testing. Update NEXT_PUBLIC_APP_ADDRESS for production.')
   }
   
   if (!ENGAGEMENT_CONFIG.INVITER_ADDRESS || ENGAGEMENT_CONFIG.INVITER_ADDRESS === "0x4d4cC2E0c5cBC9737A0dEc28d7C2510E2BEF5A09") {
-    console.log('Using default INVITER_ADDRESS for testing. Update NEXT_PUBLIC_INVITER_ADDRESS for production.')
   }
   
   return {

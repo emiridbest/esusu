@@ -338,6 +338,9 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           operatorId: values.network,
           amount: selectedPrice.toString(),
           customId: values.customId,
+          transactionHash: values.transactionHash,
+          expectedAmount: values.expectedAmount,
+          paymentToken: values.paymentToken,
           serviceType: 'airtime',
           recipientPhone: {
             country: values.country,

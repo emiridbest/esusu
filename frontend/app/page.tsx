@@ -140,9 +140,7 @@ const Esusu: React.FC = () => {
           </TabsList>
           <TabsContent value="transactions" className="mt-4">
             <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-black/90 backdrop-blur-md">
-              <CardContent className="pt-6">
                 <TransactionList />
-              </CardContent>
             </Card>
           </TabsContent>
           <TabsContent value="features" className="mt-4">

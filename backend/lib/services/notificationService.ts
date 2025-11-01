@@ -67,22 +67,11 @@ export class NotificationService {
 
       // Send email notification if requested and user has email
       if (data.sendEmail !== false && user.email) {
-        // Get user's active groups count
-        const activeGroups = await Group.countDocuments({
-          'members.user': user._id,
-          'members.isActive': true,
-          status: { $in: ['forming', 'active'] }
-        });
-
         const emailSent = await this.sendEmailNotification(
           user.email, 
           data.title, 
           data.message, 
-          savedNotification._id.toString(),
-          { 
-            totalSavings: user.savings?.totalSaved || 0, 
-            activeGroups: activeGroups 
-          }
+          savedNotification._id.toString()
         );
         if (!emailSent) {
           console.warn(`Failed to send email to ${user.email}`);
@@ -107,8 +96,7 @@ export class NotificationService {
     email: string,
     title: string,
     message: string,
-    notificationId: string,
-    userData?: { totalSavings?: number; activeGroups?: number }
+    notificationId: string
   ): Promise<boolean> {
     try {
       if (!emailTransporter) {
@@ -176,37 +164,6 @@ export class NotificationService {
                         </table>
                       </td>
                     </tr>
-                    
-                    <!-- Dashboard Stats -->
-                    ${userData ? `
-                    <tr>
-                      <td style="padding: 0 32px 32px; background-color: #191d26;">
-                        <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #0e1018; border-radius: 12px; border: 1px solid #282c35; overflow: hidden;">
-                          <tr>
-                            <td style="padding: 24px;">
-                              <div style="color: #f7931a; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; text-align: center;">📊 Your Portfolio</div>
-                              <table role="presentation" style="width: 100%; border-collapse: collapse;">
-                                <tr>
-                                  <td style="width: 50%; padding-right: 12px;">
-                                    <div style="background: linear-gradient(135deg, #0a0d14 0%, #0e1018 100%); border: 1px solid #282c35; border-radius: 10px; padding: 20px; text-align: center;">
-                                      <div style="color: #10b981; font-size: 28px; font-weight: 700; margin-bottom: 8px; line-height: 1;">$${userData.totalSavings || 0}</div>
-                                      <div style="color: #9ca3af; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Total Savings</div>
-                                    </div>
-                                  </td>
-                                  <td style="width: 50%; padding-left: 12px;">
-                                    <div style="background: linear-gradient(135deg, #0a0d14 0%, #0e1018 100%); border: 1px solid #282c35; border-radius: 10px; padding: 20px; text-align: center;">
-                                      <div style="color: #f7931a; font-size: 28px; font-weight: 700; margin-bottom: 8px; line-height: 1;">${userData.activeGroups || 0}</div>
-                                      <div style="color: #9ca3af; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Active Groups</div>
-                                    </div>
-                                  </td>
-                                </tr>
-                              </table>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                    </tr>
-                    ` : ''}
                     
                     <!-- CTA Button -->
                     <tr>
