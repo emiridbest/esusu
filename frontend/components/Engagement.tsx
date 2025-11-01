@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -28,7 +28,7 @@ import {
   getTransactionUrl,
   validateConfiguration
 } from '@/lib/engagementHelpers'
-import { useParams } from "react-router-dom";
+import { useSearchParams } from 'next/navigation'
 import { useIdentitySDK } from '@goodsdks/identity-sdk';
 
 interface InviteReward {
@@ -66,7 +66,16 @@ async function getAppSignature(params: {
 export default function Engagement() {
   return (
     <div className="max-w-4xl mx-auto mt-2">
-      <RewardsClaimCard />
+      <Suspense fallback={
+        <Card className="w-full max-w-2xl mx-auto">
+          <CardContent className="p-8 text-center">
+            <div className="animate-spin w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-slate-600 dark:text-slate-400">Loading rewards...</p>
+          </CardContent>
+        </Card>
+      }>
+        <RewardsClaimCard />
+      </Suspense>
     </div>
   );
 }
@@ -90,12 +99,16 @@ const RewardsClaimCard = () => {
   const [rewardAmount, setRewardAmount] = useState<bigint>(BigInt(0))
   const [inviterShare, setInviterShare] = useState<number>(0)
   const [isClaimable, setIsClaimable] = useState(false)
-  const { inviterAddress } = useParams()
+  const searchParams = useSearchParams()
+  const inviterAddress = searchParams.get('inviterAddress')
   const [isWhitelisted, setIsWhitelisted] = useState<boolean>(false)
   const [checkingWhitelist, setCheckingWhitelist] = useState<boolean>(true)
   const [lastTransactionHash, setLastTransactionHash] = useState<string | null>(null)
   const userWallet = userAddress
-
+  const formatAddress = (addr: string | null) => {
+    if (!addr) return '';
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
   // Handle inviter storage and reward details
   useEffect(() => {
     if (!engagementRewards || !userAddress) return
@@ -170,7 +183,7 @@ const RewardsClaimCard = () => {
     // Update invite link when wallet is connected
     if (userAddress) {
       const baseUrl = window.location.origin
-      setInviteLink(`${baseUrl}/invite/${userAddress}`)
+      setInviteLink(`${baseUrl}/freebies?inviterAddress=${userAddress}`)
     } else {
       setInviteLink("")
     }
@@ -415,12 +428,12 @@ const RewardsClaimCard = () => {
               <div className="rounded-lg mt-4 border bg-yellow-50/80 dark:bg-black border/70 p-4 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-black/90">
-                    Available to claim
-                  </p>
-                  <p className="text-3xl font-bold text-black dark:text-white/90">
-                    {isClaimable ? '4000 ' : 0} G$
-                  </p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-black/90">
+                      Available to claim
+                    </p>
+                    <p className="text-3xl font-bold text-black dark:text-white/90">
+                      {isClaimable ? '4000 ' : 0} G$
+                    </p>
                   </div>
                 </div>
                 <p className="text-sm text-black dark:text-white/90">
@@ -452,20 +465,20 @@ const RewardsClaimCard = () => {
                     <Clock className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
                     Claim rewards once every 180 days
                   </li>
-                    <li className="flex items-center">
-                      <Clock className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
-                      Invite others using your unique referral link to earn for each successful claim they make.
-                    </li>
+                  <li className="flex items-center">
+                    <Clock className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
+                    Invite others using your unique referral link to earn for each successful claim they make.
+                  </li>
                 </ul>
               </div>
 
               {status && (
                 <Alert
                   className={`border ${claimStep === 'success'
-                      ? 'border-green-200 bg-green-50'
-                      : claimStep === 'error'
-                        ? 'border-red-200 bg-red-50'
-                        : 'border-yellow-200 bg-yellow-50'
+                    ? 'border-green-200 bg-green-50'
+                    : claimStep === 'error'
+                      ? 'border-red-200 bg-red-50'
+                      : 'border-yellow-200 bg-yellow-50'
                     }`}
                 >
                   <div className="flex items-center gap-3">
@@ -554,6 +567,7 @@ const RewardsClaimCard = () => {
                 <CardHeader>
                   <CardTitle className="text-lg">Your Invite Link</CardTitle>
                   <CardDescription>
+                    <p>Inviter: ${formatAddress(inviterAddress) || formatAddress(INVITER_ADDRESS)}</p>
                     Share this link to invite friends and earn a share of their rewards.
                   </CardDescription>
                 </CardHeader>
