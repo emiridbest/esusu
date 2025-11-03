@@ -2,28 +2,34 @@
 
 ![Esusu Logo](https://github.com/user-attachments/assets/c1e4d15e-d400-477f-a302-98ba9e40135d)
 
+# Proof of Ship 9 
+- Commence viral app invite campaign: New user and inviter get G$2000 each.
+- Add airtime freebies: Prices are subsidised at over 20x.
+- Track tx hashes: This is for dispute resolution and activity monitoring.
+- Improve UI: Making it look cleaner and more professional.
+- Grow DAU to >650: The actual value at the time of report is 685
+- Commence G$ only daily claims: Making Esusu attractive to users who do not want subsidised airtimr or data topups.
+
+
+# Proof of Ship 7
+
+- Implemented robust user management and profile service (wallet-based identity, email/phone linking, MongoDB integration)
+- Centralised transaction management for savings, withdrawals, utility payments, group contributions, and payouts with blockchain tracking
+- Developed group thrift and rotating savings service (5-member groups, automated scheduling, strong validation)
+- Built a utility and electricity payment service with secure API integration and auditable flows
+- Added notification and multi-channel alert service (email, SMS, push) for key user and group events
 
 # Proof of Ship 6 
 - Made smart contracts upgradable
 - Added test suite with above 85% coverage
 - Implemented G$ face verification on Farcaster
-- Accepting Celo as a means of payment via MentoSDK exchange rate
 - Onboard additional users, increasing the community base by over 150%
 - Ran a monthly community giveaway scheme
 - Launched referral campaign for early community members with rewards payout of over $250 so far
 - Ensured GitOps pipeline is functional
-
-# Proof of Ship 7
-
-- Implemented robust user management and profile service (wallet-based identity, email/phone linking, MongoDB integration)
-- Centralized transaction management for savings, withdrawals, utility payments, group contributions, and payouts with blockchain tracking
-- Developed group thrift and rotating savings service (5-member groups, automated scheduling, strong validation)
-- Built utility and electricity payment service with secure API integration and auditable flows
-- Added notification and multi-channel alert service (email, SMS, push) for key user and group events
-
 ## Overview
 
-Esusu is a decentralised application (DApp) built on the Celo Mainnet that modernizes traditional community savings systems. It enables financial inclusion through a 3-in-1 solution that combines collaborative savings, personal finance management, and bill payment capabilities.
+Esusu is a decentralised application (DApp) built on the Celo Mainnet that modernises traditional community savings systems. It enables financial inclusion through a 3-in-1 solution that combines collaborative savings, personal finance management, and bill payment capabilities.
 
 ## Features
 
@@ -36,7 +42,7 @@ Esusu is a decentralised application (DApp) built on the Celo Mainnet that moder
 ### 2. MiniSafe Box (Time-locked Savings)
 - Personal savings with customizable time-locking
 - Earn MST (MiniSafe Tokens) as rewards for maintaining locked savings
-- Incentivizes financial discipline and long-term planning
+- Incentivises financial discipline and long-term planning
 
 ### 3. Bill Payment System
 - Pay utility bills directly through the platform
@@ -139,7 +145,7 @@ RPC_PROVIDER_URL=your_rpc_provider_url_here
 
 ## Building for Production
 
-To build both applications for production:
+To build both production applications:
 
 ```bash
 npm run build
@@ -165,7 +171,7 @@ npm run start
 
 ### Mobile Access
 
-To access the app via Celo MiniPay wallet:
+To access the app via the Celo MiniPay wallet:
 1. Open the MiniPay app
 2. Navigate to the `site tester` feature
 3. Enter `http://esusu-one.vercel.app`
