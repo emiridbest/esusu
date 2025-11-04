@@ -125,7 +125,8 @@ export default function ElectricityBillForm() {
         form.setValue("provider", "");
         form.setValue("meterNumber", "");
         form.setValue("amount", "");
-        form.setValue("paymentToken", "CUSD");
+        // Don't reset payment token - let user keep their selection
+        // form.setValue("paymentToken", "CUSD");
         form.setValue("email", "");
         setAmount(0);
         setProviderLimits(null);

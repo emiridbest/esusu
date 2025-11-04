@@ -59,13 +59,13 @@ type ClaimProcessorType = {
   isTransactionDialogOpen: boolean;
   setIsTransactionDialogOpen: (open: boolean) => void;
   setTransactionSteps: (steps: Step[]) => void;
-  setCurrentOperation: (operation: 'data' | null) => void;
+  setCurrentOperation: (operation: 'data' | 'airtime' | null) => void;
   isWaitingTx?: boolean;
   setIsWaitingTx?: (waiting: boolean) => void;
   closeTransactionDialog: () => void;
-  openTransactionDialog: (operation: 'data', recipientValue: string) => void;
+  openTransactionDialog: (operation: 'data' | 'airtime', recipientValue: string) => void;
   transactionSteps: Step[];
-  currentOperation: "data" | null;
+  currentOperation: "data" | "airtime" | null;
   updateStepStatus: (stepId: string, status: StepStatus, errorMessage?: string) => void;
 
 };
@@ -89,7 +89,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const [canClaim, setCanClaim] = useState(false);
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
   const [transactionSteps, setTransactionSteps] = useState<Step[]>([]);
-  const [currentOperation, setCurrentOperation] = useState<'data' | null>(null);
+  const [currentOperation, setCurrentOperation] = useState<'data' | 'airtime' | null>(null);
   const [isWaitingTx, setIsWaitingTx] = useState(false);
   const [recipient, setRecipient] = useState<string>('');
   // Using Thirdweb v5 sendTransaction instead of wagmi
@@ -464,12 +464,14 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     switch (currentOperation) {
       case 'data':
         return 'Purchase Data Bundle';
+      case 'airtime':
+        return 'Purchase Airtime';
       default:
         return 'Transaction';
     }
   };
 
-  const openTransactionDialog = (operation: 'data', recipientValue: string) => {
+  const openTransactionDialog = (operation: 'data' | 'airtime', recipientValue: string) => {
     setCurrentOperation(operation);
     setRecipient(recipientValue);
     setIsTransactionDialogOpen(true);
@@ -480,13 +482,13 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         {
           id: 'verify-phone',
           title: 'Verify Phone Number',
-          description: `Verifying phone number for ${recipient}`,
+          description: `Verifying phone number for ${recipientValue}`,
           status: 'inactive'
         },
         {
           id: 'claim-ubi',
           title: 'Claim UBI',
-          description: `Claiming Universal Basic Income for ${recipient}`,
+          description: `Claiming Universal Basic Income for ${recipientValue}`,
           status: 'inactive'
         },
         {
@@ -498,7 +500,34 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         {
           id: 'top-up',
           title: 'Perform Top Up',
-          description: `Confirming data purchase for ${recipient}`,
+          description: `Confirming data purchase for ${recipientValue}`,
+          status: 'inactive'
+        }
+      ];
+    } else if (operation === 'airtime') {
+      steps = [
+        {
+          id: 'verify-phone',
+          title: 'Verify Phone Number',
+          description: `Verifying phone number for ${recipientValue}`,
+          status: 'inactive'
+        },
+        {
+          id: 'claim-ubi',
+          title: 'Claim UBI',
+          description: `Claiming Universal Basic Income for ${recipientValue}`,
+          status: 'inactive'
+        },
+        {
+          id: 'payment',
+          title: 'Payment',
+          description: 'Waiting for on-chain confirmation...',
+          status: 'inactive'
+        },
+        {
+          id: 'top-up',
+          title: 'Perform Top Up',
+          description: `Confirming airtime purchase for ${recipientValue}`,
           status: 'inactive'
         }
       ];

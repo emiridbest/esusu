@@ -230,11 +230,29 @@ async function validatePayment(validation: PaymentValidation): Promise<{ isValid
       return { isValid: false, error: 'Transaction not found' };
     }
 
-    // Check if transaction is confirmed using receipt
-    const receipt = await provider.getTransactionReceipt(validation.transactionHash);
-    if (!receipt) {
-      return { isValid: false, error: 'Transaction not confirmed' };
+    // Wait for transaction confirmation with polling (max 60 seconds)
+    const maxAttempts = 30; // 30 attempts * 2 seconds = 60 seconds max
+    const pollInterval = 2000; // 2 seconds between polls
+    let receipt = null;
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      receipt = await provider.getTransactionReceipt(validation.transactionHash);
+      
+      if (receipt) {
+        // Receipt found, break out of polling loop
+        break;
+      }
+      
+      // If not the last attempt, wait before trying again
+      if (attempt < maxAttempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      }
     }
+    
+    if (!receipt) {
+      return { isValid: false, error: 'Transaction not confirmed - timeout waiting for confirmation' };
+    }
+    
     // Ensure transaction succeeded
     if (receipt.status !== 1) {
       return { isValid: false, error: 'On-chain transaction failed' };

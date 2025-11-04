@@ -386,6 +386,9 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
         const networkId = values.network;
         const selectedPlan = availablePlans.find(plan => plan.id === values.plan) || null;
 
+        // Open transaction dialog for the appropriate service type
+        openTransactionDialog(serviceType === 'data' ? 'data' : 'airtime', phoneNumber);
+
         // Validation checks
         if (!address) {
             toast.error("Please connect your wallet first");
