@@ -342,7 +342,6 @@ export async function POST(request: NextRequest) {
       type 
     } = body;
     
-    console.log('Top-up request body:', { operatorId, amount, recipientPhone, email, transactionHash, serviceType });
     
     // SECURITY: Validate required fields including payment proof
     if (!operatorId || !amount || !recipientPhone || !recipientPhone.country || !recipientPhone.phoneNumber) {
@@ -358,6 +357,16 @@ export async function POST(request: NextRequest) {
       console.error('Missing payment validation fields:', { transactionHash, expectedAmount, paymentToken });
       return NextResponse.json(
         { success: false, error: 'Payment validation required - missing transaction hash, amount, or token' },
+        { status: 400 }
+      );
+    }
+
+    // Validate expectedAmount is a valid number
+    const parsedAmount = parseFloat(expectedAmount);
+    
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      return NextResponse.json(
+        { success: false, error: `Invalid payment amount: ${expectedAmount}` },
         { status: 400 }
       );
     }
@@ -464,15 +473,13 @@ export async function POST(request: NextRequest) {
         }
       }
       
-      console.log('Determined subType:', subType, 'from serviceType/type:', transactionType, 'operatorId:', operatorId);
-
       // Record transaction in database
-      const transaction = await TransactionService.createTransaction({
+      const transactionData = {
         walletAddress,
         transactionHash,
-        type: 'utility_payment',
+        type: 'utility_payment' as const,
         subType: subType as any,
-        amount: parseFloat(expectedAmount),
+        amount: parsedAmount,
         token: paymentToken,
         utilityDetails: {
           recipient: recipientPhone.phoneNumber,
@@ -480,9 +487,9 @@ export async function POST(request: NextRequest) {
           country: recipientPhone.country,
           metadata: { email, useLocalAmount: true }
         }
-      });
-
-      console.log('Transaction recorded in database:', (transaction as any)._id);
+      };
+      
+      const transaction = await TransactionService.createTransaction(transactionData);
 
       // Clean and format phone number (remove spaces, dashes, etc.)
       const cleanedPhoneNumber = recipientPhone.phoneNumber.replace(/[\s\-\+]/g, '');
@@ -517,7 +524,7 @@ export async function POST(request: NextRequest) {
             false,
             {
               type: 'utility',
-              amount: parseFloat(expectedAmount),
+              amount: parsedAmount,
               recipient: recipientPhone.phoneNumber
             }
           );
@@ -562,7 +569,7 @@ export async function POST(request: NextRequest) {
           true,
           {
             type: operatorId.includes('airtime') ? 'airtime' : 'data',
-            amount: parseFloat(expectedAmount),
+            amount: parsedAmount,
             recipient: cleanedPhoneNumber,
             transactionHash
           }
@@ -605,7 +612,7 @@ export async function POST(request: NextRequest) {
             false,
             {
               type: 'utility',
-              amount: parseFloat(expectedAmount),
+              amount: parsedAmount || 0,
               recipient: recipientPhone.phoneNumber
             }
           );
@@ -621,11 +628,18 @@ export async function POST(request: NextRequest) {
         console.error('Failed to update transaction status to failed:', statusErr);
       }
 
+      // Provide detailed validation error information
+      const validationErrors = dbError?.errors ? Object.keys(dbError.errors).map(key => ({
+        field: key,
+        message: dbError.errors[key].message
+      })) : [];
+
       return NextResponse.json(
         { 
           success: false, 
           error: `Database error: ${dbError?.message || 'Failed to record transaction'}`,
-          details: dbError?.message
+          details: dbError?.message,
+          validationErrors: validationErrors.length > 0 ? validationErrors : undefined
         },
         { status: 500 }
       );

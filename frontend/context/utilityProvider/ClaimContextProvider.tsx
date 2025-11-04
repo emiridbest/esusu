@@ -429,7 +429,16 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       }
 
       toast.success("Payment confirmed on-chain. Processing data top-up...");
-      return tx;
+      
+      // Convert entitlement from wei to human-readable format (G$ has 18 decimals)
+      const { formatUnits } = await import('viem');
+      const convertedAmount = formatUnits(entitlement, 18);
+      
+      return {
+        transactionHash: tx.transactionHash,
+        convertedAmount,
+        paymentToken: selectedToken
+      };
     } catch (error) {
       console.error("Payment transaction failed:", error);
       toast.error("Payment transaction failed. Please try again.");

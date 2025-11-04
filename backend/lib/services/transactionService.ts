@@ -25,25 +25,33 @@ export class TransactionService {
       const user = await UserService.createOrUpdateUser(walletAddress);
       const userId = (user as any)._id;
 
+      // Validate amount before saving
+      
+      if (typeof amount !== 'number' || isNaN(amount) || amount <= 0) {
+        return { isValid: false, error: `Invalid amount: ${amount}` };
+      }
+
+      const paymentHashData = {
+        transactionHash,
+        used: true,
+        usedAt: new Date(),
+        amount,
+        token,
+        user: userId
+      };
+
       // Record the hash as used
       // @ts-ignore - Mongoose union type compatibility issue
       await PaymentHash.findOneAndUpdate(
         { transactionHash },
-        {
-          transactionHash,
-          used: true,
-          usedAt: new Date(),
-          amount,
-          token,
-          user: userId
-        },
-        { upsert: true, new: true }
+        paymentHashData,
+        { upsert: true, new: true, runValidators: true }
       );
 
       return { isValid: true };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error validating payment hash:', error);
-      return { isValid: false, error: 'Failed to validate payment hash' };
+      return { isValid: false, error: error?.message || 'Failed to validate payment hash' };
     }
   }
 
@@ -67,6 +75,12 @@ export class TransactionService {
     details: { walletAddress: string; amount?: number; token?: string; timestamp?: Date }
   ): Promise<IPaymentHash> {
     await dbConnect();
+    
+    // Validate amount if provided
+    if (details.amount !== undefined && (typeof details.amount !== 'number' || isNaN(details.amount) || details.amount <= 0)) {
+      throw new Error(`Invalid amount: ${details.amount}`);
+    }
+    
     const user = await UserService.createOrUpdateUser(details.walletAddress);
     // @ts-ignore - Mongoose union type compatibility issue
     const doc = await PaymentHash.findOneAndUpdate(
@@ -114,6 +128,7 @@ export class TransactionService {
     const userId = (user as any)._id;
 
     // Validate payment hash hasn't been used
+    
     const hashValidation = await this.validateAndRecordPaymentHash(
       data.transactionHash,
       data.walletAddress,
@@ -125,7 +140,7 @@ export class TransactionService {
       throw new Error(hashValidation.error || 'Invalid payment hash');
     }
 
-    const transaction = new Transaction({
+    const transactionData = {
       user: userId,
       transactionHash: data.transactionHash,
       type: data.type,
@@ -140,9 +155,10 @@ export class TransactionService {
       utilityDetails: data.utilityDetails,
       aaveDetails: data.aaveDetails,
       groupDetails: data.groupDetails
-    });
+    };
 
-    return transaction.save();
+    const transaction = new Transaction(transactionData);
+    return await transaction.save();
   }
 
   static async updateTransactionStatus(

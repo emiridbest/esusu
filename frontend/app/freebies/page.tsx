@@ -239,6 +239,11 @@ export default function Freebies() {
                                                                 ))}
                                                             </SelectContent>
                                                         </Select>
+                                                        {isLoading && watchCountry && (
+                                                            <div className="text-sm text-black/50 dark:text-white/50  mt-1 flex items-center font-medium">
+                                                                <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading providers...
+                                                            </div>
+                                                        )}
                                                         <FormMessage />
                                                     </FormItem>
                                                 )} />
