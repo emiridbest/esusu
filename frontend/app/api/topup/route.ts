@@ -543,7 +543,8 @@ export async function POST(request: NextRequest) {
             {
               type: 'utility',
               amount: parsedAmount,
-              recipient: recipientPhone.phoneNumber
+              recipient: recipientPhone.phoneNumber,
+              paymentToken
             }
           );
         } catch (notifErr) {
@@ -589,7 +590,8 @@ export async function POST(request: NextRequest) {
             type: operatorId.includes('airtime') ? 'airtime' : 'data',
             amount: parsedAmount,
             recipient: cleanedPhoneNumber,
-            transactionHash
+            transactionHash,
+            paymentToken
           }
         );
         
@@ -631,7 +633,8 @@ export async function POST(request: NextRequest) {
             {
               type: 'utility',
               amount: parsedAmount || 0,
-              recipient: recipientPhone.phoneNumber
+              recipient: recipientPhone.phoneNumber,
+              paymentToken
             }
           );
         } catch (notifErr) {

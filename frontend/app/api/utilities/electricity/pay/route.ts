@@ -318,7 +318,8 @@ export async function POST(request: NextRequest) {
                         type: 'electricity',
                         amount: parseFloat(expectedAmount),
                         recipient: customerId.trim(),
-                        transactionHash
+                        transactionHash,
+                        paymentToken
                     }
                 );
                 
@@ -358,7 +359,8 @@ export async function POST(request: NextRequest) {
                     type: 'electricity',
                     amount: parseFloat(expectedAmount) || parseFloat(amount),
                     recipient: customerId.trim(),
-                    transactionHash
+                    transactionHash,
+                    paymentToken
                 }
             );
 

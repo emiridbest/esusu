@@ -130,7 +130,7 @@ export class NotificationService {
                               <img src="https://www.esusuafrica.com/_next/image?url=%2Fesusu.png&w=256&q=75" 
                                    alt="Esusu" 
                                    style="width: 72px; height: 72px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); background: rgba(255, 255, 255, 0.1); padding: 8px;"
-                                   onerror="this.src='${process.env.FRONTEND_URL || 'https://esusu.app'}/esusu.png'">
+                                   onerror="this.src='${process.env.FRONTEND_URL || 'https://www.esusuafrica.com'}/esusu.png'">
                             </td>
                           </tr>
                           <tr>
@@ -168,7 +168,7 @@ export class NotificationService {
                     <!-- CTA Button -->
                     <tr>
                       <td style="padding: 0 32px 32px; background-color: #191d26; text-align: center;">
-                        <a href="${process.env.FRONTEND_URL || 'https://esusu.app'}" 
+                        <a href="${process.env.FRONTEND_URL || 'https://www.esusuafrica.com'}" 
                            style="display: inline-block; background: linear-gradient(135deg, #f7931a 0%, #ffa930 100%); color: white; padding: 16px 48px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; letter-spacing: -0.3px; box-shadow: 0 8px 24px rgba(247, 147, 26, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset; transition: all 0.2s;">
                           Open Esusu App →
                         </a>
@@ -253,7 +253,7 @@ export class NotificationService {
         return false;
       }
 
-      const smsMessage = `Esusu: ${message}\n\nOpen app: ${process.env.FRONTEND_URL || 'https://esusu.app'}`;
+      const smsMessage = `Esusu: ${message}\n\nOpen app: ${process.env.FRONTEND_URL || 'https://www.esusuafrica.com'}`;
 
       await twilioClient.messages.create({
         body: smsMessage,
@@ -388,19 +388,27 @@ export class NotificationService {
       amount: number;
       recipient: string;
       transactionHash?: string;
+      paymentToken?: string;
     }
   ): Promise<INotification> {
     if (success) {
+      // Format amount with proper token symbol
+      const token = details.paymentToken || 'USD';
+      const amountStr = token === 'G$' || token === 'CELO' || token === 'cUSD' || token === 'USDC' || token === 'USDT'
+        ? `${details.amount.toFixed(2)} ${token}`
+        : `$${details.amount.toFixed(2)}`;
+      
       return await this.createNotification({
         userWallet: walletAddress,
         type: 'bill_payment_success',
         title: 'Bill Payment Successful ✅',
-        message: `Your ${details.type} payment of $${details.amount} to ${details.recipient} was successful. Transaction: ${details.transactionHash?.substring(0, 10)}...`,
+        message: `Your ${details.type} payment of ${amountStr} to ${details.recipient} was successful. Transaction: ${details.transactionHash?.substring(0, 10)}...`,
         data: { 
           transactionHash: details.transactionHash,
           type: details.type,
           amount: details.amount,
-          recipient: details.recipient
+          recipient: details.recipient,
+          paymentToken: details.paymentToken
         },
         sendEmail: true, // Explicitly send email
         sendSMS: true    // Explicitly send SMS
