@@ -79,13 +79,26 @@ async function validatePayment(validation: PaymentValidation): Promise<{ isValid
     const maxAttempts = 30; // 30 attempts * 2 seconds = 60 seconds max
     const pollInterval = 2000; // 2 seconds between polls
     let receipt = null;
+    let confirmations = 0;
     
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       receipt = await provider.getTransactionReceipt(validation.transactionHash);
       
       if (receipt) {
-        // Receipt found, break out of polling loop
-        break;
+        // Receipt found, now check confirmations
+        if (receipt.status !== 1) {
+          return { isValid: false, error: 'On-chain transaction failed' };
+        }
+        
+        const currentBlock = await provider.getBlockNumber();
+        confirmations = currentBlock - receipt.blockNumber;
+        
+        // If we have enough confirmations, break out of polling loop
+        if (confirmations >= MIN_CONFIRMATIONS) {
+          break;
+        }
+        
+        console.log(`Transaction found in block ${receipt.blockNumber}, current block ${currentBlock}, confirmations: ${confirmations}/${MIN_CONFIRMATIONS}`);
       }
       
       // If not the last attempt, wait before trying again
@@ -98,15 +111,9 @@ async function validatePayment(validation: PaymentValidation): Promise<{ isValid
       return { isValid: false, error: 'Transaction not confirmed - timeout waiting for confirmation' };
     }
     
-    // Ensure transaction succeeded
-    if (receipt.status !== 1) {
-      return { isValid: false, error: 'On-chain transaction failed' };
-    }
-
-    const currentBlock = await provider.getBlockNumber();
-    const confirmations = currentBlock - receipt.blockNumber;
+    // Final confirmation check
     if (confirmations < MIN_CONFIRMATIONS) {
-      return { isValid: false, error: 'Transaction not confirmed' };
+      return { isValid: false, error: `Transaction needs ${MIN_CONFIRMATIONS} confirmation(s), currently has ${confirmations}` };
     }
 
     // Validate transaction age (prevent replay attacks)

@@ -449,18 +449,25 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
             setIsVerifying(true);
 
             try {
-                // Step 1: Process payment (claim UBI and transfer to recipient)
+                // Step 1: Verify phone number (this step can be instant for freebies)
                 updateStepStatus('verify-phone', 'loading');
+                // Phone verification logic would go here if needed
+                updateStepStatus('verify-phone', 'success');
+                
+                // Step 2: Claim UBI (handleClaim updates the claim-ubi step internally)
+                await handleClaim();
+                
+                // Step 3: Process payment (transfer G$ to recipient)
+                updateStepStatus('payment', 'loading');
                 
                 const paymentResult = await processPayment();
                 if (!paymentResult) {
                     throw new Error("Payment processing failed");
                 }
                 
-                updateStepStatus('verify-phone', 'success');
-                updateStepStatus('claim-ubi', 'loading');
+                updateStepStatus('payment', 'success');
 
-                // Step 2: Process the top-up based on service type
+                // Step 4: Process the top-up based on service type
                 if (serviceType === 'data') {
             updateStepStatus('top-up', 'loading');
                     const topUpResult = await processDataTopUp(
