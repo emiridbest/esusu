@@ -28,7 +28,7 @@ import { Button } from "../../components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '../../components/TransactionSteps';
 //@ts-ignore
 import { Mento } from "@mento-protocol/mento-sdk";
-import { Celo } from '@celo/rainbowkit-celo/chains';
+import { celo } from 'wagmi/chains';
 
 // The recipient wallet address for all utility payments
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
@@ -283,7 +283,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           paymentAmount = paymentAmount * BigInt(10000);
         }
         if (token === 'CELO') {
-          paymentAmount = paymentAmount * BigInt(2.8);
+          // Multiply by 2.8 using BigInt math: 2.8 = 28/10
+          paymentAmount = paymentAmount * BigInt(28) / BigInt(10);
         }
         const transferData = transferInterface.encodeFunctionData("transfer", [
           RECIPIENT_WALLET,
@@ -305,7 +306,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         try {
           await submitReferral({
             txHash: tx as unknown as `0x${string}`,
-            chainId: Celo.id
+            chainId: celo.id
           });
         } catch {
           // Do nothing

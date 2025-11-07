@@ -1,7 +1,4 @@
-# Ignore all files in farcaster folder
-farcaster/
-# Ignore farcaster context utility file
-/farcaster
+# Farcaster directory is now tracked
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies

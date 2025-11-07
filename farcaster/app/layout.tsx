@@ -9,7 +9,7 @@ import { Toaster } from "../components/ui/sonner";
 import { ClaimProvider } from '../context/utilityProvider/ClaimContextProvider';
 
 
-const appUrl = process.env.NEXT_PUBLIC_URL
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL || 'https://farcaster.xyz/miniapps/ODGMy9CdO8UI/esusu'
 export const metadata: Metadata = {
   title: 'Esusu - Buy Mobile Data Bundles',
   description: 'Top-up mobile data with crypto on the Celo blockchain',

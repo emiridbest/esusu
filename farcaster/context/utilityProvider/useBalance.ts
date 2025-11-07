@@ -108,6 +108,7 @@ export const useBalance = () => {
       ] as const;
 
       // Read token balance using the correct contract address
+      // @ts-ignore - viem 2.38+ type compatibility
       const balance = await publicClient.readContract({
         address: tokenAddress as `0x${string}`,
         abi: erc20Abi,

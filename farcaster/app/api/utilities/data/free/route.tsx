@@ -1,3 +1,4 @@
+import { NextRequest, NextResponse } from 'next/server';
 
 // Reloadly API configuration
 const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL;
@@ -183,7 +184,7 @@ async function getExchangeRate(base_currency: string, targetCurrency: string): P
  * @param targetCurrency Target local currency code
  * @returns Converted amount in local currency
  */
-export async function convertFromUSD(
+async function convertFromUSD(
   amountUSD: number | string,
   targetCurrency: string
 ): Promise<number> {
@@ -217,7 +218,7 @@ export async function convertFromUSD(
  * @param base_currency Source local currency code
  * @returns Converted amount in USD
  */
-export async function convertToUSD(
+async function convertToUSD(
   amount: number | string,
   base_currency: string
 ): Promise<number> {
@@ -252,7 +253,7 @@ export async function convertToUSD(
  * @param toCurrency Target currency code
  * @returns Converted amount
  */
-export async function convertCurrency(
+async function convertCurrency(
   amount: string | number,
   fromCurrency: string,
   toCurrency: string
@@ -340,7 +341,7 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
  * Makes a data bundle top-up
  * @param params Top-up parameters
  */
-export async function makeTopup(params: {
+async function makeTopup(params: {
   operatorId: string;
   amount: string;
   customId: string;
@@ -382,5 +383,40 @@ export async function makeTopup(params: {
   } catch (error) {
     console.error('Error making top-up:', error);
     throw error;
+  }
+}
+
+/**
+ * GET handler for free data bundles
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const country = searchParams.get('country');
+
+    if (!country) {
+      return NextResponse.json(
+        { error: 'Country parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    // Return free data bundle information based on country
+    const freeBundles = {
+      ng: { available: true, provider: 'MTN Nigeria', bonus: '100MB' },
+      gh: { available: true, provider: 'MTN Ghana', bonus: '50MB' },
+      ke: { available: true, provider: 'Safaricom', bonus: '75MB' },
+      ug: { available: true, provider: 'MTN Uganda', bonus: '50MB' },
+    };
+
+    const bundle = freeBundles[country as keyof typeof freeBundles] || { available: false };
+
+    return NextResponse.json(bundle);
+  } catch (error) {
+    console.error('Error fetching free data:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch free data bundles' },
+      { status: 500 }
+    );
   }
 }

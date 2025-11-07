@@ -1,7 +1,7 @@
 {
   "version": 2,
   "buildCommand": "cd frontend && npm run build",
-  "installCommand": "npm install && cd frontend && npm install",
+  "installCommand": "npm install --workspace=frontend --workspace=backend",
   "outputDirectory": "frontend/.next",
   "functions": {
     "app/api/**": {

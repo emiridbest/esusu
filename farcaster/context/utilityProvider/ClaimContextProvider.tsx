@@ -5,7 +5,7 @@ import { ethers, Interface } from "ethers";
 import { useAccount, useChainId, useConnect, useSendTransaction, useSwitchChain } from "wagmi";
 import { toast } from 'sonner';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
-import { Celo } from '@celo/rainbowkit-celo/chains';
+import { celo } from 'wagmi/chains';
 import { createPublicClient, http } from 'viem'
 import { IdentitySDK, ClaimSDK } from "@goodsdks/citizen-sdk"
 
@@ -20,7 +20,6 @@ import {
 import { Button } from "../../components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '../../components/TransactionSteps';
 import { createWalletClient, custom } from 'viem'
-import { celo } from 'viem/chains'
 import { txCountABI, txCountAddress } from '../../utils/pay';
 import { PublicClient, WalletClient } from "viem"
 import { config } from '../../components/providers/WagmiProvider';
@@ -252,39 +251,42 @@ const identitySDK = useMemo(() => {
       setEntitlement(newEntitlement);
       const tx = await claimSDK.claim();
       if (!tx) {
-        return false;
+        throw new Error("Claim transaction failed");
       }
-    toast.success("Successfully claimed G$ tokens!");
+      toast.success("Successfully claimed G$ tokens!");
       const dataSuffix = getReferralTag({
-      user: address as `0x${string}`,
-      consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-    });
-    try {
-      const txCountInterface = new Interface(txCountABI);
-      const txCountData = txCountInterface.encodeFunctionData("increment", []);
-      const dataWithSuffix = txCountData + dataSuffix;
-
-      const txCount = await sendTransactionAsync({
-        to: txCountAddress as `0x${string}`,
-        data: dataWithSuffix as `0x${string}`,
+        user: address as `0x${string}`,
+        consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
       });
       try {
-        await submitReferral({
-          txHash: txCount as unknown as `0x${string}`,
-          chainId: 42220
-        });
-        console.log("Referral submitted for transaction count update.");
-      } catch (referralError) {
-        console.error("Referral submission error:", referralError);
-      }
+        const txCountInterface = new Interface(txCountABI);
+        const txCountData = txCountInterface.encodeFunctionData("increment", []);
+        const dataWithSuffix = txCountData + dataSuffix;
 
-    } catch (error) {
-      console.error("Error during transaction count update:", error);
-      toast.error("There was an error updating the transaction count.");
-    }
+        const txCount = await sendTransactionAsync({
+          to: txCountAddress as `0x${string}`,
+          data: dataWithSuffix as `0x${string}`,
+        });
+        try {
+          await submitReferral({
+            txHash: txCount as unknown as `0x${string}`,
+            chainId: 42220
+          });
+          console.log("Referral submitted for transaction count update.");
+        } catch (referralError) {
+          console.error("Referral submission error:", referralError);
+          // Don't fail the claim for referral errors
+        }
+      } catch (error) {
+        console.error("Error during transaction count update:", error);
+        // Don't fail the claim for transaction count errors
+      }
+      
+      return true;
     } catch (error) {
       console.error("Error during claim:", error);
       toast.error("There was an error processing your claim.");
+      throw error; // Rethrow so caller can handle the error
     } finally {
       setIsProcessing(false);
     }
@@ -409,7 +411,7 @@ const identitySDK = useMemo(() => {
       try {
         await submitReferral({
           txHash: tx as unknown as `0x${string}`,
-          chainId: Celo.id,
+          chainId: celo.id,
         });
       } catch (referralError) {
         console.error("Referral submission error:", referralError);
@@ -453,6 +455,12 @@ const identitySDK = useMemo(() => {
           id: 'claim-ubi',
           title: 'Claim UBI',
           description: `Claiming Universal Basic Income for ${recipient}`,
+          status: 'inactive'
+        },
+        {
+          id: 'payment',
+          title: 'Payment',
+          description: `Waiting for on-chain confirmation...`,
           status: 'inactive'
         },
         {
