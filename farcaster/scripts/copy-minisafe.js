@@ -6,7 +6,8 @@ const sources = [
   { src: '../../frontend/components/miniSafe', dest: './components/miniSafe' },
   { src: '../../frontend/components/TransactionList.tsx', dest: './components/TransactionList.tsx' },
   { src: '../../frontend/context/miniSafe', dest: './context/miniSafe' },
-  { src: '../../frontend/components/ui', dest: './components/ui' }
+  { src: '../../frontend/components/ui', dest: './components/ui' },
+  { src: '../../frontend/lib', dest: './lib' }
 ];
 
 // Recursively copy directory

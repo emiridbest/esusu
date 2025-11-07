@@ -1,4 +1,4 @@
-import { createConfig, http, injected, WagmiProvider } from "wagmi";
+import { createConfig, http, WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
 import { celo } from "wagmi/chains";
@@ -8,7 +8,7 @@ export const config = createConfig({
   transports: {
     [celo.id]: http(),
   },
-  connectors: [ miniAppConnector(), injected() ],
+  connectors: [ miniAppConnector() ],
 });
 
 const queryClient = new QueryClient();

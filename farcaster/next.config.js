@@ -13,6 +13,12 @@ const nextConfig = {
       fs: false
     }
     
+    // Add explicit path aliases for production builds
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': require('path').resolve(__dirname)
+    }
+    
     // Exclude backend-temp files from webpack bundle
     config.externals = config.externals || [];
     if (Array.isArray(config.externals)) {
