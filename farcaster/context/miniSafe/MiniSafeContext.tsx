@@ -5,12 +5,10 @@ import { contractAddress, abi } from '@/utils/abi';
 import { encodeFunctionData, parseAbi, parseUnits, formatUnits, parseEther } from "viem";
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import {
-  useActiveAccount,
-  useActiveWallet,
-  useActiveWalletChain,
-} from 'thirdweb/react';
-import { getContract, readContract } from 'thirdweb';
-import { client, activeChain } from '@/lib/thirdweb';
+  useAccount,
+  useWalletClient,
+} from 'wagmi';
+import { createPublicClient, http } from 'viem';
 
 // Import Dialog components
 import {

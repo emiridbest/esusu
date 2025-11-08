@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { celo } from 'wagmi/chains';
 import { createPublicClient, http, webSocket, fallback, decodeFunctionData } from 'viem';
-import { useActiveAccount } from 'thirdweb/react';
+import { useAccount } from 'wagmi';
 import { stableTokenABI } from "@celo/abis";
 // import { useAddRecentTransaction } from '@rainbow-me/rainbowkit';
 import { 
@@ -92,8 +92,7 @@ const TransactionList: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [page, setPage] = useState(1);
   const [transactionFilter, setTransactionFilter] = useState<'all' | 'sent' | 'received'>('all');
-  const account = useActiveAccount();
-  const address = account?.address;
+  const { address } = useAccount();
   const [error, setError] = useState<string | null>(null);
   const [copiedHash, setCopiedHash] = useState<string>('');
 
