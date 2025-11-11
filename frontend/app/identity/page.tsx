@@ -1,9 +1,8 @@
 "use client";
 import React, { useEffect, useState, Suspense } from "react"
 import { useAccount } from 'wagmi';
-import { useLocation } from "react-router-dom"
+import { useSearchParams } from 'next/navigation';
 import { useIdentitySDK } from "@goodsdks/react-hooks"
-import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
@@ -12,8 +11,8 @@ import { IdentityCard } from "@/components/identity/IdentityCard"
 import { SigningModal } from "@/components/identity/SigningModal"
 import HelpSection from "@/components/identity/HelpSection";
 
-function IdentityVerification() {
-   const [isSigningModalOpen, setIsSigningModalOpen] = useState(false)
+function IdentityVerificationContent() {
+  const [isSigningModalOpen, setIsSigningModalOpen] = useState(false)
   const [isVerified, setIsVerified] = useState<boolean | undefined>(false)
   const [isWhitelisted, setIsWhitelisted] = useState<boolean | undefined>(
     undefined,
@@ -22,7 +21,7 @@ function IdentityVerification() {
     undefined,
   )
 
-  const location = useLocation()
+  const searchParams = useSearchParams();
   const { address, isConnected } = useAccount()
   const [connectedAccount, setConnectedAccount] = useState<string | undefined>(
     undefined,
@@ -30,25 +29,13 @@ function IdentityVerification() {
   const { sdk: identitySDK, loading, error } = useIdentitySDK("development")
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(location.search)
-    const verified = urlParams.get("verified")
+    const verified = searchParams.get("verified");
 
     if (verified === "true") {
       setIsVerified(true)
       window.history.replaceState({}, document.title, window.location.pathname)
     }
-  }, [location.search])
-
-  //ref: https://github.com/wevm/wagmi/discussions/1806#discussioncomment-12130996
-  // does not react to switch account when triggered from metamask.
-  // useAccountEffect({
-  //   onConnect(data) {
-  //     console.log("Connected!", data)
-  //   },
-  //   onDisconnect() {
-  //     console.log("Disconnected!")
-  //   },
-  // })
+  }, [searchParams])
 
   useEffect(() => {
     const checkWhitelistStatus = async () => {
@@ -81,8 +68,8 @@ function IdentityVerification() {
     setIsVerified(true)
   }
 
-return (
-    <div className="flex flex-col items-center p-6 min-h-screen bg-gradient-to-br from-black/90via-amber-50/30 to-yellow-50/20 dark:from-black/90 dark:via-black/90 dark:to-amber-900/20">
+  return (
+    <div className="flex flex-col items-center p-6 min-h-screen bg-gradient-to-br from-black/90 via-amber-50/30 to-yellow-50/20 dark:from-black/90 dark:via-black/90 dark:to-amber-900/20">
       <div className="max-w-xl w-full flex flex-col items-center">
         <div className="mb-8 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-amber-400 to-yellow-500 dark:from-amber-500 dark:to-yellow-600 rounded-full mb-4 shadow-lg">
@@ -98,7 +85,6 @@ return (
           </p>
         </div>
 
-        {/* User Interaction Section */}
         <Card className="w-full bg-white/80 dark:bg-black/90 backdrop-blur-sm border border-amber-200/50 dark:border-amber-700/30 shadow-xl shadow-amber-500/10 dark:shadow-amber-500/20">
           <CardContent className="pt-6">
             {isConnected && loadingWhitelist ? (
@@ -167,7 +153,6 @@ return (
           </CardContent>
         </Card>
 
-        {/* Help Section */}
         <div className="mt-6 w-full">
           <div className="backdrop-blur-sm">
             <HelpSection />
@@ -183,4 +168,15 @@ return (
   );
 }
 
-export default  IdentityVerification;
+export default function IdentityVerification() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <Loader2 className="h-10 w-10 animate-spin text-amber-600 dark:text-amber-400 mb-3" />
+        <p className="text-black/90 dark:text-white/90 font-medium">Loading verification...</p>
+      </div>
+    }>
+      <IdentityVerificationContent />
+    </Suspense>
+  );
+}
