@@ -392,9 +392,20 @@ export const useFreebiesLogic = () => {
             // Start claiming process
             setIsClaiming(true);
             updateStepStatus('claim-ubi', 'loading');
-
             try {
-                await handleClaim();
+                const claimResult = await handleClaim();
+
+                const claimFailed =
+                    !claimResult ||
+                    (typeof claimResult === 'object' && 'success' in claimResult && !(claimResult as any).success);
+
+                if (claimFailed) {
+                    console.error("Claim failed: handleClaim returned failure", claimResult);
+                    toast.error("Failed to claim your free data bundle. Please try again.");
+                    updateStepStatus('claim-ubi', 'error', "An error occurred during the claim process.");
+                    return; 
+                }
+
                 hasClaimedSuccessfully = true;
                 updateStepStatus('claim-ubi', 'success');
                 toast.success("Claim successful! Your data bundle will be activated shortly.");

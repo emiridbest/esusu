@@ -29,8 +29,7 @@ import {
   validateConfiguration
 } from '@/lib/engagementHelpers'
 import { useSearchParams } from 'next/navigation'
-import { useIdentitySDK } from '@goodsdks/identity-sdk';
-
+import { useIdentitySDK } from "@goodsdks/react-hooks"
 interface InviteReward {
   invitedWallet: string
   rewardAmount: string
@@ -91,8 +90,7 @@ const RewardsClaimCard = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState<string>("")
   const [claimStep, setClaimStep] = useState<'idle' | 'checking' | 'signing' | 'submitting' | 'success' | 'error'>('idle')
-  const identitySDK = useIdentitySDK('production')
-
+  const { sdk: identitySDK } = useIdentitySDK()
   const [inviteLink, setInviteLink] = useState<string>("")
   const [isCopied, setIsCopied] = useState(false)
   const [inviteRewards, setInviteRewards] = useState<InviteReward[]>([])

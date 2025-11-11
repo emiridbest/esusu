@@ -1,9 +1,8 @@
 "use client";
 import React, { useEffect, useState, Suspense } from "react"
 import { useAccount } from 'wagmi';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useIdentitySDK } from "@goodsdks/identity-sdk"
-import Link from "next/link";
+import { useSearchParams } from 'next/navigation';
+import { useIdentitySDK } from "@goodsdks/react-hooks"
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
@@ -12,9 +11,7 @@ import { IdentityCard } from "@/components/identity/IdentityCard"
 import { SigningModal } from "@/components/identity/SigningModal"
 import HelpSection from "@/components/identity/HelpSection";
 
-function IdentityVerification() {
-  const { isConnected, address } = useAccount();
-  const router = useRouter();
+function IdentityVerificationContent() {
   const [isSigningModalOpen, setIsSigningModalOpen] = useState(false)
   const [isVerified, setIsVerified] = useState<boolean | undefined>(false)
   const [isWhitelisted, setIsWhitelisted] = useState<boolean | undefined>(
@@ -25,13 +22,14 @@ function IdentityVerification() {
   )
 
   const searchParams = useSearchParams();
+  const { address, isConnected } = useAccount()
   const [connectedAccount, setConnectedAccount] = useState<string | undefined>(
     undefined,
   )
-  const identitySDK = useIdentitySDK("production")
+  const { sdk: identitySDK, loading, error } = useIdentitySDK("development")
 
   useEffect(() => {
-    const verified = searchParams?.get("verified");
+    const verified = searchParams.get("verified");
 
     if (verified === "true") {
       setIsVerified(true)
@@ -47,7 +45,6 @@ function IdentityVerification() {
           setConnectedAccount(address)
           const { isWhitelisted } =
             (await identitySDK?.getWhitelistedRoot(address)) ?? {}
-
           setIsWhitelisted(isWhitelisted)
           setIsVerified(isWhitelisted ?? false)
         } catch (error) {
@@ -62,16 +59,17 @@ function IdentityVerification() {
       setConnectedAccount(address)
       setIsWhitelisted(undefined)
       setIsVerified(undefined)
+    } else {
       checkWhitelistStatus()
     }
-  }, [address, identitySDK, connectedAccount, isWhitelisted])
+  }, [address, identitySDK, isWhitelisted, connectedAccount])
 
   const handleVerificationSuccess = () => {
     setIsVerified(true)
   }
 
-return (
-    <div className="flex flex-col items-center p-6 min-h-screen bg-gradient-to-br from-black/90via-amber-50/30 to-yellow-50/20 dark:from-black/90 dark:via-black/90 dark:to-amber-900/20">
+  return (
+    <div className="flex flex-col items-center p-6 min-h-screen bg-gradient-to-br from-black/90 via-amber-50/30 to-yellow-50/20 dark:from-black/90 dark:via-black/90 dark:to-amber-900/20">
       <div className="max-w-xl w-full flex flex-col items-center">
         <div className="mb-8 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-amber-400 to-yellow-500 dark:from-amber-500 dark:to-yellow-600 rounded-full mb-4 shadow-lg">
@@ -87,7 +85,6 @@ return (
           </p>
         </div>
 
-        {/* User Interaction Section */}
         <Card className="w-full bg-white/80 dark:bg-black/90 backdrop-blur-sm border border-amber-200/50 dark:border-amber-700/30 shadow-xl shadow-amber-500/10 dark:shadow-amber-500/20">
           <CardContent className="pt-6">
             {isConnected && loadingWhitelist ? (
@@ -156,7 +153,6 @@ return (
           </CardContent>
         </Card>
 
-        {/* Help Section */}
         <div className="mt-6 w-full">
           <div className="backdrop-blur-sm">
             <HelpSection />
@@ -172,18 +168,15 @@ return (
   );
 }
 
-function ProfileLoading() {
+export default function IdentityVerification() {
   return (
-    <div className="flex justify-center items-center h-screen">
-      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-    </div>
-  )
-}
-
-export default function ProfilePage() {
-  return (
-    <Suspense fallback={<ProfileLoading />}>
-      <IdentityVerification />
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <Loader2 className="h-10 w-10 animate-spin text-amber-600 dark:text-amber-400 mb-3" />
+        <p className="text-black/90 dark:text-white/90 font-medium">Loading verification...</p>
+      </div>
+    }>
+      <IdentityVerificationContent />
     </Suspense>
-  )
+  );
 }
