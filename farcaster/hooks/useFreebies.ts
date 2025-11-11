@@ -1,10 +1,7 @@
 // hooks/useFreebiesLogic.js
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import {
-  useActiveAccount,
-  useActiveWallet,
-} from "thirdweb/react";
+import { useAccount, useWalletClient } from "wagmi";
 import { toast } from 'sonner';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,6 +17,8 @@ import { useClaimProcessor } from '../context/utilityProvider/ClaimContextProvid
 import { IdentitySDK } from '@goodsdks/citizen-sdk';
 import { createPublicClient, createWalletClient, custom, http, webSocket, fallback, formatUnits } from 'viem';
 import { celo } from 'viem/chains';
+import { PaymentSuccessModal } from '../components/utilityBills/PaymentSuccessModal';
+import { getCountryData } from '../utils/countryData';
 
 const formSchema = z.object({
     country: z.string({
@@ -45,10 +44,8 @@ const formSchema = z.object({
 });
 
 export const useFreebiesLogic = () => {
-    const account = useActiveAccount();
-    const wallet = useActiveWallet();
-    const address = account?.address;
-    const isConnected = !!account && !!wallet;
+    const { address, isConnected } = useAccount();
+    const { data: walletClient } = useWalletClient();
     const {
         updateStepStatus,
         openTransactionDialog,
@@ -78,6 +75,18 @@ export const useFreebiesLogic = () => {
     const [loadingWhitelist, setLoadingWhitelist] = useState<boolean | undefined>(undefined);
     const [txID, setTxID] = useState<string | null>(null);
     const [serviceType, setServiceType] = useState<'data' | 'airtime'>('data');
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [successDetails, setSuccessDetails] = useState<{
+        type: 'data' | 'airtime';
+        amount: string;
+        currency: string;
+        recipient: string;
+        transactionHash: string;
+        token?: string;
+        provider?: string;
+        emailSent?: boolean;
+        smsSent?: boolean;
+    } | null>(null);
 
     // Initialize IdentitySDK with proper viem clients
     const publicClient = useMemo(() => {
@@ -90,7 +99,10 @@ export const useFreebiesLogic = () => {
         });
     }, []);
 
-    const walletClient = useMemo(() => {
+    const walletClientForSDK = useMemo(() => {
+        if (isConnected && walletClient && address) {
+            return walletClient;
+        }
         if (isConnected && typeof window !== 'undefined' && window.ethereum && address) {
             return createWalletClient({
                 account: address as `0x${string}`,
@@ -99,14 +111,14 @@ export const useFreebiesLogic = () => {
             });
         }
         return null;
-    }, [isConnected, address]);
+    }, [isConnected, address, walletClient]);
 
     const identitySDK = useMemo(() => {
-        if (isConnected && publicClient && walletClient) {
+        if (isConnected && publicClient && walletClientForSDK) {
             try {
                 return new IdentitySDK(
                     publicClient as any,
-                    walletClient as any
+                    walletClientForSDK as any
                 );
             } catch (error) {
                 console.error('Failed to initialize IdentitySDK:', error);
@@ -114,7 +126,7 @@ export const useFreebiesLogic = () => {
             }
         }
         return null;
-    }, [publicClient, walletClient, isConnected]);
+    }, [publicClient, walletClientForSDK, isConnected]);
 
     // When wallet changes, check if user has previously verified via GoodDollar to avoid re-prompting
     useEffect(() => {
@@ -467,9 +479,10 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                 updateStepStatus('payment', 'success');
 
                 // Step 4: Process the top-up based on service type
+                let topUpResult: any = null;
                 if (serviceType === 'data') {
             updateStepStatus('top-up', 'loading');
-                    const topUpResult = await processDataTopUp(
+                    topUpResult = await processDataTopUp(
                 {
                     phoneNumber,
                     country,
@@ -492,7 +505,7 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                     updateStepStatus('top-up', 'success');
                 } else if (serviceType === 'airtime') {
                     updateStepStatus('top-up', 'loading');
-                    const topUpResult = await processAirtimeTopUp(
+                    topUpResult = await processAirtimeTopUp(
                         {
                             phoneNumber,
                             country,
@@ -521,12 +534,26 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                     localStorage.setItem('lastFreeClaim', new Date().toDateString());
                 }
 
-                // Show success message
-                const successMessage = serviceType === 'data' 
-                    ? `Successfully claimed data bundle for ${phoneNumber}!`
-                    : `Successfully claimed airtime for ${phoneNumber}!`;
+                // Show success modal
+                const countryData = getCountryData(country);
+                const networkName = networks.find(n => n.id === networkId)?.name || '';
+                const amount = serviceType === 'data' 
+                    ? (selectedPlan?.price || '0')
+                    : '100';
                 
-                toast.success(successMessage);
+                setSuccessDetails({
+                    type: serviceType,
+                    amount: amount,
+                    currency: countryData?.currency?.code || '',
+                    recipient: phoneNumber,
+                    transactionHash: paymentResult,
+                    token: 'G$',
+                    provider: networkName,
+                    emailSent: topUpResult?.emailSent,
+                    smsSent: topUpResult?.smsSent
+                });
+                setShowSuccessModal(true);
+                closeTransactionDialog();
 
             } catch (error) {
                 console.error("Error during claim process:", error);
@@ -617,6 +644,11 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
 
         // Functions
         setCountryCurrency,
-        onSubmit
+        onSubmit,
+        
+        // Success modal
+        showSuccessModal,
+        setShowSuccessModal,
+        successDetails
     };
 };

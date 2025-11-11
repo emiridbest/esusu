@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useActiveAccount } from "thirdweb/react";
+import { useAccount } from "wagmi";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,8 +41,7 @@ const statusColor = (status: ReceiptTx["status"]) => {
 };
 
 export default function ReceiptsPage() {
-  const account = useActiveAccount();
-  const address = account?.address;
+  const { address } = useAccount();
   const [items, setItems] = useState<ReceiptTx[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

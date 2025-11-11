@@ -125,7 +125,7 @@ export class DatabaseInitializer {
     try {
       await User.collection.createIndexes([
         { key: { walletAddress: 1 }, unique: true, background: true },
-        { key: { email: 1 }, sparse: true, unique: true, background: true },
+        { key: { email: 1 }, sparse: true, background: true },
         { key: { createdAt: -1 }, background: true }
       ]);
       console.log('🔍 User indexes created');

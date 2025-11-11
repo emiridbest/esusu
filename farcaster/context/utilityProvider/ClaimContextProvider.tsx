@@ -315,6 +315,7 @@ const identitySDK = useMemo(() => {
             phoneNumber: cleanPhoneNumber
           },
           email: values.email,
+          walletAddress: address,
           isFreeClaim: true
         }),
       });
@@ -323,8 +324,12 @@ const identitySDK = useMemo(() => {
 
       if (response.ok && data.success) {
         const selectedPlan = availablePlans[0];
-        toast.success(`Successfully topped up ${values.phoneNumber} with ${selectedPlan?.name || 'your selected plan'}.`);
-        return { success: true };
+        return { 
+          success: true, 
+          transactionId: data.transactionId,
+          emailSent: data.emailSent,
+          smsSent: data.smsSent
+        };
       } else {
         console.error("Top-up API Error:", data);
         toast.error(data.error || "There was an issue processing your top-up. Our team has been notified.");
@@ -361,6 +366,7 @@ const identitySDK = useMemo(() => {
             phoneNumber: cleanPhoneNumber
           },
           email: values.email,
+          walletAddress: address,
           isFreeClaim: true
         }),
       });
@@ -368,8 +374,12 @@ const identitySDK = useMemo(() => {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        toast.success(`Successfully topped up ${values.phoneNumber} with N100.`);
-        return { success: true };
+        return { 
+          success: true,
+          transactionId: data.transactionId,
+          emailSent: data.emailSent,
+          smsSent: data.smsSent
+        };
       } else {
         console.error("Top-up API Error:", data);
         toast.error(data.error || "There was an issue processing your top-up. Our team has been notified.");

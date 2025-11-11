@@ -27,7 +27,7 @@ export interface IUser extends Document {
 
 const UserSchema = new Schema<IUser>({
   walletAddress: { type: String, required: true, unique: true, index: true },
-  email: { type: String, sparse: true, unique: true },
+  email: { type: String, sparse: true },
   phone: { type: String, sparse: true },
   profileData: {
     firstName: String,

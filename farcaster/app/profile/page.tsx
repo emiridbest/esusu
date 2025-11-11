@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState, Suspense, useMemo } from "react"
-import { useActiveAccount } from 'thirdweb/react';
+import { useAccount, useWalletClient } from 'wagmi';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { IdentitySDK } from "@goodsdks/citizen-sdk"
 import Link from "next/link";
@@ -15,9 +15,8 @@ import { SigningModal } from "@/components/profile/SigningModal"
 import UserInfoTabs from "@/components/profile/UserInfoTabs";
 
 function ProfileContent() {
-  const account = useActiveAccount();
-  const address = account?.address;
-  const isConnected = !!address;
+  const { address, isConnected } = useAccount();
+  const { data: walletClient } = useWalletClient();
   const router = useRouter();
   const [isSigningModalOpen, setIsSigningModalOpen] = useState(false)
   const [isVerified, setIsVerified] = useState<boolean | undefined>(false)
@@ -43,7 +42,10 @@ function ProfileContent() {
     });
   }, []);
 
-  const walletClient = useMemo(() => {
+  const walletClientForSDK = useMemo(() => {
+    if (isConnected && walletClient && address) {
+      return walletClient;
+    }
     if (isConnected && typeof window !== 'undefined' && window.ethereum && address) {
       return createWalletClient({
         account: address as `0x${string}`,
@@ -52,14 +54,14 @@ function ProfileContent() {
       });
     }
     return null;
-  }, [isConnected, address]);
+  }, [isConnected, address, walletClient]);
 
   const identitySDK = useMemo(() => {
-    if (isConnected && publicClient && walletClient) {
+    if (isConnected && publicClient && walletClientForSDK) {
       try {
         return new IdentitySDK(
           publicClient as any,
-          walletClient as any
+          walletClientForSDK as any
         );
       } catch (error) {
         console.error('Failed to initialize IdentitySDK:', error);
@@ -67,7 +69,7 @@ function ProfileContent() {
       }
     }
     return null;
-  }, [publicClient, walletClient, isConnected]);
+  }, [publicClient, walletClientForSDK, isConnected]);
 
   useEffect(() => {
     const verified = searchParams?.get("verified");

@@ -80,7 +80,13 @@ export class UserService {
     if (profileData.lastName) updateData['profileData.lastName'] = profileData.lastName;
     if (profileData.country) updateData['profileData.country'] = profileData.country;
     if (profileData.preferredCurrency) updateData['profileData.preferredCurrency'] = profileData.preferredCurrency;
-    if (profileData.email) updateData.email = profileData.email;
+    
+    if (profileData.email) {
+      const normalizedEmail = profileData.email.trim().toLowerCase();
+      // Allow same email to be associated with multiple wallets
+      updateData.email = normalizedEmail;
+    }
+
     if (profileData.phone) updateData.phone = profileData.phone;
 
     // @ts-ignore - Mongoose union type compatibility issue

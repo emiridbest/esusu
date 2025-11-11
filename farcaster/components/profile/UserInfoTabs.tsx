@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useActiveAccount } from 'thirdweb/react';
+import { useAccount } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 

@@ -1,14 +1,13 @@
 import React, { useEffect, useState, useMemo } from "react"
 import { IdentitySDK } from "@goodsdks/citizen-sdk"
-import { useActiveAccount } from "thirdweb/react"
+import { useAccount, useWalletClient } from "wagmi"
 import { Card, CardContent } from "@/components/ui/card"
 import { createPublicClient, createWalletClient, custom, http, webSocket, fallback } from 'viem';
 import { celo } from 'viem/chains';
 
 export const IdentityCard: React.FC = () => {
-  const account = useActiveAccount()
-  const address = account?.address
-  const isConnected = !!address
+  const { address, isConnected } = useAccount()
+  const { data: walletClient } = useWalletClient()
   
   // Initialize IdentitySDK with proper viem clients
   const publicClient = useMemo(() => {
@@ -21,7 +20,10 @@ export const IdentityCard: React.FC = () => {
     });
   }, []);
 
-  const walletClient = useMemo(() => {
+  const walletClientForSDK = useMemo(() => {
+    if (isConnected && walletClient && address) {
+      return walletClient;
+    }
     if (isConnected && typeof window !== 'undefined' && window.ethereum && address) {
       return createWalletClient({
         account: address as `0x${string}`,
@@ -30,14 +32,14 @@ export const IdentityCard: React.FC = () => {
       });
     }
     return null;
-  }, [isConnected, address]);
+  }, [isConnected, address, walletClient]);
 
   const identitySDK = useMemo(() => {
-    if (isConnected && publicClient && walletClient) {
+    if (isConnected && publicClient && walletClientForSDK) {
       try {
         return new IdentitySDK(
           publicClient as any,
-          walletClient as any
+          walletClientForSDK as any
         );
       } catch (error) {
         console.error('Failed to initialize IdentitySDK:', error);
@@ -45,7 +47,7 @@ export const IdentityCard: React.FC = () => {
       }
     }
     return null;
-  }, [publicClient, walletClient, isConnected]);
+  }, [publicClient, walletClientForSDK, isConnected]);
   const [expiry, setExpiry] = useState<string | undefined>(undefined)
 
   useEffect(() => {

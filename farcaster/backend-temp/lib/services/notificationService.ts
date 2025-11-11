@@ -4,20 +4,55 @@ import { UserService } from './userService';
 import nodemailer from 'nodemailer';
 // @ts-ignore - Optional dependency
 import twilio from 'twilio';
+import { config } from '../config';
 
-// Email configuration (initialize only if creds exist)
+// Email configuration (lazy initialization for serverless environments)
 let emailTransporter: ReturnType<typeof nodemailer.createTransport> | null = null;
-if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
-  emailTransporter = nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD
-    }
-  });
-  console.log('✅ Email service configured');
-} else {
-  console.warn('⚠️ Email credentials not configured (EMAIL_USER and EMAIL_PASSWORD required)');
+
+function initializeEmailTransporter() {
+  if (emailTransporter) {
+    return emailTransporter;
+  }
+
+  const emailUser = config.EMAIL_USER;
+  const emailPassword = config.EMAIL_PASSWORD;
+  const emailService = process.env.EMAIL_SERVICE || 'gmail';
+  const emailFrom = config.EMAIL_FROM || process.env.EMAIL_FROM || emailUser;
+
+  if (!emailUser || !emailPassword) {
+    console.warn('⚠️ Email credentials not configured (EMAIL_USER and EMAIL_PASSWORD required)');
+    console.warn('   EMAIL_USER:', emailUser ? '***' : 'undefined');
+    console.warn('   EMAIL_PASSWORD:', emailPassword ? '***' : 'undefined');
+    console.warn('   Check environment variables: EMAIL_USER, EMAIL_PASSWORD');
+    return null;
+  }
+
+  try {
+      const baseConfig = emailService.toLowerCase() === 'smtp'
+        ? {
+            host: process.env.EMAIL_SMTP_HOST,
+            port: process.env.EMAIL_SMTP_PORT ? Number(process.env.EMAIL_SMTP_PORT) : 587,
+            secure: process.env.EMAIL_SMTP_SECURE === 'true',
+            auth: {
+              user: emailUser,
+              pass: emailPassword
+            }
+          }
+        : {
+            service: emailService,
+            auth: {
+              user: emailUser,
+              pass: emailPassword
+            }
+          };
+
+      emailTransporter = nodemailer.createTransport(baseConfig);
+    console.log('✅ Email service configured successfully');
+    return emailTransporter;
+  } catch (error) {
+    console.error('❌ Failed to initialize email transporter:', error);
+    return null;
+  }
 }
 
 // SMS configuration (initialize only if creds exist and are valid)
@@ -99,15 +134,18 @@ export class NotificationService {
     notificationId: string
   ): Promise<boolean> {
     try {
-      if (!emailTransporter) {
+      // Lazy initialize email transporter (important for serverless environments)
+      const transporter = initializeEmailTransporter();
+      if (!transporter) {
         console.log('⚠️ Email service not configured, skipping email notification');
         return false;
       }
 
+      const defaultFrom = config.EMAIL_FROM || process.env.EMAIL_FROM || process.env.EMAIL_USER;
       const mailOptions = {
-        from: process.env.EMAIL_FROM || 'noreply@esusu.app',
+        from: defaultFrom || 'noreply@esusuafrica.com',
         to: email,
-        subject: `Esusu - ${title}`,
+        subject: `Esusu (Farcaster) - ${title}`,
         html: `
           <!DOCTYPE html>
           <html lang="en">
@@ -127,15 +165,22 @@ export class NotificationService {
                         <table role="presentation" style="width: 100%; border-collapse: collapse;">
                           <tr>
                             <td align="center" style="padding-bottom: 16px;">
-                              <img src="https://www.esusuafrica.com/_next/image?url=%2Fesusu.png&w=256&q=75" 
-                                   alt="Esusu" 
-                                   style="width: 72px; height: 72px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); background: rgba(255, 255, 255, 0.1); padding: 8px;"
-                                   onerror="this.src='${process.env.FRONTEND_URL || 'https://www.esusuafrica.com'}/esusu.png'">
+                              <div style="display: inline-flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center;">
+                                <img src="https://www.esusuafrica.com/_next/image?url=%2Fesusu.png&w=256&q=75" 
+                                     alt="Esusu" 
+                                     style="width: 64px; height: 64px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); background: rgba(255, 255, 255, 0.1); padding: 8px; object-fit: contain;"
+                                     onerror="this.style.display='none';">
+                                <img src="https://assets.streamlinehq.com/image/private/w_300,h_300,ar_1/f_auto/v1/icons/logos/farcaster-1qt4vvlal5qi31fhf4ge4gt.png/farcaster-6adzrdj305mt3u4g2jbzmr.png?_a=DATAg1AAZAA0" 
+                                     alt="Farcaster" 
+                                     style="width: 64px; height: 64px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); background: rgba(255, 255, 255, 0.1); padding: 8px; object-fit: contain;"
+                                     onerror="this.style.display='none';">
+                              </div>
                             </td>
                           </tr>
                           <tr>
                             <td align="center">
-                              <div style="color: rgba(255, 255, 255, 0.95); font-size: 13px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase;">Decentralized Savings Platform</div>
+                              <h1 style="color: rgba(255, 255, 255, 0.95); font-size: 24px; font-weight: 700; letter-spacing: -0.5px; margin: 0;">Esusu (Farcaster)</h1>
+                              <div style="color: rgba(255, 255, 255, 0.9); font-size: 13px; font-weight: 500; letter-spacing: 0.5px; margin-top: 8px;">Decentralized Savings Platform</div>
                             </td>
                           </tr>
                         </table>
@@ -168,9 +213,9 @@ export class NotificationService {
                     <!-- CTA Button -->
                     <tr>
                       <td style="padding: 0 32px 32px; background-color: #191d26; text-align: center;">
-                        <a href="${process.env.FRONTEND_URL || 'https://www.esusuafrica.com'}" 
+                        <a href="${process.env.FRONTEND_URL || 'https://farcaster-flame.vercel.app'}" 
                            style="display: inline-block; background: linear-gradient(135deg, #f7931a 0%, #ffa930 100%); color: white; padding: 16px 48px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; letter-spacing: -0.3px; box-shadow: 0 8px 24px rgba(247, 147, 26, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset; transition: all 0.2s;">
-                          Open Esusu App →
+                          Open Esusu (Farcaster) App →
                         </a>
                       </td>
                     </tr>
@@ -196,7 +241,7 @@ export class NotificationService {
                                 </tr>
                               </table>
                               <p style="color: #9ca3af; font-size: 13px; line-height: 1.6; margin: 0;">
-                                This is an official Esusu email. Always verify transactions in your wallet.<br>
+                                <strong>Esusu (Farcaster):</strong> This is an official email from Esusu Farcaster application. Always verify transactions in your wallet.<br>
                                 <span style="color: #6b7280; font-size: 12px;">Never share your private key or recovery phrase with anyone.</span>
                               </p>
                             </td>
@@ -209,10 +254,10 @@ export class NotificationService {
                     <tr>
                       <td style="padding: 32px; background-color: #0e1018; border-top: 1px solid #282c35; text-align: center;">
                         <p style="color: #6b7280; font-size: 13px; margin: 0 0 8px 0; font-weight: 500;">
-                          © ${new Date().getFullYear()} Esusu. All rights reserved.
+                          © ${new Date().getFullYear()} Esusu (Farcaster). All rights reserved.
                         </p>
                         <p style="color: #4b5563; font-size: 12px; margin: 0;">
-                          This is an automated message. Please do not reply to this email.
+                          This is an automated message from your Esusu Farcaster application. Please do not reply to this email.
                         </p>
                       </td>
                     </tr>
@@ -225,7 +270,12 @@ export class NotificationService {
         `
       };
 
-      await emailTransporter.sendMail(mailOptions);
+      const result = await transporter.sendMail(mailOptions);
+      console.log(`✅ Email notification sent to ${email}`, { 
+        messageId: result.messageId,
+        accepted: result.accepted,
+        rejected: result.rejected
+      });
 
       // Update notification status
       // @ts-ignore - Mongoose union type compatibility issue
@@ -234,10 +284,26 @@ export class NotificationService {
         'channels.email.sentAt': new Date()
       });
 
-      console.log(`✅ Email notification sent to ${email}`);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Failed to send email notification:', error);
+      console.error('   Error details:', {
+        code: error.code,
+        command: error.command,
+        response: error.response,
+        responseCode: error.responseCode,
+        message: error.message
+      });
+      
+      // Log specific error types
+      if (error.code === 'EAUTH') {
+        console.error('   Authentication failed - check EMAIL_USER and EMAIL_PASSWORD');
+      } else if (error.code === 'ECONNECTION') {
+        console.error('   Connection failed - check network or SMTP settings');
+      } else if (error.code === 'ETIMEDOUT') {
+        console.error('   Connection timeout - SMTP server may be unreachable');
+      }
+      
       return false;
     }
   }
@@ -389,22 +455,33 @@ export class NotificationService {
       recipient: string;
       transactionHash?: string;
       paymentToken?: string;
+      currency?: string;
     }
   ): Promise<INotification> {
     if (success) {
-      // Format amount with proper token symbol
-      const token = details.paymentToken || 'USD';
-      const amountStr = token === 'G$' || token === 'CELO' || token === 'cUSD' || token === 'USDC' || token === 'USDT'
-        ? `${details.amount.toFixed(2)} ${token}`
-        : `$${details.amount.toFixed(2)}`;
+      // Format amount with proper currency symbol
+      // Use currency if provided, otherwise fall back to paymentToken
+      const currency = details.currency || details.paymentToken || 'USD';
+      
+      // Currency codes that should be displayed as-is (not with $ prefix)
+      const localCurrencies = ['NGN', 'GHS', 'KES', 'UGX', 'ZAR', 'G$', 'CELO', 'cUSD', 'USDC', 'USDT'];
+      
+      let amountStr: string;
+      if (localCurrencies.includes(currency)) {
+        // For local currencies, show amount with currency code (e.g., "50 NGN", "100 KES")
+        amountStr = `${details.amount.toFixed(2)} ${currency}`;
+      } else {
+        // For USD and other currencies, use $ prefix
+        amountStr = `$${details.amount.toFixed(2)}`;
+      }
       
       return await this.createNotification({
         userWallet: walletAddress,
         type: 'bill_payment_success',
         title: 'Bill Payment Successful ✅',
-        message: `Your ${details.type} payment of ${amountStr} to ${details.recipient} was successful. Transaction: ${details.transactionHash?.substring(0, 10)}...`,
+        message: `Your ${details.type} payment of ${amountStr} to ${details.recipient} was successful. Transaction: ${typeof details.transactionHash === 'string' ? details.transactionHash.substring(0, 10) : String(details.transactionHash || '').substring(0, 10)}...`,
         data: { 
-          transactionHash: details.transactionHash,
+          transactionHash: typeof details.transactionHash === 'string' ? details.transactionHash : String(details.transactionHash || ''),
           type: details.type,
           amount: details.amount,
           recipient: details.recipient,

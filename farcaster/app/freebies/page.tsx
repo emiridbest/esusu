@@ -25,6 +25,7 @@ import { useFreebiesLogic } from '../../hooks/useFreebies';
 import { useClaimProcessor } from "../../context/utilityProvider/ClaimContextProvider";
 import Engagement from '../../components/Engagement';
 import { ethers } from 'ethers';
+import { PaymentSuccessModal } from '../../components/utilityBills/PaymentSuccessModal';
 
 export default function Freebies() {
     const [claimMethod, setClaimMethod] = useState<'claim' | 'exchange'>('claim');
@@ -50,7 +51,10 @@ export default function Freebies() {
         setCountryCurrency,
         onSubmit,
         serviceType: hookServiceType,
-        setServiceType: setHookServiceType
+        setServiceType: setHookServiceType,
+        showSuccessModal,
+        setShowSuccessModal,
+        successDetails
     } = useFreebiesLogic();
     const { canClaim, handleClaim, entitlement } = useClaimProcessor();
 
@@ -367,6 +371,19 @@ export default function Freebies() {
             <>
                 <Engagement />
             </>
+            
+            {successDetails && (
+                <PaymentSuccessModal
+                    open={showSuccessModal}
+                    onClose={() => {
+                        setShowSuccessModal(false);
+                    }}
+                    paymentDetails={{
+                        ...successDetails,
+                        type: successDetails.type === 'data' ? 'data' : 'airtime'
+                    }}
+                />
+            )}
         </div>
     );
 }

@@ -40,7 +40,7 @@ type UtilityContextType = {
   countryData: CountryData | null;
   setIsProcessing: (processing: boolean) => void;
   convertCurrency: (amount: string, base_currency: string) => Promise<number>;
-  handleTransaction: (params: TransactionParams) => Promise<`0x${string}` | undefined>;
+  handleTransaction: (params: TransactionParams) => Promise<{ success: boolean; transactionHash?: `0x${string}`; convertedAmount?: string; paymentToken?: string; } | undefined>;
   getTransactionMemo: (type: 'data' | 'electricity' | 'airtime', metadata: Record<string, any>) => string;
   formatCurrencyAmount: (amount: string | number) => string;
   mento: Mento | null;
@@ -132,7 +132,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   ): Promise<number> => {
 
     try {
-      const sourceCurrency = base_currency;
+      const sourceCurrency = (base_currency || '').trim().toUpperCase();
       // Validate the amount
       if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
         throw new Error('Invalid amount for currency conversion');
@@ -154,7 +154,11 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
       }
 
       const data = await response.json();
-      return parseFloat(data.toAmount);
+      const toAmount = parseFloat(data.toAmount);
+      if (!Number.isFinite(toAmount) || toAmount <= 0) {
+        throw new Error('Invalid conversion rate received');
+      }
+      return toAmount;
     } catch (error) {
       console.error('Currency conversion error:', error);
       toast.error('Failed to convert currency');
@@ -232,7 +236,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
 
   // Enhanced transaction handler for all utility types
-  const handleTransaction = async ({ type, amount, token, recipient, metadata }: TransactionParams): Promise<`0x${string}` | undefined> => {
+  const handleTransaction = async ({ type, amount, token, recipient, metadata }: TransactionParams): Promise<{ success: boolean; transactionHash?: `0x${string}`; convertedAmount?: string; paymentToken?: string; } | undefined> => {
     if (chain?.id !== celoChainId) {
       if (isSwitchChainPending) {
       }
@@ -325,7 +329,12 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
             break;
         }
         toast.success(successMessage);
-        return tx as `0x${string}`;
+        return { 
+          success: true, 
+          transactionHash: tx as `0x${string}`, 
+          convertedAmount: convertedAmount.toString(),
+          paymentToken: token 
+        };
       } else {
         toast.error('Ethereum provider not found. Please install a Web3 wallet.');
         return;
@@ -399,9 +408,21 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     } else if (operation === 'electricity') {
       steps = [
         {
-          id: 'electricity-payment',
-          title: 'Pay Electricity Bill',
-          description: `Paying electricity bill for meter ${recipient}`,
+        id: 'check-balance',
+        title: 'Check Balance',
+        description: `Checking your wallet balance`,
+        status: 'inactive'
+      },
+      {
+        id: 'send-payment',
+        title: 'Send Payment',
+        description: `Sending payment for meter ${recipient}`,
+        status: 'inactive'
+      },
+      {
+        id: 'electricity-payment',
+        title: 'Pay Electricity Bill',
+        description: `Paying electricity bill for meter ${recipient}`,
           status: 'inactive'
         }
       ];
