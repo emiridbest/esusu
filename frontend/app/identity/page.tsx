@@ -1,8 +1,8 @@
 "use client";
 import React, { useEffect, useState, Suspense } from "react"
 import { useAccount } from 'wagmi';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useIdentitySDK } from "@goodsdks/identity-sdk"
+import { useLocation } from "react-router-dom"
+import { useIdentitySDK } from "@goodsdks/react-hooks"
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
@@ -13,9 +13,7 @@ import { SigningModal } from "@/components/identity/SigningModal"
 import HelpSection from "@/components/identity/HelpSection";
 
 function IdentityVerification() {
-  const { isConnected, address } = useAccount();
-  const router = useRouter();
-  const [isSigningModalOpen, setIsSigningModalOpen] = useState(false)
+   const [isSigningModalOpen, setIsSigningModalOpen] = useState(false)
   const [isVerified, setIsVerified] = useState<boolean | undefined>(false)
   const [isWhitelisted, setIsWhitelisted] = useState<boolean | undefined>(
     undefined,
@@ -24,20 +22,33 @@ function IdentityVerification() {
     undefined,
   )
 
-  const searchParams = useSearchParams();
+  const location = useLocation()
+  const { address, isConnected } = useAccount()
   const [connectedAccount, setConnectedAccount] = useState<string | undefined>(
     undefined,
   )
-  const identitySDK = useIdentitySDK("production")
+  const { sdk: identitySDK, loading, error } = useIdentitySDK("development")
 
   useEffect(() => {
-    const verified = searchParams?.get("verified");
+    const urlParams = new URLSearchParams(location.search)
+    const verified = urlParams.get("verified")
 
     if (verified === "true") {
       setIsVerified(true)
       window.history.replaceState({}, document.title, window.location.pathname)
     }
-  }, [searchParams])
+  }, [location.search])
+
+  //ref: https://github.com/wevm/wagmi/discussions/1806#discussioncomment-12130996
+  // does not react to switch account when triggered from metamask.
+  // useAccountEffect({
+  //   onConnect(data) {
+  //     console.log("Connected!", data)
+  //   },
+  //   onDisconnect() {
+  //     console.log("Disconnected!")
+  //   },
+  // })
 
   useEffect(() => {
     const checkWhitelistStatus = async () => {
@@ -47,7 +58,6 @@ function IdentityVerification() {
           setConnectedAccount(address)
           const { isWhitelisted } =
             (await identitySDK?.getWhitelistedRoot(address)) ?? {}
-
           setIsWhitelisted(isWhitelisted)
           setIsVerified(isWhitelisted ?? false)
         } catch (error) {
@@ -62,9 +72,10 @@ function IdentityVerification() {
       setConnectedAccount(address)
       setIsWhitelisted(undefined)
       setIsVerified(undefined)
+    } else {
       checkWhitelistStatus()
     }
-  }, [address, identitySDK, connectedAccount, isWhitelisted])
+  }, [address, identitySDK, isWhitelisted, connectedAccount])
 
   const handleVerificationSuccess = () => {
     setIsVerified(true)
@@ -172,18 +183,4 @@ return (
   );
 }
 
-function ProfileLoading() {
-  return (
-    <div className="flex justify-center items-center h-screen">
-      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-    </div>
-  )
-}
-
-export default function ProfilePage() {
-  return (
-    <Suspense fallback={<ProfileLoading />}>
-      <IdentityVerification />
-    </Suspense>
-  )
-}
+export default  IdentityVerification;
