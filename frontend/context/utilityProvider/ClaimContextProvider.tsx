@@ -7,8 +7,7 @@ import { toast } from 'sonner';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { Celo } from '@celo/rainbowkit-celo/chains';
 import { createPublicClient, http } from 'viem'
-import { IdentitySDK, ClaimSDK } from "@goodsdks/citizen-sdk"
-
+import { useIdentitySDK } from "@goodsdks/react-hooks"
 import {
   Dialog,
   DialogContent,
@@ -49,7 +48,7 @@ type ClaimProcessorType = {
   sendTransactionAsync: any;
   entitlement: bigint | null;
   canClaim: boolean;
-  handleClaim: () => Promise<void>;
+  handleClaim: () => Promise<{ success: boolean; error?: any }>;
   processDataTopUp: (values: any, selectedPrice: number, availablePlans: any[], networks: any[]) => Promise<{ success: boolean; error?: any }>;
   processAirtimeTopUp: (values: any, selectedPrice: number) => Promise<{ success: boolean; error?: any }>;
   processPayment: () => Promise<any>;
@@ -66,7 +65,9 @@ type ClaimProcessorType = {
   transactionSteps: Step[];
   currentOperation: "data" | null;
   updateStepStatus: (stepId: string, status: StepStatus, errorMessage?: string) => void;
-
+  handleVerification: () => Promise<void>;
+  isWhitelisted: boolean;
+  checkingWhitelist: boolean;
 };
 
 type ClaimProviderProps = {
@@ -90,7 +91,8 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const [recipient, setRecipient] = useState<string>('');
   const { sendTransactionAsync } = useSendTransaction();
   const [claimSDK, setClaimSDK] = useState<any>(null);
-  const [isInitializing, setIsInitializing] = useState(false);
+  const [checkingWhitelist, setCheckingWhitelist] = useState<boolean>(true)
+  const [isWhitelisted, setIsWhitelisted] = useState<boolean>(false)
   const initializationAttempted = useRef(false);
 
 
@@ -108,70 +110,28 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     }
     return null;
   }, [isConnected, address]);
+  const { sdk: identitySDK, loading, error } = useIdentitySDK("production")
+  // Add whitelist check effect
+  useEffect(() => {
+    const checkWhitelistStatus = async () => {
+      if (!identitySDK || !address) {
+        setCheckingWhitelist(false)
+        return
+      }
 
-  const identitySDK = useMemo(() => {
-    if (isConnected && publicClient && walletClient) {
       try {
-        return new IdentitySDK(
-          publicClient as unknown as PublicClient,
-          walletClient as unknown as WalletClient,
-          "production"
-        );
+        const { isWhitelisted } =
+          await identitySDK.getWhitelistedRoot(address)
+        setIsWhitelisted(isWhitelisted)
       } catch (error) {
-        console.error("Failed to initialize IdentitySDK:", error);
-        return null;
+        console.error("Error checking whitelist status:", error)
+      } finally {
+        setCheckingWhitelist(false)
       }
     }
-    return null;
-  }, [publicClient, walletClient, isConnected]);
 
-  useEffect(() => {
-    const initializeClaimSDK = async () => {
-      // Skip if we're already initializing, already initialized, or missing prerequisites
-      if (
-        isInitializing ||
-        initializationAttempted.current ||
-        claimSDK ||
-        !isConnected ||
-        !walletClient ||
-        !identitySDK ||
-        !address
-      ) {
-        return;
-      }
-
-      try {
-        setIsInitializing(true);
-        initializationAttempted.current = true;
-
-
-        const sdk = ClaimSDK.init({
-          publicClient: publicClient as PublicClient,
-          walletClient: walletClient as unknown as WalletClient,
-          identitySDK,
-          env: 'production',
-        });
-
-
-        const initializedSDK = await sdk;
-        setClaimSDK(initializedSDK);
-
-        // Check initial entitlement
-        if (initializedSDK) {
-          const entitlementValue = await initializedSDK.checkEntitlement();
-          setEntitlement(entitlementValue);
-          setCanClaim(entitlementValue > BigInt(0));
-        }
-      } catch (error) {
-        console.error("Error initializing ClaimSDK:", error);
-      } finally {
-        setIsInitializing(false);
-      }
-    };
-
-    initializeClaimSDK();
-  }, [isConnected, walletClient, identitySDK, address, publicClient, claimSDK, isInitializing]);
-
+    checkWhitelistStatus()
+  }, [identitySDK, address])
   // Reset initialization state when wallet disconnects
   useEffect(() => {
     if (!isConnected) {
@@ -180,7 +140,41 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     }
   }, [isConnected]);
 
+ const handleVerification = async () => {
+        if (!identitySDK) {
+            toast.error("Identity SDK not initialized")
+            return
+        }
 
+        try {
+            // Generate FV link with current URL as callback
+            const currentUrl = window.location.href
+            const fvLink = await identitySDK.generateFVLink(false, currentUrl)
+            window.location.href = fvLink
+        } catch (err) {
+            console.error("Error generating verification link:", err)
+            toast.error("Failed to generate verification link")
+        }
+    }
+    // Add whitelist check effect
+      useEffect(() => {
+        if (!address || !identitySDK) {
+          setCheckingWhitelist(false)
+          return
+        }
+    const checkWhitelistStatus = async () => {
+      try {
+        const { isWhitelisted } = await identitySDK.getWhitelistedRoot(address)
+        setIsWhitelisted(isWhitelisted)
+      } catch (error) {
+        console.error("Error checking whitelist status:", error)
+      } finally {
+        setCheckingWhitelist(false)
+      }
+    }
+
+    checkWhitelistStatus()
+  }, [identitySDK, address])
 
   // Update step status helper function
   const updateStepStatus = (stepId: string, status: StepStatus, errorMessage?: string) => {
@@ -207,39 +201,41 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       setEntitlement(newEntitlement);
       const tx = await claimSDK.claim();
       if (!tx) {
-        return;
+        return { success: false, error: new Error("No transaction returned from claim") };
       }
       toast.success("Successfully claimed G$ tokens!");
       const dataSuffix = getReferralTag({
-      user: address as `0x${string}`,
-      consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-    });
-    try {
-      const txCountInterface = new Interface(txCountABI);
-      const txCountData = txCountInterface.encodeFunctionData("increment", []);
-      const dataWithSuffix = txCountData + dataSuffix;
-
-      const txCount = await sendTransactionAsync({
-        to: txCountAddress as `0x${string}`,
-        data: dataWithSuffix as `0x${string}`,
+        user: address as `0x${string}`,
+        consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
       });
       try {
-        await submitReferral({
-          txHash: txCount.hash as unknown as `0x${string}`,
-          chainId: 42220
-        });
-        console.log("Referral submitted for transaction count update.");
-      } catch (referralError) {
-        console.error("Referral submission error:", referralError);
-      }
+        const txCountInterface = new Interface(txCountABI);
+        const txCountData = txCountInterface.encodeFunctionData("increment", []);
+        const dataWithSuffix = txCountData + dataSuffix;
 
-    } catch (error) {
-      console.error("Error during transaction count update:", error);
-      toast.error("There was an error updating the transaction count.");
-    }
+        const txCount = await sendTransactionAsync({
+          to: txCountAddress as `0x${string}`,
+          data: dataWithSuffix as `0x${string}`,
+        });
+        try {
+          await submitReferral({
+            txHash: txCount.hash as unknown as `0x${string}`,
+            chainId: 42220
+          });
+          console.log("Referral submitted for transaction count update.");
+        } catch (referralError) {
+          console.error("Referral submission error:", referralError);
+        }
+        return { success: true };
+      } catch (error) {
+        console.error("Error during transaction count update:", error);
+        toast.error("There was an error updating the transaction count.");
+        return { success: false, error };
+      }
     } catch (error) {
       console.error("Error during claim:", error);
       toast.error("There was an error processing your claim.");
+      return { success: false, error };
     } finally {
       setIsProcessing(false);
     }
@@ -468,7 +464,11 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     openTransactionDialog,
     transactionSteps,
     currentOperation,
-    updateStepStatus
+    updateStepStatus,
+    handleVerification,
+    isWhitelisted,
+    checkingWhitelist,
+
   };
 
   return (
