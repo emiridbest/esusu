@@ -49,7 +49,8 @@ export const useFreebiesLogic = () => {
         handleClaim,
         processDataTopUp,
         processAirtimeTopUp,
-        processPayment
+        processPayment,
+        canClaim
     } = useClaimProcessor();
 
     // State variables
@@ -58,10 +59,7 @@ export const useFreebiesLogic = () => {
     const [selectedPlan, setSelectedPlan] = useState<DataPlan | null>(null);
     const [availablePlans, setAvailablePlans] = useState<DataPlan[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [timeRemaining, setTimeRemaining] = useState<string>("");
-    const [nextClaimTime, setNextClaimTime] = useState<Date | null>(null);
     const [networks, setNetworks] = useState<NetworkOperator[]>([]);
-    const [canClaimToday, setCanClaimToday] = useState(true);
     const [isVerifying, setIsVerifying] = useState<boolean>(false);
     const [isVerified, setIsVerified] = useState<boolean>(false);
     const [isWhitelisted, setIsWhitelisted] = useState<boolean | undefined>(undefined);
@@ -207,71 +205,14 @@ export const useFreebiesLogic = () => {
     }, [watchNetwork, watchCountry, form]);
 
 
-
-    // Check if user has already claimed today
-    useEffect(() => {
-        const checkLastClaim = () => {
-            const lastClaim = localStorage.getItem('lastFreeClaim');
-            const today = new Date().toDateString();
-
-            if (lastClaim === today) {
-                const tomorrow = new Date();
-                tomorrow.setHours(24, 0, 0, 0);
-                setNextClaimTime(tomorrow);
-                return false;
-            }
-            return true;
-        };
-
-        const canClaimToday = checkLastClaim();
-        if (!canClaimToday) {
-            setCanClaimToday(false);
-        }
-    }, []);
-
-    // Timer for countdown
-    useEffect(() => {
-        if (!nextClaimTime) return;
-
-        const timer = setInterval(() => {
-            const now = new Date();
-            const diff = nextClaimTime.getTime() - now.getTime();
-
-            if (diff <= 0) {
-                setTimeRemaining("Available now!");
-                setCanClaimToday(true);
-                clearInterval(timer);
-            } else {
-                const hours = Math.floor(diff / (1000 * 60 * 60));
-                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-                setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
-            }
-        }, 1000);
-
-        return () => clearInterval(timer);
-    }, [nextClaimTime]);
-
     // Handle claim bundle logic
     async function onSubmit(values: z.infer<typeof formSchema>) {
         // Early return if already processing to prevent race conditions
-        if (isProcessing || isClaiming || !canClaimToday) {
+        if (isProcessing || isClaiming || !canClaim) {
             return;
         }
 
-        // Check localStorage before starting process
-        const checkCanClaim = () => {
-            if (typeof window === 'undefined') return true; // SSR check
-            const lastClaim = localStorage.getItem('lastFreeClaim');
-            const today = new Date().toDateString();
-            return lastClaim !== today;
-        };
-
-        if (!checkCanClaim()) {
-            toast.error("You have already claimed your free data bundle today. Please try again tomorrow.");
-            return;
-        }
-
+     
         // Generate unique transaction ID for idempotency
         const transactionId = `${address}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -467,15 +408,8 @@ export const useFreebiesLogic = () => {
                     );
                 }
                 
-                setCanClaimToday(false);
-
                 if (topupResult && topupResult.success) {
                     // Only set localStorage after successful topup
-                    if (typeof window !== 'undefined') {
-                        localStorage.setItem('lastFreeClaim', new Date().toDateString());
-                        localStorage.removeItem('processingClaim');
-                    }
-
                     setSelectedPlan(null);
                     updateStepStatus('top-up', 'success');
                     form.reset();
@@ -542,8 +476,6 @@ export const useFreebiesLogic = () => {
         isVerified,
         isWhitelisted,
         loadingWhitelist,
-        canClaimToday,
-        timeRemaining,
         serviceType,
         setServiceType,
 
