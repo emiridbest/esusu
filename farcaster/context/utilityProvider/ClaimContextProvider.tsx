@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useContext, createContext, ReactNode, useMemo, useEffect, useRef, useCallback } from 'react';
-import { ethers, Interface } from "ethers";
-import { useAccount, useChainId, useConnect, useSendTransaction, useSwitchChain } from "wagmi";
+import React, { useState, useContext, createContext, ReactNode, useEffect, useRef, useCallback } from 'react';
+import { Interface, formatUnits } from "ethers";
+import { useAccount, useConnect, useSendTransaction, useSwitchChain } from "wagmi";
 import { toast } from 'sonner';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { Celo } from '@celo/rainbowkit-celo/chains';
-import { IdentitySDK, ClaimSDK } from "@goodsdks/citizen-sdk"
+import { useIdentitySDK, useClaimSDK } from "@goodsdks/react-hooks"
+import { isSupportedChain, CHAIN_DECIMALS, SupportedChains } from "@goodsdks/citizen-sdk"
 import {
   Dialog,
   DialogContent,
@@ -21,8 +22,6 @@ import { Button } from "../../components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '../../components/TransactionSteps';
 import { txCountABI, txCountAddress } from '../../utils/pay';
 import { config } from '../../components/providers/WagmiProvider';
-import { PublicClient, WalletClient } from "viem"
-import { createWalletClient, custom } from 'viem'
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
 const TOKENS = {
@@ -36,22 +35,17 @@ const getTokenAddress = (token: string, tokens: any): string => {
   return tokens[token]?.address || '';
 };
 
+
 type ClaimProcessorType = {
   isProcessing: boolean;
   setIsProcessing: (isProcessing: boolean) => void;
-  claimSDK: any;
-  celoChainId: number;
   sendTransactionAsync: any;
   entitlement: bigint | null;
   canClaim: boolean;
-  isSwitchChainPending: boolean;
-  isSwitchChainError: boolean;
-  switchChainError: Error | null;
-  handleSwitchChain: () => void;
   handleClaim: () => Promise<{ success: boolean; error?: any }>;
   processDataTopUp: (values: any, selectedPrice: number, availablePlans: any[], networks: any[]) => Promise<{ success: boolean; error?: any }>;
   processAirtimeTopUp: (values: any, selectedPrice: number) => Promise<{ success: boolean; error?: any }>;
-  processPayment: () => Promise<string>;
+  processPayment: () => Promise<any>;
   TOKENS: typeof TOKENS;
   isTransactionDialogOpen: boolean;
   setIsTransactionDialogOpen: (open: boolean) => void;
@@ -67,6 +61,9 @@ type ClaimProcessorType = {
   handleVerification: () => Promise<void>;
   isWhitelisted: boolean;
   checkingWhitelist: boolean;
+  claimAmount: number | null;
+  altClaimAvailable: boolean;
+  altChainId: SupportedChains | null;
 };
 
 type ClaimProviderProps = {
@@ -77,7 +74,6 @@ const ClaimProcessorContext = createContext<ClaimProcessorType | undefined>(unde
 
 export function ClaimProvider({ children }: ClaimProviderProps) {
   const { address, isConnected } = useAccount();
-
   const [isProcessing, setIsProcessing] = useState(false);
   const [entitlement, setEntitlement] = useState<bigint | null>(null);
   const [canClaim, setCanClaim] = useState(false);
@@ -86,14 +82,21 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const [currentOperation, setCurrentOperation] = useState<'data' | null>(null);
   const [isWaitingTx, setIsWaitingTx] = useState(false);
   const [recipient, setRecipient] = useState<string>('');
-  const celoChainId = config.chains[0].id;
+  const { sendTransactionAsync } = useSendTransaction();
   const [claimSDK, setClaimSDK] = useState<any>(null);
   const [checkingWhitelist, setCheckingWhitelist] = useState<boolean>(true);
   const [isWhitelisted, setIsWhitelisted] = useState<boolean>(false);
+  const [isInitializing, setIsInitializing] = useState(false);
+  const [claimAmount, setClaimAmount] = useState<number | null>(null);
+  const [altClaimAvailable, setAltClaimAvailable] = useState(false);
+  const [altChainId, setAltChainId] = useState<SupportedChains | null>(null);
   const initializationAttempted = useRef(false);
-
-  const { connect, connectors } = useConnect();
-  const { sendTransactionAsync } = useSendTransaction({ config });
+  const closeDialogTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const chainId = Celo.id;
+    const celoChainId = config.chains[0].id;
+    const { connect, connectors } = useConnect();
+  const { sdk: identitySDK } = useIdentitySDK("production");
+  const { sdk: ClaimSDK, loading: claimSDKLoading, error: claimSDKError } = useClaimSDK("production");
 
   const {
     switchChain,
@@ -102,42 +105,17 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     isPending: isSwitchChainPending,
   } = useSwitchChain();
 
-  const chainId = useChainId();
 
   const handleSwitchChain = useCallback(() => {
-    switchChain({ chainId: celoChainId });
-  }, [switchChain, celoChainId]);
+    switchChain({ chainId: chainId });
+  }, [switchChain, chainId]);
 
   const publicClient = createPublicClient({
     chain: celo,
     transport: http()
   })
-  const walletClient = useMemo(() => {
-    if (isConnected && window.ethereum && address) {
-      return createWalletClient({
-        account: address as `0x${string}`,
-        chain: celo,
-        transport: custom(window.ethereum)
-      });
-    }
-    return null;
-  }, [isConnected, address]);
-  const identitySDK = useMemo(() => {
-    if (isConnected && publicClient && walletClient) {
 
-      try {
-        return new IdentitySDK(
-          publicClient as unknown as PublicClient,
-          walletClient as unknown as WalletClient,
-          "production"
-        );
-      } catch (error) {
-        console.error("Failed to initialize IdentitySDK:", error);
-        return null;
-      }
-    }
-    return null;
-  }, [publicClient, walletClient, isConnected]);
+
   useEffect(() => {
     const switchToCelo = async () => {
       if (!isConnected || (isConnected && chainId !== celoChainId)) {
@@ -163,43 +141,28 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     switchToCelo();
   }, [connect, connectors, chainId, celoChainId, handleSwitchChain, isConnected]);
 
-  // Reset initialization state when wallet disconnects
+ 
+  // Reset SDK when chain changes
   useEffect(() => {
-    if (!isConnected) {
-      handleSwitchChain();
-      initializationAttempted.current = false;
-      setClaimSDK(null);
-    }
-  }, [isConnected, handleSwitchChain]);
+    setClaimSDK(null);
+    initializationAttempted.current = false;
+  }, [chainId, claimSDKLoading]);
 
-  const handleVerification = async () => {
-    if (!identitySDK ) {
-      toast.error("Identity SDK not initialized");
-      return;
-    }
-
-   
-    try {
-      const currentUrl = window.location.href;
-      const fvLink = await identitySDK.generateFVLink(false, currentUrl);
-      window.location.href = fvLink;
-    } catch (err) {
-      console.error("Error generating verification link:", err);
-      toast.error("Failed to generate verification link");
-    }
-  };
-
-  // Check whitelist status
+  // Consolidated whitelist check
   useEffect(() => {
     const checkWhitelistStatus = async () => {
-      if (!identitySDK || !address ) {
+      if (!identitySDK || !address) {
         setCheckingWhitelist(false);
         return;
       }
 
       try {
-        const { isWhitelisted } = await identitySDK.getWhitelistedRoot(address);
-        setIsWhitelisted(isWhitelisted);
+        const result = await identitySDK.getWhitelistedRoot(address);
+        if (result && typeof result.isWhitelisted === 'boolean') {
+          setIsWhitelisted(result.isWhitelisted);
+        } else {
+          setIsWhitelisted(false);
+        }
       } catch (error) {
         console.error("Error checking whitelist status:", error);
         setIsWhitelisted(false);
@@ -211,39 +174,161 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     checkWhitelistStatus();
   }, [identitySDK, address]);
 
-  const updateStepStatus = (stepId: string, status: StepStatus, errorMessage?: string) => {
+  // Reset state when wallet disconnects
+  useEffect(() => {
+    if (!isConnected) {
+      initializationAttempted.current = false;
+      setClaimSDK(null);
+      setEntitlement(null);
+      setCanClaim(false);
+      setClaimAmount(null);
+      setAltClaimAvailable(false);
+      setAltChainId(null);
+    }
+  }, [isConnected]);
+
+  // Initialize ClaimSDK - following the documentation pattern
+  useEffect(() => {
+    const initializeSDK = async () => {
+      // Skip if prerequisites not met
+      if (
+        isInitializing ||
+        initializationAttempted.current ||
+        claimSDKLoading ||
+        !ClaimSDK ||
+        !chainId ||
+        !isConnected ||
+        !address
+      ) {
+        return;
+      }
+
+      setIsInitializing(true);
+      initializationAttempted.current = true;
+
+      try {
+        // Validate chain is supported
+        if (!isSupportedChain(chainId)) {
+          throw new Error(`Unsupported chain id: ${chainId}`);
+        }
+
+        // Check entitlement - this is the correct way per documentation
+        const { amount, altClaimAvailable, altChainId: altChain } = 
+          await ClaimSDK.checkEntitlement();
+
+        setEntitlement(amount);
+
+        // Get decimals for the current chain
+        const decimals = CHAIN_DECIMALS[chainId as SupportedChains];
+
+        // Format the amount for display
+        const formattedAmount = formatUnits(amount, decimals);
+        const rounded = Math.round((Number(formattedAmount) + Number.EPSILON) * 100) / 100;
+
+        setClaimAmount(rounded);
+        setAltClaimAvailable(altClaimAvailable);
+        setAltChainId(altClaimAvailable ? (altChain ?? null) : null);
+        
+        // Determine if user can claim
+        setCanClaim(amount > BigInt(0));
+        
+        // Set the initialized SDK
+        setClaimSDK(ClaimSDK);
+
+      } catch (error) {
+        console.error("Error initializing ClaimSDK:", error);
+        initializationAttempted.current = false; // Allow retry on error
+        setClaimAmount(null);
+        setCanClaim(false);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    if (claimSDKError) {
+      console.error("ClaimSDK error:", claimSDKError);
+      setIsInitializing(false);
+    } else if (!claimSDK && !claimSDKLoading) {
+      initializeSDK();
+    }
+  }, [
+    isConnected,
+    address,
+    chainId,
+    ClaimSDK,
+    claimSDKLoading,
+    claimSDKError,
+    claimSDK,
+    isInitializing
+  ]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (closeDialogTimeoutRef.current) {
+        clearTimeout(closeDialogTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleVerification = useCallback(async () => {
+    if (!identitySDK) {
+      return;
+    }
+
+    try {
+      const currentUrl = window.location.href;
+      const fvLink = await identitySDK.generateFVLink(false, currentUrl);
+      window.location.href = fvLink;
+    } catch (err) {
+      console.error("Error generating verification link:", err);
+    }
+  }, [identitySDK]);
+
+  const updateStepStatus = useCallback((stepId: string, status: StepStatus, errorMessage?: string) => {
     setTransactionSteps(prevSteps => prevSteps.map(step =>
       step.id === stepId
         ? { ...step, status, ...(errorMessage ? { errorMessage } : {}) }
         : step
     ));
-  };
+  }, []);
 
-  const handleClaim = async () => {
-    handleSwitchChain();
-    try {
-      if (!isConnected) {
-        throw new Error("Wallet not connected");
-      }
+  const handleClaim = useCallback(async () => {
+  handleSwitchChain();
+         if (!claimSDK) {
+      return { success: false, error: new Error("ClaimSDK not initialized") };
+    }
 
-      if (!claimSDK) {
-        throw new Error("ClaimSDK not initialized");
-      }
-
+    if (!isConnected) {
+      return { success: false, error: new Error("Wallet not connected") };
+    }
       setIsProcessing(true);
-      const newEntitlement = await claimSDK.checkEntitlement();
-      setEntitlement(newEntitlement);
-      const tx = await claimSDK.claim();
+     try {
+      // Optional callback example from documentation
+      const claimCallback = async () => {
+        console.log("Waiting for claim transaction...");
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        console.log("Transaction started");
+      };
 
+      // Claim with optional callback
+      const tx = await claimSDK.claim(claimCallback);
+      
       if (!tx) {
         return { success: false, error: new Error("No transaction returned from claim") };
       }
 
+      // Reset claim amount after successful claim
+      setClaimAmount(null);
+      setEntitlement(BigInt(0));
+      setCanClaim(false);
+
       toast.success("Successfully claimed G$ tokens!");
 
+      // Update transaction count with referral tracking
       const dataSuffix = getReferralTag({
         user: address as `0x${string}`,
-        consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
+        consumer: RECIPIENT_WALLET as `0x${string}`,
       });
 
       try {
@@ -269,7 +354,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         return { success: true };
       } catch (error) {
         console.error("Error during transaction count update:", error);
-        toast.error("There was an error updating the transaction count.");
         return { success: false, error };
       }
     } catch (error) {
@@ -279,7 +363,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [claimSDK, isConnected, address, sendTransactionAsync]);
 
   const processDataTopUp = async (values: any, selectedPrice: number, availablePlans: any[], networks: any[]) => {
     if (!values || !values.phoneNumber || !values.country || !values.network) {
@@ -469,15 +553,9 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const value = {
     isProcessing,
     setIsProcessing,
-    claimSDK,
-    celoChainId,
     sendTransactionAsync,
     entitlement,
     canClaim,
-    isSwitchChainPending,
-    isSwitchChainError,
-    switchChainError,
-    handleSwitchChain,
     handleClaim,
     processDataTopUp,
     processAirtimeTopUp,
@@ -487,7 +565,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     setCurrentOperation,
     setIsTransactionDialogOpen,
     isTransactionDialogOpen,
-    isWaitingTx: false,
+    isWaitingTx,
     setIsWaitingTx,
     closeTransactionDialog,
     openTransactionDialog,
@@ -496,18 +574,29 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     updateStepStatus,
     handleVerification,
     isWhitelisted,
-    checkingWhitelist
+    checkingWhitelist,
+    claimAmount,
+    altClaimAvailable,
+    altChainId,
   };
 
   return (
     <ClaimProcessorContext.Provider value={value}>
       {children}
-      <Dialog open={isTransactionDialogOpen} onOpenChange={(open) => !isWaitingTx && !open && closeTransactionDialog()}>
+
+      <Dialog
+        open={isTransactionDialogOpen}
+        onOpenChange={(open) => !isWaitingTx && !open && closeTransactionDialog()}
+      >
         <DialogContent className="sm:max-w-md border rounded-lg">
           <DialogHeader>
-            <DialogTitle className='text-black/90 dark:text-white/90'>{getDialogTitle()}</DialogTitle>
+            <DialogTitle className='text-black/90 dark:text-white/90'>
+              {getDialogTitle()}
+            </DialogTitle>
             <DialogDescription>
-              {currentOperation === 'data' ? `Purchasing data for ${recipient}` : 'Processing transaction...'}
+              {currentOperation === 'data' && recipient && (
+                `Processing data top-up for ${recipient}`
+              )}
             </DialogDescription>
           </DialogHeader>
 
