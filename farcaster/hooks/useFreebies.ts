@@ -49,7 +49,8 @@ export const useFreebiesLogic = () => {
         handleClaim,
         processDataTopUp,
         processAirtimeTopUp,
-        processPayment
+        processPayment,
+        canClaim
     } = useClaimProcessor();
 
     // State variables
@@ -58,16 +59,14 @@ export const useFreebiesLogic = () => {
     const [selectedPlan, setSelectedPlan] = useState<DataPlan | null>(null);
     const [availablePlans, setAvailablePlans] = useState<DataPlan[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [timeRemaining, setTimeRemaining] = useState<string>("");
-    const [nextClaimTime, setNextClaimTime] = useState<Date | null>(null);
     const [networks, setNetworks] = useState<NetworkOperator[]>([]);
-    const [canClaimToday, setCanClaimToday] = useState(true);
     const [isVerifying, setIsVerifying] = useState<boolean>(false);
     const [isVerified, setIsVerified] = useState<boolean>(false);
     const [isWhitelisted, setIsWhitelisted] = useState<boolean | undefined>(undefined);
     const [loadingWhitelist, setLoadingWhitelist] = useState<boolean | undefined>(undefined);
     const [txID, setTxID] = useState<string | null>(null);
     const [serviceType, setServiceType] = useState<'data' | 'airtime'>('data');
+
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -168,7 +167,7 @@ export const useFreebiesLogic = () => {
         getNetworks();
 
 
-    }, [watchCountry, form, serviceType]);
+    }, [watchCountry, serviceType, form]);
 
 
     // Reset network and plan when service type changes
@@ -205,70 +204,15 @@ export const useFreebiesLogic = () => {
         getDataPlans();
     }, [watchNetwork, watchCountry, form]);
 
-    // Check if user has already claimed today
-    useEffect(() => {
-        const checkLastClaim = () => {
-            const lastClaim = localStorage.getItem('lastFreeClaim');
-            const today = new Date().toDateString();
-
-            if (lastClaim === today) {
-                const tomorrow = new Date();
-                tomorrow.setHours(24, 0, 0, 0);
-                setNextClaimTime(tomorrow);
-                return false;
-            }
-            return true;
-        };
-
-        const canClaimToday = checkLastClaim();
-        if (!canClaimToday) {
-            setCanClaimToday(false);
-        }
-    }, []);
-
-    // Timer for countdown
-    useEffect(() => {
-        if (!nextClaimTime) return;
-
-        const timer = setInterval(() => {
-            const now = new Date();
-            const diff = nextClaimTime.getTime() - now.getTime();
-
-            if (diff <= 0) {
-                setTimeRemaining("Available now!");
-                setCanClaimToday(true);
-                clearInterval(timer);
-            } else {
-                const hours = Math.floor(diff / (1000 * 60 * 60));
-                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-                setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
-            }
-        }, 1000);
-
-        return () => clearInterval(timer);
-    }, [nextClaimTime]);
 
     // Handle claim bundle logic
     async function onSubmit(values: z.infer<typeof formSchema>) {
         // Early return if already processing to prevent race conditions
-        if (isProcessing || isClaiming || !canClaimToday) {
+        if (isProcessing || isClaiming || !canClaim) {
             return;
         }
 
-        // Check localStorage before starting process
-        const checkCanClaim = () => {
-            if (typeof window === 'undefined') return true; // SSR check
-            const lastClaim = localStorage.getItem('lastFreeClaim');
-            const today = new Date().toDateString();
-            return lastClaim !== today;
-        };
-
-        if (!checkCanClaim()) {
-            toast.error("You have already claimed your free data bundle today. Please try again tomorrow.");
-            return;
-        }
-
+     
         // Generate unique transaction ID for idempotency
         const transactionId = `${address}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -280,9 +224,9 @@ export const useFreebiesLogic = () => {
             const country = values.country;
             const emailAddress = values.email;
             const networkId = values.network;
-
+            
             // Only look up plan if service type is data
-            const selectedPlan = serviceType === 'data'
+            const selectedPlan = serviceType === 'data' 
                 ? (availablePlans.find(plan => plan.id === values.plan) || null)
                 : null;
 
@@ -367,10 +311,6 @@ export const useFreebiesLogic = () => {
             // Start claiming process
             setIsClaiming(true);
             updateStepStatus('claim-ubi', 'loading');
-
-            // Start claiming process
-            setIsClaiming(true);
-            updateStepStatus('claim-ubi', 'loading');
             try {
                 const claimResult = await handleClaim();
 
@@ -382,7 +322,7 @@ export const useFreebiesLogic = () => {
                     console.error("Claim failed: handleClaim returned failure", claimResult);
                     toast.error("Failed to claim your free data bundle. Please try again.");
                     updateStepStatus('claim-ubi', 'error', "An error occurred during the claim process.");
-                    return;
+                    return; 
                 }
 
                 hasClaimedSuccessfully = true;
@@ -395,14 +335,14 @@ export const useFreebiesLogic = () => {
                 return;
             }
 
-
+           
             // Process payment
             updateStepStatus('payment', 'loading');
             let transactionHash: string | null = null;
             try {
                 const tx = await processPayment();
                 console.log("Payment transaction result:", tx);
-                transactionHash = tx;
+                transactionHash = tx.hash;
                 setTxID(transactionHash);
                 updateStepStatus('payment', 'success');
             } catch (paymentError) {
@@ -416,7 +356,7 @@ export const useFreebiesLogic = () => {
             try {
                 updateStepStatus('top-up', 'loading');
                 let topupResult;
-
+                
                 if (serviceType === 'data') {
                     if (!selectedPlan || !selectedPlan.price) {
                         throw new Error("Invalid or missing data plan");
@@ -436,7 +376,7 @@ export const useFreebiesLogic = () => {
                     }
 
                     const networks = [{ id: networkId, name: 'Network' }];
-
+                    
                     topupResult = await processDataTopUp(
                         {
                             phoneNumber,
@@ -467,16 +407,9 @@ export const useFreebiesLogic = () => {
                         amount
                     );
                 }
-
-                setCanClaimToday(false);
-
+                
                 if (topupResult && topupResult.success) {
                     // Only set localStorage after successful topup
-                    if (typeof window !== 'undefined') {
-                        localStorage.setItem('lastFreeClaim', new Date().toDateString());
-                        localStorage.removeItem('processingClaim');
-                    }
-
                     setSelectedPlan(null);
                     updateStepStatus('top-up', 'success');
                     form.reset();
@@ -543,8 +476,6 @@ export const useFreebiesLogic = () => {
         isVerified,
         isWhitelisted,
         loadingWhitelist,
-        canClaimToday,
-        timeRemaining,
         serviceType,
         setServiceType,
 

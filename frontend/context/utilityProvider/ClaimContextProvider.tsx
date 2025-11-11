@@ -188,17 +188,8 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         // Set the initialized SDK
         setClaimSDK(ClaimSDK);
 
-        console.log('✅ ClaimSDK initialized successfully', {
-          amount: amount.toString(),
-          formattedAmount: rounded,
-          canClaim: amount > BigInt(0),
-          altClaimAvailable,
-          altChainId: altChain
-        });
-
       } catch (error) {
         console.error("Error initializing ClaimSDK:", error);
-        toast.error(error instanceof Error ? error.message : "Failed to initialize claim SDK");
         initializationAttempted.current = false; // Allow retry on error
         setClaimAmount(null);
         setCanClaim(false);
@@ -209,7 +200,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
     if (claimSDKError) {
       console.error("ClaimSDK error:", claimSDKError);
-      toast.error(claimSDKError);
       setIsInitializing(false);
     } else if (!claimSDK && !claimSDKLoading) {
       initializeSDK();
@@ -236,7 +226,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
   const handleVerification = useCallback(async () => {
     if (!identitySDK) {
-      toast.error("Identity SDK not initialized");
       return;
     }
 

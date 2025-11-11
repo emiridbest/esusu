@@ -1,9 +1,9 @@
 "use client";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useAccount } from "wagmi";
-import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
-import { Alert, AlertDescription } from "../components/ui/alert";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
+import { Alert, AlertDescription } from "./ui/alert";
 import {
   Wallet,
   ArrowRight,
@@ -29,11 +29,7 @@ import {
   validateConfiguration
 } from '../lib/engagementHelpers'
 import { useSearchParams } from 'next/navigation'
-import { IdentitySDK,  } from "@goodsdks/citizen-sdk"
-import { createPublicClient, http, PublicClient, WalletClient } from "viem"
-import { createWalletClient, custom } from 'viem'
-import { celo } from "viem/chains";
-
+import { useIdentitySDK } from "@goodsdks/react-hooks"
 interface InviteReward {
   invitedWallet: string
   rewardAmount: string
@@ -94,6 +90,7 @@ const RewardsClaimCard = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState<string>("")
   const [claimStep, setClaimStep] = useState<'idle' | 'checking' | 'signing' | 'submitting' | 'success' | 'error'>('idle')
+  const { sdk: identitySDK } = useIdentitySDK()
   const [inviteLink, setInviteLink] = useState<string>("")
   const [isCopied, setIsCopied] = useState(false)
   const [inviteRewards, setInviteRewards] = useState<InviteReward[]>([])
@@ -105,6 +102,7 @@ const RewardsClaimCard = () => {
   const [isWhitelisted, setIsWhitelisted] = useState<boolean>(false)
   const [checkingWhitelist, setCheckingWhitelist] = useState<boolean>(true)
   const [lastTransactionHash, setLastTransactionHash] = useState<string | null>(null)
+  const userWallet = userAddress
   const formatAddress = (addr: string | null) => {
     if (!addr) return '';
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -188,36 +186,7 @@ const RewardsClaimCard = () => {
       setInviteLink("")
     }
   }, [inviterAddress, userAddress])
-    const publicClient = createPublicClient({
-      chain: celo,
-      transport: http()
-    })
-    const walletClient = useMemo(() => {
-      if (isConnected && window.ethereum && userAddress) {
-        return createWalletClient({
-          account: userAddress as `0x${string}`,
-          chain: celo,
-          transport: custom(window.ethereum)
-        });
-      }
-      return null;
-    }, [isConnected, userAddress]);
-const identitySDK = useMemo(() => {
-    if (isConnected && publicClient && walletClient) {
 
-      try {
-        return new IdentitySDK(
-          publicClient as unknown as PublicClient,
-          walletClient as unknown as WalletClient,
-          "production"
-        );
-      } catch (error) {
-        console.error("Failed to initialize IdentitySDK:", error);
-        return null;
-      }
-    }
-    return null;
-  }, [publicClient, walletClient, isConnected]);
   // Add whitelist check effect
   useEffect(() => {
     if (!userAddress || !identitySDK) {
@@ -556,7 +525,7 @@ const identitySDK = useMemo(() => {
             </CardContent>
           </Card>
 
-          {!userAddress ? (
+          {!userWallet ? (
             <Card className="border dark:bg-black">
               <CardHeader>
                 <CardTitle>Connect Your Wallet</CardTitle>
