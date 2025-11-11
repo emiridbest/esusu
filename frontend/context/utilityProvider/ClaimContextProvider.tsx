@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useContext, createContext, ReactNode, useMemo, useEffect, useRef } from 'react';
-import { ethers, Interface } from "ethers";
+import React, { useState, useContext, createContext, ReactNode, useEffect, useRef } from 'react';
+import { Interface } from "ethers";
 import { useAccount, useSendTransaction } from "wagmi";
 import { toast } from 'sonner';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { Celo } from '@celo/rainbowkit-celo/chains';
-import { createPublicClient, http } from 'viem'
 import { useIdentitySDK } from "@goodsdks/react-hooks"
 import {
   Dialog,
@@ -18,11 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '@/components/TransactionSteps';
-import { createWalletClient, custom } from 'viem'
-import { celo } from 'viem/chains'
-import { PublicClient, WalletClient } from "viem"
 import { txCountABI, txCountAddress } from '@/utils/pay';
-import { writeContract } from '@wagmi/core';
 // Constants
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
@@ -96,20 +91,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const initializationAttempted = useRef(false);
 
 
-  const publicClient = createPublicClient({
-    chain: celo,
-    transport: http()
-  })
-  const walletClient = useMemo(() => {
-    if (isConnected && window.ethereum && address) {
-      return createWalletClient({
-        account: address as `0x${string}`,
-        chain: celo,
-        transport: custom(window.ethereum)
-      });
-    }
-    return null;
-  }, [isConnected, address]);
   const { sdk: identitySDK, loading, error } = useIdentitySDK("production")
   // Add whitelist check effect
   useEffect(() => {

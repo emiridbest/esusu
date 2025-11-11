@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, use, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
-import { ethers, Interface } from "ethers";
+import { ethers, Interface, JsonRpcProvider  } from "ethers";
 
 import {
   useAccount,
@@ -13,7 +13,7 @@ import {
   useConnectorClient,
   type Config,
 } from "wagmi";
-import Provider, { config } from '../../components/providers/WagmiProvider';
+import  { config } from '../../components/providers/WagmiProvider';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { CountryData } from '../../utils/countryData';
 import {
@@ -29,6 +29,7 @@ import { TransactionSteps, Step, StepStatus } from '../../components/Transaction
 //@ts-ignore
 import { Mento } from "@mento-protocol/mento-sdk";
 import { Celo } from '@celo/rainbowkit-celo/chains';
+import { celo } from 'viem/chains';
 
 // The recipient wallet address for all utility payments
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
@@ -92,7 +93,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const { address, chain, isConnected } = useAccount();
   const celoChainId = config.chains[0].id;
 
-  const provider = new ethers.JsonRpcProvider("https://forno.celo.org")
+  const provider = new JsonRpcProvider("https://forno.celo.org", celoChainId);
   const {
     switchChain,
     error: switchChainError,
@@ -111,11 +112,12 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const [mento, setMento] = useState<Mento | null>(null);
 
   useEffect(() => {
-    if (!isConnected || !provider) return;
+    if (!isConnected || !provider|| !address) return;
 
     const initMento = async () => {
       try {
-        const mentoInstance = await Mento.create(provider);
+        const signer = provider.getSigner(address);
+        const mentoInstance = await Mento.create(signer);
         setMento(mentoInstance);
       } catch (error) {
         console.error('Failed to initialize Mento:', error);

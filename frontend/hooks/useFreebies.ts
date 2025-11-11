@@ -13,7 +13,6 @@ import {
     type DataPlan
 } from '../services/utility/utilityServices';
 import { useClaimProcessor } from '../context/utilityProvider/ClaimContextProvider';
-import { useIdentitySDK } from '@goodsdks/identity-sdk';
 
 const formSchema = z.object({
     country: z.string({
@@ -70,7 +69,6 @@ export const useFreebiesLogic = () => {
     const [txID, setTxID] = useState<string | null>(null);
     const [serviceType, setServiceType] = useState<'data' | 'airtime'>('data');
 
-    const identitySDK = useIdentitySDK('production');
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -208,27 +206,7 @@ export const useFreebiesLogic = () => {
         getDataPlans();
     }, [watchNetwork, watchCountry, form]);
 
-    // Check whitelist status
-    useEffect(() => {
-        const checkWhitelistStatus = async () => {
-            if (address && isWhitelisted === undefined) {
-                try {
-                    setLoadingWhitelist(true);
-                    const { isWhitelisted } =
-                        (await identitySDK?.getWhitelistedRoot(address)) ?? {};
 
-                    setIsWhitelisted(isWhitelisted);
-                    setIsVerified(isWhitelisted ?? false);
-                } catch (error) {
-                    console.error("Error checking whitelist:", error);
-                } finally {
-                    setLoadingWhitelist(false);
-                }
-            }
-        };
-
-        checkWhitelistStatus();
-    }, [address, identitySDK, isWhitelisted]);
 
     // Check if user has already claimed today
     useEffect(() => {

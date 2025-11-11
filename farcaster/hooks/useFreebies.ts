@@ -13,7 +13,6 @@ import {
     type DataPlan
 } from '../services/utility/utilityServices';
 import { useClaimProcessor } from '../context/utilityProvider/ClaimContextProvider';
-import { useIdentitySDK } from '@goodsdks/identity-sdk';
 
 const formSchema = z.object({
     country: z.string({
@@ -69,8 +68,6 @@ export const useFreebiesLogic = () => {
     const [loadingWhitelist, setLoadingWhitelist] = useState<boolean | undefined>(undefined);
     const [txID, setTxID] = useState<string | null>(null);
     const [serviceType, setServiceType] = useState<'data' | 'airtime'>('data');
-
-    const identitySDK = useIdentitySDK('production');
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -208,28 +205,6 @@ export const useFreebiesLogic = () => {
         getDataPlans();
     }, [watchNetwork, watchCountry, form]);
 
-    // Check whitelist status
-    useEffect(() => {
-        const checkWhitelistStatus = async () => {
-            if (address && isWhitelisted === undefined) {
-                try {
-                    setLoadingWhitelist(true);
-                    const { isWhitelisted } =
-                        (await identitySDK?.getWhitelistedRoot(address)) ?? {};
-
-                    setIsWhitelisted(isWhitelisted);
-                    setIsVerified(isWhitelisted ?? false);
-                } catch (error) {
-                    console.error("Error checking whitelist:", error);
-                } finally {
-                    setLoadingWhitelist(false);
-                }
-            }
-        };
-
-        checkWhitelistStatus();
-    }, [address, identitySDK, isWhitelisted]);
-
     // Check if user has already claimed today
     useEffect(() => {
         const checkLastClaim = () => {
@@ -305,9 +280,9 @@ export const useFreebiesLogic = () => {
             const country = values.country;
             const emailAddress = values.email;
             const networkId = values.network;
-            
+
             // Only look up plan if service type is data
-            const selectedPlan = serviceType === 'data' 
+            const selectedPlan = serviceType === 'data'
                 ? (availablePlans.find(plan => plan.id === values.plan) || null)
                 : null;
 
@@ -393,8 +368,23 @@ export const useFreebiesLogic = () => {
             setIsClaiming(true);
             updateStepStatus('claim-ubi', 'loading');
 
+            // Start claiming process
+            setIsClaiming(true);
+            updateStepStatus('claim-ubi', 'loading');
             try {
-                await handleClaim();
+                const claimResult = await handleClaim();
+
+                const claimFailed =
+                    !claimResult ||
+                    (typeof claimResult === 'object' && 'success' in claimResult && !(claimResult as any).success);
+
+                if (claimFailed) {
+                    console.error("Claim failed: handleClaim returned failure", claimResult);
+                    toast.error("Failed to claim your free data bundle. Please try again.");
+                    updateStepStatus('claim-ubi', 'error', "An error occurred during the claim process.");
+                    return;
+                }
+
                 hasClaimedSuccessfully = true;
                 updateStepStatus('claim-ubi', 'success');
                 toast.success("Claim successful! Your data bundle will be activated shortly.");
@@ -405,7 +395,7 @@ export const useFreebiesLogic = () => {
                 return;
             }
 
-           
+
             // Process payment
             updateStepStatus('payment', 'loading');
             let transactionHash: string | null = null;
@@ -426,7 +416,7 @@ export const useFreebiesLogic = () => {
             try {
                 updateStepStatus('top-up', 'loading');
                 let topupResult;
-                
+
                 if (serviceType === 'data') {
                     if (!selectedPlan || !selectedPlan.price) {
                         throw new Error("Invalid or missing data plan");
@@ -446,7 +436,7 @@ export const useFreebiesLogic = () => {
                     }
 
                     const networks = [{ id: networkId, name: 'Network' }];
-                    
+
                     topupResult = await processDataTopUp(
                         {
                             phoneNumber,
@@ -477,7 +467,7 @@ export const useFreebiesLogic = () => {
                         amount
                     );
                 }
-                
+
                 setCanClaimToday(false);
 
                 if (topupResult && topupResult.success) {
