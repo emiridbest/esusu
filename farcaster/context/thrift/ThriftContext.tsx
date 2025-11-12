@@ -4,6 +4,10 @@ import { toast } from 'sonner';
 import { contractAddress, MiniSafeAave } from '@/utils/abi';
 import { getTokenByAddress, TOKENS } from '@/utils/tokens';
 import { BrowserProvider, formatUnits, parseUnits, Contract, JsonRpcProvider } from "ethers";
+import { useAccount, useSendTransaction } from 'wagmi';
+import { useEthersSigner } from '@/hooks/useEthersSigner';
+import { celo } from 'viem/chains';
+import { config } from '@/components/providers/WagmiProvider';
 
 // Define the type for thrift group data (updated to match contract structure)
 export interface ThriftGroup {
@@ -97,86 +101,64 @@ const CUSD_TOKEN_ADDRESS = TOKENS.CUSD.address;
 const ThriftContext = createContext<ThriftContextType | undefined>(undefined);
 
 export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { address: wagmiAddress, isConnected: wagmiIsConnected } = useAccount();
+  const signer = useEthersSigner({ chainId: celo.id });
+  const { sendTransactionAsync } = useSendTransaction({ config });
   const [userGroups, setUserGroups] = useState<ThriftGroup[]>([]);
   const [allGroups, setAllGroups] = useState<ThriftGroup[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [account, setAccount] = useState<string | null>(null);
-  const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [contract, setContract] = useState<MiniSafeAave | null>(null);
-  const [isConnected, setIsConnected] = useState<boolean>(false);
   
-  // Custom RPC provider for event querying (fallback when wallet RPC is down)
+  // Use wagmi's account state
+  const account = wagmiAddress || null;
+  const isConnected = wagmiIsConnected;
+  
+  // Get provider from signer
+  const provider = signer?.provider as BrowserProvider | null;
+  
+  // Custom RPC provider for event querying and view function calls (fallback when wallet RPC is down)
   const customRpcProvider = new JsonRpcProvider('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8');
+  
+  // Read-only contract for view functions using public RPC
+  const [readOnlyContract, setReadOnlyContract] = useState<MiniSafeAave | null>(null);
+  
+  useEffect(() => {
+    // Initialize read-only contract with public RPC for view functions
+    const readContract = new MiniSafeAave(contractAddress, customRpcProvider);
+    setReadOnlyContract(readContract);
+  }, []);
 
-  // Initialize provider, account, and contract
-  const initialize = useCallback(async () => {
+  // Initialize contract when signer is available
+  useEffect(() => {
+    // Clear any previous errors
+    setError(null);
+    
     try {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        // Initialize provider
-        const ethersProvider = new BrowserProvider(window.ethereum);
-        setProvider(ethersProvider);
-
-        // Get accounts
-        const accounts = await ethersProvider.listAccounts();
-        
-        if (accounts && accounts.length > 0) {
-          setAccount(accounts[0].address);
-          setIsConnected(true);
-          
-          // Initialize MiniSafeAave contract
-          const signer = await ethersProvider.getSigner();
-          const miniSafeContract = new MiniSafeAave(contractAddress, signer);
-          setContract(miniSafeContract);
-        } else {
-          setIsConnected(false);
-          setAccount(null);
+      if (signer && wagmiIsConnected && wagmiAddress) {
+        // Use wagmi signer - this properly connects to Farcaster wallet through the connector
+        const miniSafeContract = new MiniSafeAave(contractAddress, signer);
+        setContract(miniSafeContract);
+        console.log('ThriftContext initialized with Farcaster wallet signer for address:', wagmiAddress);
+      } else {
+        setContract(null);
+        if (!wagmiIsConnected) {
+          console.log('ThriftContext: No wagmi connection');
         }
       }
     } catch (err) {
-      console.error("Failed to initialize wallet connection:", err);
-      setError("Failed to connect to wallet. Please make sure MetaMask is installed and connected.");
-      setIsConnected(false);
+      console.error("Failed to initialize ThriftContext:", err);
+      // Only set error if we have a connection but initialization failed
+      if (wagmiIsConnected) {
+        setError("Failed to connect to wallet. Please try reconnecting.");
+      }
+      setContract(null);
     }
-  }, []);
-
-  // Call initialize function when the component mounts
-  useEffect(() => {
-    initialize();
-    
-    // Setup listeners for account changes
-    if (typeof window !== 'undefined' && window.ethereum) {
-      const handleAccountsChanged = async (accounts: string[]) => {
-        if (accounts.length === 0) {
-          setIsConnected(false);
-          setAccount(null);
-          setContract(null);
-        } else {
-          // Account changed, reinitialize
-          await initialize();
-        }
-      };
-      
-      const handleChainChanged = () => {
-        // When chain changes, we need to reinitialize
-        window.location.reload();
-      };
-      
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
-      
-      return () => {
-        if (window.ethereum.removeListener) {
-          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-          window.ethereum.removeListener('chainChanged', handleChainChanged);
-        }
-      };
-    }
-  }, [initialize]);
+  }, [signer, wagmiIsConnected, wagmiAddress]);
 
   // Create thrift group contract interaction
   const createThriftGroup = async (name: string, description: string, depositAmount: string, maxMembers: number, isPublic: boolean, tokenAddress?: string, startDate?: Date, creatorName?: string) => {
-    if (!contract || !isConnected) {
+    if (!contract || !isConnected || !readOnlyContract) {
       throw new Error("Wallet not connected or contract not initialized");
     }
 
@@ -190,11 +172,51 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       let finalTokenAddress = tokenAddress;
       
       if (!finalTokenAddress) {
-        const supportedTokens: string[] = await contract.getSupportedTokens();
-        if (!supportedTokens || supportedTokens.length === 0) {
-          const msg = 'No supported tokens configured on the contract. Please contact the admin to add supported tokens.';
+        try {
+          console.log('Fetching supported tokens...');
+          const supportedTokens: string[] = await readOnlyContract.getSupportedTokens();
+          console.log('Supported tokens:', supportedTokens);
+          
+          if (!supportedTokens || supportedTokens.length === 0) {
+            const msg = 'No supported tokens configured on the contract. Please contact the admin to add supported tokens.';
+            setError(msg);
+            toast.error('Unsupported token', { description: msg });
+            setLoading(false);
+            
+            // Auto-clear error after 3 seconds
+            setTimeout(() => {
+              setError(null);
+            }, 3000);
+            return;
+          }
+
+          // Preferred token: env override -> cUSD -> first supported
+          const preferredEnv = (process.env.NEXT_PUBLIC_THRIFT_TOKEN_ADDRESS || '').toLowerCase();
+          finalTokenAddress = (supportedTokens.find(a => a.toLowerCase() === preferredEnv)
+            || supportedTokens.find(a => a.toLowerCase() === CUSD_TOKEN_ADDRESS.toLowerCase())
+            || supportedTokens[0]) as string;
+          console.log('Selected token address:', finalTokenAddress);
+        } catch (err) {
+          console.error('Error fetching supported tokens:', err);
+          const msg = 'Failed to fetch supported tokens from contract. Please try again.';
+          setError(msg);
+          toast.error('Contract Error', { description: msg });
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Validate chosen token
+      try {
+        console.log('Validating token:', finalTokenAddress);
+        const valid = await readOnlyContract.isValidToken(finalTokenAddress);
+        console.log('Token validation result:', valid);
+        
+        if (!valid) {
+          const msg = `Chosen token ${finalTokenAddress} is not supported by the contract.`;
           setError(msg);
           toast.error('Unsupported token', { description: msg });
+          setLoading(false);
           
           // Auto-clear error after 3 seconds
           setTimeout(() => {
@@ -202,25 +224,12 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           }, 3000);
           return;
         }
-
-        // Preferred token: env override -> cUSD -> first supported
-        const preferredEnv = (process.env.NEXT_PUBLIC_THRIFT_TOKEN_ADDRESS || '').toLowerCase();
-        finalTokenAddress = (supportedTokens.find(a => a.toLowerCase() === preferredEnv)
-          || supportedTokens.find(a => a.toLowerCase() === CUSD_TOKEN_ADDRESS.toLowerCase())
-          || supportedTokens[0]) as string;
-      }
-
-      // Validate chosen token
-      const valid = await contract.isValidToken(finalTokenAddress);
-      if (!valid) {
-        const msg = `Chosen token ${finalTokenAddress} is not supported by the contract.`;
+      } catch (err) {
+        console.error('Error validating token:', err);
+        const msg = `Failed to validate token. Error: ${err instanceof Error ? err.message : 'Unknown error'}`;
         setError(msg);
-        toast.error('Unsupported token', { description: msg });
-        
-        // Auto-clear error after 3 seconds
-        setTimeout(() => {
-          setError(null);
-        }, 3000);
+        toast.error('Validation Error', { description: msg });
+        setLoading(false);
         return;
       }
 
@@ -234,7 +243,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         // MIN_CONTRIBUTION is a view constant in ABI
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        minContribution = await (contract as any).contract.MIN_CONTRIBUTION();
+        minContribution = await (readOnlyContract as any).contract.MIN_CONTRIBUTION();
       } catch (_) {
         // If not accessible, proceed without check
       }
@@ -244,6 +253,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const msg = `Deposit amount is below the minimum contribution: ${formatUnits(minContribution, 18)}.`;
           setError(msg);
           toast.error('Amount too low', { description: msg });
+          setLoading(false);
           
           // Auto-clear error after 3 seconds
           setTimeout(() => {
@@ -253,8 +263,85 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       }
 
-      const tx = await contract.createThriftGroup(amount, startTimestamp, isPublic, finalTokenAddress);
-      const receipt = await tx.wait();
+      // Log all parameters before calling contract
+      console.log('=== createThriftGroup parameters ===', {
+        amount: amount.toString(),
+        startTimestamp,
+        isPublic,
+        finalTokenAddress,
+        decimals,
+        depositAmount,
+        account
+      });
+      
+      // WORKAROUND: Farcaster wallet doesn't support eth_estimateGas
+      // We need to manually build and send the transaction
+      const contractInterface = (contract as any).contract.interface;
+      const data = contractInterface.encodeFunctionData('createThriftGroup', [
+        amount,
+        startTimestamp,
+        isPublic,
+        finalTokenAddress
+      ]);
+      
+      console.log('Encoded transaction data:', data);
+      
+      // Use public RPC to estimate gas (Farcaster wallet doesn't support eth_estimateGas)
+      let gasEstimate: bigint;
+      try {
+        gasEstimate = await customRpcProvider.estimateGas({
+          from: account,
+          to: contractAddress,
+          data: data
+        });
+        console.log('Gas estimate from public RPC:', gasEstimate.toString());
+      } catch (estimateError: any) {
+        console.error('Gas estimation failed:', estimateError);
+        // Try to extract revert reason if available
+        const msg = estimateError.message || estimateError.reason || 'Transaction will fail. Please check contract requirements.';
+        setError(msg);
+        toast.error('Transaction Validation Failed', { description: msg });
+        setLoading(false);
+        return;
+      }
+      
+      // Now send the transaction using wagmi's sendTransaction (same as utility provider)
+      if (!account) throw new Error('No account connected');
+      
+      console.log('🔑 Requesting signature from Farcaster wallet...');
+      toast.info('Please sign the transaction in your Farcaster wallet', {
+        duration: 10000
+      });
+      
+      let txHash;
+      try {
+        txHash = await sendTransactionAsync({
+          to: contractAddress as `0x${string}`,
+          data: data as `0x${string}`,
+        });
+        console.log('✅ Transaction signed and sent:', txHash);
+      } catch (signError: any) {
+        console.error('❌ Transaction signing failed:', signError);
+        // User rejected or wallet error
+        const errorMsg = signError?.message || String(signError);
+        if (errorMsg.toLowerCase().includes('user rejected') || 
+            errorMsg.toLowerCase().includes('user denied') ||
+            errorMsg.toLowerCase().includes('rejected') ||
+            errorMsg.toLowerCase().includes('cancelled')) {
+          throw new Error('Transaction was cancelled. Please try again.');
+        }
+        throw new Error(`Failed to sign transaction: ${errorMsg}`);
+      }
+      
+      // WORKAROUND: Farcaster wallet doesn't support eth_getTransactionReceipt
+      // Use public RPC to wait for transaction confirmation
+      console.log('Waiting for transaction confirmation via public RPC...');
+      const receipt = await customRpcProvider.waitForTransaction(txHash);
+      console.log('Transaction confirmed:', receipt?.hash);
+      
+      if (!receipt) {
+        throw new Error('Transaction receipt is null');
+      }
 
       // Try to parse the emitted event to get the new groupId
       let newGroupId: number | null = null;
@@ -304,7 +391,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             `tags=`,
             `timestamp=${ts}`,
           ].join('\n');
-          const signer = await provider.getSigner();
+          if (!signer) throw new Error('No signer available');
           const signature = await signer.signMessage(msg);
 
           await fetch('/api/thrift/metadata', {
@@ -417,17 +504,17 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Check join status for a group
   const checkJoinStatus = async (groupId: number) => {
-    if (!contract || !account) {
+    if (!readOnlyContract || !account) {
       return { isMember: false, groupInfo: null, canJoin: false, reason: 'Wallet not connected' };
     }
 
     try {
-      const groupInfo = await contract.getThriftGroup(groupId);
+      const groupInfo = await readOnlyContract.getThriftGroup(groupId);
       if (!groupInfo || groupInfo.contributionAmount === 0) {
         return { isMember: false, groupInfo: null, canJoin: false, reason: 'Group not found' };
       }
 
-      const isMember = await contract.isGroupMember(groupId, account);
+      const isMember = await readOnlyContract.isGroupMember(groupId, account);
       
       let canJoin = false;
       let reason = '';
@@ -623,7 +710,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Check group status (active, started, can contribute)
   const checkGroupStatus = async (groupId: number) => {
-    if (!contract) {
+    if (!readOnlyContract) {
       return { 
         exists: false, 
         isActive: false, 
@@ -636,8 +723,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     try {
-      // Get group info from contract
-      const groupInfo = await contract.getGroupInfo(groupId);
+      // Get group info from contract (using readOnlyContract)
+      const groupInfo = await readOnlyContract.getGroupInfo(groupId);
       if (!groupInfo || groupInfo.contributionAmount === 0) {
         return { 
           exists: false, 
@@ -650,8 +737,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         };
       }
 
-      // Get thrift group details
-      const thriftGroup = await contract.getThriftGroup(groupId);
+      // Get thrift group details (using readOnlyContract)
+      const thriftGroup = await readOnlyContract.getThriftGroup(groupId);
       
       // Both groupInfo and thriftGroup have isActive fields
       // Based on the ABI, groupInfo.isActive should be the main indicator
@@ -835,16 +922,15 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             "function balanceOf(address owner) view returns (uint256)"
           ];
           
-          const erc20Contract = new Contract(tokenAddress, erc20Abi, provider) as any;
-          const signer = await provider.getSigner();
-          const erc20WithSigner = erc20Contract.connect(signer);
+          // Use read-only contract for view functions
+          const erc20ReadOnly = new Contract(tokenAddress, erc20Abi, customRpcProvider) as any;
           
           // Check current allowance
-          const currentAllowance = await (erc20WithSigner as any).allowance(account, contract.address);
+          const currentAllowance = await (erc20ReadOnly as any).allowance(account, contract.address);
           console.log('Current allowance:', currentAllowance.toString());
           
           // Check user balance
-          const userBalance = await (erc20WithSigner as any).balanceOf(account);
+          const userBalance = await (erc20ReadOnly as any).balanceOf(account);
           console.log('User balance:', userBalance.toString());
           
           if (userBalance < contributionAmount) {
@@ -873,15 +959,27 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (currentAllowance < contributionAmount) {
             console.log('Insufficient allowance, requesting approval...');
             toast.info("Approval Required", {
-              description: "Please approve the contract to spend your tokens. This is a one-time transaction."
+              description: "Please approve the contract to spend your tokens.",
+              duration: 10000
             });
             
-            const approvalTx = await (erc20WithSigner as any).approve(contract.address, contributionAmount);
-            console.log('Approval transaction sent:', approvalTx.hash);
+            // Encode approval transaction data
+            const erc20Interface = new Contract(tokenAddress, erc20Abi, customRpcProvider) as any;
+            const approvalData = erc20Interface.interface.encodeFunctionData('approve', [
+              contract.address,
+              contributionAmount
+            ]);
             
-            console.log('Waiting for approval confirmation...');
-            await approvalTx.wait();
-            console.log('Approval confirmed');
+            console.log('Sending approval transaction via wagmi...');
+            const approvalTxHash = await sendTransactionAsync({
+              to: tokenAddress as `0x${string}`,
+              data: approvalData as `0x${string}`,
+            });
+            console.log('Approval transaction sent:', approvalTxHash);
+            
+            console.log('Waiting for approval confirmation via public RPC...');
+            const approvalReceipt = await customRpcProvider.waitForTransaction(approvalTxHash);
+            console.log('Approval confirmed:', approvalReceipt?.hash);
             
             toast.success("Approval Confirmed", {
               description: "Token approval successful. Proceeding with contribution..."
@@ -903,17 +1001,26 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       
       console.log('makeContribution: Calling contract.makeContribution...');
-      console.log('Contract methods available:', Object.getOwnPropertyNames(Object.getPrototypeOf(contract)));
-      console.log('makeContribution method exists:', typeof contract.makeContribution);
       console.log('Contract address:', contract.address);
       console.log('Group ID being passed:', groupId);
       
-      const tx = await contract.makeContribution(groupId);
-      console.log('makeContribution: Transaction sent:', tx.hash);
+      // Encode contribution transaction data
+      const contributionData = (contract as any).contract.interface.encodeFunctionData('makeContribution', [groupId]);
+      console.log('Encoded contribution data:', contributionData);
       
-      console.log('makeContribution: Waiting for transaction confirmation...');
-      await tx.wait();
-      console.log('makeContribution: Transaction confirmed');
+      toast.info('Please sign the contribution transaction in your Farcaster wallet', {
+        duration: 10000
+      });
+      
+      const txHash = await sendTransactionAsync({
+        to: contractAddress as `0x${string}`,
+        data: contributionData as `0x${string}`,
+      });
+      console.log('makeContribution: Transaction sent:', txHash);
+      
+      console.log('makeContribution: Waiting for transaction confirmation via public RPC...');
+      const receipt = await customRpcProvider.waitForTransaction(txHash);
+      console.log('makeContribution: Transaction confirmed:', receipt?.hash);
       
       console.log('makeContribution: Refreshing groups...');
       await refreshGroups();
@@ -1205,7 +1312,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Function to fetch all thrift groups
   const refreshGroups = async () => {
-    if (!contract || !isConnected || !account) {
+    if (!readOnlyContract || !isConnected || !account) {
       setUserGroups([]);
       setAllGroups([]);
       setError('Please connect your wallet to view thrift groups.');
@@ -1219,8 +1326,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const fetchedGroups: ThriftGroup[] = [];
       const userGroupsTemp: ThriftGroup[] = [];
 
-      // Determine total groups from contract and iterate 1..total
-      const totalGroupsBn = await contract.totalThriftGroups();
+      // Determine total groups from contract and iterate 1..total (using readOnlyContract)
+      const totalGroupsBn = await readOnlyContract.totalThriftGroups();
       const totalGroups = Number(totalGroupsBn);
       if (totalGroups === 0) {
         setAllGroups([]);
@@ -1230,17 +1337,17 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       const groupIds = Array.from({ length: totalGroups }, (_, i) => i + 1);
 
-      // Fetch all groups in parallel per group for better UX
+      // Fetch all groups in parallel per group for better UX (using readOnlyContract)
       for (const groupId of groupIds) {
         try {
           // Parallel fetch with error handling for non-existent groups
           const [info, members, payoutOrder, isMember, currentRecipient, groupPayouts] = await Promise.all([
-            contract.getGroupInfo(groupId).catch(() => null),
-            contract.getGroupMembers(groupId).catch(() => []),
-            contract.getPayoutOrder(groupId).catch(() => []),
-            account ? contract.isGroupMember(groupId, account).catch(() => false) : Promise.resolve(false),
-            contract.getCurrentRecipient(groupId).catch(() => null),
-            contract.getGroupPayouts(groupId).catch(() => []),
+            readOnlyContract.getGroupInfo(groupId).catch(() => null),
+            readOnlyContract.getGroupMembers(groupId).catch(() => []),
+            readOnlyContract.getPayoutOrder(groupId).catch(() => []),
+            account ? readOnlyContract.isGroupMember(groupId, account).catch(() => false) : Promise.resolve(false),
+            readOnlyContract.getCurrentRecipient(groupId).catch(() => null),
+            readOnlyContract.getGroupPayouts(groupId).catch(() => []),
           ]);
 
           // Skip uninitialized groups (contributionAmount == 0) without using BigInt literals
@@ -1254,7 +1361,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           let tokenDecimals = 18; // Default fallback
           
           try {
-            const tg = await contract.getThriftGroup(groupId);
+            const tg = await readOnlyContract.getThriftGroup(groupId);
             // Support both object and array returns
             maxMembers = Number((tg.maxMembers ?? tg[5] ?? maxMembers));
             // Get token address from contract data
@@ -1283,7 +1390,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (account) {
             try {
               // Get user's contribution status
-              const contributionStatus = await contract.checkContributionDue(account, groupId);
+              const contributionStatus = await readOnlyContract.checkContributionDue(account, groupId);
               if (contributionStatus && contributionStatus.contributionAmount) {
                 userContribution = formatUnits(contributionStatus.contributionAmount, tokenDecimals);
               }
@@ -1415,12 +1522,13 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Listen for PayoutDistributed events to update state in real-time
   useEffect(() => {
-    if (!contract || !isConnected) {
-      console.log('Event listener not set up - contract or connection missing');
+    // Use readOnlyContract for event listeners since Farcaster wallet doesn't support eth_newFilter
+    if (!readOnlyContract || !isConnected) {
+      console.log('Event listener not set up - readOnlyContract or connection missing');
       return;
     }
 
-    console.log('Setting up PayoutDistributed event listener');
+    console.log('Setting up PayoutDistributed event listener with public RPC');
     const handlePayoutDistributed = (groupId: number, recipient: string, amount: bigint, cycle: bigint) => {
       console.log('PayoutDistributed event received:', { groupId, recipient, amount, cycle });
       console.log('Updating group state for groupId:', groupId, 'to round:', Number(cycle));
@@ -1466,16 +1574,16 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
     };
 
-    // Listen for PayoutDistributed events
-    contract.contract.on('PayoutDistributed', handlePayoutDistributed);
-    console.log('PayoutDistributed event listener registered');
+    // Listen for PayoutDistributed events using readOnlyContract (public RPC)
+    (readOnlyContract as any).contract.on('PayoutDistributed', handlePayoutDistributed);
+    console.log('PayoutDistributed event listener registered with public RPC');
 
     // Cleanup listener on unmount
     return () => {
       console.log('Cleaning up PayoutDistributed event listener');
-      contract.contract.off('PayoutDistributed', handlePayoutDistributed);
+      (readOnlyContract as any).contract.off('PayoutDistributed', handlePayoutDistributed);
     };
-  }, [contract, isConnected, toast]);
+  }, [readOnlyContract, isConnected, toast]);
 
   // Get contribution history for a group
   const getContributionHistory = async (groupId: number) => {

@@ -15,55 +15,21 @@ import {
 import { Badge } from '@/components/ui/badge';
 import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
 import { contractAddress } from '@/utils/abi';
+import { useAccount } from 'wagmi';
 
 export function UserCampaigns() {
   const { userGroups, getThriftGroupMembers, loading, error } = useThrift();
   const [groupMembers, setGroupMembers] = useState<{ [key: number]: ThriftMember[] }>({});
-  const [connected, setConnected] = useState(false);
-  const [address, setAddress] = useState<string | null>(null);
+  const { address, isConnected } = useAccount();
   const [editOpen, setEditOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<ThriftGroup | null>(null);
-  
-  // Check if wallet is connected
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-          setConnected(accounts && accounts.length > 0);
-          setAddress(accounts && accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
-        } catch (error) {
-          console.error("Error checking connection:", error);
-          setConnected(false);
-        }
-      } else {
-        setConnected(false);
-      }
-    };
 
-    checkConnection();
-    
-    // Setup listeners for connection changes
-    if (typeof window !== 'undefined' && window.ethereum) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        setConnected(accounts.length > 0);
-        setAddress(accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
-      };
-      
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      
-      return () => {
-        if (window.ethereum.removeListener) {
-          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        }
-      };
-    }
-  }, []);
+  const isWalletConnected = Boolean(isConnected && address);
   
   // Load members for all user groups
   useEffect(() => {
     const loadAllMembers = async () => {
-      if (!connected || userGroups.length === 0) return;
+      if (!isWalletConnected || userGroups.length === 0) return;
       
       const membersMap: { [key: number]: ThriftMember[] } = {};
       
@@ -80,9 +46,9 @@ export function UserCampaigns() {
     };
     
     loadAllMembers();
-  }, [userGroups, connected, getThriftGroupMembers]);
+  }, [userGroups, isWalletConnected, getThriftGroupMembers]);
   
-  if (!connected) {
+  if (!isWalletConnected) {
     return (
       <Card className="w-full">
         <CardContent className="pt-6">
@@ -179,7 +145,7 @@ export function UserCampaigns() {
                           >
                             View
                           </a>
-                          {address && group.meta?.createdBy && address === String(group.meta.createdBy).toLowerCase() && (
+                          {address && group.meta?.createdBy && address.toLowerCase() === String(group.meta.createdBy).toLowerCase() && (
                             <button
                               className="text-xs px-3 py-1 border rounded hover:bg-muted"
                               onClick={() => { setEditGroup(group); setEditOpen(true); }}

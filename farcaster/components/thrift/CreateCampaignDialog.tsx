@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useThrift } from '@/context/thrift/ThriftContext';
 import { PlusIcon } from 'lucide-react';
 import { TOKENS, getSupportedThriftTokens, type TokenConfig } from '@/utils/tokens';
+import { useAccount } from 'wagmi';
 
 export function CreateCampaignDialog() {
   const [open, setOpen] = useState(false);
@@ -19,45 +20,16 @@ export function CreateCampaignDialog() {
   const [maxMembers, setMaxMembers] = useState('5');
   const [isPublic, setIsPublic] = useState(true);
   const [selectedToken, setSelectedToken] = useState<string>('CUSD');
-  const [startDate, setStartDate] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>(() => {
+    // Default to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  });
   const [creatorName, setCreatorName] = useState<string>(''); // Creator's name
-  const [connected, setConnected] = useState(false);
+  const { isConnected } = useAccount();
   
   const { createThriftGroup, loading, error } = useThrift();
-
-  // Check if wallet is connected
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-          setConnected(accounts && accounts.length > 0);
-        } catch (error) {
-          console.error("Error checking connection:", error);
-          setConnected(false);
-        }
-      } else {
-        setConnected(false);
-      }
-    };
-
-    checkConnection();
-    
-    // Setup listeners for connection changes
-    if (typeof window !== 'undefined' && window.ethereum) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        setConnected(accounts.length > 0);
-      };
-      
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      
-      return () => {
-        if (window.ethereum.removeListener) {
-          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        }
-      };
-    }
-  }, []);
   
   const handleSubmit = async () => {
     if (!name || !description || !contributionAmount || !maxMembers || !selectedToken || !startDate) return;
@@ -92,7 +64,10 @@ export function CreateCampaignDialog() {
     setMaxMembers('5');
     setIsPublic(true);
     setSelectedToken('CUSD');
-    setStartDate('');
+    // Reset to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setStartDate(tomorrow.toISOString().split('T')[0]);
     setCreatorName('');
   };
   
@@ -114,7 +89,7 @@ export function CreateCampaignDialog() {
           </DialogHeader>
           <div className="py-4">
             <div className="grid gap-6">
-              {!connected ? (
+              {!isConnected ? (
                 <div className="text-center">
                   <p className="mb-4">Connect your wallet to create a thrift group</p>
                   <Button className='rounded-full dark:bg-primary'> Please Connect Wallet</Button>
@@ -167,7 +142,15 @@ export function CreateCampaignDialog() {
                           <SelectItem key={token.symbol} value={token.symbol}>
                             <div className="flex items-center gap-2">
                               {token.logoUrl && (
-                                <img src={token.logoUrl} alt={token.name} className="w-4 h-4" />
+                                <img
+                                  src={token.logoUrl}
+                                  alt={token.name}
+                                  className="w-4 h-4"
+                                  onError={(e) => {
+                                    const img = e.target as HTMLImageElement;
+                                    img.style.display = 'none';
+                                  }}
+                                />
                               )}
                               <span>{token.symbol} - {token.name}</span>
                             </div>
@@ -201,7 +184,11 @@ export function CreateCampaignDialog() {
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
                       className="col-span-3"
-                      min={new Date().toISOString().split('T')[0]}
+                      min={(() => {
+                        const tomorrow = new Date();
+                        tomorrow.setDate(tomorrow.getDate() + 1);
+                        return tomorrow.toISOString().split('T')[0];
+                      })()}
                     />
                   </div>
                   
@@ -268,7 +255,7 @@ export function CreateCampaignDialog() {
             <Button 
               onClick={handleSubmit} 
                className="mb-2 rounded-full"
-              disabled={loading || !connected || !name || !description || !contributionAmount || !maxMembers || !selectedToken || !startDate}
+              disabled={loading || !isConnected || !name || !description || !contributionAmount || !maxMembers || !selectedToken || !startDate}
             >
               {loading ? 'Creating...' : 'Create Group'}
             </Button>

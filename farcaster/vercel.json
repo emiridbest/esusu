@@ -2,8 +2,6 @@
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "cd backend-temp && npm install --legacy-peer-deps && cd .. && npm install --legacy-peer-deps",
-  "framework": "nextjs",
-  "outputDirectory": ".next",
   "functions": {
     "app/api/**": {
       "maxDuration": 60,

@@ -12,12 +12,12 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
 import { contractAddress } from '@/utils/abi';
+import { useAccount } from 'wagmi';
 
 export function CampaignList() {
   const { allGroups, joinThriftGroup, generateShareLink, loading, error, refreshGroups } = useThrift();
   const { toast } = useToast();
-  const [connected, setConnected] = useState(false);
-  const [address, setAddress] = useState<string | null>(null);
+  const { address, isConnected } = useAccount();
   const [categoryFilter, setCategoryFilter] = useState('');
   const [tagsFilter, setTagsFilter] = useState('');
   
@@ -29,41 +29,7 @@ export function CampaignList() {
   const [editOpen, setEditOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<ThriftGroup | null>(null);
 
-  // Check if wallet is connected
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-          setConnected(accounts && accounts.length > 0);
-          setAddress(accounts && accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
-        } catch (error) {
-          console.error("Error checking connection:", error);
-          setConnected(false);
-        }
-      } else {
-        setConnected(false);
-      }
-    };
-
-    checkConnection();
-    
-    // Setup listeners for connection changes
-    if (typeof window !== 'undefined' && window.ethereum) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        setConnected(accounts.length > 0);
-        setAddress(accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
-      };
-      
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      
-      return () => {
-        if (window.ethereum.removeListener) {
-          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        }
-      };
-    }
-  }, []);
+  const isWalletConnected = Boolean(isConnected && address);
 
   const handleJoinClick = (group: ThriftGroup) => {
     setSelectedGroup(group);
@@ -118,7 +84,7 @@ export function CampaignList() {
       });
   };
 
-  if (!connected) {
+  if (!isWalletConnected) {
     return (
       <Card className="w-full">
         <CardContent className="pt-6">
@@ -142,12 +108,15 @@ export function CampaignList() {
     );
   }
 
-  if (error) {
+  if (error && !isWalletConnected) {
     return (
       <Card className="w-full">
         <CardContent className="pt-6">
-          <div className="text-center p-8 text-red-500">
-            <p>Error: {error}</p>
+          <div className="text-center p-8 text-amber-600">
+            <p className="mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()} variant="outline">
+              Refresh Page
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -248,7 +217,7 @@ export function CampaignList() {
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-2">
                     <CardTitle className="text-lg font-semibold">{group.name}</CardTitle>
-                    {address && group.meta?.createdBy && address === String(group.meta.createdBy).toLowerCase() && (
+                    {address && group.meta?.createdBy && address.toLowerCase() === String(group.meta.createdBy).toLowerCase() && (
                       <Button size="sm" variant="outline" onClick={() => handleEditClick(group)}>Edit</Button>
                     )}
                   </div>

@@ -19,7 +19,8 @@
     "jsx": "preserve",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@esusu/backend/*": ["./backend-temp/*"]
     },
     "plugins": [
       {
