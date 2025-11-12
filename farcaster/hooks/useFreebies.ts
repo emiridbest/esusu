@@ -1,11 +1,11 @@
 // hooks/useFreebiesLogic.js
 "use client";
-import { useState, useEffect, useMemo } from "react";
-import { useAccount, useWalletClient } from "wagmi";
+import { useState, useEffect } from "react";
+import { useAccount } from "wagmi";
 import { toast } from 'sonner';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { number, z } from "zod";
+import { z } from "zod";
 import {
     fetchMobileOperators,
     fetchDataPlans,
@@ -14,11 +14,6 @@ import {
     type DataPlan
 } from '../services/utility/utilityServices';
 import { useClaimProcessor } from '../context/utilityProvider/ClaimContextProvider';
-import { IdentitySDK } from '@goodsdks/citizen-sdk';
-import { createPublicClient, createWalletClient, custom, http, webSocket, fallback, formatUnits } from 'viem';
-import { celo } from 'viem/chains';
-import { PaymentSuccessModal } from '../components/utilityBills/PaymentSuccessModal';
-import { getCountryData } from '../utils/countryData';
 
 const formSchema = z.object({
     country: z.string({
@@ -45,7 +40,6 @@ const formSchema = z.object({
 
 export const useFreebiesLogic = () => {
     const { address, isConnected } = useAccount();
-    const { data: walletClient } = useWalletClient();
     const {
         updateStepStatus,
         openTransactionDialog,
@@ -56,7 +50,9 @@ export const useFreebiesLogic = () => {
         processDataTopUp,
         processAirtimeTopUp,
         processPayment,
-        transactionSteps
+        isWhitelisted,
+        checkingWhitelist,
+        handleVerification
     } = useClaimProcessor();
 
     // State variables
@@ -65,88 +61,14 @@ export const useFreebiesLogic = () => {
     const [selectedPlan, setSelectedPlan] = useState<DataPlan | null>(null);
     const [availablePlans, setAvailablePlans] = useState<DataPlan[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [timeRemaining, setTimeRemaining] = useState<string>("");
-    const [nextClaimTime, setNextClaimTime] = useState<Date | null>(null);
     const [networks, setNetworks] = useState<NetworkOperator[]>([]);
-    const [canClaimToday, setCanClaimToday] = useState(true);
     const [isVerifying, setIsVerifying] = useState<boolean>(false);
     const [isVerified, setIsVerified] = useState<boolean>(false);
-    const [isWhitelisted, setIsWhitelisted] = useState<boolean | undefined>(undefined);
-    const [loadingWhitelist, setLoadingWhitelist] = useState<boolean | undefined>(undefined);
     const [txID, setTxID] = useState<string | null>(null);
     const [serviceType, setServiceType] = useState<'data' | 'airtime'>('data');
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [successDetails, setSuccessDetails] = useState<{
-        type: 'data' | 'airtime';
-        amount: string;
-        currency: string;
-        recipient: string;
-        transactionHash: string;
-        token?: string;
-        provider?: string;
-        emailSent?: boolean;
-        smsSent?: boolean;
-    } | null>(null);
-
-    // Initialize IdentitySDK with proper viem clients
-    const publicClient = useMemo(() => {
-        return createPublicClient({
-            chain: celo,
-            transport: http('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8', {
-                timeout: 30_000,
-                retryCount: 3,
-            })
-        });
-    }, []);
-
-    const walletClientForSDK = useMemo(() => {
-        if (isConnected && walletClient && address) {
-            return walletClient;
-        }
-        if (isConnected && typeof window !== 'undefined' && window.ethereum && address) {
-            return createWalletClient({
-                account: address as `0x${string}`,
-                chain: celo,
-                transport: custom(window.ethereum)
-            });
-        }
-        return null;
-    }, [isConnected, address, walletClient]);
-
-    const identitySDK = useMemo(() => {
-        if (isConnected && publicClient && walletClientForSDK) {
-            try {
-                return new IdentitySDK(
-                    publicClient as any,
-                    walletClientForSDK as any
-                );
-            } catch (error) {
-                console.error('Failed to initialize IdentitySDK:', error);
-                return null;
-            }
-        }
-        return null;
-    }, [publicClient, walletClientForSDK, isConnected]);
-
-    // When wallet changes, check if user has previously verified via GoodDollar to avoid re-prompting
-    useEffect(() => {
-        try {
-            if (typeof window !== 'undefined' && address) {
-                const key = `gdVerified:${address.toLowerCase()}`;
-                const flag = localStorage.getItem(key);
-                if (flag === 'true') {
-                    setIsWhitelisted(true);
-                    setIsVerified(true);
-                } else {
-                    // allow normal remote check to run
-                    setIsWhitelisted(undefined);
-                    setIsVerified(false);
-                }
-            }
-        } catch (e) {
-            console.warn('Unable to read GoodDollar verification flag:', e);
-        }
-    }, [address]);
+    const [canClaimToday, setCanClaimToday] = useState<boolean>(true);
+    const [timeRemaining, setTimeRemaining] = useState<string>("");
+    const [nextClaimTime, setNextClaimTime] = useState<Date | null>(null);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -162,6 +84,62 @@ export const useFreebiesLogic = () => {
 
     const watchCountry = form.watch("country");
     const watchNetwork = form.watch("network");
+
+    // Check if user has already claimed today
+    useEffect(() => {
+        const checkLastClaim = () => {
+            const lastClaim = localStorage.getItem('lastFreeClaim');
+            const today = new Date().toDateString();
+
+            if (lastClaim === today) {
+                const tomorrow = new Date();
+                tomorrow.setHours(24, 0, 0, 0);
+                setNextClaimTime(tomorrow);
+                return false;
+            }
+            return true;
+        };
+
+        const canClaim = checkLastClaim();
+        if (!canClaim) {
+            setCanClaimToday(false);
+        }
+    }, []);
+
+    // Timer for countdown
+    useEffect(() => {
+        if (!nextClaimTime) return;
+
+        // Calculate and set initial time immediately
+        const updateTimeRemaining = () => {
+            const now = new Date();
+            const diff = nextClaimTime.getTime() - now.getTime();
+
+            if (diff <= 0) {
+                setTimeRemaining("Available now!");
+                setCanClaimToday(true);
+                return false; // Stop timer
+            } else {
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
+                return true; // Continue timer
+            }
+        };
+
+        // Set initial value immediately
+        if (!updateTimeRemaining()) return;
+
+        // Then update every second
+        const timer = setInterval(() => {
+            if (!updateTimeRemaining()) {
+                clearInterval(timer);
+            }
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [nextClaimTime]);
 
     // Function to set country currency
     const setCountryCurrency = (country: string) => {
@@ -185,91 +163,29 @@ export const useFreebiesLogic = () => {
             form.setValue("plan", "");
 
             try {
-                const response = await fetch(
-                    `/api/utilities/data/free?country=${watchCountry}`,
-                    {
-                        method: 'GET',
-                    }
-                );
-
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch data plans: ${response.statusText}`);
-                }
-
-                const operators: NetworkOperator[] = await response.json();
-
-                // Filter out MTN Nigeria extra data
-                const filteredOperators = operators.filter(operator =>
-                    !(operator.name.toLowerCase().includes('mtn nigeria extra data') ||
-                        operator.name.toLowerCase().includes('mtn nigeria data'))
-                );
-
-                if (serviceType === 'data') {
-                    setNetworks(filteredOperators);
-                    return;
-                }
-
-                // Fetch airtime operators if needed
-                try {
-                    const airtimeResponse = await fetch(
-                        `/api/utilities/airtime/providers?country=${watchCountry}`,
-                        {
-                            method: 'GET',
-                        }
-                    );
-                    if (!airtimeResponse.ok) {
-                        throw new Error(`Failed to fetch airtime providers: ${airtimeResponse.statusText}`);
-                    }
-
-                    const airtimeOperators: NetworkOperator[] = await airtimeResponse.json();
-
-                    if (serviceType === 'airtime') {
-                        setNetworks(airtimeOperators);
-                    }
-                } catch (airtimeError) {
-                    if (airtimeError instanceof Error && airtimeError.name === 'AbortError') {
-                        return;
-                    }
-                    console.error("Error fetching airtime operators:", airtimeError);
-                    toast.error("Failed to load some network providers. Please try again.");
-                }
+                const networksData = await fetchMobileOperators(watchCountry);
+                setNetworks(networksData || []);
             } catch (error) {
-                if (error instanceof Error && error.name === 'AbortError') {
-                    return;
-                }
-                console.error("Error fetching mobile operators:", error);
-                toast.error("Failed to load network providers. Please try again.");
+                console.error("Error fetching networks:", error);
+                toast.error("Failed to load networks. Please try again.");
             } finally {
                 setIsLoading(false);
             }
         };
 
         getNetworks();
-
-
-    }, [watchCountry, serviceType, form]);
-
-
-    // Reset network and plan when service type changes
-    useEffect(() => {
-        form.setValue("network", "");
-        form.setValue("plan", "");
-        setAvailablePlans([]);
-        setSelectedPlan(null);
-    }, [serviceType, form]);
+    }, [watchCountry, form]);
 
     // Fetch data plans when network changes
     useEffect(() => {
         const getDataPlans = async () => {
-            if (watchNetwork && watchCountry && serviceType === 'data') {
+            if (watchNetwork && watchCountry === "ng" && serviceType === 'data') {
                 setIsLoading(true);
                 form.setValue("plan", "");
 
                 try {
-                    const plans = await fetchDataPlans(watchNetwork, watchCountry);
-                    setAvailablePlans([plans[0]]);
-                    setSelectedPlan(plans[0]);
-                    setNetworkId(watchNetwork);
+                    const plans = await fetchDataPlans(watchCountry, watchNetwork);
+                    setAvailablePlans(plans || []);
                 } catch (error) {
                     console.error("Error fetching data plans:", error);
                     toast.error("Failed to load data plans. Please try again.");
@@ -282,143 +198,55 @@ export const useFreebiesLogic = () => {
         };
 
         getDataPlans();
-    }, [watchNetwork, watchCountry, form]);
-
-    // Check whitelist status
-    useEffect(() => {
-        const checkWhitelistStatus = async () => {
-            if (address && isWhitelisted === undefined) {
-                try {
-                    setLoadingWhitelist(true);
-                    const { isWhitelisted: whitelisted } =
-                        (await identitySDK?.getWhitelistedRoot(address as `0x${string}`)) ?? {};
-
-                    setIsWhitelisted(whitelisted);
-                    setIsVerified(whitelisted ?? false);
-
-                    // Persist verification success per wallet and notify user once
-                    try {
-                        if (typeof window !== 'undefined' && whitelisted && address) {
-                            const key = `gdVerified:${address.toLowerCase()}`;
-                            const already = localStorage.getItem(key) === 'true';
-                            localStorage.setItem(key, 'true');
-                            if (!already) {
-                                toast.success("GoodDollar verification successful! You won't be prompted again here.");
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Unable to persist GoodDollar verification flag:', e);
-                    }
-                } catch (error) {
-                    console.error("Error checking whitelist:", error);
-                } finally {
-                    setLoadingWhitelist(false);
-                }
-            }
-        };
-
-        checkWhitelistStatus();
-    }, [address, identitySDK, isWhitelisted]);
-
-    // Check if user has already claimed today
-    useEffect(() => {
-        const checkLastClaim = () => {
-            const lastClaim = localStorage.getItem('lastFreeClaim');
-            const today = new Date().toDateString();
-
-            if (lastClaim === today) {
-                const tomorrow = new Date();
-                tomorrow.setHours(24, 0, 0, 0);
-                setNextClaimTime(tomorrow);
-                return false;
-            }
-            return true;
-        };
-
-        const canClaimToday = checkLastClaim();
-        if (!canClaimToday) {
-            setCanClaimToday(false);
-        }
-    }, []);
-
-    // Timer for countdown
-    useEffect(() => {
-        if (!nextClaimTime) return;
-
-        const timer = setInterval(() => {
-            const now = new Date();
-            const diff = nextClaimTime.getTime() - now.getTime();
-
-            if (diff <= 0) {
-                setTimeRemaining("Available now!");
-                setCanClaimToday(true);
-                clearInterval(timer);
-            } else {
-                const hours = Math.floor(diff / (1000 * 60 * 60));
-                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-                setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
-            }
-        }, 1000);
-
-        return () => clearInterval(timer);
-    }, [nextClaimTime]);
+    }, [watchNetwork, watchCountry, form, serviceType]);
 
     // Handle claim bundle logic
-async function onSubmit(values: z.infer<typeof formSchema>) {
-    // Early return if already processing to prevent race conditions
-    if (isProcessing || isClaiming || !canClaimToday) {
-        return;
-    }
-
-    // Check localStorage before starting process
-    const checkCanClaim = () => {
-        if (typeof window === 'undefined') return true; // SSR check
-        const lastClaim = localStorage.getItem('lastFreeClaim');
-        const today = new Date().toDateString();
-        return lastClaim !== today;
-    };
-
-    if (!checkCanClaim()) {
-        toast.error("You have already claimed your free data bundle today. Please try again tomorrow.");
-        return;
-    }
-
-    // Generate unique transaction ID for idempotency
-    const transactionId = `${address}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    setIsProcessing(true);
-    let hasClaimedSuccessfully = false;
-    
-    try {
-        const phoneNumber = values.phoneNumber;
-        const country = values.country;
-        const emailAddress = values.email;
-        const networkId = values.network;
-        const selectedPlan = availablePlans.find(plan => plan.id === values.plan) || null;
-
-        // Open transaction dialog for data service
-        openTransactionDialog('data', phoneNumber);
-
-        // Validation checks
-        if (!address) {
-            toast.error("Please connect your wallet first");
+    async function onSubmit(values: z.infer<typeof formSchema>) {
+        // Early return if already processing to prevent race conditions
+        if (isProcessing || isClaiming || !canClaimToday) {
             return;
         }
 
-        // Validate address format
-        if (!address.startsWith('0x') || address.length !== 42) {
-            toast.error("Invalid wallet address format");
+        // Check localStorage before starting process
+        const checkCanClaim = () => {
+            if (typeof window === 'undefined') return true; // SSR check
+            const lastClaim = localStorage.getItem('lastFreeClaim');
+            const today = new Date().toDateString();
+            return lastClaim !== today;
+        };
+
+        if (!checkCanClaim()) {
+            toast.error("You have already claimed your free data bundle today. Please try again tomorrow.");
             return;
         }
 
-        if (!isConnected) {
-            toast.error("Please connect your wallet");
-            return;
-        }
-        
-            // Only validate plan selection for data service type
-            if (serviceType === 'data' && !selectedPlan) {
+        // Generate unique transaction ID for idempotency
+        const transactionId = `${address}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        setIsProcessing(true);
+        let hasClaimedSuccessfully = false;
+
+        try {
+            const phoneNumber = values.phoneNumber;
+            const country = values.country;
+            const emailAddress = values.email;
+            const networkId = values.network;
+            
+            // Only look up plan if service type is data
+            const selectedPlan = serviceType === 'data' 
+                ? (availablePlans.find(plan => plan.id === values.plan) || null)
+                : null;
+
+            // Open transaction dialog to show progress
+            openTransactionDialog(serviceType, phoneNumber);
+
+            // Validation checks
+            if (!isConnected) {
+                toast.error("Please connect your wallet");
+                return;
+            }
+
+            if (!selectedPlan && serviceType === 'data') {
                 toast.error("Please select a data plan");
                 return;
             }
@@ -443,148 +271,153 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                 return;
             }
 
-            // Validate selectedPlan has required properties for data service
-            if (serviceType === 'data') {
-                if (!selectedPlan || !selectedPlan.price || typeof selectedPlan.price !== 'string') {
-                    toast.error("Invalid data plan selected. Please try selecting a different plan.");
+            // Mark processing in localStorage to prevent concurrent submissions
+            if (typeof window !== 'undefined') {
+                const existingProcess = localStorage.getItem('processingClaim');
+                if (existingProcess) {
+                    toast.error("A claim is already in progress");
                     return;
                 }
+                localStorage.setItem('processingClaim', transactionId);
             }
-
-            // Set processing flag to prevent duplicate submissions
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('processingClaim', 'true');
-            }
-
-        setIsClaiming(true);
-            setIsVerifying(true);
 
             try {
-                // Step 1: Verify phone number (this step can be instant for freebies)
+                // Step 1: Verify phone number
                 updateStepStatus('verify-phone', 'loading');
-                // Phone verification logic would go here if needed
+
+                const verificationResult = await verifyAndSwitchProvider(phoneNumber, networkId, country);
+
+                if (!verificationResult || !verificationResult.verified) {
+                    setIsVerified(false);
+                    toast.error("Phone number verification failed. Please double-check the phone number.");
+                    updateStepStatus('verify-phone', 'error', "Your phone number did not verify with the selected network provider. Please check the number and try again.");
+                    return;
+                }
+
+                setIsVerified(true);
+                toast.success("Phone number verified successfully");
                 updateStepStatus('verify-phone', 'success');
-                
-                // Step 2: Claim UBI (handleClaim updates the claim-ubi step internally)
-                await handleClaim();
-                
-                // Step 3: Process payment (transfer G$ to recipient)
-                updateStepStatus('payment', 'loading');
-                
-                const paymentResult = await processPayment();
-                if (!paymentResult) {
-                    throw new Error("Payment processing failed");
-                }
-                
-                updateStepStatus('payment', 'success');
 
-                // Step 4: Process the top-up based on service type
-                let topUpResult: any = null;
-                if (serviceType === 'data') {
-            updateStepStatus('top-up', 'loading');
-                    topUpResult = await processDataTopUp(
-                {
-                    phoneNumber,
-                    country,
-                    network: networkId,
-                    email: emailAddress,
-                            customId: transactionId,
-                            transactionHash: paymentResult,
-                            expectedAmount: '0',
-                            paymentToken: 'G$'
-                        },
-                        parseFloat(selectedPlan?.price || '0'),
-                availablePlans,
-                networks
-            );
-            
-                    if (!topUpResult.success) {
-                        throw new Error(topUpResult.error || "Data top-up failed");
+                if (verificationResult.autoSwitched && verificationResult.correctProviderId) {
+                    form.setValue('network', verificationResult.correctProviderId);
+                    const correctNetwork = networks.find(n => n.id === verificationResult.correctProviderId);
+                    if (correctNetwork) {
+                        toast.info(`Switched to ${correctNetwork.name}`);
                     }
-                    
-                    updateStepStatus('top-up', 'success');
-                } else if (serviceType === 'airtime') {
-                    updateStepStatus('top-up', 'loading');
-                    topUpResult = await processAirtimeTopUp(
-                        {
-                            phoneNumber,
-                            country,
-                            network: networkId,
-                            email: emailAddress,
-                            customId: transactionId,
-                            transactionHash: paymentResult,
-                            expectedAmount: '0',
-                            paymentToken: 'G$'
-                        },
-                        100 // Fixed amount for airtime
-                    );
-
-                    if (!topUpResult.success) {
-                        throw new Error(topUpResult.error || "Airtime top-up failed");
-                    }
-                    
-                    updateStepStatus('top-up', 'success');
                 }
 
-                // Mark as successfully claimed
-                hasClaimedSuccessfully = true;
-                
-                // Store claim timestamp
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('lastFreeClaim', new Date().toDateString());
-                }
-
-                // Show success modal
-                const countryData = getCountryData(country);
-                const networkName = networks.find(n => n.id === networkId)?.name || '';
-                const amount = serviceType === 'data' 
-                    ? (selectedPlan?.price || '0')
-                    : '100';
-                
-                setSuccessDetails({
-                    type: serviceType,
-                    amount: amount,
-                    currency: countryData?.currency?.code || '',
-                    recipient: phoneNumber,
-                    transactionHash: paymentResult,
-                    token: 'G$',
-                    provider: networkName,
-                    emailSent: topUpResult?.emailSent,
-                    smsSent: topUpResult?.smsSent
-                });
-                setShowSuccessModal(true);
-                closeTransactionDialog();
-
-            } catch (error) {
-                console.error("Error during claim process:", error);
-                
-                // Find the current loading step and mark it as error
-                const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
-                if (loadingStepIndex !== -1) {
-                    updateStepStatus(
-                        transactionSteps[loadingStepIndex].id,
-                        'error',
-                        error instanceof Error ? error.message : 'Unknown error'
-                    );
-                }
-                
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-                toast.error(`Claim failed: ${errorMessage}`);
-                
+            } catch (verificationError) {
+                console.error("Error during verification:", verificationError);
+                toast.error(verificationError instanceof Error ? verificationError.message : "There was an unexpected error during verification.");
+                updateStepStatus('verify-phone', 'error', "Verification failed. Please try again.");
+                return;
             } finally {
-                // Always clean up states
-                setIsClaiming(false);
-                setIsProcessing(false);
                 setIsVerifying(false);
-
-                // Clean up processing flag
-                if (typeof window !== 'undefined') {
-                    localStorage.removeItem('processingClaim');
-                }
             }
 
-            // Mark as successfully claimed and update state
+            // Start claiming process
+            setIsClaiming(true);
+            updateStepStatus('claim-ubi', 'loading');
+            try {
+                const claimResult = await handleClaim();
+
+                const claimFailed = !claimResult || 
+                                   (claimResult && typeof claimResult === 'object' && 
+                                    'success' in claimResult && claimResult.success === false);
+
+                if (claimFailed) {
+                    console.error("Claim failed: handleClaim returned failure", claimResult);
+                    toast.error("Failed to claim your free data bundle. Please try again.");
+                    updateStepStatus('claim-ubi', 'error', "An error occurred during the claim process.");
+                    return; 
+                }
+
+                hasClaimedSuccessfully = true;
+                updateStepStatus('claim-ubi', 'success');
+                toast.success("Claim successful! Your data bundle will be activated shortly.");
+            } catch (claimError) {
+                console.error("Claim failed:", claimError);
+                toast.error("Failed to claim your free data bundle. Please try again.");
+                updateStepStatus('claim-ubi', 'error', "An error occurred during the claim process.");
+                return;
+            }
+
+            // Process payment
+            updateStepStatus('payment', 'loading');
+            let transactionHash: string | null = null;
+            const tx = await processPayment();
+            console.log("Payment transaction result:", tx);
+            transactionHash = tx.transactionHash;
+            setTxID(transactionHash);
+            updateStepStatus('payment', 'success');
+
+            // Step 4: Process the top-up based on service type
+            if (serviceType === 'data') {
+                updateStepStatus('top-up', 'loading');
+                const topUpResult = await processDataTopUp(
+                    {
+                        phoneNumber,
+                        country,
+                        network: networkId,
+                        email: emailAddress,
+                        customId: transactionId,
+                        transactionHash: tx.transactionHash,
+                        expectedAmount: tx.convertedAmount,
+                        paymentToken: tx.paymentToken
+                    },
+                    parseFloat(selectedPlan?.price || '0'),
+                    availablePlans,
+                    networks
+                );
+            
+                if (!topUpResult.success) {
+                    throw new Error(topUpResult.error || "Data top-up failed");
+                }
+                
+                updateStepStatus('top-up', 'success');
+            } else if (serviceType === 'airtime') {
+                updateStepStatus('top-up', 'loading');
+                const topUpResult = await processAirtimeTopUp(
+                    {
+                        phoneNumber,
+                        country,
+                        network: networkId,
+                        email: emailAddress,
+                        customId: transactionId,
+                        transactionHash: tx.transactionHash,
+                        expectedAmount: tx.convertedAmount,
+                        paymentToken: tx.paymentToken
+                    },
+                    100 // Fixed amount for airtime
+                );
+
+                if (!topUpResult.success) {
+                    throw new Error(topUpResult.error || "Airtime top-up failed");
+                }
+                
+                updateStepStatus('top-up', 'success');
+            }
+
+            // Mark as successfully claimed
+            hasClaimedSuccessfully = true;
+            
+            // Store claim timestamp
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('lastFreeClaim', new Date().toDateString());
+            }
+
+            // Update state to prevent immediate re-claim
             setCanClaimToday(false);
+            
+            // Show success message
+            const successMessage = serviceType === 'data' 
+                ? `Successfully claimed data bundle for ${phoneNumber}!`
+                : `Successfully claimed airtime for ${phoneNumber}!`;
+            
+            toast.success(successMessage);
+            
+            // Close the transaction dialog after success
+            closeTransactionDialog();
 
         } catch (error) {
             console.error("Error in submission flow:", error);
@@ -631,9 +464,8 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
         isVerifying,
         isVerified,
         isWhitelisted,
-        loadingWhitelist,
-        canClaimToday,
-        timeRemaining,
+        checkingWhitelist,
+        handleVerification,
         serviceType,
         setServiceType,
 
@@ -646,9 +478,8 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
         setCountryCurrency,
         onSubmit,
         
-        // Success modal
-        showSuccessModal,
-        setShowSuccessModal,
-        successDetails
+        // Claim tracking
+        canClaimToday,
+        timeRemaining
     };
 };

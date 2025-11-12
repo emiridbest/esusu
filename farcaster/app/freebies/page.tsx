@@ -20,12 +20,10 @@ import {
     SelectValue,
 } from "../../components/ui/select";
 import { Input } from "../../components/ui/input";
-import ClaimStatusDisplay from '../../components/freebies/ClaimStatusDisplay';
 import { useFreebiesLogic } from '../../hooks/useFreebies';
 import { useClaimProcessor } from "../../context/utilityProvider/ClaimContextProvider";
 import Engagement from '../../components/Engagement';
 import { ethers } from 'ethers';
-import { PaymentSuccessModal } from '../../components/utilityBills/PaymentSuccessModal';
 
 export default function Freebies() {
     const [claimMethod, setClaimMethod] = useState<'claim' | 'exchange'>('claim');
@@ -43,8 +41,6 @@ export default function Freebies() {
         isProcessing,
         isClaiming,
         isLoading,
-        isWhitelisted,
-        loadingWhitelist,
         networks,
         availablePlans,
         selectedPlan,
@@ -52,12 +48,11 @@ export default function Freebies() {
         onSubmit,
         serviceType: hookServiceType,
         setServiceType: setHookServiceType,
-        showSuccessModal,
-        setShowSuccessModal,
-        successDetails
+        canClaimToday,
+        timeRemaining
     } = useFreebiesLogic();
-    const { canClaim, handleClaim, entitlement } = useClaimProcessor();
-
+    const { canClaim, handleClaim, entitlement, isWhitelisted, handleVerification, checkingWhitelist } = useClaimProcessor();
+ 
     return (
         <div className="container py-8 bg-gradient-to-br min-h-screen">
 
@@ -86,31 +81,26 @@ export default function Freebies() {
                                 <span className="ml-2 text-yellow-800 dark:text-black/90 font-semibold">Processing...</span>
                             </div>
                         ) : !isConnected ? (
-                            <div className="text-center py-4 bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/30 dark:to-black rounded-lg border border-black/90 dark:border-yellow-700">
-                                <p className="mb-4 text-black dark:text-yellow-100 font-medium">
-                                    🔗 Connect your wallet to claim your free UBI from G$
+                            <div className="text-center py-4 bg-gradient-to-br from-yellow-300 to-yellow-400 ">
+                                <p className="mb-4 text-black font-medium">
+                                     Please connect your wallet to claim your free UBI from G$
                                 </p>
                             </div>
                         ) : !isWhitelisted ? (
-                            <div className="text-center py-4 bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/30 dark:to-black rounded-lg border border-black/90 dark:border-yellow-700">
-                                <p className="mb-4 text-black dark:text-yellow-100 font-medium">
-                                    ⚠️ You need to be verified and whitelisted to claim.
-                                </p>
-                                <Button
-                                    onClick={() => window.location.href = '/identity'}
-                                    disabled={loadingWhitelist}
-                                    className="bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-700 text-black dark:text-white font-bold border-2 border-black dark:border-yellow-400 shadow-lg hover:shadow-xl transition-all duration-200"
-                                >
-                                    {loadingWhitelist ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Checking status...
-                                        </>
+                                
+                                <CardContent className="text-center space-y-3">
+                                    {checkingWhitelist ? (
+                                        <p className="text-slate-600">Checking verification status...</p>
+                                    ) : isWhitelisted ? (
+                                        <p className="text-green-600 font-medium">Your account is verified! ✓</p>
                                     ) : (
-                                        '🔐 Go to Identity Verification'
+                                        <div className="space-y-3">
+                                            <Button onClick={handleVerification} className="text-center py-4 bg-gradient-to-br from-yellow-300 to-yellow-400 text-black font-medium">
+                                                Get Verified
+                                            </Button>
+                                        </div>
                                     )}
-                                </Button>
-                            </div>
+                                </CardContent>
                         ) : (
                             <>
                                 {/* Claim Method Selection */}
@@ -200,8 +190,8 @@ export default function Freebies() {
                                                         type="button"
                                                         onClick={() => setHookServiceType('data')}
                                                         className={`flex-1 p-3 rounded-lg border-2 transition-all ${hookServiceType === 'data'
-                                                                ? 'border-yellow-400 bg-yellow-50 dark:black/90'
-                                                                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
+                                                            ? 'border-yellow-400 bg-yellow-50 dark:black/90'
+                                                            : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
                                                             }`}
                                                     >
                                                         <div className={`font-semibold text-sm ${hookServiceType === 'data' ? 'text-black/90' : 'text-black dark:text-white'}`}> Data</div>
@@ -210,8 +200,8 @@ export default function Freebies() {
                                                         type="button"
                                                         onClick={() => setHookServiceType('airtime')}
                                                         className={`flex-1 p-3 rounded-lg border-2 transition-all ${hookServiceType === 'airtime'
-                                                                ? 'border-yellow-400 bg-yellow-50 dark:black/90'
-                                                                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
+                                                            ? 'border-yellow-400 bg-yellow-50 dark:black/90'
+                                                            : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
                                                             }`}
                                                     >
                                                         <div className={`font-semibold text-sm ${hookServiceType === 'airtime' ? 'text-black/90' : 'text-black dark:text-white'}`}> Airtime (₦100)</div>
@@ -242,11 +232,6 @@ export default function Freebies() {
                                                                 ))}
                                                             </SelectContent>
                                                         </Select>
-                                                           {isLoading && (
-                                                                <div className="text-sm text-black/50 dark:text-white/50  mt-1 flex items-center font-medium">
-                                                                    <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading plans...
-                                                                </div>
-                                                            )}
                                                         <FormMessage />
                                                     </FormItem>
                                                 )} />
@@ -328,7 +313,8 @@ export default function Freebies() {
                         <Button
                             className="w-full bg-black hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-200 text-yellow-400 dark:text-black font-bold text-lg py-6 border-2 border-black/90 dark:border-black shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                             disabled={
-                                claimMethod === 'claim'
+                                !canClaimToday ||
+                                (claimMethod === 'claim'
                                     ? (!canClaim || isClaiming || isProcessing)
                                     : (
                                         !canClaim ||
@@ -339,6 +325,7 @@ export default function Freebies() {
                                         !form.watch("phoneNumber") ||
                                         form.watch("phoneNumber").length < 10
                                     )
+                                )
                             }
                             onClick={() => {
                                 if (claimMethod === 'claim') {
@@ -348,7 +335,9 @@ export default function Freebies() {
                                 }
                             }}
                         >
-                            {isClaiming || isProcessing ? (
+                            {!canClaimToday ? (
+                                timeRemaining ? `⏰ Next claim in ${timeRemaining}` : '⏰ Already claimed today'
+                            ) : isClaiming || isProcessing ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Claiming...
@@ -371,19 +360,6 @@ export default function Freebies() {
             <>
                 <Engagement />
             </>
-            
-            {successDetails && (
-                <PaymentSuccessModal
-                    open={showSuccessModal}
-                    onClose={() => {
-                        setShowSuccessModal(false);
-                    }}
-                    paymentDetails={{
-                        ...successDetails,
-                        type: successDetails.type === 'data' ? 'data' : 'airtime'
-                    }}
-                />
-            )}
         </div>
     );
 }
