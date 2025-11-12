@@ -276,11 +276,19 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       return;
     }
 
-    try {
-      const currentUrl = window.location.href;
-      const fvLink = await identitySDK.generateFVLink(false, currentUrl);
-      window.location.href = fvLink;
-    } catch (err) {
+   try {
+      const callbackUrl = "https://farcaster.xyz/miniapps/ODGMy9CdO8UI/esusu/freebies"
+      const fvLink = await identitySDK.generateFVLink(true, callbackUrl)
+
+      const newWindow = window.open(fvLink, "_blank", "noopener,noreferrer")
+      if (!newWindow) {
+        window.location.href = fvLink
+      } else {
+        newWindow.focus()
+      }
+
+      toast.success("Verification opened in a new tab. Complete it and you'll be redirected back.")
+   } catch (err) {
       console.error("Error generating verification link:", err);
     }
   }, [identitySDK]);
