@@ -14,7 +14,7 @@ const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <WagmiProvider config={config}>
+    <WagmiProvider config={config} reconnectOnMount={true}>
       <ThirdwebProvider>
         <QueryClientProvider client={queryClient}>
           <ClaimProvider>
