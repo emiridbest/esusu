@@ -26,6 +26,7 @@
     "@goodsdks/citizen-sdk": "^1.0.1",
     "@goodsdks/engagement-sdk": "^1.0.1",
     "@goodsdks/identity-sdk": "^1.0.5",
+    "@goodsdks/react-hooks": "^1.0.1",
     "@headlessui/react": "^1.7.14",
     "@heroicons/react": "^2.0.18",
     "@hookform/resolvers": "^5.0.1",
