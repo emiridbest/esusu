@@ -42,7 +42,7 @@ const MAX_TRANSACTION_AGE_MINUTES = 10;
 // Valid token addresses for payment validation
 const VALID_TOKENS = {
   'CELO': '0x471EcE3750Da237f93B8E339c536989b8978a438', // Wrapped CELO (wCELO)
-  'cUSD': '0x765DE816845861e75A25fCA122bb6898B8B1282a',
+  'CUSD': '0x765DE816845861e75A25fCA122bb6898B8B1282a',
   'USDC': '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
   'USDT': '0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e',
   // GoodDollar (G$) on Celo mainnet – used for freebies flow
@@ -52,7 +52,7 @@ const VALID_TOKENS = {
 // Token decimals mapping for accurate amount validation
 const TOKEN_DECIMALS = {
   CELO: 18,
-  cUSD: 18,
+  CUSD: 18,
   USDC: 6,
   USDT: 6,
   'G$': 18,
