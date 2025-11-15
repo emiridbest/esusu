@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useCallback, useEffect } from 'react';
-import { getContract, formatEther, createPublicClient, http } from "viem";
+import { getContract, formatEther, createPublicClient, http, webSocket, fallback } from "viem";
 import { celo } from "viem/chains";
 import { BrowserProvider } from 'ethers';
 import { stableTokenABI } from "@celo/abis";
@@ -46,23 +46,25 @@ const Balance: React.FC = () => {
     if (typeof window !== 'undefined' && window.ethereum) {
       try {
         setIsLoading(true);
-        const provider = new BrowserProvider(window.ethereum);
+        const provider = new BrowserProvider(window.ethereum as any);
         const signer = await provider.getSigner();
 
         const publicClient = createPublicClient({
           chain: celo,
-          transport: http(),
+          transport: http('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8', {
+            timeout: 30_000,
+            retryCount: 3,
+          }),
         });
 
         const StableTokenContract = getContract({
-          abi: stableTokenABI,
           address: STABLE_TOKEN_ADDRESS,
-          publicClient,
-        });
+          abi: stableTokenABI,
+          client: publicClient as any,
+        }) as any;
         
         const address = await signer.getAddress();
-        let cleanedAddress = address.substring(2);
-        const balanceInBigNumber = await StableTokenContract.read.balanceOf([`0x${cleanedAddress}`]);
+        const balanceInBigNumber = await (StableTokenContract as any).read.balanceOf([address]);
         const balanceInWei = balanceInBigNumber;
         const balanceInEthers = formatEther(balanceInWei);
 

@@ -1,2 +1,216 @@
-export const contractAddress = "0x9fAB2C3310a906f9306ACaA76303BcEb46cA5478";
-export const abi = [{ "inputs": [], "stateMutability": "nonpayable", "type": "constructor" }, { "inputs": [{ "internalType": "address", "name": "spender", "type": "address" }, { "internalType": "uint256", "name": "allowance", "type": "uint256" }, { "internalType": "uint256", "name": "needed", "type": "uint256" }], "name": "ERC20InsufficientAllowance", "type": "error" }, { "inputs": [{ "internalType": "address", "name": "sender", "type": "address" }, { "internalType": "uint256", "name": "balance", "type": "uint256" }, { "internalType": "uint256", "name": "needed", "type": "uint256" }], "name": "ERC20InsufficientBalance", "type": "error" }, { "inputs": [{ "internalType": "address", "name": "approver", "type": "address" }], "name": "ERC20InvalidApprover", "type": "error" }, { "inputs": [{ "internalType": "address", "name": "receiver", "type": "address" }], "name": "ERC20InvalidReceiver", "type": "error" }, { "inputs": [{ "internalType": "address", "name": "sender", "type": "address" }], "name": "ERC20InvalidSender", "type": "error" }, { "inputs": [{ "internalType": "address", "name": "spender", "type": "address" }], "name": "ERC20InvalidSpender", "type": "error" }, { "inputs": [], "name": "EnforcedPause", "type": "error" }, { "inputs": [], "name": "ExpectedPause", "type": "error" }, { "inputs": [], "name": "ReentrancyGuardReentrantCall", "type": "error" }, { "inputs": [{ "internalType": "address", "name": "token", "type": "address" }], "name": "SafeERC20FailedOperation", "type": "error" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "newPool", "type": "address" }], "name": "AavePoolUpdated", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "owner", "type": "address" }, { "indexed": true, "internalType": "address", "name": "spender", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "value", "type": "uint256" }], "name": "Approval", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "by", "type": "address" }, { "indexed": false, "internalType": "string", "name": "reason", "type": "string" }], "name": "CircuitBreakerTriggered", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "depositor", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }, { "indexed": true, "internalType": "address", "name": "token", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "sharesReceived", "type": "uint256" }], "name": "Deposited", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "token", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "DepositedToAave", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "by", "type": "address" }], "name": "EmergencyWithdrawalCancelled", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "by", "type": "address" }, { "indexed": true, "internalType": "address", "name": "token", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "EmergencyWithdrawalExecuted", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "by", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "availableAt", "type": "uint256" }], "name": "EmergencyWithdrawalInitiated", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "manager", "type": "address" }, { "indexed": false, "internalType": "bool", "name": "status", "type": "bool" }], "name": "ManagerAuthorized", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "previousOwner", "type": "address" }, { "indexed": true, "internalType": "address", "name": "newOwner", "type": "address" }], "name": "OwnershipTransferred", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": false, "internalType": "address", "name": "account", "type": "address" }], "name": "Paused", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "upliner", "type": "address" }, { "indexed": true, "internalType": "address", "name": "depositor", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "RewardDistributed", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "breaker", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }, { "indexed": true, "internalType": "address", "name": "token", "type": "address" }], "name": "TimelockBroken", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "tokenAddress", "type": "address" }, { "indexed": true, "internalType": "address", "name": "aTokenAddress", "type": "address" }], "name": "TokenAdded", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "tokenAddress", "type": "address" }], "name": "TokenRemoved", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "from", "type": "address" }, { "indexed": true, "internalType": "address", "name": "to", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "value", "type": "uint256" }], "name": "Transfer", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": false, "internalType": "address", "name": "account", "type": "address" }], "name": "Unpaused", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "user", "type": "address" }, { "indexed": true, "internalType": "address", "name": "upliner", "type": "address" }], "name": "UplinerRelationshipSet", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "user", "type": "address" }, { "indexed": true, "internalType": "address", "name": "upliner", "type": "address" }], "name": "UplinerSet", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "user", "type": "address" }, { "indexed": true, "internalType": "address", "name": "token", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }, { "indexed": false, "internalType": "bool", "name": "isDeposit", "type": "bool" }], "name": "UserBalanceUpdated", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "withdrawer", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }, { "indexed": true, "internalType": "address", "name": "token", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "sharesRedeemed", "type": "uint256" }], "name": "Withdrawn", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "token", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "WithdrawnFromAave", "type": "event" }, { "inputs": [], "name": "EMERGENCY_TIMELOCK", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "MAX_DOWNLINERS", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "MAX_SUPPLY", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "MIN_DEPOSIT", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "MIN_TOKENS_FOR_TIMELOCK_BREAK", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "REFERRAL_REWARD_PERCENT", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "aaveIntegration", "outputs": [{ "internalType": "contract MiniSafeAaveIntegration102", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "tokenAddress", "type": "address" }], "name": "addSupportedToken", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "owner", "type": "address" }, { "internalType": "address", "name": "spender", "type": "address" }], "name": "allowance", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "spender", "type": "address" }, { "internalType": "uint256", "name": "value", "type": "uint256" }], "name": "approve", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "tokenAddress", "type": "address" }], "name": "breakTimelock", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [], "name": "canWithdraw", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "cancelEmergencyWithdrawal", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [], "name": "decimals", "outputs": [{ "internalType": "uint8", "name": "", "type": "uint8" }], "stateMutability": "view", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "tokenAddress", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "deposit", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [], "name": "emergencyWithdrawalAvailableAt", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "tokenAddress", "type": "address" }], "name": "executeEmergencyWithdrawal", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "account", "type": "address" }, { "internalType": "address", "name": "tokenAddress", "type": "address" }], "name": "getBalance", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }, { "inputs": [{ "internalType": "uint256", "name": "startIndex", "type": "uint256" }, { "internalType": "uint256", "name": "count", "type": "uint256" }], "name": "getSupportedTokens", "outputs": [{ "internalType": "address[]", "name": "", "type": "address[]" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "initiateEmergencyWithdrawal", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [], "name": "lastWithdrawalTimestamp", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "name", "outputs": [{ "internalType": "string", "name": "", "type": "string" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "owner", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "paused", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "resumeOperations", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "upliner", "type": "address" }], "name": "setUpliner", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [], "name": "symbol", "outputs": [{ "internalType": "string", "name": "", "type": "string" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "timeBetweenWithdrawalsThreshold", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "tokenStorage", "outputs": [{ "internalType": "contract MiniSafeTokenStorage102", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "totalSupply", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "to", "type": "address" }, { "internalType": "uint256", "name": "value", "type": "uint256" }], "name": "transfer", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "newOwner", "type": "address" }], "name": "transferAllOwnership", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "from", "type": "address" }, { "internalType": "address", "name": "to", "type": "address" }, { "internalType": "uint256", "name": "value", "type": "uint256" }], "name": "transferFrom", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "string", "name": "reason", "type": "string" }], "name": "triggerCircuitBreaker", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "uint256", "name": "newWithdrawalThreshold", "type": "uint256" }, { "internalType": "uint256", "name": "newTimeThreshold", "type": "uint256" }], "name": "updateCircuitBreakerThresholds", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "tokenAddress", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "withdraw", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [], "name": "withdrawalAmountThreshold", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }]
+import { ethers, type ContractRunner, type BigNumberish, type Contract } from 'ethers';
+import MiniSafeAaveUpgradeableABI from './abis/MiniSafeAaveUpgradeable.json';
+
+export const contractAddress = "0x2fD5fF0270264441432659b97D0ea49008649584"; // Replace with actual deployed address
+export const abi = MiniSafeAaveUpgradeableABI;
+
+/**
+ * MiniSafeAave contract wrapper for ethers v6
+ */
+export class MiniSafeAave {
+  contract: Contract;
+  address: string;
+
+  constructor(address: string, signerOrProvider: ContractRunner) {
+    this.contract = new ethers.Contract(address, MiniSafeAaveUpgradeableABI, signerOrProvider);
+    this.address = address;
+  }
+
+  // Deposit and Withdrawal
+  async deposit(tokenAddress: string, amount: BigNumberish) {
+    return await this.contract.deposit(tokenAddress, amount);
+  }
+
+  async withdraw(tokenAddress: string, amount: BigNumberish) {
+    return await this.contract.withdraw(tokenAddress, amount);
+  }
+
+  async breakTimelock(tokenAddress: string) {
+    return await this.contract.breakTimelock(tokenAddress);
+  }
+
+  async getBalance(account: string, tokenAddress: string) {
+    return await this.contract.getBalance(account, tokenAddress);
+  }
+
+  async getUserBalance(userAddress: string, tokenAddress: string) {
+    return await this.getBalance(userAddress, tokenAddress);
+  }
+
+  // Thrift Group Operations
+  async createThriftGroup(contributionAmount: BigNumberish, startDate: BigNumberish, isPublic: boolean, tokenAddress: string) {
+    return await this.contract.createThriftGroup(contributionAmount, startDate, isPublic, tokenAddress);
+  }
+
+  async joinPublicGroup(groupId: BigNumberish) {
+    return await this.contract.joinPublicGroup(groupId);
+  }
+
+  async addMemberToPrivateGroup(groupId: BigNumberish, memberAddress: string) {
+    return await this.contract.addMemberToPrivateGroup(groupId, memberAddress);
+  }
+
+  async makeContribution(groupId: BigNumberish) {
+    return await this.contract.makeContribution(groupId);
+  }
+
+  async activateThriftGroup(groupId: BigNumberish) {
+    return await this.contract.activateThriftGroup(groupId);
+  }
+
+  async setPayoutOrder(groupId: BigNumberish, payoutOrder: string[]) {
+    return await this.contract.setPayoutOrder(groupId, payoutOrder);
+  }
+
+  async distributePayout(groupId: BigNumberish) {
+    return await this.contract.distributePayout(groupId);
+  }
+
+  async emergencyWithdraw(groupId: BigNumberish) {
+    return await this.contract.emergencyWithdraw(groupId);
+  }
+
+  async getThriftGroup(groupId: BigNumberish) {
+    return await this.contract.thriftGroups(groupId);
+  }
+
+  async getPayoutOrder(groupId: BigNumberish) {
+    return await this.contract.getPayoutOrder(groupId);
+  }
+
+  async isGroupMember(groupId: BigNumberish, member: string) {
+    return await this.contract.isGroupMember(groupId, member);
+  }
+
+  async totalThriftGroups() {
+    return await this.contract.totalThriftGroups();
+  }
+
+  async getSupportedTokens() {
+    return await this.contract.getSupportedTokens();
+  }
+
+  async isValidToken(tokenAddress: string) {
+    return await this.contract.isValidToken(tokenAddress);
+  }
+
+  async getUserGroups(userAddress: string) {
+    // This function doesn't exist in the ABI
+    // Fetch from database via API
+    try {
+      const response = await fetch(`/api/groups?user=${userAddress}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch user groups');
+      }
+      const data = await response.json();
+      return data.groups || [];
+    } catch (error) {
+      console.error('Error fetching user groups:', error);
+      return [];
+    }
+  }
+
+  async getGroupInfo(groupId: BigNumberish) {
+    return await this.contract.getGroupInfo(groupId);
+  }
+
+  async getGroupMembers(groupId: BigNumberish) {
+    return await this.contract.getGroupMembers(groupId);
+  }
+
+  async getCurrentRecipient(groupId: BigNumberish) {
+    return await this.contract.getCurrentRecipient(groupId);
+  }
+
+  async getGroupPayouts(groupId: BigNumberish) {
+    return await this.contract.getGroupPayouts(groupId);
+  }
+
+  async checkContributionDue(userAddress: string, groupId: BigNumberish) {
+    // This function doesn't exist in the ABI
+    // Check contribution status via API
+    try {
+      const response = await fetch(`/api/groups/${groupId}/contribution-status?user=${userAddress}`);
+      if (!response.ok) {
+        throw new Error('Failed to check contribution status');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error checking contribution due:', error);
+      return { isDue: false, message: 'Unable to check contribution status' };
+    }
+  }
+
+  // Emergency Functions
+  async executeEmergencyWithdrawal(tokenAddress: string) {
+    return await this.contract.executeEmergencyWithdrawal(tokenAddress);
+  }
+
+  async cancelEmergencyWithdrawal() {
+    return await this.contract.cancelEmergencyWithdrawal();
+  }
+
+  async initiateEmergencyWithdrawal() {
+    return await this.contract.initiateEmergencyWithdrawal();
+  }
+
+  // Admin Functions
+  async resumeOperations() {
+    return await this.contract.resumeOperations();
+  }
+
+  async triggerCircuitBreaker(reason: string) {
+    return await this.contract.triggerCircuitBreaker(reason);
+  }
+
+  async updateCircuitBreakerThresholds(newWithdrawalThreshold: BigNumberish, newTimeThreshold: BigNumberish) {
+    return await this.contract.updateCircuitBreakerThresholds(newWithdrawalThreshold, newTimeThreshold);
+  }
+
+  async addSupportedToken(tokenAddress: string) {
+    return await this.contract.addSupportedToken(tokenAddress);
+  }
+
+  async pause() {
+    return await this.contract.pause();
+  }
+
+  async unpause() {
+    return await this.contract.unpause();
+  }
+
+  async paused() {
+    return await this.contract.paused();
+  }
+
+  // Events
+  // Example event helpers (only those present in the ABI)
+  onDeposited(callback: (...args: unknown[]) => void) {
+    return this.contract.on('Deposited', callback);
+  }
+
+  onWithdrawn(callback: (...args: unknown[]) => void) {
+    return this.contract.on('Withdrawn', callback);
+  }
+
+  onThriftGroupCreated(callback: (...args: unknown[]) => void) {
+    return this.contract.on('ThriftGroupCreated', callback);
+  }
+
+  onMemberJoined(callback: (...args: unknown[]) => void) {
+    return this.contract.on('MemberJoined', callback);
+  }
+
+  onContributionMade(callback: (...args: unknown[]) => void) {
+    return this.contract.on('ContributionMade', callback);
+  }
+
+  onPayoutDistributed(callback: (...args: unknown[]) => void) {
+    this.contract.on('PayoutDistributed', callback);
+  }
+
+  removeAllListeners(): void {
+    this.contract.removeAllListeners();
+  }
+}

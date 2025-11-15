@@ -57,6 +57,9 @@ export type ElectricityProvider = {
     accountNumberRegex: string | null;
     accountNumberMask: string | null;
     currencyCode: string;
+    minLocalTransactionAmount?: number;
+    maxLocalTransactionAmount?: number;
+    localTransactionCurrencyCode?: string;
 };
 
 /**

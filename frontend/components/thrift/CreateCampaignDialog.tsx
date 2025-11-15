@@ -6,17 +6,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useThrift } from '@/context/thrift/ThriftContext';
 import { PlusIcon } from 'lucide-react';
+import { TOKENS, getSupportedThriftTokens, type TokenConfig } from '@/utils/tokens';
 
 export function CreateCampaignDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [contributionAmount, setContributionAmount] = useState('');
+  const [maxMembers, setMaxMembers] = useState('5');
+  const [isPublic, setIsPublic] = useState(true);
+  const [selectedToken, setSelectedToken] = useState<string>('CUSD');
+  const [startDate, setStartDate] = useState<string>('');
+  const [creatorName, setCreatorName] = useState<string>(''); // Creator's name
   const [connected, setConnected] = useState(false);
   
-  const { createCampaign, loading, error } = useThrift();
+  const { createThriftGroup, loading, error } = useThrift();
 
   // Check if wallet is connected
   useEffect(() => {
@@ -53,14 +60,28 @@ export function CreateCampaignDialog() {
   }, []);
   
   const handleSubmit = async () => {
-    if (!name || !description || !contributionAmount) return;
+    if (!name || !description || !contributionAmount || !maxMembers || !selectedToken || !startDate) return;
     
     try {
-      await createCampaign(name, description, contributionAmount);
+      const tokenConfig = TOKENS[selectedToken];
+      if (!tokenConfig) {
+        throw new Error('Invalid token selected');
+      }
+      
+      await createThriftGroup(
+        name, 
+        description, 
+        contributionAmount, 
+        parseInt(maxMembers), 
+        isPublic,
+        tokenConfig.address,
+        new Date(startDate),
+        creatorName || undefined // Pass creator name
+      );
       setOpen(false);
       resetForm();
     } catch (error) {
-      console.error('Failed to create campaign:', error);
+      console.error('Failed to create thrift group:', error);
     }
   };
   
@@ -68,6 +89,11 @@ export function CreateCampaignDialog() {
     setName('');
     setDescription('');
     setContributionAmount('');
+    setMaxMembers('5');
+    setIsPublic(true);
+    setSelectedToken('CUSD');
+    setStartDate('');
+    setCreatorName('');
   };
   
 
@@ -96,13 +122,24 @@ export function CreateCampaignDialog() {
               ) : (
                 <>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">Name</Label>
+                    <Label htmlFor="name" className="text-right">Group Name</Label>
                     <Input
                       id="name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="col-span-3"
                       placeholder="My Thrift Group"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="creatorName" className="text-right">Your Name</Label>
+                    <Input
+                      id="creatorName"
+                      value={creatorName}
+                      onChange={(e) => setCreatorName(e.target.value)}
+                      className="col-span-3"
+                      placeholder="John Doe (optional)"
                     />
                   </div>
                   
@@ -118,8 +155,31 @@ export function CreateCampaignDialog() {
                   </div>
                   
                   <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="token" className="text-right">
+                      Token
+                    </Label>
+                    <Select value={selectedToken} onValueChange={setSelectedToken}>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select a token" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getSupportedThriftTokens().map((token) => (
+                          <SelectItem key={token.symbol} value={token.symbol}>
+                            <div className="flex items-center gap-2">
+                              {token.logoUrl && (
+                                <img src={token.logoUrl} alt={token.name} className="w-4 h-4" />
+                              )}
+                              <span>{token.symbol} - {token.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="amount" className="text-right">
-                      Monthly Amount (cUSD)
+                      Deposit Amount
                     </Label>
                     <Input
                       id="amount"
@@ -129,6 +189,64 @@ export function CreateCampaignDialog() {
                       className="col-span-3"
                       placeholder="100"
                     />
+                  </div>
+                  
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="startDate" className="text-right">
+                      Start Date
+                    </Label>
+                    <Input
+                      id="startDate"
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="col-span-3"
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="maxMembers" className="text-right">
+                      Max Members
+                    </Label>
+                    <Input
+                      id="maxMembers"
+                      type="number"
+                      min="2"
+                      max="10"
+                      value={maxMembers}
+                      onChange={(e) => setMaxMembers(e.target.value)}
+                      className="col-span-3"
+                      placeholder="5"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="isPublic" className="text-right">
+                      Group Type
+                    </Label>
+                    <div className="col-span-3 flex items-center gap-4">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="groupType"
+                          checked={isPublic}
+                          onChange={() => setIsPublic(true)}
+                          className="text-primary"
+                        />
+                        <span>Public</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="groupType"
+                          checked={!isPublic}
+                          onChange={() => setIsPublic(false)}
+                          className="text-primary"
+                        />
+                        <span>Private</span>
+                      </label>
+                    </div>
                   </div>
                   
                   {error && (
@@ -150,7 +268,7 @@ export function CreateCampaignDialog() {
             <Button 
               onClick={handleSubmit} 
                className="mb-2 rounded-full"
-              disabled={loading || !connected || !name || !description || !contributionAmount}
+              disabled={loading || !connected || !name || !description || !contributionAmount || !maxMembers || !selectedToken || !startDate}
             >
               {loading ? 'Creating...' : 'Create Group'}
             </Button>

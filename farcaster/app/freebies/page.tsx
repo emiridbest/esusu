@@ -48,6 +48,8 @@ export default function Freebies() {
         onSubmit,
         serviceType: hookServiceType,
         setServiceType: setHookServiceType,
+        canClaimToday,
+        timeRemaining
     } = useFreebiesLogic();
     const { canClaim, handleClaim, entitlement, isWhitelisted, handleVerification, checkingWhitelist } = useClaimProcessor();
  
@@ -311,7 +313,8 @@ export default function Freebies() {
                         <Button
                             className="w-full bg-black hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-200 text-yellow-400 dark:text-black font-bold text-lg py-6 border-2 border-black/90 dark:border-black shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                             disabled={
-                                claimMethod === 'claim'
+                                !canClaimToday ||
+                                (claimMethod === 'claim'
                                     ? (!canClaim || isClaiming || isProcessing)
                                     : (
                                         !canClaim ||
@@ -322,6 +325,7 @@ export default function Freebies() {
                                         !form.watch("phoneNumber") ||
                                         form.watch("phoneNumber").length < 10
                                     )
+                                )
                             }
                             onClick={() => {
                                 if (claimMethod === 'claim') {
@@ -331,7 +335,9 @@ export default function Freebies() {
                                 }
                             }}
                         >
-                            {isClaiming || isProcessing ? (
+                            {!canClaimToday ? (
+                                timeRemaining ? `⏰ Next claim in ${timeRemaining}` : '⏰ Already claimed today'
+                            ) : isClaiming || isProcessing ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Claiming...

@@ -1,6 +1,5 @@
 "use client";
 import { ReactNode, useState, useEffect, createContext } from "react";
-import { Moon, Sun } from "lucide-react";
 
 export const ThemeContext = createContext({
   darkMode: false,
@@ -40,9 +39,28 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         aria-label="Toggle theme"
       >
         {darkMode ? (
-          <Sun className="h-5 w-5 text-yellow-400" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="h-5 w-5 text-yellow-400"
+          >
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+          </svg>
         ) : (
-          <Moon className="h-5 w-5 text-gray-700" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="h-5 w-5 text-gray-700"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
         )}
       </button>
     </ThemeContext.Provider>

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import DualCurrencyPrice from './DualCurrencyPrice';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,6 +35,7 @@ import {
 } from '@/services/utility/utilityServices';
 import { useBalance } from '@/context/utilityProvider/useBalance';
 import { getCountryData } from '@/utils/countryData';
+import { PaymentSuccessModal } from './PaymentSuccessModal';
 
 // Updated form schema to handle direct amount entry
 const formSchema = z.object({
@@ -62,16 +64,21 @@ const formSchema = z.object({
 });
 
 interface OperatorRange {
-  min: number;
-  max: number;
   currency?: string;
+  min?: number;
+  max?: number;
 }
 
 export default function AirtimeForm() {
-  const [selectedPrice, setSelectedPrice] = useState(0);
+  const router = useRouter();
+  const [operators, setOperators] = useState<AirtimeOperator[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [enteredAmount, setEnteredAmount] = useState<string>('');
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [successDetails, setSuccessDetails] = useState<any>(null);
   const [isVerified, setIsVerified] = useState<boolean>(false);
+  const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [selectedPrice, setSelectedPrice] = useState<number>(0);
   const [networks, setNetworks] = useState<AirtimeOperator[]>([]);
   const [countryCurrency, setCountryCurrency] = useState<string>("");
   const [selectedToken, setSelectedToken] = useState<string | undefined>(undefined);
@@ -134,8 +141,8 @@ useEffect(() => {
   };
 
   getNetworks();
-  // Only depend on country change
-}, [watchCountry]);
+  // Depend on country and form (used inside effect)
+}, [watchCountry, form]);
 
 // 2. Fetch operator range when network or country changes
 useEffect(() => {
@@ -191,7 +198,7 @@ useEffect(() => {
   };
 
   getOperatorRange();
-}, [watchNetwork, watchCountry]);
+}, [watchNetwork, watchCountry, form]);
 
 // 3. Validate amount against operator range
 useEffect(() => {
@@ -309,7 +316,7 @@ useEffect(() => {
       updateStepStatus('check-balance', 'loading');
 
       // Check if the user has enough token balance
-      const hasEnoughBalance = await checkTokenBalance(selectedToken, selectedPrice.toString(), values.country);
+      const hasEnoughBalance = await checkTokenBalance(selectedPrice.toString(), selectedToken, values.country);
       if (!hasEnoughBalance) {
         toast.error(`Insufficient ${selectedToken} balance to complete this transaction.`);
         updateStepStatus('check-balance', 'error', `Insufficient ${selectedToken} balance`);
@@ -319,7 +326,7 @@ useEffect(() => {
       updateStepStatus('send-payment', 'loading');
 
       // Process blockchain payment first
-      const tx = await handleTransaction({
+      const paymentResult = await handleTransaction({
         type: 'airtime',
         amount: selectedPrice.toString(),
         token: selectedToken,
@@ -333,7 +340,7 @@ useEffect(() => {
         }
       });
 
-      if (tx) {
+      if (paymentResult.success && paymentResult.transactionHash) {
         paymentSuccessful = true;
         updateStepStatus('send-payment', 'success');
 
@@ -346,31 +353,60 @@ useEffect(() => {
         try {
           const cleanPhoneNumber = values.phoneNumber.replace(/[\s\-\+]/g, '');
 
-          // Send the user-entered amount directly to the API
+          // SECURITY: Send payment validation data to prevent bypass
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
           const response = await fetch('/api/topup', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify({
               operatorId: values.network,
               amount: enteredAmount.toString(),
-              customId: tx,
+              customId: paymentResult.transactionHash,
               useLocalAmount: true,
               recipientPhone: {
                 country: values.country,
                 phoneNumber: cleanPhoneNumber
               },
               email: values.email,
-              type: 'airtime'
+              serviceType: 'airtime',
+              // SECURITY: Payment validation fields
+              transactionHash: paymentResult.transactionHash,
+              expectedAmount: paymentResult.convertedAmount,
+              paymentToken: paymentResult.paymentToken
             }),
           });
 
-          const data = await response.json();
+          // Parse response with better error handling
+          let data: any;
+          try {
+            const responseText = await response.text();
+            console.log('Top-up API raw response:', responseText);
+            data = responseText ? JSON.parse(responseText) : {};
+          } catch (parseError) {
+            console.error('Failed to parse API response:', parseError);
+            data = { success: false, error: 'Invalid response from server' };
+          }
+
+          console.log('Top-up API parsed data:', data);
+          console.log('Response status:', response.status, 'Response OK:', response.ok);
 
           if (response.ok && data.success) {
-            toast.success(`Successfully topped up ${values.phoneNumber} with ${enteredAmount} ${operatorRange.currency} airtime.`);
             updateStepStatus('top-up', 'success');
+            
+            // Show prominent success modal instead of toast
+            const selectedOperator = operators.find(op => op.id === values.network);
+            setSuccessDetails({
+              type: 'airtime' as const,
+              amount: enteredAmount,
+              currency: operatorRange.currency || countryCurrency,
+              recipient: values.phoneNumber,
+              transactionHash: paymentResult.transactionHash,
+              provider: selectedOperator?.name,
+              emailSent: data.emailSent,
+              smsSent: data.smsSent
+            });
+            setShowSuccessModal(true);
 
             // Reset the form but keep the country
             form.reset({
@@ -385,16 +421,33 @@ useEffect(() => {
             setSelectedPrice(0);
             closeTransactionDialog();
           } else {
-            console.error("Top-up API Error:", data);
-            toast.error(data.error || "There was an issue processing your top-up. Our team has been notified.");
+            // Extract error message with fallbacks
+            const errorMsg = data?.error || data?.message || 
+              (response.status === 503 ? 'Service temporarily unavailable. Please try again.' :
+               response.status === 502 ? 'Top-up provider error. Payment recorded, please contact support.' :
+               response.status === 500 ? 'Server error. Payment recorded, please contact support.' :
+               response.status === 403 ? 'Payment validation failed. Please verify your transaction.' :
+               'There was an issue processing your top-up. Our team has been notified.');
+            
+            console.error("Top-up API Error:", {
+              status: response.status,
+              statusText: response.statusText,
+              data,
+              errorMsg
+            });
+            
+            toast.error(errorMsg);
             updateStepStatus('top-up', 'error', "Top-up failed but payment succeeded, Please screenshot this error and contact support.");
 
             console.error("Payment succeeded but top-up failed. Manual intervention required:", {
               user: values.email,
               phone: values.phoneNumber,
               amount: enteredAmount,
-              error: data.error,
-              transactionDetails: data.details
+              transactionHash: paymentResult.transactionHash,
+              responseStatus: response.status,
+              error: data?.error || errorMsg,
+              details: data?.details,
+              fullResponse: data
             });
           }
         } catch (error) {
@@ -445,7 +498,7 @@ useEffect(() => {
                       value={field.value}
                       onChange={(val) => {
                         field.onChange(val);
-                        if (val) setCountryCurrency(val);
+                        if (val) setCountryCurrency(val.toUpperCase());
                       }}
                     />
                   </div>
@@ -701,6 +754,20 @@ useEffect(() => {
           </Button>
         </form>
       </Form>
+
+      {/* Success Modal */}
+      {successDetails && (
+        <PaymentSuccessModal
+          open={showSuccessModal}
+          onClose={() => {
+            setShowSuccessModal(false);
+            setSuccessDetails(null);
+            // Navigate to transaction page after modal is closed
+            router.push(`/tx/${successDetails.transactionHash}`);
+          }}
+          paymentDetails={successDetails}
+        />
+      )}
     </div>
   );
 }

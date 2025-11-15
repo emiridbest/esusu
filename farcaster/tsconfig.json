@@ -13,10 +13,15 @@
     "incremental": true,
     "module": "esnext",
     "esModuleInterop": true,
-    "moduleResolution": "node10",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@esusu/backend/*": ["./backend-temp/*"]
+    },
     "plugins": [
       {
         "name": "next"
@@ -31,6 +36,7 @@
     "next.config.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "backend-temp"
   ]
 }

@@ -1,7 +1,12 @@
-import { useAccount, usePublicClient } from 'wagmi';
+"use client";
+import { useState, useEffect } from 'react';
+import { formatUnits } from 'viem';
+import { useActiveAccount, useActiveWallet } from 'thirdweb/react';
+import { getContract, readContract } from 'thirdweb';
+import { client, activeChain } from '@/lib/thirdweb';
 import { ethers } from 'ethers';
 import { toast } from 'sonner';
-import { Celo } from '@celo/rainbowkit-celo/chains';
+import { celo } from 'wagmi/chains';
 
 const TOKEN_ADDRESSES = {
   CUSD: '0x765DE816845861e75A25fCA122bb6898B8B1282a',
@@ -11,22 +16,44 @@ const TOKEN_ADDRESSES = {
   G$: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A", // G$ token address
 };
 
+// Define token decimals
+const tokenDecimals: Record<string, number> = {
+  CELO: 18,
+  cUSD: 18,
+  cEUR: 18,
+  USDC: 6,
+  USDT: 6,
+  'G$': 18,
+};
+
 export const useBalance = () => {
-  const { address } = useAccount();
-  const publicClient = usePublicClient({chainId: Celo.id});
+  // Cache token prices (CELO/USD, G$/USD)
+  const [celoUsdPrice, setCeloUsdPrice] = useState<number>(2.8); // fallback to 2.8
+  const [goodDollarUsdPrice, setGoodDollarUsdPrice] = useState<number>(0.0001); // fallback to 0.0001
+
+  // Fetch token prices once per session (or on demand)
+  useEffect(() => {
+    async function fetchPrices() {
+      try {
+        const celoRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=celo&vs_currencies=usd');
+        const celoData = await celoRes.json();
+        if (celoData.celo && celoData.celo.usd) setCeloUsdPrice(celoData.celo.usd);
+        const gdRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=gooddollar&vs_currencies=usd');
+        const gdData = await gdRes.json();
+        if (gdData.gooddollar && gdData.gooddollar.usd) setGoodDollarUsdPrice(gdData.gooddollar.usd);
+      } catch (err) {
+        // fallback to defaults
+      }
+    }
+    fetchPrices();
+  }, []);
+  const account = useActiveAccount();
+  const wallet = useActiveWallet();
+  
+  const address = account?.address;
 
   const getTokenDecimals = (token: string): number => {
-    switch (token) {
-      case 'CUSD':
-        return 18;
-      case 'USDC':
-      case 'USDT':
-        return 6;
-      case 'G$':
-        return 18;
-      default:
-        return 18;
-    }
+    return tokenDecimals[token] || 18;
   };
 
   const convertCurrency = async (
@@ -65,8 +92,6 @@ export const useBalance = () => {
     }
   };
 
-
-  // Helper to get token address from token ID
   const getTokenAddress = (tokenId: string): string => {
     const address = TOKEN_ADDRESSES[tokenId as keyof typeof TOKEN_ADDRESSES];
     if (!address) {
@@ -75,61 +100,75 @@ export const useBalance = () => {
     return address;
   };
 
-  // Check if user has enough token balance to pay for the utility
-  const checkTokenBalance = async (tokenId: string, amount: string, currencyCode: string): Promise<boolean> => {
-    if (!address) {
+  const checkTokenBalance = async (
+    amount: string,
+    tokenId: string,
+    currencyCode: string
+  ): Promise<boolean> => {
+    if (!address || !wallet) {
+      toast.error('Wallet not connected');
       return false;
     }
 
     try {
       const tokenAddress = getTokenAddress(tokenId);
       const decimals = getTokenDecimals(tokenId);
+      console.log(`Checking balance for ${tokenId} (${tokenAddress})`);
 
+      const convertedAmount = await convertCurrency(amount, currencyCode);
+      let requiredAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
+
+      // Apply token-specific conversion using cached rates
+      if (tokenId === 'G$') {
+        // Convert USD to G$ using cached rate
+        const gDollarAmount = Number(convertedAmount) / goodDollarUsdPrice;
+        requiredAmount = ethers.parseUnits(gDollarAmount.toString(), decimals);
+      }
+      if (tokenId === 'CELO') {
+        // Convert USD to CELO using cached rate
+        const celoAmount = Number(convertedAmount) / celoUsdPrice;
+        requiredAmount = ethers.parseUnits(celoAmount.toString(), decimals);
+      }
+
+      let balance: bigint;
 
       // For native CELO token
       if (tokenId === 'CELO') {
-        const balance = await publicClient.getBalance({ address });
-        const convertedAmount = await convertCurrency(amount, currencyCode)
-        const requiredAmount = BigInt(ethers.parseUnits(convertedAmount.toString()));
+        // Get native token balance using Thirdweb v5
+        const { getRpcClient } = await import('thirdweb/rpc');
+        const rpc = getRpcClient({ client, chain: activeChain });
+        const balanceResult = await rpc({ method: 'eth_getBalance', params: [address, 'latest'] });
+        balance = BigInt(balanceResult as string);
+        console.log(`CELO Balance: ${balance.toString()}`);
+      } else {
+        // For ERC20 tokens - use Thirdweb v5 contract
+        const contract = getContract({
+          client,
+          chain: activeChain,
+          address: tokenAddress,
+        });
 
-
-        return balance >= BigInt(requiredAmount.toString());
+        // Define ERC20 balanceOf function
+        const { balanceOf } = await import('thirdweb/extensions/erc20');
+        balance = await balanceOf({
+          contract,
+          address,
+        });
+        console.log(`${tokenId} Balance:`, balance.toString());
       }
-      if (tokenId === 'G$') {
-        const balance = await publicClient.getBalance({ address });
-        const convertedAmount = await convertCurrency(amount, currencyCode)
-        const requiredAmount = BigInt(ethers.parseUnits(convertedAmount.toString(), decimals));
-        return balance >= BigInt(requiredAmount.toString());
-      }
-      // For ERC20 tokens
-      const erc20Abi = [
-        {
-          name: 'balanceOf',
-          type: 'function',
-          stateMutability: 'view',
-          inputs: [{ name: 'owner', type: 'address' }],
-          outputs: [{ name: '', type: 'uint256' }],
-        },
-      ] as const;
 
-      // Read token balance using the correct contract address
-      const balance = await publicClient.readContract({
-        address: tokenAddress as `0x${string}`,
-        abi: erc20Abi,
-        functionName: 'balanceOf',
-        args: [address as `0x${string}`],
-      });
-
-
-      const convertedAmount = await convertCurrency(amount, currencyCode)
-      const requiredAmount = BigInt(ethers.parseUnits(convertedAmount.toString(), decimals));
-
-      return balance >= requiredAmount;
+      console.log(`Required amount:`, requiredAmount.toString());
+      return balance >= BigInt(requiredAmount);
     } catch (error) {
-      console.error('Failed to check token balance:', error);
+      console.error(`Error checking ${tokenId} balance:`, error);
+      toast.error(`Failed to check ${tokenId} balance`);
       return false;
     }
   };
 
-  return { checkTokenBalance };
+  return {
+    checkTokenBalance,
+    getTokenDecimals,
+    convertCurrency,
+  };
 };

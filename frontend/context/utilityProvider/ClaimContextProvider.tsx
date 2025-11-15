@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useContext, createContext, ReactNode, useEffect, useRef, useCallback } from 'react';
-import { Interface, formatUnits } from "ethers";
-import { useAccount, useSendTransaction } from "wagmi";
+import { encodeFunctionData, parseAbi, formatUnits } from 'viem';
+import { useActiveAccount, useActiveWallet } from "thirdweb/react";
 import { toast } from 'sonner';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
-import { Celo } from '@celo/rainbowkit-celo/chains';
+import { celo } from 'viem/chains';
 import { useIdentitySDK, useClaimSDK } from "@goodsdks/react-hooks"
 import { isSupportedChain, CHAIN_DECIMALS, SupportedChains } from "@goodsdks/citizen-sdk"
 import {
@@ -19,7 +19,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '@/components/TransactionSteps';
 import { txCountABI, txCountAddress } from '@/utils/pay';
-
 // Constants
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
@@ -38,7 +37,6 @@ const getTokenAddress = (token: string, tokens: any): string => {
 type ClaimProcessorType = {
   isProcessing: boolean;
   setIsProcessing: (isProcessing: boolean) => void;
-  sendTransactionAsync: any;
   entitlement: bigint | null;
   canClaim: boolean;
   handleClaim: () => Promise<{ success: boolean; error?: any }>;
@@ -49,13 +47,13 @@ type ClaimProcessorType = {
   isTransactionDialogOpen: boolean;
   setIsTransactionDialogOpen: (open: boolean) => void;
   setTransactionSteps: (steps: Step[]) => void;
-  setCurrentOperation: (operation: 'data' | null) => void;
+  setCurrentOperation: (operation: 'data' | 'airtime' | null) => void;
   isWaitingTx?: boolean;
   setIsWaitingTx?: (waiting: boolean) => void;
   closeTransactionDialog: () => void;
-  openTransactionDialog: (operation: 'data', recipientValue: string) => void;
+  openTransactionDialog: (operation: 'data' | 'airtime', recipientValue: string) => void;
   transactionSteps: Step[];
-  currentOperation: "data" | null;
+  currentOperation: "data" | "airtime" | null;
   updateStepStatus: (stepId: string, status: StepStatus, errorMessage?: string) => void;
   handleVerification: () => Promise<void>;
   isWhitelisted: boolean;
@@ -72,16 +70,18 @@ type ClaimProviderProps = {
 const ClaimProcessorContext = createContext<ClaimProcessorType | undefined>(undefined);
 
 export function ClaimProvider({ children }: ClaimProviderProps) {
-  const { address, isConnected } = useAccount();
+  const account = useActiveAccount();
+  const wallet = useActiveWallet();
+  const address = account?.address;
+  const isConnected = !!address;
   const [isProcessing, setIsProcessing] = useState(false);
   const [entitlement, setEntitlement] = useState<bigint | null>(null);
   const [canClaim, setCanClaim] = useState(false);
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
   const [transactionSteps, setTransactionSteps] = useState<Step[]>([]);
-  const [currentOperation, setCurrentOperation] = useState<'data' | null>(null);
+  const [currentOperation, setCurrentOperation] = useState<'data' | 'airtime' | null>(null);
   const [isWaitingTx, setIsWaitingTx] = useState(false);
   const [recipient, setRecipient] = useState<string>('');
-  const { sendTransactionAsync } = useSendTransaction();
   const [claimSDK, setClaimSDK] = useState<any>(null);
   const [checkingWhitelist, setCheckingWhitelist] = useState<boolean>(true);
   const [isWhitelisted, setIsWhitelisted] = useState<boolean>(false);
@@ -91,7 +91,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const [altChainId, setAltChainId] = useState<SupportedChains | null>(null);
   const initializationAttempted = useRef(false);
   const closeDialogTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const chainId = Celo.id;
+  const chainId = celo.id;
   const { sdk: identitySDK } = useIdentitySDK("production");
   const { sdk: ClaimSDK, loading: claimSDKLoading, error: claimSDKError } = useClaimSDK("production");
 
@@ -110,7 +110,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       }
 
       try {
-        const result = await identitySDK.getWhitelistedRoot(address);
+        const result = await identitySDK.getWhitelistedRoot(address as `0x${string}`);
         if (result && typeof result.isWhitelisted === 'boolean') {
           setIsWhitelisted(result.isWhitelisted);
         } else {
@@ -260,14 +260,13 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     setIsProcessing(true);
 
     try {
-      // Optional callback example from documentation
+      // Claim with optional callback
       const claimCallback = async () => {
         console.log("Waiting for claim transaction...");
         await new Promise((resolve) => setTimeout(resolve, 2000));
         console.log("Transaction started");
       };
 
-      // Claim with optional callback
       const tx = await claimSDK.claim(claimCallback);
       
       if (!tx) {
@@ -281,26 +280,41 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
       toast.success("Successfully claimed G$ tokens!");
 
-      // Update transaction count with referral tracking
+      // Update transaction count with referral tracking using Thirdweb
       const dataSuffix = getReferralTag({
         user: address as `0x${string}`,
         consumer: RECIPIENT_WALLET as `0x${string}`,
       });
 
       try {
-        const txCountInterface = new Interface(txCountABI);
-        const txCountData = txCountInterface.encodeFunctionData("increment", []);
+        const txCountAbi = parseAbi(["function increment()"]);
+        const txCountData = encodeFunctionData({
+          abi: txCountAbi,
+          functionName: 'increment',
+          args: []
+        });
         const dataWithSuffix = txCountData + dataSuffix;
 
-        const txCount = await sendTransactionAsync({
+        if (!wallet || !account) throw new Error('Wallet not connected');
+        
+        const { sendTransaction, prepareTransaction } = await import('thirdweb');
+        const { client, activeChain } = await import('@/lib/thirdweb');
+        
+        const transaction = await prepareTransaction({
           to: txCountAddress as `0x${string}`,
           data: dataWithSuffix as `0x${string}`,
+          client,
+          chain: activeChain,
+        });
+        const txCount = await sendTransaction({
+          account,
+          transaction,
         });
 
         try {
           await submitReferral({
-            txHash: txCount as unknown as `0x${string}`,
-            chainId: 42220
+            txHash: txCount.transactionHash,
+            chainId: activeChain.id,
           });
           console.log("Referral submitted for transaction count update.");
         } catch (referralError) {
@@ -319,8 +333,9 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       return { success: false, error };
     } finally {
       setIsProcessing(false);
+      setIsWaitingTx(false);
     }
-  }, [claimSDK, isConnected, address, sendTransactionAsync]);
+  }, [claimSDK, isConnected, address, wallet, account]);
 
   const processDataTopUp = useCallback(async (
     values: any,
@@ -345,6 +360,10 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           operatorId: values.network,
           amount: selectedPrice.toString(),
           customId: values.customId,
+          transactionHash: values.transactionHash,
+          expectedAmount: values.expectedAmount,
+          paymentToken: values.paymentToken,
+          serviceType: 'data',
           recipientPhone: {
             country: values.country,
             phoneNumber: cleanPhoneNumber
@@ -390,6 +409,10 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           operatorId: values.network,
           amount: selectedPrice.toString(),
           customId: values.customId,
+          transactionHash: values.transactionHash,
+          expectedAmount: values.expectedAmount,
+          paymentToken: values.paymentToken,
+          serviceType: 'airtime',
           recipientPhone: {
             country: values.country,
             phoneNumber: cleanPhoneNumber
@@ -425,38 +448,68 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     }
 
     const dataSuffix = getReferralTag({
-      user: address,
+      user: address as `0x${string}`,
       consumer: RECIPIENT_WALLET as `0x${string}`,
     });
 
     const selectedToken = "G$";
     const tokenAddress = getTokenAddress(selectedToken, TOKENS);
 
-    const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
-    const transferInterface = new Interface(tokenAbi);
-    const transferData = transferInterface.encodeFunctionData("transfer", [
-      RECIPIENT_WALLET,
-      entitlement
-    ]);
+    const erc20Abi = parseAbi(["function transfer(address to, uint256 value) returns (bool)"]);
+    const transferData = encodeFunctionData({
+      abi: erc20Abi,
+      functionName: 'transfer',
+      args: [RECIPIENT_WALLET as `0x${string}`, entitlement as bigint]
+    });
+    console.log("Processing payment for address:", address);
+
     const dataWithSuffix = transferData + dataSuffix;
 
+    toast.info("Processing payment for data bundle...");
     try {
-      const tx = await sendTransactionAsync({
+      setIsWaitingTx(true);
+      if (!wallet || !account) throw new Error('Wallet not connected');
+      
+      const { sendTransaction, prepareTransaction } = await import('thirdweb');
+      const { client, activeChain } = await import('@/lib/thirdweb');
+      
+      const transaction = await prepareTransaction({
         to: tokenAddress as `0x${string}`,
         data: dataWithSuffix as `0x${string}`,
+        client,
+        chain: activeChain,
       });
-
+      const tx = await sendTransaction({
+        account,
+        transaction,
+      });
+      // Wait for on-chain confirmation before proceeding to top-up
+      const { waitForReceipt } = await import('thirdweb');
+      const receipt = await waitForReceipt({
+        client,
+        chain: activeChain,
+        transactionHash: tx.transactionHash,
+      });
       try {
         await submitReferral({
-          txHash: tx as unknown as `0x${string}`,
-          chainId: Celo.id,
+          txHash: tx.transactionHash,
+          chainId: celo.id,
         });
       } catch (referralError) {
         console.error("Referral submission error:", referralError);
       }
 
-      toast.success("Payment transaction completed. Processing data top-up...");
-      return tx;
+      toast.success("Payment confirmed on-chain. Processing data top-up...");
+      
+      // Convert entitlement from wei to human-readable format (G$ has 18 decimals)
+      const { formatUnits } = await import('viem');
+      const convertedAmount = formatUnits(entitlement, 18);
+      
+      return {
+        transactionHash: tx.transactionHash,
+        convertedAmount,
+        paymentToken: selectedToken
+      };
     } catch (error) {
       console.error("Payment transaction failed:", error);
       toast.error("Payment transaction failed. Please try again.");
@@ -470,19 +523,23 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         );
       }
       throw error;
+    } finally {
+      setIsWaitingTx(false);
     }
-  }, [isConnected, address, entitlement, sendTransactionAsync, transactionSteps, updateStepStatus]);
+  }, [isConnected, address, entitlement, wallet, account, transactionSteps, updateStepStatus]);
 
   const getDialogTitle = useCallback(() => {
     switch (currentOperation) {
       case 'data':
         return 'Purchase Data Bundle';
+      case 'airtime':
+        return 'Purchase Airtime';
       default:
         return 'Transaction';
     }
   }, [currentOperation]);
 
-  const openTransactionDialog = useCallback((operation: 'data', recipientValue: string) => {
+  const openTransactionDialog = useCallback((operation: 'data' | 'airtime', recipientValue: string) => {
     setCurrentOperation(operation);
     setRecipient(recipientValue);
     setIsTransactionDialogOpen(true);
@@ -503,9 +560,42 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           status: 'inactive'
         },
         {
+          id: 'payment',
+          title: 'Payment',
+          description: 'Waiting for on-chain confirmation...',
+          status: 'inactive'
+        },
+        {
           id: 'top-up',
           title: 'Perform Top Up',
           description: `Confirming data purchase for ${recipientValue}`,
+          status: 'inactive'
+        }
+      ];
+    } else if (operation === 'airtime') {
+      steps = [
+        {
+          id: 'verify-phone',
+          title: 'Verify Phone Number',
+          description: `Verifying phone number for ${recipientValue}`,
+          status: 'inactive'
+        },
+        {
+          id: 'claim-ubi',
+          title: 'Claim UBI',
+          description: `Claiming Universal Basic Income`,
+          status: 'inactive'
+        },
+        {
+          id: 'payment',
+          title: 'Payment',
+          description: 'Waiting for on-chain confirmation...',
+          status: 'inactive'
+        },
+        {
+          id: 'top-up',
+          title: 'Perform Top Up',
+          description: `Confirming airtime purchase for ${recipientValue}`,
           status: 'inactive'
         }
       ];
@@ -533,7 +623,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const value = {
     isProcessing,
     setIsProcessing,
-    sendTransactionAsync,
     entitlement,
     canClaim,
     handleClaim,

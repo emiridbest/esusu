@@ -34,6 +34,8 @@ import {
 } from '../../services/utility/utilityServices';
 import { useBalance } from '../../context/utilityProvider/useBalance';
 import { getCountryData } from '../../utils/countryData';
+import { useAccount } from 'wagmi';
+import { PaymentSuccessModal } from './PaymentSuccessModal';
 
 // Updated form schema to handle direct amount entry
 const formSchema = z.object({
@@ -76,6 +78,18 @@ export default function AirtimeForm() {
   const [countryCurrency, setCountryCurrency] = useState<string>("");
   const [selectedToken, setSelectedToken] = useState<string | undefined>("");
   const [operatorRange, setOperatorRange] = useState<OperatorRange | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successDetails, setSuccessDetails] = useState<{
+    type: 'airtime';
+    amount: string;
+    currency: string;
+    recipient: string;
+    transactionHash: string;
+    token?: string;
+    provider?: string;
+    emailSent?: boolean;
+    smsSent?: boolean;
+  } | null>(null);
 
   const [amountValidation, setAmountValidation] = useState<{
     isValid: boolean;
@@ -83,6 +97,7 @@ export default function AirtimeForm() {
     type: 'error' | 'warning' | 'success' | 'info';
   }>({ isValid: true, message: '', type: 'success' });
 
+  const { address } = useAccount();
   const { checkTokenBalance } = useBalance();
 
   const {
@@ -319,7 +334,7 @@ export default function AirtimeForm() {
       updateStepStatus('send-payment', 'loading');
 
       // Process blockchain payment first
-      const tx = await handleTransaction({
+      const txResult = await handleTransaction({
         type: 'airtime',
         amount: selectedPrice.toString(),
         token: selectedToken,
@@ -333,7 +348,7 @@ export default function AirtimeForm() {
         }
       });
 
-      if (tx) {
+      if (txResult && txResult.success && txResult.transactionHash) {
         paymentSuccessful = true;
         updateStepStatus('send-payment', 'success');
 
@@ -355,13 +370,14 @@ export default function AirtimeForm() {
             body: JSON.stringify({
               operatorId: values.network,
               amount: enteredAmount.toString(),
-              customId: tx, 
+              customId: txResult.transactionHash, 
               useLocalAmount: true,
               recipientPhone: {
                 country: values.country,
                 phoneNumber: cleanPhoneNumber
               },
               email: values.email,
+              walletAddress: address,
               type: 'airtime'
             }),
           });
@@ -369,8 +385,22 @@ export default function AirtimeForm() {
           const data = await response.json();
 
           if (response.ok && data.success) {
-            toast.success(`Successfully topped up ${values.phoneNumber} with ${enteredAmount} ${operatorRange.currency} airtime.`);
             updateStepStatus('top-up', 'success');
+            
+            // Show success modal
+            const countryData = getCountryData(values.country);
+            setSuccessDetails({
+              type: 'airtime',
+              amount: enteredAmount.toString(),
+              currency: operatorRange?.currency || countryData?.currency?.code || '',
+              recipient: values.phoneNumber,
+              transactionHash: txResult.transactionHash,
+              token: selectedToken,
+              provider: networkName,
+              emailSent: data.emailSent,
+              smsSent: data.smsSent
+            });
+            setShowSuccessModal(true);
 
             // Reset the form but keep the country
             form.reset({
@@ -701,6 +731,18 @@ export default function AirtimeForm() {
           </Button>
         </form>
       </Form>
+      
+      {successDetails && (
+        <PaymentSuccessModal
+          open={showSuccessModal}
+          onClose={() => {
+            setShowSuccessModal(false);
+            setSuccessDetails(null);
+            closeTransactionDialog();
+          }}
+          paymentDetails={successDetails}
+        />
+      )}
     </div>
   );
 }

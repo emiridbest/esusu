@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Campaign, CampaignMember, useThrift } from '@/context/thrift/ThriftContext';
+import { ThriftGroup, ThriftMember, useThrift } from '@/context/thrift/ThriftContext';
 import { 
   Table, 
   TableBody, 
@@ -13,11 +13,16 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
+import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
+import { contractAddress } from '@/utils/abi';
 
 export function UserCampaigns() {
-  const { userCampaigns, getCampaignMembers, loading, error } = useThrift();
-  const [campaignMembers, setCampaignMembers] = useState<{ [key: number]: CampaignMember[] }>({});
+  const { userGroups, getThriftGroupMembers, loading, error } = useThrift();
+  const [groupMembers, setGroupMembers] = useState<{ [key: number]: ThriftMember[] }>({});
   const [connected, setConnected] = useState(false);
+  const [address, setAddress] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editGroup, setEditGroup] = useState<ThriftGroup | null>(null);
   
   // Check if wallet is connected
   useEffect(() => {
@@ -26,6 +31,7 @@ export function UserCampaigns() {
         try {
           const accounts = await window.ethereum.request({ method: 'eth_accounts' });
           setConnected(accounts && accounts.length > 0);
+          setAddress(accounts && accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
         } catch (error) {
           console.error("Error checking connection:", error);
           setConnected(false);
@@ -41,6 +47,7 @@ export function UserCampaigns() {
     if (typeof window !== 'undefined' && window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
         setConnected(accounts.length > 0);
+        setAddress(accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
       };
       
       window.ethereum.on('accountsChanged', handleAccountsChanged);
@@ -53,27 +60,27 @@ export function UserCampaigns() {
     }
   }, []);
   
-  // Load members for all user campaigns
+  // Load members for all user groups
   useEffect(() => {
     const loadAllMembers = async () => {
-      if (!connected || userCampaigns.length === 0) return;
+      if (!connected || userGroups.length === 0) return;
       
-      const membersMap: { [key: number]: CampaignMember[] } = {};
+      const membersMap: { [key: number]: ThriftMember[] } = {};
       
-      for (const campaign of userCampaigns) {
+      for (const group of userGroups) {
         try {
-          const members = await getCampaignMembers(campaign.id);
-          membersMap[campaign.id] = members;
+          const members = await getThriftGroupMembers(group.id);
+          membersMap[group.id] = members;
         } catch (error) {
-          console.error(`Failed to fetch members for campaign ${campaign.id}:`, error);
+          console.error(`Failed to fetch members for group ${group.id}:`, error);
         }
       }
       
-      setCampaignMembers(membersMap);
+      setGroupMembers(membersMap);
     };
     
     loadAllMembers();
-  }, [userCampaigns, connected, getCampaignMembers]);
+  }, [userGroups, connected, getThriftGroupMembers]);
   
   if (!connected) {
     return (
@@ -111,7 +118,7 @@ export function UserCampaigns() {
     );
   }
   
-  if (userCampaigns.length === 0) {
+  if (userGroups.length === 0) {
     return (
       <Card className="w-full">
         <CardContent className="pt-6">
@@ -143,26 +150,53 @@ export function UserCampaigns() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead>Monthly</TableHead>
+                    <TableHead>Deposit</TableHead>
                     <TableHead>Members</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {userCampaigns.map((campaign) => (
-                    <TableRow key={campaign.id}>
+                  {userGroups.map((group) => (
+                    <TableRow key={group.id}>
                       <TableCell className="font-medium">
                         <a 
-                          href={`/thrift/${campaign.id}`}
+                          href={`/thrift/${group.id}`}
                           className="hover:underline text-primary"
                         >
-                          {campaign.name}
+                          {group.name}
                         </a>
                       </TableCell>
                       <TableCell className="max-w-xs truncate">
-                        {campaign.description}
+                        {group.description}
                       </TableCell>
-                      <TableCell>{parseFloat(campaign.contributionAmount)} cUSD</TableCell>
-                      <TableCell>{campaign.totalContributions || '0'}/5</TableCell>
+                      <TableCell>{parseFloat(group.depositAmount)} {group.tokenSymbol || 'cUSD'}</TableCell>
+                      <TableCell>{group.totalMembers}/{group.maxMembers}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <a 
+                            href={`/thrift/${group.id}`}
+                            className="text-xs px-3 py-1 border rounded hover:bg-muted text-center"
+                          >
+                            View
+                          </a>
+                          {address && group.meta?.createdBy && address === String(group.meta.createdBy).toLowerCase() && (
+                            <button
+                              className="text-xs px-3 py-1 border rounded hover:bg-muted"
+                              onClick={() => { setEditGroup(group); setEditOpen(true); }}
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {group.isUserMember && group.isActive && (
+                            <button
+                              className="text-xs px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                              onClick={() => {/* Add make contribution logic */}}
+                            >
+                              Contribute
+                            </button>
+                          )}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -181,31 +215,41 @@ export function UserCampaigns() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {userCampaigns.map((campaign) => (
-                    <TableRow key={campaign.id}>
+                  {userGroups.map((group) => (
+                    <TableRow key={group.id}>
                       <TableCell className="font-medium">
                         <a 
-                          href={`/thrift/${campaign.id}`}
+                          href={`/thrift/${group.id}`}
                           className="hover:underline text-primary"
                         >
-                          {campaign.name}
+                          {group.name}
                         </a>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                          {campaignMembers[campaign.id]?.map((member, idx) => (
+                          {groupMembers[group.id]?.map((member, idx) => (
                             <div key={idx} className="text-sm">
-                              {member.userName} 
-                              <span className="text-xs text-gray-500 ml-1">
-                                ({member.address.substring(0, 6)}...{member.address.substring(member.address.length - 4)})
+                              <div className="font-medium">{member.userName || `Member ${idx + 1}`}</div>
+                              <span className="text-xs text-gray-500">
+                                {member.address.substring(0, 6)}...{member.address.substring(member.address.length - 4)}
                               </span>
                             </div>
                           )) || <span className="text-gray-500">Loading members...</span>}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Active
+                        <Badge className={(
+                          group.isActive && group.totalMembers >= group.maxMembers 
+                            ? "bg-green-50 text-green-700 border-green-200" 
+                            : group.isActive 
+                              ? "bg-blue-50 text-blue-700 border-blue-200"
+                              : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                        ) + " border"}>
+                          {group.isActive && group.totalMembers >= group.maxMembers 
+                            ? 'Full' 
+                            : group.isActive 
+                              ? 'Active'
+                              : 'Pending'}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -227,22 +271,29 @@ export function UserCampaigns() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {userCampaigns.map((campaign) => (
-                    <TableRow key={campaign.id}>
+                  {userGroups.map((group) => (
+                    <TableRow key={group.id}>
                       <TableCell className="font-medium">
                         <a 
-                          href={`/thrift/${campaign.id}`}
+                          href={`/thrift/${group.id}`}
                           className="hover:underline text-primary"
                         >
-                          {campaign.name}
+                          {group.name}
                         </a>
                       </TableCell>
-                      <TableCell>{parseFloat(campaign.contributionAmount)} cUSD/month</TableCell>
                       <TableCell>
-                        {new Date().toLocaleDateString()}
+                        {group.userContribution ? `${parseFloat(group.userContribution)} ${group.tokenSymbol || 'cUSD'}` : `${parseFloat(group.depositAmount)} ${group.tokenSymbol || 'cUSD'}`}
                       </TableCell>
                       <TableCell>
-                        {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                        {group.userLastPayment ? group.userLastPayment.toLocaleDateString() : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {group.userNextPayment 
+                          ? group.userNextPayment.toLocaleDateString() 
+                          : group.isActive 
+                            ? (group.currentRound === 0 ? "Round 1" : `Round ${group.currentRound + 1}`)
+                            : "Not Started"
+                        }
                       </TableCell>
                     </TableRow>
                   ))}
@@ -252,6 +303,24 @@ export function UserCampaigns() {
           </TabsContent>
         </Tabs>
       </CardContent>
+      {/* Edit Metadata Dialog */}
+      {editGroup ? (
+        <EditMetadataDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          contractAddress={contractAddress}
+          groupId={editGroup.id}
+          initialName={editGroup.name}
+          initialDescription={editGroup.description}
+          initialCoverImageUrl={editGroup.meta?.coverImageUrl}
+          initialCategory={editGroup.meta?.category}
+          initialTags={editGroup.meta?.tags}
+          onSaved={() => {
+            setEditOpen(false);
+            // no direct refresh function here; rely on ThriftContext updates triggered elsewhere or reload page
+          }}
+        />
+      ) : null}
     </Card>
   );
 }

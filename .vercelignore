@@ -1,0 +1,6 @@
+# Exclude farcaster app from root deployment
+farcaster/
+
+
+# Node modules
+node_modules/

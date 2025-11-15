@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import DualCurrencyPrice from './DualCurrencyPrice';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,6 +36,7 @@ import {
   type DataPlan
 } from '@/services/utility/utilityServices';
 import { useBalance } from '@/context/utilityProvider/useBalance';
+import { PaymentSuccessModal } from './PaymentSuccessModal';
 
 const formSchema = z.object({
   country: z.string({
@@ -60,14 +62,18 @@ const formSchema = z.object({
 });
 
 export default function MobileDataForm() {
-  const [selectedPrice, setSelectedPrice] = useState(0);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isVerifying, setIsVerifying] = useState<boolean>(false);
-  const [isVerified, setIsVerified] = useState<boolean>(false);
+  const router = useRouter();
   const [networks, setNetworks] = useState<NetworkOperator[]>([]);
-  const [availablePlans, setAvailablePlans] = useState<DataPlan[]>([]);
+  const [dataPlanOptions, setDataPlanOptions] = useState<DataPlan[]>([]);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successDetails, setSuccessDetails] = useState<any>(null);
   const [countryCurrency, setCountryCurrency] = useState<string>("");
   const [selectedToken, setSelectedToken] = useState<string | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [availablePlans, setAvailablePlans] = useState<DataPlan[]>([]);
+  const [selectedPrice, setSelectedPrice] = useState<number>(0);
+  const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [isVerified, setIsVerified] = useState<boolean>(false);
   const { checkTokenBalance } = useBalance();
 
   const {
@@ -235,7 +241,7 @@ export default function MobileDataForm() {
       updateStepStatus('check-balance', 'loading');
 
       // Check if the user has enough token balance
-      const hasEnoughBalance = await checkTokenBalance(selectedToken, selectedPrice.toString(), values.country);
+      const hasEnoughBalance = await checkTokenBalance(selectedPrice.toString(),selectedToken,  values.country);
       if (!hasEnoughBalance) {
         toast.error(`Insufficient ${selectedToken} balance to complete this transaction.`);
         updateStepStatus('check-balance', 'error', `Insufficient ${selectedToken} balance`);
@@ -246,7 +252,7 @@ export default function MobileDataForm() {
       updateStepStatus('send-payment', 'loading');
 
       // Process blockchain payment first
-      const tx = await handleTransaction({
+      const paymentResult = await handleTransaction({
         type: 'data',
         amount: selectedPrice.toString(),
         token: selectedToken,
@@ -260,7 +266,7 @@ export default function MobileDataForm() {
         }
       });
 
-      if (tx) {
+      if (paymentResult.success && paymentResult.transactionHash) {
         paymentSuccessful = true;
         updateStepStatus('send-payment', 'success');
 
@@ -274,29 +280,59 @@ export default function MobileDataForm() {
           // Format the phone number as expected by the API
           const cleanPhoneNumber = values.phoneNumber.replace(/[\s\-\+]/g, '');
 
-          // Make the top-up request
+          // SECURITY: Make the top-up request with payment validation
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
           const response = await fetch('/api/topup', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify({
               operatorId: values.network,
               amount: selectedPrice.toString(),
-              customId: tx,
+              customId: paymentResult.transactionHash,
               recipientPhone: {
                 country: values.country,
                 phoneNumber: cleanPhoneNumber
               },
               email: values.email,
+              serviceType: 'data',
+              // SECURITY: Payment validation fields
+              transactionHash: paymentResult.transactionHash,
+              expectedAmount: paymentResult.convertedAmount,
+              paymentToken: paymentResult.paymentToken
             }),
           });
 
-          const data = await response.json();
+          // Parse response with better error handling
+          let data: any;
+          try {
+            const responseText = await response.text();
+            console.log('Top-up API raw response:', responseText);
+            data = responseText ? JSON.parse(responseText) : {};
+          } catch (parseError) {
+            console.error('Failed to parse API response:', parseError);
+            data = { success: false, error: 'Invalid response from server' };
+          }
+
+          console.log('Top-up API parsed data:', data);
+          console.log('Response status:', response.status, 'Response OK:', response.ok);
 
           if (response.ok && data.success) {
-            toast.success(`Successfully topped up ${values.phoneNumber} with ${selectedPlan?.name || 'your selected plan'}.`);
             updateStepStatus('top-up', 'success');
+            
+            // Show prominent success modal instead of toast
+            const selectedOperator = networks.find(op => op.id === values.network);
+            setSuccessDetails({
+              type: 'data' as const,
+              amount: selectedPrice.toString(),
+              currency: countryCurrency,
+              recipient: values.phoneNumber,
+              transactionHash: paymentResult.transactionHash,
+              provider: selectedOperator?.name,
+              emailSent: data.emailSent,
+              smsSent: data.smsSent
+            });
+            setShowSuccessModal(true);
 
             // Reset the form but keep the country
             form.reset({
@@ -310,8 +346,22 @@ export default function MobileDataForm() {
             });
             setSelectedPrice(0);
           } else {
-            console.error("Top-up API Error:", data);
-            toast.error(data.error || "There was an issue processing your top-up. Our team has been notified.");
+            // Extract error message with fallbacks
+            const errorMsg = data?.error || data?.message || 
+              (response.status === 503 ? 'Service temporarily unavailable. Please try again.' :
+               response.status === 502 ? 'Top-up provider error. Payment recorded, please contact support.' :
+               response.status === 500 ? 'Server error. Payment recorded, please contact support.' :
+               response.status === 403 ? 'Payment validation failed. Please verify your transaction.' :
+               'There was an issue processing your top-up. Our team has been notified.');
+            
+            console.error("Top-up API Error:", {
+              status: response.status,
+              statusText: response.statusText,
+              data,
+              errorMsg
+            });
+            
+            toast.error(errorMsg);
             updateStepStatus('top-up', 'error', "Top-up failed but payment succeeded, Please screenshot this error and contact support.");
 
             // Here we would ideally log this to a monitoring system for manual resolution
@@ -319,8 +369,11 @@ export default function MobileDataForm() {
               user: values.email,
               phone: values.phoneNumber,
               amount: selectedPrice,
-              error: data.error,
-              transactionDetails: data.details
+              transactionHash: paymentResult.transactionHash,
+              responseStatus: response.status,
+              error: data?.error || errorMsg,
+              details: data?.details,
+              fullResponse: data
             });
           }
         } catch (error) {
@@ -608,7 +661,21 @@ export default function MobileDataForm() {
               )}
             </Button>
           </form>
-        </Form>
-      </div>
-    );
-  }
+      </Form>
+
+      {/* Success Modal */}
+      {successDetails && (
+        <PaymentSuccessModal
+          open={showSuccessModal}
+          onClose={() => {
+            setShowSuccessModal(false);
+            setSuccessDetails(null);
+            // Navigate to transaction page after modal is closed
+            router.push(`/tx/${successDetails.transactionHash}`);
+          }}
+          paymentDetails={successDetails}
+        />
+      )}
+    </div>
+  );
+}

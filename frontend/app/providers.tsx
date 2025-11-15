@@ -1,60 +1,29 @@
 "use client";
-import { Alfajores, Celo } from "@celo/rainbowkit-celo/chains";
-import { RainbowKitProvider, connectorsForWallets } from "@rainbow-me/rainbowkit";
-import { injectedWallet } from "@rainbow-me/rainbowkit/wallets";
-import "@rainbow-me/rainbowkit/styles.css";
-import { WagmiConfig, configureChains, createConfig } from "wagmi";
-import { publicProvider } from "wagmi/providers/public";
+
 import { ReactNode } from "react";
 import { ClaimProvider } from "@/context/utilityProvider/ClaimContextProvider";
+import { ThriftProvider } from "@/context/thrift/ThriftContext";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThirdwebProvider } from "thirdweb/react";
+import { WagmiProvider } from 'wagmi';
+import { config } from "@/lib/wagmi";
+import { client, activeChain } from "@/lib/thirdweb";
 
-const { chains, publicClient } = configureChains(
-  [Celo],
-  [publicProvider()]
-);
+// Thirdweb setup with social login support
+const queryClient = new QueryClient();
 
-const connectors = connectorsForWallets([
-  {
-    groupName: 'Recommended',
-    wallets: [
-      injectedWallet({ chains }),
-    ],
-  },
-]);
-
-const appInfo = {
-  appName: "Celo Composer",
-};
-
-export const wagmiConfig = createConfig({
-  autoConnect: true,
-  connectors,
-  publicClient,
-});
-
-export function AppProvider({ children }: { children: ReactNode }) {
+export function Providers({ children }: { children: ReactNode }) {
   return (
-    <WagmiConfig config={wagmiConfig}>
-      <RainbowKitProvider chains={chains} appInfo={appInfo} coolMode={true} showRecentTransactions={true}>
-        <ClaimProvider>
-          {children}
-        </ClaimProvider>
-      </RainbowKitProvider>
-    </WagmiConfig>
+    <WagmiProvider config={config} reconnectOnMount={true}>
+      <ThirdwebProvider>
+        <QueryClientProvider client={queryClient}>
+          <ClaimProvider>
+            <ThriftProvider>
+              {children}
+            </ThriftProvider>
+          </ClaimProvider>
+        </QueryClientProvider>
+      </ThirdwebProvider>
+    </WagmiProvider>
   );
 }
-
-export function App({ Component, pageProps }: any) {
-  return (
-    <WagmiConfig config={wagmiConfig}>
-      <RainbowKitProvider chains={chains} appInfo={appInfo} coolMode={true} showRecentTransactions={true}>
-        <ClaimProvider>
-          <Component {...pageProps} />
-        </ClaimProvider>
-      </RainbowKitProvider>
-    </WagmiConfig>
-  );
-}
-
-
-export default AppProvider;

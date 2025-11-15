@@ -1,9 +1,10 @@
+"use client";
 import React, { useEffect, useState } from 'react';
-import { celo } from 'viem/chains';
-import { createPublicClient, http, decodeFunctionData } from 'viem';
-import { useAccount } from 'wagmi';
+import { celo } from 'wagmi/chains';
+import { createPublicClient, http, webSocket, fallback, decodeFunctionData } from 'viem';
+import { useActiveAccount } from 'thirdweb/react';
 import { stableTokenABI } from "@celo/abis";
-import { useAddRecentTransaction } from '@rainbow-me/rainbowkit';
+// import { useAddRecentTransaction } from '@rainbow-me/rainbowkit';
 import { 
   ArrowDownIcon,
   ArrowUpIcon,
@@ -91,12 +92,31 @@ const TransactionList: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [page, setPage] = useState(1);
   const [transactionFilter, setTransactionFilter] = useState<'all' | 'sent' | 'received'>('all');
+  const account = useActiveAccount();
+  const address = account?.address;
+  const [error, setError] = useState<string | null>(null);
   const [copiedHash, setCopiedHash] = useState<string>('');
-  const { address } = useAccount();
 
   const chains = [42220];
 
   useEffect(() => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    const CELOSCAN_API_KEY = process.env.NEXT_PUBLIC_CELOSCAN_API_KEY || '';
+    const CELOSCAN_API_BASE = process.env.NEXT_PUBLIC_CELOSCAN_API_BASE || 'https://api.celoscan.io/api';
+    const withApiKey = (qs: string) => `${qs}${CELOSCAN_API_KEY ? `&apikey=${CELOSCAN_API_KEY}` : ''}`;
+    const fetchCeloscan = async (qs: string) => {
+      const url = `${CELOSCAN_API_BASE}?${withApiKey(qs)}`;
+      const res = await fetch(url, { signal });
+      if (!res.ok) throw new Error(`Celoscan HTTP ${res.status}`);
+      const data = await res.json();
+      return data;
+    };
+    if (!CELOSCAN_API_KEY) {
+      console.warn('NEXT_PUBLIC_CELOSCAN_API_KEY not set; Celoscan requests may be rate-limited.');
+    }
+
     const fetchTransactions = async () => {
       if (!address) {
         setIsLoading(false);
@@ -105,78 +125,116 @@ const TransactionList: React.FC = () => {
 
       try {
         setIsLoading(true);
-        const apiKey = process.env.NEXT_PUBLIC_CELOSCAN_API_KEY;
-        const allTransactions: Transaction[] = [];
-
-        for (const chainId of chains) {
-          try {
-            const response = await fetch(
-              `https://api.etherscan.io/v2/api?chainid=${chainId}&module=account&action=txlist&address=${address}&page=${page}&offset=10&sort=desc&apikey=${apiKey}`
-            );
-            const data = await response.json();
-
-            if (data.status === '1' && Array.isArray(data.result)) {
-              const txList: Transaction[] = data.result.map((tx: any, index: number) => {
-                let functionName = tx.functionName || 'Transaction';
-                
-                // Extract clean function name
-                if (functionName.includes('(')) {
-                  functionName = functionName.split('(')[0];
-                }
-
-                // Determine token info
-                const toAddress = tx.to?.toLowerCase();
-                const tokenInfo = TOKEN_ADDRESSES[toAddress];
-                
-                // For token transfers, check if there's a tokenValue field
-                let value = tx.value;
-                let tokenSymbol = 'CELO';
-                
-                if (tx.tokenValue) {
-                  // This is a token transfer
-                  value = tx.tokenValue;
-                  tokenSymbol = tx.tokenName || 'Token';
-                }
-                
-                return {
-                  args: {
-                    from: tx.from,
-                    to: tx.to,
-                    value: value,
-                    functionName,
-                  },
-                  transactionHash: tx.hash,
-                  timestamp: tx.timeStamp,
-                  key: `${chainId}-${index}`,
-                  status: tx.isError === '0',
-                  input: tx.input,
-                  tokenSymbol: tokenSymbol,
-                  tokenAddress: tx.to,
-                };
-              });
-
-              allTransactions.push(...txList);
-            }
-          } catch (chainError) {
-            console.warn(`Error fetching transactions for chain ${chainId}:`, chainError);
-          }
-        }
-
-        allTransactions.sort((a, b) => {
-          const timeA = parseInt(a.timestamp || '0');
-          const timeB = parseInt(b.timestamp || '0');
-          return timeB - timeA;
+        setError(null);
+        const publicClient = createPublicClient({
+          chain: celo,
+          transport: http('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8', {
+            timeout: 30_000,
+            retryCount: 3,
+          }),
         });
 
-        setTransactions(allTransactions);
+        const getPastYearBlockNumber = async (publicClient: any) => {
+          const currentTime = Math.floor(Date.now() / 1000);
+          const oneYearAgoTime = currentTime - 365 * 24 * 60 * 60; 
+          const apiKey = process.env.NEXT_PUBLIC_CELOSCAN_API_KEY;
+          const response = await fetch(`https://api.celoscan.io/api?module=block&action=getblocknobytime&timestamp=${oneYearAgoTime}&closest=after&apikey=${apiKey}`);
+          const data = await response.json();
+
+          return data.result;
+        };
+
+        const getCurrentBlockNumber = async (publicClient: any) => {
+          const currentTime = Math.floor(Date.now() / 1000);
+          const apiKey = process.env.NEXT_PUBLIC_CELOSCAN_API_KEY;
+          const response = await fetch(`https://api.celoscan.io/api?module=block&action=getblocknobytime&timestamp=${currentTime}&closest=after&apikey=${apiKey}`);
+          const data = await response.json();
+
+          return data.result;
+        };
+        
+        const pastYearBlockNumber = await getPastYearBlockNumber(publicClient);
+        const latestBlock = await getCurrentBlockNumber(publicClient);
+
+        const data = await fetchCeloscan(
+          `module=account&action=txlist&address=${address}&startblock=${pastYearBlockNumber}&endblock=${latestBlock}&page=${page}&offset=10&sort=desc`
+        );
+
+        if (Array.isArray(data.result)) {
+          const txList: Transaction[] = data.result.map((tx: any, index: number) => {
+            let functionName = '';
+            try {
+              const decodedInput = decodeFunctionData({
+                abi: stableTokenABI,
+                data: tx.input,
+              });
+              functionName = decodedInput?.functionName || 'Transfer';
+            } catch (e) {
+              functionName = tx.input === '0x' ? 'Transfer' : 'Contract Interaction';
+            }
+
+            // Determine token info
+            const toAddress = tx.to?.toLowerCase();
+            const tokenInfo = TOKEN_ADDRESSES[toAddress];
+            
+            // For token transfers, check if there's a tokenValue field
+            let value = tx.value;
+            let tokenSymbol = 'CELO';
+            
+            if (tx.tokenValue) {
+              // This is a token transfer
+              value = tx.tokenValue;
+              tokenSymbol = tx.tokenName || 'Token';
+            }
+
+            return {
+              args: {
+                from: tx.from,
+                to: tx.to,
+                value: value,
+                functionName,
+              },
+              transactionHash: tx.hash,
+              timestamp: tx.timeStamp,
+              key: index,
+              status: tx.isError === '0',
+              input: tx.input,
+              tokenSymbol: tokenSymbol,
+              tokenAddress: tx.to,
+            };
+          });
+
+          setTransactions((prev) => {
+            const seen = new Set(prev.map(t => t.transactionHash));
+            const merged = [...prev];
+            for (const t of txList) {
+              if (!seen.has(t.transactionHash)) merged.push(t);
+            }
+            return merged;
+          });
+        } else {
+          // API returned an error or unexpected result
+          if (data?.message === 'No transactions found') {
+            // Not an error; simply no results for this page/range
+            return;
+          }
+          if (data?.message) {
+            setError(`Celoscan: ${data.message}`);
+          } else {
+            setError('Failed to load some transactions. Showing partial data.');
+          }
+        }
       } catch (error) {
+        if ((error as any)?.name === 'AbortError') return;
         console.error('Error fetching transactions:', error);
+        setError('Could not fetch transactions. Please try again later.');
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchTransactions();
+    return () => controller.abort();
   }, [address, page]); 
 
   function formatValue(value: string, tokenSymbol: string = 'CELO', decimals = 4): string {
@@ -267,6 +325,11 @@ const TransactionList: React.FC = () => {
             <CardDescription className="mt-1">
               Track your recent transactions on the Celo network
             </CardDescription>
+            {error && (
+              <div className="mt-2 text-xs text-red-500 dark:text-red-400">
+                {error}
+              </div>
+            )}
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -48,66 +48,96 @@ export default function DualCurrencyPrice({
   const [totalDisplay, setTotalDisplay] = useState('');
   const [gasFeeDisplay, setGasFeeDisplay] = useState('');
   const [usdEquivalent, setUsdEquivalent] = useState(0);
+  const [celoUsdPrice, setCeloUsdPrice] = useState<number | null>(null);
+  // Fetch CELO/USD price if CELO is selected
+  useEffect(() => {
+    async function fetchCeloPrice() {
+      if (stablecoin === 'CELO') {
+        try {
+          // Replace with your backend or a public API endpoint for CELO/USD
+          const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=celo&vs_currencies=usd');
+          const data = await res.json();
+          setCeloUsdPrice(data.celo.usd || 1);
+        } catch {
+          setCeloUsdPrice(1); // fallback to 1 if error
+        }
+      } else {
+        setCeloUsdPrice(null);
+      }
+    }
+    fetchCeloPrice();
+  }, [stablecoin]);
 
   useEffect(() => {
+    // Clear previous state immediately for responsiveness
+    setLocalDisplay('');
+    setCryptoDisplay('');
+    setTotalDisplay('');
+    setGasFeeDisplay('');
+    setUsdEquivalent(0);
+    setLoading(true);
+
     const fetchPrices = async () => {
       if (!amount && countryCurrency) {
         setLoading(false);
         return;
       }
-
-      setLoading(true);
       try {
         const parsedAmount = parseAmount(amount);
-
-        // Format the local currency amount
         setLocalDisplay(formatCurrency(parsedAmount, countryCurrency));
 
-        // Convert local currency to USD
-        let usdAmount;
-        try {
-          if (stablecoin === 'G$') {
-            usdAmount = await convertCurrency(parsedAmount.toString(), countryCurrency);
-            const gDollarAmount = usdAmount / 0.0001;
-            setUsdEquivalent(gDollarAmount);
-            setCryptoDisplay(`${stablecoin} ${gDollarAmount.toFixed(2)}`);
-            if (showTotal) {
-              const totalWithFee = gDollarAmount ;
-              setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
-            }
+        // Only call convertCurrency once per update
+        let usdAmount = await convertCurrency(parsedAmount.toString(), countryCurrency);
+
+        // Stablecoins (cUSD, USDC, USDT) should always be 1:1 USD
+        const stablecoins = ['CUSD', 'cUSD', 'USDC', 'USDT'];
+        if (stablecoin === 'G$') {
+          // GoodDollar: USD to G$ using fixed price
+          const gDollarPrice = 0.0001;
+          const gDollarAmount = usdAmount / gDollarPrice;
+          setUsdEquivalent(gDollarAmount);
+          setCryptoDisplay(`${stablecoin} ${gDollarAmount.toFixed(2)}`);
+          if (showTotal) {
+            setTotalDisplay(`${stablecoin} ${gDollarAmount.toFixed(2)}`);
           }
-          else if (stablecoin === 'CELO') {
-            usdAmount = await convertCurrency(parsedAmount.toString(), countryCurrency);
-            setUsdEquivalent(usdAmount * 2.8);
-            setCryptoDisplay(`${stablecoin} ${(usdAmount * 2.8).toFixed(2)}`);
-            if (showTotal) {
-              const totalWithFee = usdAmount * 2.8 ;
-              setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
-            }
+        } else if (stablecoin === 'CELO') {
+          // CELO: USD to CELO using CoinGecko price
+          const celoPrice = celoUsdPrice || 0.35; // default fallback price
+          const celoAmount = celoPrice > 0 ? usdAmount / celoPrice : usdAmount;
+          setUsdEquivalent(celoAmount);
+          setCryptoDisplay(`${stablecoin} ${celoAmount.toFixed(2)}`);
+          if (showTotal) {
+            const gasFeeUSD = 0.01;
+            const gasFeeCelo = gasFeeUSD;
+            const totalWithFee = celoAmount + gasFeeCelo;
+            setGasFeeDisplay(`${stablecoin} ${gasFeeCelo.toFixed(2)}`);
+            setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
           }
-          else {
-            usdAmount = await convertCurrency(parseAmount(amount).toString(), countryCurrency);
-            setUsdEquivalent(usdAmount);
-            setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
-            if (showTotal) {
-              const gasFeeUSD = 0.01;
-              const totalWithFee = usdAmount + gasFeeUSD;
-              setGasFeeDisplay(`${stablecoin} ${gasFeeUSD.toFixed(2)}`);
-              setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
-            }
+        } else if (stablecoins.includes(stablecoin)) {
+          // Stablecoins: 1 USD = 1 token
+          setUsdEquivalent(usdAmount);
+          setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
+          if (showTotal) {
+            const gasFeeUSD = 0.01;
+            const totalWithFee = usdAmount + gasFeeUSD;
+            setGasFeeDisplay(`${stablecoin} ${gasFeeUSD.toFixed(2)}`);
+            setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
           }
-        } catch (error) {
-          console.error('Error converting to USD:', error);
-          setUsdEquivalent(0);
-          throw error;
+        } else {
+          // Fallback: treat as 1:1 USD
+          setUsdEquivalent(usdAmount);
+          setCryptoDisplay(`${stablecoin} ${usdAmount.toFixed(2)}`);
+          if (showTotal) {
+            const gasFeeUSD = 0.01;
+            const totalWithFee = usdAmount + gasFeeUSD;
+            setGasFeeDisplay(`${stablecoin} ${gasFeeUSD.toFixed(2)}`);
+            setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
+          }
         }
       } catch (error) {
         console.error('Error fetching price data:', error);
-
-        // Use the countryCurrency already fetched at component level
         setLocalDisplay(formatCurrency(parseAmount(amount), countryCurrency));
         setCryptoDisplay(`${stablecoin} 0.00`);
-
         if (showTotal) {
           setGasFeeDisplay(`${stablecoin} 0.01`);
           setTotalDisplay(`${stablecoin} 0.01`);
@@ -117,7 +147,6 @@ export default function DualCurrencyPrice({
       }
     };
     fetchPrices();
-
   }, [amount, stablecoin, includeGasFee, showTotal, convertCurrency, countryCurrency]);
 
   if (loading) {

@@ -145,8 +145,10 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
 interface OperatorDetails {
   operatorId: number;
   data?: boolean;
-  localFixedAmountsDescriptions?: any[];
+  localFixedAmountsDescriptions?: any[] | any;
   dataBundles?: any[];
+  fixedAmountsDescriptions?: any;
+  [key: string]: any;
 }
 /**
  * Gets details of a specific operator
@@ -161,6 +163,8 @@ async function getOperator(operatorId: number) {
   }
 }
 
+// Removed getDataBundles function - we'll use operator details directly
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const provider = searchParams.get('provider');
@@ -172,6 +176,7 @@ export async function GET(request: NextRequest) {
   try {
     const operatorId = parseInt(provider);
     const operatorDetails = await getOperator(operatorId) as OperatorDetails;
+    
     if (!operatorDetails) {
       return NextResponse.json({ error: 'Operator not found' }, { status: 404 });
     }
@@ -181,8 +186,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([]);
     }
 
-    // Get the bundles for this operator
-    const bundles: any = operatorDetails.localFixedAmountsDescriptions;
+    // Get the bundles for this operator - prioritize fixedAmountsDescriptions, then localFixedAmountsDescriptions
+    // Use local currency prices (like working version)
+    let bundles: any = operatorDetails.localFixedAmountsDescriptions;
+    
+    // If no bundles found, try dataBundles field
+    if (!bundles) {
+      bundles = operatorDetails.dataBundles;
+    }
 
     let formattedBundles: { id: string; name: string; price: string; description: string; dataAmount: string; validity: string }[] = [];
 

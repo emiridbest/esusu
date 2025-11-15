@@ -35,6 +35,9 @@ import {
   type DataPlan
 } from '../../services/utility/utilityServices';
 import { useBalance } from '../../context/utilityProvider/useBalance';
+import { useAccount } from 'wagmi';
+import { PaymentSuccessModal } from './PaymentSuccessModal';
+import { getCountryData } from '../../utils/countryData';
 
 const formSchema = z.object({
   country: z.string({
@@ -68,6 +71,19 @@ export default function MobileDataForm() {
   const [availablePlans, setAvailablePlans] = useState<DataPlan[]>([]);
   const [countryCurrency, setCountryCurrency] = useState<string>("");
   const [selectedToken, setSelectedToken] = useState<string | undefined>("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successDetails, setSuccessDetails] = useState<{
+    type: 'data';
+    amount: string;
+    currency: string;
+    recipient: string;
+    transactionHash: string;
+    token?: string;
+    provider?: string;
+    emailSent?: boolean;
+    smsSent?: boolean;
+  } | null>(null);
+  const { address } = useAccount();
   const { checkTokenBalance } = useBalance();
 
   const {
@@ -76,7 +92,8 @@ export default function MobileDataForm() {
     openTransactionDialog,
     isProcessing,
     setIsProcessing,
-    handleTransaction
+    handleTransaction,
+    closeTransactionDialog
   } = useUtility();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -243,7 +260,7 @@ export default function MobileDataForm() {
       updateStepStatus('send-payment', 'loading');
 
       // Process blockchain payment first
-      const tx = await handleTransaction({
+      const txResult = await handleTransaction({
         type: 'data',
         amount: selectedPrice.toString(),
         token: selectedToken,
@@ -257,7 +274,7 @@ export default function MobileDataForm() {
         }
       });
 
-      if (tx) {
+      if (txResult && txResult.success && txResult.transactionHash) {
         paymentSuccessful = true;
         updateStepStatus('send-payment', 'success');
 
@@ -279,20 +296,37 @@ export default function MobileDataForm() {
             body: JSON.stringify({
               operatorId: values.network,
               amount: selectedPrice.toString(),
-              customId: tx,
+              customId: txResult.transactionHash,
               recipientPhone: {
                 country: values.country,
                 phoneNumber: cleanPhoneNumber
               },
               email: values.email,
+              walletAddress: address,
+              type: 'data'
             }),
           });
 
           const data = await response.json();
 
           if (response.ok && data.success) {
-            toast.success(`Successfully topped up ${values.phoneNumber} with ${selectedPlan?.name || 'your selected plan'}.`);
             updateStepStatus('top-up', 'success');
+            
+            // Show success modal
+            const countryData = getCountryData(values.country);
+            setSuccessDetails({
+              type: 'data',
+              amount: selectedPrice.toString(),
+              currency: countryData?.currency?.code || '',
+              recipient: values.phoneNumber,
+              transactionHash: txResult.transactionHash,
+              token: selectedToken,
+              provider: networkName,
+              emailSent: data.emailSent,
+              smsSent: data.smsSent
+            });
+            setShowSuccessModal(true);
+
             // Reset the form but keep the country
             form.reset({
               ...form.getValues(),
@@ -601,6 +635,18 @@ export default function MobileDataForm() {
             </Button>
           </form>
         </Form>
+        
+        {successDetails && (
+          <PaymentSuccessModal
+            open={showSuccessModal}
+            onClose={() => {
+              setShowSuccessModal(false);
+              setSuccessDetails(null);
+              closeTransactionDialog();
+            }}
+            paymentDetails={successDetails}
+          />
+        )}
       </div>
     );
   }

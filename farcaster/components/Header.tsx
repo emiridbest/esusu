@@ -171,13 +171,18 @@ export default function Header() {
 
   // Navigation links
   const navLinks = [
-    { title: "Pay Bills", href: "/" },
+    { title: "Pay Bills", href: "/utilityBills" },
+    { title: "MiniSafe", href: "/miniSafe" },
+    { title: "Thrift Groups", href: "/thrift" },
     { title: "Freebies", href: "/freebies" },
   ];
 
   // About menu items
   const aboutMenuItems = [
+    { title: "FAQ", href: "/faq" },
     { title: "Contact Us", href: "/contact" },
+    { title: "Chat Assistant", href: "/chat" },
+    { title: "Profile", href: "/profile" },
   ];
 
   // Function to format address for display
@@ -484,11 +489,4 @@ export default function Header() {
       </div>
     </header>
   );
-}
-
-declare global {
-  interface Window {
-    ethereum: any;
-    farcaster: any;
-  }
 }

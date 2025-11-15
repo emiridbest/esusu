@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { NotificationService } from '@esusu/backend/lib/services/notificationService';
+import { UserService } from '@esusu/backend/lib/services/userService';
+import { getCountryData } from '../../../utils/countryData';
 // Base URLs from environment variables
 const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL;
 const SANDBOX_API_URL = process.env.NEXT_PUBLIC_SANDBOX_API_URL;
@@ -195,7 +198,7 @@ async function makeTopup(params: {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { operatorId, amount, customId, recipientPhone, email } = body;
+    const { operatorId, amount, customId, recipientPhone, email, walletAddress } = body;
 
     // Validate required fields
     if (!operatorId || !amount || !customId || !recipientPhone || !recipientPhone.country || !recipientPhone.phoneNumber) {
@@ -222,11 +225,46 @@ export async function POST(request: NextRequest) {
       useLocalAmount: true // Use local amount for better price accessibility
     });
 
+    // Send email notification if wallet address and email are provided
+    let emailSent = false;
+    let smsSent = false;
+    if (walletAddress && email) {
+      try {
+        // Update user profile with email if provided
+        await UserService.updateUserProfile(walletAddress, { email });
+        
+        // Get currency code from country
+        const countryData = getCountryData(recipientPhone.country);
+        const currencyCode = countryData?.currency?.code || 'USD';
+        
+        // Send notification
+        const notification = await NotificationService.sendUtilityPaymentNotification(
+          walletAddress,
+          true,
+          {
+            type: 'topup',
+            amount: parseFloat(amount),
+            recipient: cleanedPhoneNumber,
+            transactionHash: String(result.transactionId || result.transaction_id || ''),
+            paymentToken: currencyCode,
+            currency: currencyCode
+          } as any // Type assertion to handle currency field
+        );
+        emailSent = notification.channels?.email?.sent || false;
+        smsSent = notification.channels?.sms?.sent || false;
+      } catch (notificationError) {
+        console.error('Error sending notification:', notificationError);
+        // Don't fail the request if notification fails
+      }
+    }
+
     return NextResponse.json({
       success: true,
       transactionId: result.transactionId,
       status: result.status,
-      message: 'Top-up successful'
+      message: 'Top-up successful',
+      emailSent,
+      smsSent
     });
   } catch (error: any) {
     console.error('Error processing top-up:', error);

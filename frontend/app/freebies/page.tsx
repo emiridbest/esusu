@@ -47,6 +47,8 @@ export default function Freebies() {
         networks,
         availablePlans,
         selectedPlan,
+        canClaimToday,
+        timeRemaining,
         setCountryCurrency,
         onSubmit,
         serviceType: hookServiceType,
@@ -233,6 +235,11 @@ export default function Freebies() {
                                                                 ))}
                                                             </SelectContent>
                                                         </Select>
+                                                        {isLoading && watchCountry && (
+                                                            <div className="text-sm text-black/50 dark:text-white/50  mt-1 flex items-center font-medium">
+                                                                <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading providers...
+                                                            </div>
+                                                        )}
                                                         <FormMessage />
                                                     </FormItem>
                                                 )} />
@@ -314,7 +321,8 @@ export default function Freebies() {
                         <Button
                             className="w-full bg-black hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-200 text-yellow-400 dark:text-black font-bold text-lg py-6 border-2 border-black/90 dark:border-black shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                             disabled={
-                                claimMethod === 'claim'
+                                !canClaimToday ||
+                                (claimMethod === 'claim'
                                     ? (!canClaim || isClaiming || isProcessing)
                                     : (
                                         !canClaim ||
@@ -324,7 +332,7 @@ export default function Freebies() {
                                         (hookServiceType === 'data' && !selectedPlan) ||
                                         !form.watch("phoneNumber") ||
                                         form.watch("phoneNumber").length < 10
-                                    )
+                                    ))
                             }
                             onClick={() => {
                                 if (claimMethod === 'claim') {
@@ -334,7 +342,9 @@ export default function Freebies() {
                                 }
                             }}
                         >
-                            {isClaiming || isProcessing ? (
+                            {!canClaimToday ? (
+                                timeRemaining ? `⏰ Next claim in ${timeRemaining}` : '⏰ Already claimed today'
+                            ) : isClaiming || isProcessing ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Claiming...
@@ -346,7 +356,7 @@ export default function Freebies() {
                                     return `Claim ${formatted && formatted !== '0.00' ? `${formatted} G$` : 'G$'} Now`;
                                 })()
                             ) : (
-                                'Exchange for Data Bundle'
+                                hookServiceType === 'airtime' ? 'Exchange for Airtime' : 'Exchange for Data Bundle'
                             )}
                         </Button>
                     </CardFooter>

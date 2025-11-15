@@ -101,17 +101,31 @@ async function getExchangeRate(base_currency: string, targetCurrency: string): P
       throw new Error('FX API endpoint not configured');
     }
     
+    const normalizedCurrency = base_currency.toString().trim().toLowerCase();
     let operator;
-    if(base_currency === "ng") {
-      operator = 341
-    } else if (base_currency === "gh") {
-      operator = 643
-    } else if (base_currency === "ke") {
-      operator = 265
-    } else if (base_currency === "ug") {
-      operator = 1152
-    } else {
-      return 0;
+    switch (normalizedCurrency) {
+      case 'ng':
+      case 'nga':
+      case 'ngn':
+        operator = 341;
+        break;
+      case 'gh':
+      case 'gha':
+      case 'ghs':
+        operator = 643;
+        break;
+      case 'ke':
+      case 'ken':
+      case 'kes':
+        operator = 265;
+        break;
+      case 'ug':
+      case 'uga':
+      case 'ugx':
+        operator = 1152;
+        break;
+      default:
+        throw new Error(`Unsupported base currency: ${base_currency}`);
     }
     const options = {
       method: 'POST',
@@ -191,6 +205,9 @@ async function convertFromUSD(
 
     // Get exchange rate from USD to local currency
     const rate = await getExchangeRate('USD', targetCurrency);
+    if (!rate || !Number.isFinite(rate) || rate <= 0) {
+      throw new Error('Invalid exchange rate received');
+    }
     
     // Calculate converted amount
     const convertedAmount = numericAmount * rate;
@@ -225,6 +242,9 @@ async function convertToUSD(
 
     // Get exchange rate from local currency to USD
     const rate = await getExchangeRate(base_currency, 'USD');
+    if (!rate || !Number.isFinite(rate) || rate <= 0) {
+      throw new Error('Invalid exchange rate received');
+    }
     
     // Calculate converted amount
     const convertedAmount = numericAmount / rate;
