@@ -1,9 +1,9 @@
 "use client";
 import { Suspense, useEffect, useState } from "react";
-import { useAccount } from "wagmi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import {
   Wallet,
   ArrowRight,
@@ -17,7 +17,9 @@ import {
   Copy
 } from "lucide-react";
 import { toast } from 'sonner';
-
+import { useAccount, useSendTransaction } from "wagmi";
+import { waitForTransactionReceipt } from "wagmi/actions";
+import { EngagementAddress, EngagementRewardsAbi } from "@/utils/engagement";
 //@ts-ignore
 import { useEngagementRewards, DEV_REWARDS_CONTRACT, REWARDS_CONTRACT } from '@goodsdks/engagement-sdk'
 import {
@@ -30,6 +32,8 @@ import {
 } from '@/lib/engagementHelpers'
 import { useSearchParams } from 'next/navigation'
 import { useIdentitySDK } from "@goodsdks/react-hooks"
+import { Interface } from "ethers";
+import { config } from "zod/v4/core";
 interface InviteReward {
   invitedWallet: string
   rewardAmount: string
@@ -103,6 +107,7 @@ const RewardsClaimCard = () => {
   const [checkingWhitelist, setCheckingWhitelist] = useState<boolean>(true)
   const [lastTransactionHash, setLastTransactionHash] = useState<string | null>(null)
   const userWallet = userAddress
+  const { sendTransactionAsync } = useSendTransaction();
   const formatAddress = (addr: string | null) => {
     if (!addr) return '';
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -274,106 +279,110 @@ const RewardsClaimCard = () => {
       toast.error("Failed to generate verification link")
     }
   }
-  const handleClaim = async () => {
-    if (!validateUserEligibility(userAddress) || !isConnected) {
-      setStatus("Please connect your wallet to continue")
-      setClaimStep('error')
-      return
-    }
-
-    if (!isWhitelisted) {
-      setStatus("Verify your account to claim rewards")
-      setClaimStep('error')
-      return
-    }
-
-    if (!isClaimable) {
-      setStatus("No rewards available yet. Share your invite link to start earning!")
-      setClaimStep('error')
-      return
-    }
-
-    setLastTransactionHash(null)
-    setIsLoading(true)
-    setClaimStep('checking')
-    setStatus("Verifying eligibility...")
-
-    try {
-      // First check if user can claim
-      /**const isEligible = await engagementRewards.canClaim(APP_ADDRESS, userAddress!).catch((error: any) => {
-        return false
-      })
-  
-      if (!isEligible) {
-        setStatus("Coming Soon!!!")
-        setClaimStep('error')
-        return
-      }*/
-
-      setClaimStep('signing')
-      setStatus("Preparing transaction...")
-
-      // Get current block and prepare signature if needed
-      const currentBlock = await engagementRewards.getCurrentBlockNumber()
-      const validUntilBlock = currentBlock + ENGAGEMENT_CONFIG.SIGNATURE_VALIDITY_BLOCKS
-
-      // Generate signature for first-time users or after app re-apply
-      let userSignature = "0x" as `0x${string}`
-
-      try {
-        setStatus("Please sign the transaction in your wallet...")
-
-        userSignature = await engagementRewards.signClaim(
-          APP_ADDRESS,
-          inviterAddress as `0x${string}` || INVITER_ADDRESS,
-          validUntilBlock
-        )
-      } catch (signError) {
-        userSignature = "0x" as `0x${string}`
-      }
-
-      setStatus("Processing your claim...")
-
-      // Get app signature from backend
-      const appSignature = await getAppSignature({
-        user: userAddress!,
-        validUntilBlock: validUntilBlock.toString(),
-        inviter: inviterAddress || INVITER_ADDRESS
-      })
-
-      setClaimStep('submitting')
-      setStatus("Submitting to blockchain...")
-
-      // Submit claim
-      const receipt = await engagementRewards.nonContractAppClaim(
-        APP_ADDRESS,
-        inviterAddress as `0x${string}` || INVITER_ADDRESS,
-        validUntilBlock,
-        userSignature,
-        appSignature as `0x${string}`
-      )
-
-      const shortHash = formatTransactionHash(receipt.transactionHash)
-      const txUrl = getTransactionUrl(receipt.transactionHash)
-
-      setLastTransactionHash(receipt.transactionHash)
-      setStatus(`Transaction completed: ${shortHash}`)
-      setClaimStep('success')
-
-      // Open transaction in new tab after a short delay
-      setTimeout(() => {
-        window.open(txUrl, '_blank')
-      }, 2000)
-
-    } catch (error) {
-      console.error("Claim failed:", error)
-      const friendlyError = formatErrorMessage(error)
-      setStatus(friendlyError)
-      setClaimStep('error')
-    } finally {
-      setIsLoading(false)
-    }
+ const handleClaim = async () => {
+  if (!validateUserEligibility(userAddress) || !isConnected) {
+    setStatus("Please connect your wallet to continue");
+    setClaimStep("error");
+    return;
   }
+
+  if (!isWhitelisted) {
+    setStatus("Verify your account to claim rewards");
+    setClaimStep("error");
+    return;
+  }
+
+  if (!isClaimable) {
+    setStatus("No rewards available yet. Share your invite link to start earning!");
+    setClaimStep("error");
+    return;
+  }
+
+  setLastTransactionHash(null);
+  setIsLoading(true);
+  setClaimStep("checking");
+  setStatus("Verifying eligibility...");
+
+  try {
+    setClaimStep("signing");
+    setStatus("Preparing transaction...");
+
+    const currentBlock = await engagementRewards.getCurrentBlockNumber();
+    const validUntilBlock = currentBlock + ENGAGEMENT_CONFIG.SIGNATURE_VALIDITY_BLOCKS;
+
+    let userSignature: `0x${string}` = "0x";
+    try {
+      setStatus("Please sign the transaction in your wallet...");
+      userSignature = await engagementRewards.signClaim(
+        APP_ADDRESS,
+        (inviterAddress as `0x${string}`) || INVITER_ADDRESS,
+        validUntilBlock
+      );
+    } catch (signError) {
+      console.warn("User signature skipped:", signError);
+    }
+
+    setStatus("Processing your claim...");
+
+    const appSignature = await getAppSignature({
+      user: userAddress!,
+      validUntilBlock: validUntilBlock.toString(),
+      inviter: inviterAddress || INVITER_ADDRESS,
+    });
+
+    setClaimStep("submitting");
+    setStatus("Submitting to blockchain...");
+
+    const dataSuffix = getReferralTag({
+      user: userWallet as `0x${string}`,
+      consumer: "0xb82896C4F251ed65186b416dbDb6f6192DFAF926",
+    });
+
+    const claimInterface = new Interface(EngagementRewardsAbi);
+    const claimData = claimInterface.encodeFunctionData("nonContractAppClaim", [
+      APP_ADDRESS,
+      (inviterAddress as `0x${string}`) || INVITER_ADDRESS,
+      validUntilBlock,
+      userSignature,
+      appSignature as `0x${string}`,
+    ]);
+
+    const dataWithSuffix = `${claimData}${dataSuffix.replace(/^0x/, "")}`;
+
+    const tx = await sendTransactionAsync({
+      to: EngagementAddress as `0x${string}`,
+      data: dataWithSuffix as `0x${string}`,
+    });
+
+    setStatus("Waiting for confirmation...");
+    if (!tx) throw new Error("Transaction submission failed");
+    await submitReferral({
+      txHash: tx as `0x${string}`,
+      chainId: 42220,
+    }).catch((referralError) => {
+      console.error("Referral submission failed:", referralError);
+    });
+
+    const shortHash = formatTransactionHash(tx);
+    const txUrl = getTransactionUrl(tx);
+
+    setLastTransactionHash(tx);
+    setStatus(`Transaction completed: ${shortHash}`);
+    setClaimStep("success");
+
+    setTimeout(() => {
+      window.open(txUrl, "_blank");
+    }, 2000);
+  } catch (error) {
+    console.error("Claim failed:", error);
+    const friendlyError = formatErrorMessage(error);
+    setStatus(friendlyError);
+    setClaimStep("error");
+    toast.error(friendlyError);
+  } finally {
+    setIsLoading(false);
+  }
+};
   const getStepIcon = () => {
     if (claimStep === 'success') {
       return <CheckCircle2 className="w-5 h-5 text-yellow-500" />
