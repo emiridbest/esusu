@@ -66,6 +66,15 @@ type ClaimProcessorType = {
 type ClaimProviderProps = {
   children: ReactNode;
 };
+const ubiSchemeV2Address = '0x43d72Ff17701B2DA814620735C39C620Ce0ea4A1';
+const ubiSchemeV2ABI = parseAbi([
+  "function claim() returns (bool)",
+  "function checkEntitlement(address _member) view returns (uint256)",
+  "function getDailyStats() view returns (uint256 claimers, uint256 amount)",
+  "function periodStart() view returns (uint256)",
+  "function currentDay() view returns (uint256)",
+  "event UBIClaimed(address indexed account, uint256 amount)",
+]);
 
 const ClaimProcessorContext = createContext<ClaimProcessorType | undefined>(undefined);
 
@@ -247,95 +256,136 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     ));
   }, []);
 
-  const handleClaim = useCallback(async () => {
-    if (!claimSDK) {
-      toast.error("ClaimSDK is not initialized.");
-      return { success: false, error: new Error("ClaimSDK not initialized") };
+ const handleClaim = useCallback(async () => {
+  if (!isConnected || !address) {
+    toast.error("Wallet not connected");
+    return { success: false, error: new Error("Wallet not connected") };
+  }
+
+  setIsProcessing(true);
+  setIsWaitingTx(true);
+
+  try {
+    toast.info("Claiming your UBI...");
+
+    // Prepare claim transaction using the UBI Scheme V2 contract
+    const claimData = encodeFunctionData({
+      abi: ubiSchemeV2ABI,
+      functionName: 'claim',
+      args: []
+    });
+
+    if (!wallet || !account) {
+      throw new Error('Wallet not connected');
     }
 
-    if (!isConnected) {
-      return { success: false, error: new Error("Wallet not connected") };
+    const { sendTransaction, prepareTransaction, waitForReceipt } = await import('thirdweb');
+    const { client, activeChain } = await import('@/lib/thirdweb');
+
+    // Add Divvi referral tag to the claim transaction
+    const dataSuffix = getReferralTag({
+      user: address as `0x${string}`,
+      consumer: RECIPIENT_WALLET as `0x${string}`,
+    });
+
+    const dataWithSuffix = claimData + dataSuffix;
+
+    const claimTransaction = await prepareTransaction({
+      to: ubiSchemeV2Address as `0x${string}`,
+      data: dataWithSuffix as `0x${string}`,
+      client,
+      chain: activeChain,
+    });
+
+    const tx = await sendTransaction({
+      account,
+      transaction: claimTransaction,
+    });
+
+    // Wait for confirmation
+    const receipt = await waitForReceipt({
+      client,
+      chain: activeChain,
+      transactionHash: tx.transactionHash,
+    });
+
+    if (receipt.status !== 'success') {
+      throw new Error("Transaction failed");
     }
 
-    setIsProcessing(true);
-
+    // Submit claim transaction to Divvi referral system
     try {
-      // Claim with optional callback
-      const claimCallback = async () => {
-        console.log("Waiting for claim transaction...");
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        console.log("Transaction started");
-      };
+      await submitReferral({
+        txHash: tx.transactionHash,
+        chainId: activeChain.id,
+      });
+      console.log("Claim transaction referral submitted to Divvi.");
+    } catch (referralError) {
+      console.error("Referral submission error for claim:", referralError);
+      // Don't fail the whole operation if referral submission fails
+    }
 
-      const tx = await claimSDK.claim(claimCallback);
+    // Reset claim amount after successful claim
+    setClaimAmount(null);
+    setEntitlement(BigInt(0));
+    setCanClaim(false);
+
+    toast.success("Successfully claimed G$ tokens!");
+
+    // Update transaction count with referral tracking
+    try {
+      const txCountAbi = parseAbi(["function increment()"]);
+      const txCountData = encodeFunctionData({
+        abi: txCountAbi,
+        functionName: 'increment',
+        args: []
+      });
       
-      if (!tx) {
-        return { success: false, error: new Error("No transaction returned from claim") };
-      }
-
-      // Reset claim amount after successful claim
-      setClaimAmount(null);
-      setEntitlement(BigInt(0));
-      setCanClaim(false);
-
-      toast.success("Successfully claimed G$ tokens!");
-
-      // Update transaction count with referral tracking using Thirdweb
-      const dataSuffix = getReferralTag({
+      const countDataSuffix = getReferralTag({
         user: address as `0x${string}`,
         consumer: RECIPIENT_WALLET as `0x${string}`,
       });
+      
+      const countDataWithSuffix = txCountData + countDataSuffix;
+
+      const txCountTransaction = await prepareTransaction({
+        to: txCountAddress as `0x${string}`,
+        data: countDataWithSuffix as `0x${string}`,
+        client,
+        chain: activeChain,
+      });
+
+      const txCount = await sendTransaction({
+        account,
+        transaction: txCountTransaction,
+      });
 
       try {
-        const txCountAbi = parseAbi(["function increment()"]);
-        const txCountData = encodeFunctionData({
-          abi: txCountAbi,
-          functionName: 'increment',
-          args: []
+        await submitReferral({
+          txHash: txCount.transactionHash,
+          chainId: activeChain.id,
         });
-        const dataWithSuffix = txCountData + dataSuffix;
-
-        if (!wallet || !account) throw new Error('Wallet not connected');
-        
-        const { sendTransaction, prepareTransaction } = await import('thirdweb');
-        const { client, activeChain } = await import('@/lib/thirdweb');
-        
-        const transaction = await prepareTransaction({
-          to: txCountAddress as `0x${string}`,
-          data: dataWithSuffix as `0x${string}`,
-          client,
-          chain: activeChain,
-        });
-        const txCount = await sendTransaction({
-          account,
-          transaction,
-        });
-
-        try {
-          await submitReferral({
-            txHash: txCount.transactionHash,
-            chainId: activeChain.id,
-          });
-          console.log("Referral submitted for transaction count update.");
-        } catch (referralError) {
-          console.error("Referral submission error:", referralError);
-        }
-
-        return { success: true };
-      } catch (error) {
-        console.error("Error during transaction count update:", error);
-        toast.error("There was an error updating the transaction count.");
-        return { success: false, error };
+        console.log("Transaction count referral submitted to Divvi.");
+      } catch (referralError) {
+        console.error("Referral submission error for count:", referralError);
       }
+
+      return { success: true, transactionHash: tx.transactionHash };
     } catch (error) {
-      console.error("Error during claim:", error);
-      toast.error("There was an error processing your claim.");
+      console.error("Error during transaction count update:", error);
+      toast.error("There was an error updating the transaction count.");
       return { success: false, error };
-    } finally {
-      setIsProcessing(false);
-      setIsWaitingTx(false);
     }
-  }, [claimSDK, isConnected, address, wallet, account]);
+  } catch (error) {
+    console.error("Error during claim:", error);
+    toast.error(error instanceof Error ? error.message : "There was an error processing your claim.");
+    return { success: false, error };
+  } finally {
+    setIsProcessing(false);
+    setIsWaitingTx(false);
+  }
+}, [isConnected, address, wallet, account]);
+
 
   const processDataTopUp = useCallback(async (
     values: any,
