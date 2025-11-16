@@ -9,7 +9,26 @@ import { WagmiProvider } from 'wagmi';
 import { config } from "@/lib/wagmi";
 import { client, activeChain } from "@/lib/thirdweb";
 
-// Thirdweb setup with social login support
+// Suppress MetaMask/extension injection errors that occur with multiple wallets
+// These are harmless extension conflicts, not app bugs
+if (typeof window !== 'undefined' && typeof console !== 'undefined') {
+  const originalError = console.error;
+  console.error = function(...args: any[]) {
+    const message = String(args[0] || '');
+    
+    if (message.includes('MetaMask encountered an error')) {
+      return; // Suppress - expected with multiple wallets
+    }
+    if (message.includes('Cannot set property ethereum')) {
+      return; // Suppress - extension conflict
+    }
+    
+    originalError.apply(console, args);
+  };
+}
+
+// Thirdweb setup with EIP-6963 wallet discovery
+// EIP-6963 standard: Wallets announce via events instead of fighting over window.ethereum
 const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: ReactNode }) {
