@@ -184,7 +184,7 @@ export const useFreebiesLogic = () => {
                 form.setValue("plan", "");
 
                 try {
-                    const plans = await fetchDataPlans(watchCountry, watchNetwork);
+                    const plans = await fetchDataPlans(watchNetwork, watchCountry);
                     setAvailablePlans(plans || []);
                 } catch (error) {
                     console.error("Error fetching data plans:", error);

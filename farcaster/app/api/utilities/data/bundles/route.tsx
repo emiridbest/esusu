@@ -171,6 +171,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const operatorId = parseInt(provider);
+    if (isNaN(operatorId)) {
+      return NextResponse.json({ error: 'Invalid provider ID format. Provider ID must be a valid number.' }, { status: 400 });
+    }
     const operatorDetails = await getOperator(operatorId) as OperatorDetails;
     if (!operatorDetails) {
       return NextResponse.json({ error: 'Operator not found' }, { status: 404 });
