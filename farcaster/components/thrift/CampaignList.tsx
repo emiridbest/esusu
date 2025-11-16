@@ -114,7 +114,7 @@ export function CampaignList() {
         <CardContent className="pt-6">
           <div className="text-center p-8 text-amber-600">
             <p className="mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()} variant="outline">
+            <Button onClick={() => window.location.reload()} variant="outline" className="bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300">
               Refresh Page
             </Button>
           </div>
@@ -182,7 +182,7 @@ export function CampaignList() {
               <Button
                 variant="outline"
                 onClick={() => { setCategoryFilter(''); setTagsFilter(''); }}
-                className="w-full md:w-auto border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-black text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="w-full md:w-auto bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300"
               >
                 Clear Filters
               </Button>
@@ -200,7 +200,7 @@ export function CampaignList() {
             <Button
               variant="outline"
               onClick={() => { setCategoryFilter(''); setTagsFilter(''); }}
-              className="text-foreground border-border bg-background hover:bg-accent hover:text-accent-foreground"
+              className="bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300"
             >
               Clear Filters
             </Button>
@@ -218,7 +218,7 @@ export function CampaignList() {
                   <div className="flex items-center gap-2">
                     <CardTitle className="text-lg font-semibold">{group.name}</CardTitle>
                     {address && group.meta?.createdBy && address.toLowerCase() === String(group.meta.createdBy).toLowerCase() && (
-                      <Button size="sm" variant="outline" onClick={() => handleEditClick(group)}>Edit</Button>
+                      <Button size="sm" variant="outline" onClick={() => handleEditClick(group)} className="bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300">Edit</Button>
                     )}
                   </div>
                   <Badge className="bg-primary/10 text-primary border border-primary/20">
@@ -257,7 +257,7 @@ export function CampaignList() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="text-xs flex items-center gap-1"
+                  className="text-xs flex items-center gap-1 bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300"
                   onClick={() => handleShareClick(group)}
                 >
                   <Share2Icon className="h-3 w-3" />
@@ -302,7 +302,7 @@ export function CampaignList() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShareDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShareDialogOpen(false)} className="bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300">Cancel</Button>
             <Button 
               onClick={copyToClipboard}
             >
@@ -356,7 +356,7 @@ export function CampaignList() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setJoinDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setJoinDialogOpen(false)} className="bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300">Cancel</Button>
             <Button 
               onClick={handleJoinGroup}
               disabled={loading || !userName.trim()}

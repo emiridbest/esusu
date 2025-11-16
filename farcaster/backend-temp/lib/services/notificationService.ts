@@ -161,7 +161,7 @@ export class NotificationService {
                   <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #0e1018; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);">
                     <!-- Header with Logo -->
                     <tr>
-                      <td style="background: linear-gradient(135deg, #f7931a 0%, #ffa930 100%); padding: 40px 32px; text-align: center;">
+                      <td style="background: linear-gradient(135deg, #FFD100 0%, #FFE066 100%); padding: 40px 32px; text-align: center;">
                         <table role="presentation" style="width: 100%; border-collapse: collapse;">
                           <tr>
                             <td align="center" style="padding-bottom: 16px;">
@@ -194,7 +194,7 @@ export class NotificationService {
                         <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
                           <tr>
                             <td style="border-bottom: 2px solid #282c35; padding-bottom: 20px;">
-                              <h1 style="color: #f7931a; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2;">${title}</h1>
+                              <h1 style="color: #FFD100; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2;">${title}</h1>
                             </td>
                           </tr>
                         </table>
@@ -214,7 +214,7 @@ export class NotificationService {
                     <tr>
                       <td style="padding: 0 32px 32px; background-color: #191d26; text-align: center;">
                         <a href="${process.env.FRONTEND_URL || 'https://farcaster-flame.vercel.app'}" 
-                           style="display: inline-block; background: linear-gradient(135deg, #f7931a 0%, #ffa930 100%); color: white; padding: 16px 48px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; letter-spacing: -0.3px; box-shadow: 0 8px 24px rgba(247, 147, 26, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset; transition: all 0.2s;">
+                           style="display: inline-block; background: linear-gradient(135deg, #FFD100 0%, #FFE066 100%); color: white; padding: 16px 48px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; letter-spacing: -0.3px; box-shadow: 0 8px 24px rgba(247, 147, 26, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset; transition: all 0.2s;">
                           Open Esusu (Farcaster) App →
                         </a>
                       </td>
@@ -230,8 +230,8 @@ export class NotificationService {
                                 <tr>
                                   <td align="center" style="padding-bottom: 12px;">
                                     <div style="display: inline-flex; align-items: center; gap: 12px;">
-                                      <div style="background: linear-gradient(135deg, #0e1018 0%, #191d26 100%); border: 1px solid #f7931a; border-radius: 8px; padding: 10px 16px;">
-                                        <span style="color: #f7931a; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; font-family: 'Courier New', 'Monaco', monospace;">ANTI-PHISHING</span>
+                                      <div style="background: linear-gradient(135deg, #0e1018 0%, #191d26 100%); border: 1px solid #FFD100; border-radius: 8px; padding: 10px 16px;">
+                                        <span style="color: #FFD100; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; font-family: 'Courier New', 'Monaco', monospace;">ANTI-PHISHING</span>
                                       </div>
                                       <div style="background: linear-gradient(135deg, #0e1018 0%, #191d26 100%); border: 1px solid #10b981; border-radius: 8px; padding: 10px 16px;">
                                         <span style="color: #10b981; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; font-family: 'Courier New', 'Monaco', monospace;">🔒 SECURE</span>

@@ -246,7 +246,7 @@ export function CreateCampaignDialog() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" className="rounded-full" onClick={() => {
+            <Button variant="outline" className="bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300 rounded-full" onClick={() => {
               setOpen(false);
               resetForm();
             }}>

@@ -147,7 +147,7 @@ export default function EditMetadataDialog(props: EditMetadataDialogProps) {
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving} className="bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300">Cancel</Button>
           <Button onClick={handleSave} disabled={disabled}>{saving ? "Saving..." : "Save"}</Button>
         </DialogFooter>
       </DialogContent>

@@ -478,7 +478,7 @@ const TransactionList: React.FC = () => {
             size="sm"
             disabled={isLoading}
             onClick={() => setPage(page + 1)}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300"
           >
             {isLoading ? (
               <>
