@@ -151,8 +151,12 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setIsConnected(false);
           setAccount(null);
           setContract(null);
+          setUserGroups([]);
+          setAllGroups([]);
         } else {
           // Account changed, reinitialize
+          // This will trigger initialize() which updates account, contract, and isConnected
+          // The second useEffect will then watch these changes and refresh groups
           await initialize();
         }
       };
@@ -1204,7 +1208,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Function to fetch all thrift groups
-  const refreshGroups = async () => {
+  const refreshGroups = useCallback(async () => {
     if (!contract || !isConnected || !account) {
       setUserGroups([]);
       setAllGroups([]);
@@ -1401,7 +1405,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } finally {
       setLoading(false);
     }
-  };
+  }, [contract, isConnected, account]);
 
   // Initial fetch of groups when the user connects
   useEffect(() => {
