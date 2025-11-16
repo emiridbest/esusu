@@ -59,10 +59,11 @@ function ProfileContent() {
   const identitySDK = useMemo(() => {
     if (isConnected && publicClient && walletClientForSDK) {
       try {
-        return new IdentitySDK(
-          publicClient as any,
-          walletClientForSDK as any
-        );
+        return new IdentitySDK({
+          publicClient: publicClient as any,
+          walletClient: walletClientForSDK as any,
+          env: "production"
+        });
       } catch (error) {
         console.error('Failed to initialize IdentitySDK:', error);
         return null;
