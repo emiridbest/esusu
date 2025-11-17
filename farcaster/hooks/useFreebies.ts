@@ -10,6 +10,7 @@ import {
     fetchMobileOperators,
     fetchDataPlans,
     verifyAndSwitchProvider,
+    fetchAirtimeOperators,
     type NetworkOperator,
     type DataPlan
 } from '../services/utility/utilityServices';
@@ -27,9 +28,7 @@ const formSchema = z.object({
     network: z.string({
         required_error: "Please select a network provider.",
     }),
-    plan: z.string({
-        required_error: "Please select a data plan.",
-    }),
+    plan: z.string().optional(),
     paymentToken: z.string({
         required_error: "Please select a payment token.",
     }),
@@ -163,8 +162,17 @@ export const useFreebiesLogic = () => {
             form.setValue("plan", "");
 
             try {
-                const networksData = await fetchMobileOperators(watchCountry);
-                setNetworks(networksData || []);
+                const networksData = serviceType === 'data' 
+                    ? await fetchMobileOperators(watchCountry)
+                    : (await fetchAirtimeOperators(watchCountry) as unknown as NetworkOperator[]);
+                
+                // Filter out MTN Nigeria extra data
+                const filteredOperators = networksData.filter(operator =>
+                    !(operator.name.toLowerCase().includes('mtn nigeria extra data') ||
+                        operator.name.toLowerCase().includes('mtn nigeria data'))
+                );
+                
+                setNetworks(filteredOperators || []);
             } catch (error) {
                 console.error("Error fetching networks:", error);
                 toast.error("Failed to load networks. Please try again.");
@@ -174,7 +182,15 @@ export const useFreebiesLogic = () => {
         };
 
         getNetworks();
-    }, [watchCountry, form]);
+    }, [watchCountry, form, serviceType]);
+
+    // Reset network and plan when service type changes
+    useEffect(() => {
+        form.setValue("network", "");
+        form.setValue("plan", "");
+        setAvailablePlans([]);
+        setSelectedPlan(null);
+    }, [serviceType, form]);
 
     // Fetch data plans when network changes
     useEffect(() => {
@@ -185,7 +201,9 @@ export const useFreebiesLogic = () => {
 
                 try {
                     const plans = await fetchDataPlans(watchNetwork, watchCountry);
-                    setAvailablePlans(plans || []);
+                    setAvailablePlans([plans[0]]);
+                    setSelectedPlan(plans[0]);
+                    setNetworkId(watchNetwork);
                 } catch (error) {
                     console.error("Error fetching data plans:", error);
                     toast.error("Failed to load data plans. Please try again.");

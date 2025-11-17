@@ -320,8 +320,6 @@ export default function Freebies() {
                                         !canClaim ||
                                         isClaiming ||
                                         isProcessing ||
-                                        // only require a selected plan when service type is data
-                                        (hookServiceType === 'data' && !selectedPlan) ||
                                         !form.watch("phoneNumber") ||
                                         form.watch("phoneNumber").length < 10
                                     )
@@ -349,7 +347,7 @@ export default function Freebies() {
                                     return `Claim ${formatted && formatted !== '0.00' ? `${formatted} G$` : 'G$'} Now`;
                                 })()
                             ) : (
-                                'Exchange for Data Bundle'
+                                hookServiceType === 'airtime' ? 'Exchange for Airtime' : 'Exchange for Data Bundle'
                             )}
                         </Button>
                     </CardFooter>
