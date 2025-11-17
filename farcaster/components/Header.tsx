@@ -37,6 +37,7 @@ import { Sheet, SheetContent, SheetTrigger } from "../components/ui/sheet";
 import { config } from "./providers/WagmiProvider";
 import { stableTokenABI } from "@celo/abis";
 import { toast } from "sonner";
+import { useFarcaster } from "../context/farcaster/FarcasterContext";
 
 export default function Header() {
   const USDC_ADDRESS = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
@@ -54,6 +55,7 @@ export default function Header() {
   const { isConnected, address } = useAccount();
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
+  const { user: farcasterUser } = useFarcaster();
   const celoChainId = config.chains[0].id;
   const publicClient = usePublicClient({ chainId: celoChainId });
   const {
@@ -185,8 +187,14 @@ export default function Header() {
     { title: "Profile", href: "/profile" },
   ];
 
-  // Function to format address for display
-  const formatAddress = (addr: string | undefined) => {
+  // Function to format user display (Farcaster username or wallet address)
+  const formatUserDisplay = (addr: string | undefined) => {
+    // Show Farcaster username if available
+    if (farcasterUser?.username) {
+      return farcasterUser.username;
+    }
+
+    // Fallback to formatted wallet address
     if (!addr) return '';
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
@@ -279,7 +287,7 @@ export default function Header() {
                           {address ? address.substring(2, 4).toUpperCase() : ''}
                         </span>
                       </div>
-                      <span className="font-medium text-sm">{formatAddress(address as string)}</span>
+                      <span className="font-medium text-sm">{formatUserDisplay(address as string)}</span>
                       <ChevronDownIcon className="h-4 w-4 opacity-70" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -329,7 +337,7 @@ export default function Header() {
                             Connected Wallet
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {formatAddress(address as string)}
+                            {formatUserDisplay(address as string)}
                           </p>
                           <div className="space-y-1">
                             <p className="text-sm text-gray-500 dark:text-gray-400 font-semibold">

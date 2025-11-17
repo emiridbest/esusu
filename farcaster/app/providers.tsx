@@ -8,6 +8,7 @@ import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { FrameContext } from "@farcaster/frame-node";
 import sdk, {AddFrame} from "@farcaster/frame-sdk";
+import { FarcasterProvider } from "../context/farcaster/FarcasterContext";
 import { ThriftProvider } from "../context/thrift/ThriftContext";
 
 const WagmiProvider = dynamic(
@@ -129,13 +130,15 @@ export function Providers({
 
   return (
     <SessionProvider session={session}>
-      <WagmiProvider>
-        <ThriftProvider>
-          <PostHogProvider>
-              {children}
-          </PostHogProvider>
-        </ThriftProvider>
-      </WagmiProvider>
+      <FarcasterProvider>
+        <WagmiProvider>
+          <ThriftProvider>
+            <PostHogProvider>
+                {children}
+            </PostHogProvider>
+          </ThriftProvider>
+        </WagmiProvider>
+      </FarcasterProvider>
     </SessionProvider>
   );
 }
