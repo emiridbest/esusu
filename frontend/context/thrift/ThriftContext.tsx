@@ -1,9 +1,10 @@
 "use client";
-import React, { createContext, useState, useCallback, useContext, useEffect } from 'react';
+import React, { createContext, useState, useCallback, useContext, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { contractAddress, MiniSafeAave } from '@/utils/abi';
 import { getTokenByAddress, TOKENS } from '@/utils/tokens';
 import { BrowserProvider, formatUnits, parseUnits, Contract, JsonRpcProvider } from "ethers";
+import { useActiveAccount } from 'thirdweb/react';
 
 // Define the type for thrift group data (updated to match contract structure)
 export interface ThriftGroup {
@@ -88,6 +89,10 @@ export interface ThriftContextType {
   loading: boolean;
   error: string | null;
   refreshGroups: () => Promise<void>;
+  initialize: () => Promise<void>;
+  // Connection state
+  isConnected: boolean;
+  contract: any; // TODO: Properly type the contract
 }
 
 // Celo token addresses
@@ -106,11 +111,15 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [contract, setContract] = useState<MiniSafeAave | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   
+  // Prevent multiple simultaneous refreshes
+  const isRefreshingRef = useRef(false);
+  
   // Custom RPC provider for event querying (fallback when wallet RPC is down)
   const customRpcProvider = new JsonRpcProvider('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8');
 
   // Initialize provider, account, and contract
   const initialize = useCallback(async () => {
+    console.log('[initialize] Starting initialization');
     try {
       if (typeof window !== 'undefined' && window.ethereum) {
         // Initialize provider
@@ -119,8 +128,10 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         // Get accounts
         const accounts = await ethersProvider.listAccounts();
+        console.log('[initialize] Got accounts:', accounts?.length ?? 0);
         
         if (accounts && accounts.length > 0) {
+          console.log('[initialize] Setting connected state with account:', accounts[0].address.substring(0, 6) + '...');
           setAccount(accounts[0].address);
           setIsConnected(true);
           
@@ -128,10 +139,14 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const signer = await ethersProvider.getSigner();
           const miniSafeContract = new MiniSafeAave(contractAddress, signer);
           setContract(miniSafeContract);
+          console.log('[initialize] Contract initialized');
         } else {
+          console.log('[initialize] No accounts found');
           setIsConnected(false);
           setAccount(null);
         }
+      } else {
+        console.log('[initialize] window.ethereum not available');
       }
     } catch (err) {
       console.error("Failed to initialize wallet connection:", err);
@@ -1209,13 +1224,28 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Function to fetch all thrift groups
   const refreshGroups = useCallback(async () => {
+    // Prevent multiple simultaneous refreshes
+    if (isRefreshingRef.current) {
+      console.log('[refreshGroups] Already refreshing, skipping...');
+      return;
+    }
+    
+    console.log('[refreshGroups] State check:', { 
+      hasContract: !!contract, 
+      isConnected, 
+      hasAccount: !!account,
+      account: account?.substring(0, 6) + '...' + account?.substring(account.length - 4)
+    });
+
     if (!contract || !isConnected || !account) {
+      console.log('[refreshGroups] Guard clause triggered - setting error state');
       setUserGroups([]);
       setAllGroups([]);
       setError('Please connect your wallet to view thrift groups.');
       return;
     }
 
+    isRefreshingRef.current = true;
     try {
       setLoading(true);
       setError(null);
@@ -1404,6 +1434,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }, 5000);
     } finally {
       setLoading(false);
+      isRefreshingRef.current = false;
     }
   }, [contract, isConnected, account]);
 
@@ -1416,6 +1447,41 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setAllGroups([]);
     }
   }, [isConnected, contract]);
+
+  // Safety check: periodically verify connection state matches reality
+  // This helps catch cases where Thirdweb connects but window.ethereum events don't fire
+  // But only clear on disconnect - let ThriftWithAccountWatch handle initialize
+  useEffect(() => {
+    let lastKnownAccounts: string[] | null = null;
+    
+    const interval = setInterval(async () => {
+      if (typeof window !== 'undefined' && window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          
+          // Only react if there's actually a change
+          if (JSON.stringify(accounts) !== JSON.stringify(lastKnownAccounts)) {
+            console.log('[safetyCheck] Accounts changed:', accounts?.length ?? 0, 'accounts');
+            lastKnownAccounts = accounts;
+            
+            // Only handle disconnection here - ThriftWithAccountWatch handles connection
+            if ((!accounts || accounts.length === 0) && isConnected) {
+              console.log('[safetyCheck] Wallet disconnected - clearing state');
+              setIsConnected(false);
+              setAccount(null);
+              setContract(null);
+              setUserGroups([]);
+              setAllGroups([]);
+            }
+          }
+        } catch (err) {
+          console.warn('Safety check failed:', err);
+        }
+      }
+    }, 2000); // Check every 2 seconds
+
+    return () => clearInterval(interval);
+  }, [isConnected]);
 
   // Listen for PayoutDistributed events to update state in real-time
   useEffect(() => {
@@ -1769,7 +1835,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     testBlockchainTimestamp,
     loading,
     error,
-    refreshGroups
+    refreshGroups,
+    initialize,
+    // Expose connection state for hooks
+    isConnected,
+    contract
   };
 
   return <ThriftContext.Provider value={value}>{children}</ThriftContext.Provider>;

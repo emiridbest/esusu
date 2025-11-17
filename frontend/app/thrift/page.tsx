@@ -15,22 +15,10 @@ import { useActiveAccount } from 'thirdweb/react';
 import { cn } from '@/lib/utils';
 
 // Component that watches for account changes and refreshes thrift groups
+// Component disabled - using context's built-in listeners instead
+// This was causing duplicate refreshes and flickering
 const ThriftWithAccountWatch: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const account = useActiveAccount();
-  const { refreshGroups } = useThrift();
-
-  // Refresh groups when the active account changes
-  // Only depend on account.address - refreshGroups is stable via useCallback
-  useEffect(() => {
-    if (account?.address) {
-      // Small delay to ensure contract is initialized
-      const timer = setTimeout(() => {
-        refreshGroups();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [account?.address, refreshGroups]);
-
+  // Just render children - context handles everything
   return <>{children}</>;
 };
 
