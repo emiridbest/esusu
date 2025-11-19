@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useMiniAppDimensions } from '@/hooks/useMiniAppDimensions';
 import { Zap, Users, Banknote, ReceiptText } from "lucide-react";
 
 interface ReceiptTx {
@@ -93,8 +94,17 @@ export default function ReceiptsPage() {
     fetchReceipts(false);
   };
 
+  const dimensions = useMiniAppDimensions();
+
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div
+      className={`${dimensions.containerClass} mx-auto px-4 py-6 overflow-auto`}
+      style={{
+        width: dimensions.width,
+        height: dimensions.height,
+        maxWidth: dimensions.maxWidth,
+      }}
+    >
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-4">

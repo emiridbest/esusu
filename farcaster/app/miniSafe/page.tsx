@@ -14,12 +14,22 @@ import { ShieldIcon } from "lucide-react";
 // Custom components
 import { MiniSafeProvider } from '@/context/miniSafe/MiniSafeContext';
 import {BalanceCard, BreakLockTab, WithdrawTab, DepositTab} from '@/components/miniSafe';
+import { useMiniAppDimensions } from '@/hooks/useMiniAppDimensions';
 
 
 export default function MiniSafe() {
+  const dimensions = useMiniAppDimensions();
+
   return (
     <MiniSafeProvider>
-      <div className="container mx-auto px-4 py-8">
+      <div
+        className={`${dimensions.containerClass} mx-auto px-4 py-8 overflow-auto`}
+        style={{
+          width: dimensions.width,
+          height: dimensions.height,
+          maxWidth: dimensions.maxWidth,
+        }}
+      >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

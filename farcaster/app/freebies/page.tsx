@@ -23,6 +23,7 @@ import { Input } from "../../components/ui/input";
 import { useFreebiesLogic } from '../../hooks/useFreebies';
 import { useClaimProcessor } from "../../context/utilityProvider/ClaimContextProvider";
 import Engagement from '../../components/Engagement';
+import { useMiniAppDimensions } from '@/hooks/useMiniAppDimensions';
 import { ethers } from 'ethers';
 
 export default function Freebies() {
@@ -52,9 +53,17 @@ export default function Freebies() {
         timeRemaining
     } = useFreebiesLogic();
     const { canClaim, handleClaim, entitlement, isWhitelisted, handleVerification, checkingWhitelist } = useClaimProcessor();
+    const dimensions = useMiniAppDimensions();
  
     return (
-        <div className="container py-8 bg-gradient-to-br min-h-screen">
+        <div
+          className={`${dimensions.containerClass} mx-auto px-4 py-8 overflow-auto bg-gradient-to-br min-h-screen`}
+          style={{
+            width: dimensions.width,
+            height: dimensions.height,
+            maxWidth: dimensions.maxWidth,
+          }}
+        >
 
             {/* Mobile Data Section */}
 

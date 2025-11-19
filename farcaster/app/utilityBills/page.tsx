@@ -11,19 +11,28 @@ import AirtimeForm from '@/components/utilityBills/AirtimeForm';
 import MobileDataForm from '@/components/utilityBills/MobileDataForm';
 import { UtilityProvider, useUtility } from '@/context/utilityProvider/UtilityContext';
 import ElectricityBillForm from '@/components/utilityBills/ElectricityBillForm';
+import { useMiniAppDimensions } from '@/hooks/useMiniAppDimensions';
 
 // Main content component - separated to use the useUtility hook
 function MainContent() {
   const router = useRouter();
   const [selectedTab, setSelectedTab] = useState('mobile-data');
   const {  countryData } = useUtility();
+  const dimensions = useMiniAppDimensions();
 
   const handleTabChange = (tab: string) => {
     setSelectedTab(tab);
   };
 
   return (
-    <div className="container mx-auto">
+    <div
+      className={`${dimensions.containerClass} mx-auto px-4 py-8 overflow-auto`}
+      style={{
+        width: dimensions.width,
+        height: dimensions.height,
+        maxWidth: dimensions.maxWidth,
+      }}
+    >
       {/* Main Utility Bills Card */}
       <Card>
         <CardHeader>

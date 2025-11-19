@@ -2,12 +2,21 @@
 import { Headphones } from "lucide-react";
 import React from "react";
 import { Card, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
+import { useMiniAppDimensions } from '@/hooks/useMiniAppDimensions';
 
 export default function ContactPage() {
   const telegramLink = "https://t.me/+kYeSswiKgB9lMjZk";
+  const dimensions = useMiniAppDimensions();
   
   return (
-        <div className="container py-8 bg-gradient-to-br min-h-screen">
+        <div
+          className={`${dimensions.containerClass} mx-auto px-4 py-8 overflow-auto bg-gradient-to-br min-h-screen`}
+          style={{
+            width: dimensions.width,
+            height: dimensions.height,
+            maxWidth: dimensions.maxWidth,
+          }}
+        >
       <div className="max-w-md mx-auto">
         <div className="relative">
           <Card className="hover:shadow-lg transition-shadow duration-300">

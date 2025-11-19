@@ -2,12 +2,14 @@
 import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useThrift } from '@/context/thrift/ThriftContext';
+import { useMiniAppDimensions } from '@/hooks/useMiniAppDimensions';
 
 export default function JoinCampaignRedirect() {
   const params = useParams();
   const id = params?.id;
   const router = useRouter();
   const { loading } = useThrift();
+  const dimensions = useMiniAppDimensions();
   
   useEffect(() => {
     if (loading) return;
@@ -22,7 +24,14 @@ export default function JoinCampaignRedirect() {
   }, [id, router, loading]);
 
   return (
-    <div className="container mx-auto px-4 py-20">
+    <div
+      className={`${dimensions.containerClass} mx-auto px-4 py-20 overflow-auto`}
+      style={{
+        width: dimensions.width,
+        height: dimensions.height,
+        maxWidth: dimensions.maxWidth,
+      }}
+    >
       <div className="text-center">
         <h1 className="text-2xl font-bold mb-4">Redirecting...</h1>
         <p>You are being redirected to join a thrift group</p>
