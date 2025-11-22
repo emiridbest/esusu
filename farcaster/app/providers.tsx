@@ -88,11 +88,17 @@ export function Providers({
         try {
           console.log('[DEBUG] Initializing SDK...');
           await load();
-          console.log('[DEBUG] Calling sdk.actions.ready()...');
-          await sdk.actions.ready();
-          console.log('[DEBUG] sdk.actions.ready() called successfully.');
         } catch (error) {
-          console.error('[DEBUG] Failed to initialize SDK:', error);
+          console.error('[DEBUG] Failed to load frame context:', error);
+        } finally {
+          // Always call ready, even if load fails or frameContext is missing
+          try {
+            console.log('[DEBUG] Calling sdk.actions.ready()...');
+            await sdk.actions.ready();
+            console.log('[DEBUG] sdk.actions.ready() called successfully.');
+          } catch (error) {
+            console.error('[DEBUG] Failed to call sdk.actions.ready():', error);
+          }
         }
       };
 
