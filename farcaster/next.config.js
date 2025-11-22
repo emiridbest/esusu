@@ -50,6 +50,24 @@ const nextConfig = {
     
     return config
   }
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          // Remove or relax X-Frame-Options to allow embedding in Farcaster
+          // {
+          //   key: 'X-Frame-Options',
+          //   value: 'ALLOWALL', // or remove this header entirely
+          // },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://client.farcaster.xyz",
+          },
+        ],
+      },
+    ];
+  },
 }
 
 module.exports = nextConfig;
