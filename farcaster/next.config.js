@@ -55,11 +55,10 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: [
-          // Remove or relax X-Frame-Options to allow embedding in Farcaster
-          // {
-          //   key: 'X-Frame-Options',
-          //   value: 'ALLOWALL', // or remove this header entirely
-          // },
+          {
+            key: 'X-Frame-Options',
+            value: '', // Explicitly remove the header
+          },
           {
             key: 'Content-Security-Policy',
             value: "frame-ancestors 'self' https://client.farcaster.xyz",
