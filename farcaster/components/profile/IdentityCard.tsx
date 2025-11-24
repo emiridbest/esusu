@@ -8,7 +8,7 @@ import { celo } from 'viem/chains';
 export const IdentityCard: React.FC = () => {
   const { address, isConnected } = useAccount()
   const { data: walletClient } = useWalletClient()
-  
+
   // Initialize IdentitySDK with proper viem clients
   const publicClient = useMemo(() => {
     return createPublicClient({
@@ -80,7 +80,7 @@ export const IdentityCard: React.FC = () => {
   if (!address) return null
 
   return (
-    <Card className="w-[350px] shadow-md">
+    <Card className="w-full shadow-md">
       <CardContent className="p-6">
         <p className="text-gray-800 mb-2 break-all">
           <span className="font-medium">Wallet Address:</span> {address}

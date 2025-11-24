@@ -1,27 +1,27 @@
 "use client";
-import { 
-  HomeIcon, 
- // ArchiveBoxArrowDownIcon, 
- // UserGroupIcon, 
- // UserIcon 
+import {
+  HomeIcon,
+  ArchiveBoxArrowDownIcon,
+  UserGroupIcon,
+  UserIcon
 } from "@heroicons/react/24/outline";
 import { cn } from "../lib/utils";
 import { useRouter, usePathname } from "next/navigation";
-import { GiftIcon } from "lucide-react";
+import { GiftIcon, PiggyBank } from "lucide-react";
 
 export default function Footer() {
   const router = useRouter();
   const pathname = usePathname();
-  
+
   const isActive = (path: string) => pathname === path;
-  
+
   const navItems = [
     { name: "Home", icon: HomeIcon, path: "/", ariaLabel: "Navigate to home" },
     { name: "Freebies", icon: GiftIcon, path: "/freebies", ariaLabel: "Navigate to freebies section" },
-   //{ name: "Utility Bills", icon: ArchiveBoxArrowDownIcon, path: "/", ariaLabel: "Navigate to utility bills" },
-   // { name: "Save", icon: ArchiveBoxArrowDownIcon, path: "/miniSafe", ariaLabel: "Navigate to savings" },
-   // { name: "Thrift", icon: UserGroupIcon, path: "/thrift", ariaLabel: "Navigate to thrift" },
-   // { name: "Profile", icon: UserIcon, path: "/profile", ariaLabel: "Navigate to profile" }
+    { name: "Utility Bills", icon: ArchiveBoxArrowDownIcon, path: "/utilityBills", ariaLabel: "Navigate to utility bills" },
+    { name: "Save", icon: PiggyBank, path: "/miniSafe", ariaLabel: "Navigate to savings" },
+    { name: "Thrift", icon: UserGroupIcon, path: "/thrift", ariaLabel: "Navigate to thrift" },
+    { name: "Profile", icon: UserIcon, path: "/profile", ariaLabel: "Navigate to profile" }
   ];
 
   return (
@@ -30,7 +30,7 @@ export default function Footer() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
-          
+
           return (
             <button
               key={item.name}
@@ -38,16 +38,16 @@ export default function Footer() {
               className={cn(
                 "flex flex-col items-center space-y-1 transition-all duration-200 hover:scale-110",
                 "text-xs focus:outline-none",
-                active 
-                  ? "text-black dark:text-primary font-semibold" 
+                active
+                  ? "text-black dark:text-primary font-semibold"
                   : "text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
               )}
               aria-label={item.ariaLabel}
             >
               <div className={cn(
                 "p-1.5 rounded-full transition-all duration-300",
-                active 
-                  ? "bg-primary/10 ring-2 ring-primary/30" 
+                active
+                  ? "bg-primary/10 ring-2 ring-primary/30"
                   : "hover:bg-gray-100 dark:hover:bg-gray-800"
               )}>
                 <Icon className={cn(
@@ -57,7 +57,7 @@ export default function Footer() {
               </div>
               <span className={active ? "font-medium" : ""}>{item.name}</span>
               {active && (
-                <span className="absolute bottom-0 w-1 h-1 bg-primary rounded-full"/>
+                <span className="absolute bottom-0 w-1 h-1 bg-primary rounded-full" />
               )}
             </button>
           );
