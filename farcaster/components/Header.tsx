@@ -323,8 +323,8 @@ export default function Header() {
                       <Bars3Icon className="color-black/50 h-5 w-5" />
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="right" className="glass-card w-[80%]">
-                    <div className="flex flex-col space-y-4 mt-8 dark:text-gray-500">
+                  <SheetContent side="right" className="glass-card w-[80%] overflow-y-auto">
+                    <div className="flex flex-col space-y-4 mt-8 pb-24 dark:text-gray-500">
                       {/* Connected Status for Mobile */}
                       <div className="flex items-center space-x-3 py-3 px-4 mb-2 bg-primary/10 rounded-lg">
                         <div className="h-10 w-10 rounded-full bg-gradient-to-r from-primary to-primary/60 flex items-center justify-center">
