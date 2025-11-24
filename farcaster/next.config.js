@@ -49,7 +49,24 @@ const nextConfig = {
     ];
     
     return config
-  }
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: '', // Explicitly remove the header
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://client.farcaster.xyz",
+          },
+        ],
+      },
+    ];
+  },
 }
 
 module.exports = nextConfig;
