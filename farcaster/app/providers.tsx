@@ -95,7 +95,7 @@ export function Providers({
           try {
             console.log('[DEBUG] Calling sdk.actions.ready()...');
             await sdk.actions.ready();
-            console.log('[DEBUG] sdk.actions.ready() called successfully.');
+            console.log('[DEBUG] sdk.actions.ready() called successfully versioning check.');
           } catch (error) {
             console.error('[DEBUG] Failed to call sdk.actions.ready():', error);
           }
