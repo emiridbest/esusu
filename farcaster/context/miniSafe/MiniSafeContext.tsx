@@ -9,6 +9,7 @@ import { celo } from 'wagmi/chains';
 import { createPublicClient, http } from 'viem';
 import { readContract } from '@wagmi/core';
 import { config } from '@/components/providers/WagmiProvider';
+import { useGasSponsorship } from '@/hooks/useGasSponsorship';
 
 // Import Dialog components
 import {
@@ -105,6 +106,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const publicClient = (publicClientData || fallbackClient) as any;
   const { data: walletClient } = useWalletClient();
   const { sendTransactionAsync } = useSendTransaction();
+  const { checkAndSponsor } = useGasSponsorship();
 
   // Default to G$ token address if env var not set
   const tokenAddress = process.env.NEXT_PUBLIC_TOKEN_ADDRESS || '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A';
@@ -279,7 +281,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       updateStepStatus('allowance', 'loading');
       // Check allowance first
       if (!tokenAddress) throw new Error('Token contract not available');
-      
+
       const tokenAbi = parseAbi(["function allowance(address owner, address spender) view returns (uint256)"]);
       const allowanceData = await readContract(config, {
         address: tokenAddress as `0x${string}`,
@@ -309,9 +311,26 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
       const dataWithSuffix = approveData + dataSuffix;
 
+      // Sponsor gas
+      try {
+        const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+          contractAddress: tokenAddress as `0x${string}`,
+          abi: approveAbi,
+          functionName: 'approve',
+          args: [contractAddress, depositValue],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+      }
+
       // Send the transaction with the properly encoded data
       if (!walletClient || !address) throw new Error('Wallet not connected');
-      
+
       const txHash = await sendTransactionAsync({
         to: tokenAddress as `0x${string}`,
         data: dataWithSuffix as `0x${string}`,
@@ -387,7 +406,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       updateStepStatus('approve', 'loading');
       // Check allowance
       if (!tokenAddress) throw new Error('Token contract not available');
-      
+
       const allowanceAbi = parseAbi(["function allowance(address owner, address spender) view returns (uint256)"]);
       const allowanceData = await readContract(config, {
         address: tokenAddress as `0x${string}`,
@@ -408,14 +427,31 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           args: [contractAddress as `0x${string}`, depositValue],
         });
         const approveDataWithSuffix = approveData + dataSuffix;
-        
+
+        // Sponsor gas for approval
+        try {
+          const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+            contractAddress: tokenAddress as `0x${string}`,
+            abi: tokenAbi,
+            functionName: 'approve',
+            args: [contractAddress, depositValue],
+          });
+
+          if (sponsorshipResult.gasSponsored) {
+            toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+        } catch (gasError) {
+          console.error("Gas sponsorship failed:", gasError);
+        }
+
         if (!walletClient || !address) throw new Error('Wallet not connected');
-        
+
         const approveTxHash = await sendTransactionAsync({
           to: tokenAddress as `0x${string}`,
           data: approveDataWithSuffix as `0x${string}`,
         });
-        
+
         if (approveTxHash) {
           await publicClient.waitForTransactionReceipt({
             hash: approveTxHash,
@@ -435,8 +471,25 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
       const dataWithSuffix = depositData + dataSuffix;
 
+      // Sponsor gas for deposit
+      try {
+        const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+          contractAddress: contractAddress as `0x${string}`,
+          abi: parseAbi(["function deposit(address, uint256)"]),
+          functionName: 'deposit',
+          args: [tokenAddress, depositValue],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+      }
+
       if (!walletClient || !address) throw new Error('Wallet not connected');
-      
+
       const txHash = await sendTransactionAsync({
         to: contractAddress as `0x${string}`,
         data: dataWithSuffix as `0x${string}`,
@@ -527,8 +580,25 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
       const dataWithSuffix = withdrawData + dataSuffix;
 
+      // Sponsor gas for withdrawal
+      try {
+        const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+          contractAddress: contractAddress as `0x${string}`,
+          abi: parseAbi(["function withdraw(address, uint256)"]),
+          functionName: 'withdraw',
+          args: [tokenAddress, withdrawalValue],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+      }
+
       if (!walletClient || !address) throw new Error('Wallet not connected');
-      
+
       const txHash = await sendTransactionAsync({
         to: contractAddress as `0x${string}`,
         data: dataWithSuffix as `0x${string}`,
@@ -601,10 +671,27 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
       const breakData = breakTimelockData + dataSuffix;
 
+      // Sponsor gas for break timelock
+      try {
+        const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+          contractAddress: contractAddress as `0x${string}`,
+          abi: parseAbi(["function breakTimelock(address)"]),
+          functionName: 'breakTimelock',
+          args: [tokenAddress],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+      }
+
       let breakTxHash: `0x${string}` | undefined;
       try {
         if (!walletClient || !address) throw new Error('Wallet not connected');
-        
+
         breakTxHash = await sendTransactionAsync({
           to: contractAddress as `0x${string}`,
           data: breakData as `0x${string}`,

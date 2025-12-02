@@ -11,6 +11,7 @@ import {
 } from 'thirdweb/react';
 import { getContract, readContract } from 'thirdweb';
 import { client, activeChain } from '@/lib/thirdweb';
+import useGasSponsorship from '@/hooks/useGasSponsorship';
 
 // Import Dialog components
 import {
@@ -109,17 +110,17 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     chain: activeChain,
     address: contractAddress,
   });
-  
+
   // Default to G$ token address if env var not set
   const tokenAddress = process.env.NEXT_PUBLIC_TOKEN_ADDRESS || '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A';
   const rewardTokenAddress = process.env.NEXT_PUBLIC_REWARD_TOKEN_ADDRESS || '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A';
-  
+
   const tokenContract = tokenAddress ? getContract({
     client,
-    chain: activeChain, 
+    chain: activeChain,
     address: tokenAddress as `0x${string}`,
   }) : null;
-  
+
   const rewardTokenContract = rewardTokenAddress ? getContract({
     client,
     chain: activeChain,
@@ -136,6 +137,8 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     user: address as `0x${string}`,
     consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
   }) : '';
+
+  const { checkAndSponsor } = useGasSponsorship();
 
   const getBalance = useCallback(async () => {
     if (!address || !miniSafeContract) return;
@@ -284,7 +287,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       updateStepStatus('allowance', 'loading');
       // Check allowance first
       if (!tokenContract) throw new Error('Token contract not available');
-      
+
       const allowanceData = await readContract({
         contract: tokenContract,
         method: "function allowance(address,address) view returns (uint256)",
@@ -316,7 +319,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Send the transaction with the properly encoded data
       if (!wallet || !account) throw new Error('Wallet not connected');
-      
+
       const { sendTransaction, prepareTransaction } = await import('thirdweb');
       const transaction = await prepareTransaction({
         to: tokenAddress as `0x${string}`,
@@ -324,6 +327,24 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         client,
         chain: activeChain,
       });
+
+      // Sponsor gas for approval
+      try {
+        const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+          contractAddress: tokenAddress as `0x${string}`,
+          abi: tokenAbi,
+          functionName: 'approve',
+          args: [contractAddress, depositValue],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+      }
+
       const tx = await sendTransaction({
         account,
         transaction,
@@ -399,7 +420,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       updateStepStatus('approve', 'loading');
       // Check allowance
       if (!tokenContract) throw new Error('Token contract not available');
-      
+
       const { readContract } = await import('thirdweb');
       const allowanceData = await readContract({
         contract: tokenContract,
@@ -418,9 +439,9 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           args: [contractAddress as `0x${string}`, depositValue],
         });
         const approveDataWithSuffix = approveData + dataSuffix;
-        
+
         if (!wallet || !account) throw new Error('Wallet not connected');
-        
+
         const { sendTransaction, prepareTransaction } = await import('thirdweb');
         const approveTransaction = await prepareTransaction({
           to: tokenAddress as `0x${string}`,
@@ -428,11 +449,29 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           client,
           chain: activeChain,
         });
+
+        // Sponsor gas for approval
+        try {
+          const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+            contractAddress: tokenAddress as `0x${string}`,
+            abi: tokenAbi,
+            functionName: 'approve',
+            args: [contractAddress, depositValue],
+          });
+
+          if (sponsorshipResult.gasSponsored) {
+            toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+        } catch (gasError) {
+          console.error("Gas sponsorship failed:", gasError);
+        }
+
         const approveTx = await sendTransaction({
           account,
           transaction: approveTransaction,
         });
-        
+
         if (approveTx?.transactionHash) {
           const { waitForReceipt } = await import('thirdweb');
           await waitForReceipt({
@@ -456,7 +495,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const dataWithSuffix = depositData + dataSuffix;
 
       if (!wallet || !account) throw new Error('Wallet not connected');
-      
+
       const { sendTransaction, prepareTransaction } = await import('thirdweb');
       const depositTransaction = await prepareTransaction({
         to: contractAddress as `0x${string}`,
@@ -464,6 +503,24 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         client,
         chain: activeChain,
       });
+
+      // Sponsor gas for deposit
+      try {
+        const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+          contractAddress: contractAddress as `0x${string}`,
+          abi: parseAbi(["function deposit(address, uint256)"]),
+          functionName: 'deposit',
+          args: [tokenAddress, depositValue],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+      }
+
       const tx = await sendTransaction({
         account,
         transaction: depositTransaction,
@@ -558,7 +615,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const dataWithSuffix = withdrawData + dataSuffix;
 
       if (!wallet || !account) throw new Error('Wallet not connected');
-      
+
       const { sendTransaction, prepareTransaction } = await import('thirdweb');
       const withdrawTransaction = await prepareTransaction({
         to: contractAddress as `0x${string}`,
@@ -566,6 +623,24 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         client,
         chain: activeChain,
       });
+
+      // Sponsor gas for withdrawal
+      try {
+        const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+          contractAddress: contractAddress as `0x${string}`,
+          abi: parseAbi(["function withdraw(address, uint256)"]),
+          functionName: 'withdraw',
+          args: [tokenAddress, withdrawalValue],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+      }
+
       const tx = await sendTransaction({
         account,
         transaction: withdrawTransaction,
@@ -644,7 +719,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       let breakTx: any;
       try {
         if (!wallet || !account) throw new Error('Wallet not connected');
-        
+
         const { sendTransaction, prepareTransaction } = await import('thirdweb');
         const breakTransaction = await prepareTransaction({
           to: contractAddress as `0x${string}`,
@@ -652,6 +727,24 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           client,
           chain: activeChain,
         });
+
+        // Sponsor gas for break timelock
+        try {
+          const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+            contractAddress: contractAddress as `0x${string}`,
+            abi: parseAbi(["function breakTimelock(address)"]),
+            functionName: 'breakTimelock',
+            args: [tokenAddress],
+          });
+
+          if (sponsorshipResult.gasSponsored) {
+            toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+        } catch (gasError) {
+          console.error("Gas sponsorship failed:", gasError);
+        }
+
         breakTx = await sendTransaction({
           account,
           transaction: breakTransaction,

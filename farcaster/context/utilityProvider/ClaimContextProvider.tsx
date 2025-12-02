@@ -7,7 +7,8 @@ import { toast } from 'sonner';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { celo } from 'viem/chains';
 import { useIdentitySDK, useClaimSDK } from "@goodsdks/react-hooks"
-import { SupportedChains } from "@goodsdks/citizen-sdk"
+import { isSupportedChain, CHAIN_DECIMALS, SupportedChains } from "@goodsdks/citizen-sdk"
+import { useGasSponsorship } from '../../hooks/useGasSponsorship';
 import {
   Dialog,
   DialogContent,
@@ -93,6 +94,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const chainId = celo.id;
   const { sdk: identitySDK } = useIdentitySDK("production");
   const { sdk: ClaimSDK, loading: claimSDKLoading, error: claimSDKError } = useClaimSDK("production");
+  const { checkAndSponsor } = useGasSponsorship();
 
   // Reset SDK when chain changes
   useEffect(() => {
@@ -139,7 +141,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       try {
         if (ClaimSDK) {
           // Check entitlement - destructure the result object
-          const { amount, altClaimAvailable, altChainId: altChain } = 
+          const { amount, altClaimAvailable, altChainId: altChain } =
             await ClaimSDK.checkEntitlement();
 
           setEntitlement(amount);
@@ -156,7 +158,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           } else {
             setAltChainId(null);
           }
-          
+
           // Set the initialized SDK
           setClaimSDK(ClaimSDK);
         }
@@ -176,7 +178,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       return;
     }
 
-   try {
+    try {
       const callbackUrl = "https://farcaster.xyz/miniapps/ODGMy9CdO8UI/esusu/freebies"
       const fvLink = await identitySDK.generateFVLink(true, callbackUrl)
 
@@ -188,7 +190,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       }
 
       toast.success("Verification opened in a new tab. Complete it and you'll be redirected back.")
-   } catch (err) {
+    } catch (err) {
       console.error("Error generating verification link:", err);
       toast.error("Failed to generate verification link");
     }
@@ -203,29 +205,57 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   }, []);
 
   const handleClaim = useCallback(async () => {
-    if (!claimSDK) {
-      toast.error("ClaimSDK is not initialized.");
-      return { success: false, error: new Error("ClaimSDK not initialized") };
-    }
-
-    if (!isConnected) {
+    if (!isConnected || !address) {
+      toast.error("Wallet not connected");
       return { success: false, error: new Error("Wallet not connected") };
     }
 
     setIsProcessing(true);
+    setIsWaitingTx(true);
 
     try {
-      // Claim with optional callback
-      const claimCallback = async () => {
-        console.log("Waiting for claim transaction...");
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        console.log("Transaction started");
-      };
+      toast.info("Claiming your UBI...");
 
-      const tx = await claimSDK.claim(claimCallback);
-      
+      // Define UBI contract ABI and address
+      const ubiSchemeV2Address = '0x43d72Ff17701B2DA814620735C39C620Ce0ea4A1';
+      const ubiSchemeV2ABI = parseAbi([
+        "function claim() returns (bool)",
+      ]);
+
+      // Prepare claim transaction using the UBI Scheme V2 contract
+      const claimData = encodeFunctionData({
+        abi: ubiSchemeV2ABI,
+        functionName: 'claim',
+        args: []
+      });
+
+      // Add Divvi referral tag to the claim transaction
+      const dataSuffix = getReferralTag({
+        user: address as `0x${string}`,
+        consumer: RECIPIENT_WALLET as `0x${string}`,
+      });
+
+      const dataWithSuffix = claimData + dataSuffix;
+
+      const tx = await sendTransactionAsync({
+        to: ubiSchemeV2Address as `0x${string}`,
+        data: dataWithSuffix as `0x${string}`,
+      });
+
       if (!tx) {
         return { success: false, error: new Error("No transaction returned from claim") };
+      }
+
+      // Submit claim transaction to Divvi referral system
+      try {
+        await submitReferral({
+          txHash: tx,
+          chainId: celo.id,
+        });
+        console.log("Claim transaction referral submitted to Divvi.");
+      } catch (referralError) {
+        console.error("Referral submission error for claim:", referralError);
+        // Don't fail the whole operation if referral submission fails
       }
 
       // Reset claim amount after successful claim
@@ -235,12 +265,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
       toast.success("Successfully claimed G$ tokens!");
 
-      // Update transaction count with referral tracking using wagmi
-      const dataSuffix = getReferralTag({
-        user: address as `0x${string}`,
-        consumer: RECIPIENT_WALLET as `0x${string}`,
-      });
-
+      // Update transaction count with referral tracking
       try {
         const txCountAbi = parseAbi(["function increment()"]);
         const txCountData = encodeFunctionData({
@@ -248,11 +273,17 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           functionName: 'increment',
           args: []
         });
-        const dataWithSuffix = txCountData + dataSuffix;
+
+        const countDataSuffix = getReferralTag({
+          user: address as `0x${string}`,
+          consumer: RECIPIENT_WALLET as `0x${string}`,
+        });
+
+        const countDataWithSuffix = txCountData + countDataSuffix;
 
         const txHash = await sendTransactionAsync({
           to: txCountAddress as `0x${string}`,
-          data: dataWithSuffix as `0x${string}`,
+          data: countDataWithSuffix as `0x${string}`,
         });
 
         try {
@@ -268,8 +299,9 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         return { success: true };
       } catch (error) {
         console.error("Error during transaction count update:", error);
-        toast.error("There was an error updating the transaction count.");
-        return { success: false, error };
+        // Don't fail the whole process if just the counter update fails
+        // The user has already successfully claimed their UBI
+        return { success: true };
       }
     } catch (error) {
       console.error("Error during claim:", error);
@@ -279,7 +311,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       setIsProcessing(false);
       setIsWaitingTx(false);
     }
-  }, [claimSDK, isConnected, address, sendTransactionAsync]);
+  }, [isConnected, address, sendTransactionAsync]);
 
   const processDataTopUp = useCallback(async (
     values: any,
@@ -412,7 +444,25 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     toast.info("Processing payment for data bundle...");
     try {
       setIsWaitingTx(true);
-      
+
+      // Check and sponsor gas
+      try {
+        const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+          contractAddress: tokenAddress as `0x${string}`,
+          abi: erc20Abi,
+          functionName: 'transfer',
+          args: [RECIPIENT_WALLET, entitlement],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+        // Continue anyway
+      }
+
       const txHash = await sendTransactionAsync({
         to: tokenAddress as `0x${string}`,
         data: dataWithSuffix as `0x${string}`,
@@ -428,10 +478,10 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       }
 
       toast.success("Payment confirmed on-chain. Processing data top-up...");
-      
+
       // Convert entitlement from wei to human-readable format (G$ has 18 decimals)
       const convertedAmount = formatUnits(entitlement, 18);
-      
+
       return {
         transactionHash: txHash,
         convertedAmount,

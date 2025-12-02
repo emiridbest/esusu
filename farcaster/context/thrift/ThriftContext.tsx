@@ -7,6 +7,8 @@ import { BrowserProvider, formatUnits, parseUnits, Contract, JsonRpcProvider } f
 import { useAccount, useSendTransaction } from 'wagmi';
 import { useEthersSigner } from '@/hooks/useEthersSigner';
 import { celo } from 'viem/chains';
+import { parseAbi } from 'viem';
+import { useGasSponsorship } from '@/hooks/useGasSponsorship';
 import { config } from '@/components/providers/WagmiProvider';
 
 // Define the type for thrift group data (updated to match contract structure)
@@ -109,20 +111,21 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [contract, setContract] = useState<MiniSafeAave | null>(null);
-  
+  const { checkAndSponsor } = useGasSponsorship();
+
   // Use wagmi's account state
   const account = wagmiAddress || null;
   const isConnected = wagmiIsConnected;
-  
+
   // Get provider from signer
   const provider = signer?.provider as BrowserProvider | null;
-  
+
   // Custom RPC provider for event querying and view function calls (fallback when wallet RPC is down)
   const customRpcProvider = new JsonRpcProvider('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8');
-  
+
   // Read-only contract for view functions using public RPC
   const [readOnlyContract, setReadOnlyContract] = useState<MiniSafeAave | null>(null);
-  
+
   useEffect(() => {
     // Initialize read-only contract with public RPC for view functions
     const readContract = new MiniSafeAave(contractAddress, customRpcProvider);
@@ -133,7 +136,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     // Clear any previous errors
     setError(null);
-    
+
     try {
       if (signer && wagmiIsConnected && wagmiAddress) {
         // Use wagmi signer - this properly connects to Farcaster wallet through the connector
@@ -165,24 +168,24 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       setLoading(true);
       setError(null);
-      
+
       const startTimestamp = startDate ? Math.floor(startDate.getTime() / 1000) : Math.floor(Date.now() / 1000);
 
       // Use provided token address or determine a supported token
       let finalTokenAddress = tokenAddress;
-      
+
       if (!finalTokenAddress) {
         try {
           console.log('Fetching supported tokens...');
           const supportedTokens: string[] = await readOnlyContract.getSupportedTokens();
           console.log('Supported tokens:', supportedTokens);
-          
+
           if (!supportedTokens || supportedTokens.length === 0) {
             const msg = 'No supported tokens configured on the contract. Please contact the admin to add supported tokens.';
             setError(msg);
             toast.error('Unsupported token', { description: msg });
             setLoading(false);
-            
+
             // Auto-clear error after 3 seconds
             setTimeout(() => {
               setError(null);
@@ -211,13 +214,13 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.log('Validating token:', finalTokenAddress);
         const valid = await readOnlyContract.isValidToken(finalTokenAddress);
         console.log('Token validation result:', valid);
-        
+
         if (!valid) {
           const msg = `Chosen token ${finalTokenAddress} is not supported by the contract.`;
           setError(msg);
           toast.error('Unsupported token', { description: msg });
           setLoading(false);
-          
+
           // Auto-clear error after 3 seconds
           setTimeout(() => {
             setError(null);
@@ -254,7 +257,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setError(msg);
           toast.error('Amount too low', { description: msg });
           setLoading(false);
-          
+
           // Auto-clear error after 3 seconds
           setTimeout(() => {
             setError(null);
@@ -273,7 +276,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         depositAmount,
         account
       });
-      
+
       // WORKAROUND: Farcaster wallet doesn't support eth_estimateGas
       // We need to manually build and send the transaction
       const contractInterface = (contract as any).contract.interface;
@@ -283,9 +286,9 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isPublic,
         finalTokenAddress
       ]);
-      
+
       console.log('Encoded transaction data:', data);
-      
+
       // Use public RPC to estimate gas (Farcaster wallet doesn't support eth_estimateGas)
       let gasEstimate: bigint;
       try {
@@ -304,15 +307,32 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setLoading(false);
         return;
       }
-      
+
+      // Sponsor gas
+      try {
+        const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
+          contractAddress: contractAddress as `0x${string}`,
+          abi: parseAbi(["function createThriftGroup(uint256, uint256, bool, address) returns (uint256)"]),
+          functionName: 'createThriftGroup',
+          args: [amount, startTimestamp, isPublic, finalTokenAddress],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+      }
+
       // Now send the transaction using wagmi's sendTransaction (same as utility provider)
       if (!account) throw new Error('No account connected');
-      
+
       console.log('🔑 Requesting signature from Farcaster wallet...');
       toast.info('Please sign the transaction in your Farcaster wallet', {
         duration: 10000
       });
-      
+
       let txHash;
       try {
         txHash = await sendTransactionAsync({
@@ -324,21 +344,21 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error('❌ Transaction signing failed:', signError);
         // User rejected or wallet error
         const errorMsg = signError?.message || String(signError);
-        if (errorMsg.toLowerCase().includes('user rejected') || 
-            errorMsg.toLowerCase().includes('user denied') ||
-            errorMsg.toLowerCase().includes('rejected') ||
-            errorMsg.toLowerCase().includes('cancelled')) {
+        if (errorMsg.toLowerCase().includes('user rejected') ||
+          errorMsg.toLowerCase().includes('user denied') ||
+          errorMsg.toLowerCase().includes('rejected') ||
+          errorMsg.toLowerCase().includes('cancelled')) {
           throw new Error('Transaction was cancelled. Please try again.');
         }
         throw new Error(`Failed to sign transaction: ${errorMsg}`);
       }
-      
+
       // WORKAROUND: Farcaster wallet doesn't support eth_getTransactionReceipt
       // Use public RPC to wait for transaction confirmation
       console.log('Waiting for transaction confirmation via public RPC...');
       const receipt = await customRpcProvider.waitForTransaction(txHash);
       console.log('Transaction confirmed:', receipt?.hash);
-      
+
       if (!receipt) {
         throw new Error('Transaction receipt is null');
       }
@@ -423,22 +443,22 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             receivedCreatorName: creatorName,
             hasCreatorName: !!creatorName
           });
-          
+
           const creatorData = {
             userAddress: account,
             role: 'creator',
             joinDate: new Date().toISOString(), // Group creation time
             userName: finalCreatorName // Use provided name or default to 'Creator'
           };
-          
+
           console.log('📤 Sending creator data to API:', creatorData);
-          
+
           const creatorResponse = await fetch(`/api/groups/${newGroupId}/members`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(creatorData),
           });
-          
+
           if (creatorResponse.ok) {
             const responseData = await creatorResponse.json();
             console.log('✅ Creator stored in database successfully:', responseData);
@@ -464,17 +484,17 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           console.warn('Failed to refresh groups after creation:', refreshError);
         }
       }, 2000);
-      
+
       toast.success("Thrift group created successfully!");
     } catch (err) {
       console.error("Failed to create thrift group:", err);
-      
+
       // Parse error message for user-friendly display
       let userMessage = 'Failed to create thrift group';
-      
+
       if (err instanceof Error) {
         const errorMsg = err.message.toLowerCase();
-        
+
         if (errorMsg.includes('user rejected') || errorMsg.includes('user denied')) {
           userMessage = 'Transaction was cancelled.';
         } else if (errorMsg.includes('insufficient funds')) {
@@ -489,10 +509,10 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } else {
         userMessage = String(err);
       }
-      
+
       setError(userMessage);
       toast.error(userMessage);
-      
+
       // Auto-clear error after 3 seconds to prevent it from persisting
       setTimeout(() => {
         setError(null);
@@ -515,10 +535,10 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       const isMember = await readOnlyContract.isGroupMember(groupId, account);
-      
+
       let canJoin = false;
       let reason = '';
-      
+
       if (isMember) {
         reason = 'You are already a member of this group';
       } else if (!groupInfo.isPublic) {
@@ -546,11 +566,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
     } catch (error) {
       console.error('Failed to check join status:', error);
-      return { 
-        isMember: false, 
-        groupInfo: null, 
-        canJoin: false, 
-        reason: 'Failed to check group status' 
+      return {
+        isMember: false,
+        groupInfo: null,
+        canJoin: false,
+        reason: 'Failed to check group status'
       };
     }
   };
@@ -564,27 +584,45 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       setLoading(true);
       setError(null);
-      
+
       console.log('🎯 joinThriftGroup called with:', {
         groupId,
         userName,
         hasUserName: !!userName,
         userNameLength: userName?.length
       });
-      
+
       // Check if group exists and is joinable before attempting to join
       const status = await checkJoinStatus(groupId);
       if (!status.canJoin) {
         throw new Error(status.reason || 'Cannot join this group');
       }
-      
+
       console.log('Attempting to join group:', groupId);
+
+      // Sponsor gas
+      try {
+        const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
+          contractAddress: contractAddress as `0x${string}`,
+          abi: parseAbi(["function joinPublicGroup(uint256)"]),
+          functionName: 'joinPublicGroup',
+          args: [groupId],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+      }
+
       const tx = await contract.joinPublicGroup(groupId);
       console.log('Join transaction sent:', tx.hash);
-      
+
       const receipt = await tx.wait();
       console.log('Join transaction confirmed');
-      
+
       // Get the actual join date from the blockchain transaction
       let actualJoinDate = new Date();
       try {
@@ -593,7 +631,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           provider: !!provider,
           receipt: receipt
         });
-        
+
         // Get the block timestamp from the transaction receipt
         if (provider && receipt.blockNumber) {
           const block = await provider.getBlock(receipt.blockNumber);
@@ -615,7 +653,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error('Failed to get block timestamp:', blockError);
         console.warn('Using current time as fallback');
       }
-      
+
       // Store join date in database with the actual blockchain timestamp
       try {
         const finalUserName = userName || `Member ${Date.now()}`;
@@ -625,13 +663,13 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           joinDate: actualJoinDate.toISOString(), // Send the actual blockchain timestamp
           userName: finalUserName // Send the user name
         };
-        
+
         console.log('💾 Storing member data in database:', {
           ...memberData,
           receivedUserName: userName,
           usingFallback: !userName
         });
-        
+
         const response = await fetch(`/api/groups/${groupId}/members`, {
           method: 'POST',
           headers: {
@@ -639,7 +677,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           },
           body: JSON.stringify(memberData),
         });
-        
+
         if (!response.ok) {
           const errorData = await response.json();
           console.error('Database storage failed:', {
@@ -665,18 +703,18 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           description: "Joined group but couldn't store join date. Please refresh the page."
         });
       }
-      
+
       await refreshGroups();
       toast.success("Successfully joined the thrift group!");
     } catch (err) {
       console.error("Failed to join thrift group:", err);
-      
+
       // Parse error message for user-friendly display
       let userMessage = 'Failed to join thrift group';
-      
+
       if (err instanceof Error) {
         const errorMsg = err.message.toLowerCase();
-        
+
         if (errorMsg.includes('group has already started')) {
           userMessage = 'This group has already started and is no longer accepting new members.';
         } else if (errorMsg.includes('group is full')) {
@@ -695,10 +733,10 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } else {
         userMessage = String(err);
       }
-      
+
       setError(userMessage);
       toast.error(userMessage);
-      
+
       // Auto-clear error after 3 seconds to prevent it from persisting
       setTimeout(() => {
         setError(null);
@@ -711,11 +749,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Check group status (active, started, can contribute)
   const checkGroupStatus = async (groupId: number) => {
     if (!readOnlyContract) {
-      return { 
-        exists: false, 
-        isActive: false, 
-        isStarted: false, 
-        canContribute: false, 
+      return {
+        exists: false,
+        isActive: false,
+        isStarted: false,
+        canContribute: false,
         reason: 'Contract not initialized',
         startDate: null,
         timeUntilStart: null
@@ -726,11 +764,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Get group info from contract (using readOnlyContract)
       const groupInfo = await readOnlyContract.getGroupInfo(groupId);
       if (!groupInfo || groupInfo.contributionAmount === 0) {
-        return { 
-          exists: false, 
-          isActive: false, 
-          isStarted: false, 
-          canContribute: false, 
+        return {
+          exists: false,
+          isActive: false,
+          isStarted: false,
+          canContribute: false,
           reason: 'Group not found',
           startDate: null,
           timeUntilStart: null
@@ -739,17 +777,17 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // Get thrift group details (using readOnlyContract)
       const thriftGroup = await readOnlyContract.getThriftGroup(groupId);
-      
+
       // Both groupInfo and thriftGroup have isActive fields
       // Based on the ABI, groupInfo.isActive should be the main indicator
       const isActive = Boolean(groupInfo.isActive);
-      
+
       // For "started" state, we need to check if the group has actually begun
       // This could be based on startDate, currentRound, or other indicators
       const startDate = Number(thriftGroup.startDate || 0);
       const currentTime = Math.floor(Date.now() / 1000);
       const isStarted = isActive && startDate > 0 && currentTime >= startDate;
-      
+
       const canContribute = isActive && isStarted;
 
       // Calculate time until start
@@ -790,11 +828,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
     } catch (error) {
       console.error('Failed to check group status:', error);
-      return { 
-        exists: false, 
-        isActive: false, 
-        isStarted: false, 
-        canContribute: false, 
+      return {
+        exists: false,
+        isActive: false,
+        isStarted: false,
+        canContribute: false,
         reason: `Failed to check group status: ${error instanceof Error ? error.message : String(error)}`,
         startDate: null,
         timeUntilStart: null
@@ -811,10 +849,27 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       setLoading(true);
       setError(null);
-      
+
+      // Sponsor gas
+      try {
+        const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
+          contractAddress: contractAddress as `0x${string}`,
+          abi: parseAbi(["function addMemberToPrivateGroup(uint256, address)"]),
+          functionName: 'addMemberToPrivateGroup',
+          args: [groupId, memberAddress],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+      }
+
       const tx = await contract.addMemberToPrivateGroup(groupId, memberAddress);
       await tx.wait();
-      
+
       await refreshGroups();
       toast.success("Member added successfully!");
     } catch (err) {
@@ -822,7 +877,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const errorMsg = `Failed to add member: ${err instanceof Error ? err.message : String(err)}`;
       setError(errorMsg);
       toast.error(errorMsg);
-      
+
       // Auto-clear error after 3 seconds
       setTimeout(() => {
         setError(null);
@@ -835,7 +890,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Make contribution contract interaction
   const makeContribution = async (groupId: number) => {
     console.log('makeContribution called with groupId:', groupId);
-    
+
     if (!contract || !isConnected) {
       console.log('makeContribution: Contract or connection not available');
       throw new Error("Wallet not connected or contract not initialized");
@@ -850,11 +905,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       const groupStatus = await checkGroupStatus(groupId);
       console.log('Group status:', groupStatus);
-      
+
       if (!groupStatus.exists) {
         throw new Error("Group not found");
       }
-      
+
       if (!groupStatus.canContribute) {
         throw new Error(groupStatus.reason || "Group is not ready for contributions");
       }
@@ -879,11 +934,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.log('makeContribution: Setting loading to true');
       setLoading(true);
       setError(null);
-      
+
       // Get detailed group status before attempting contribution
       const detailedStatus = await checkGroupStatus(groupId);
       console.log('makeContribution: Detailed group status:', detailedStatus);
-      
+
       // Also check the raw contract data
       const groupInfo = await contract.getGroupInfo(groupId);
       const thriftGroup = await contract.getThriftGroup(groupId);
@@ -905,7 +960,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Get token information for approval
       const tokenAddress = thriftGroup.tokenAddress || thriftGroup[6];
       const contributionAmount = groupInfo.contributionAmount;
-      
+
       console.log('makeContribution: Token approval check:', {
         tokenAddress,
         contributionAmount: contributionAmount.toString(),
@@ -921,27 +976,27 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             "function allowance(address owner, address spender) view returns (uint256)",
             "function balanceOf(address owner) view returns (uint256)"
           ];
-          
+
           // Use read-only contract for view functions
           const erc20ReadOnly = new Contract(tokenAddress, erc20Abi, customRpcProvider) as any;
-          
+
           // Check current allowance
           const currentAllowance = await (erc20ReadOnly as any).allowance(account, contract.address);
           console.log('Current allowance:', currentAllowance.toString());
-          
+
           // Check user balance
           const userBalance = await (erc20ReadOnly as any).balanceOf(account);
           console.log('User balance:', userBalance.toString());
-          
+
           if (userBalance < contributionAmount) {
             const userBalanceFormatted = formatUnits(userBalance, 18);
             const requiredAmountFormatted = formatUnits(contributionAmount, 18);
-            
+
             console.log('Showing insufficient balance toast:', {
               userBalance: userBalanceFormatted,
               required: requiredAmountFormatted
             });
-            
+
             try {
               toast.error("Insufficient Token Balance", {
                 description: `You have ${userBalanceFormatted} tokens but need ${requiredAmountFormatted} tokens to make this contribution.`,
@@ -950,11 +1005,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             } catch (toastError) {
               console.error('Failed to show toast:', toastError);
             }
-            
+
             // Return early instead of throwing error to prevent console error
             return;
           }
-          
+
           // If allowance is insufficient, request approval
           if (currentAllowance < contributionAmount) {
             console.log('Insufficient allowance, requesting approval...');
@@ -962,25 +1017,42 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               description: "Please approve the contract to spend your tokens.",
               duration: 10000
             });
-            
+
             // Encode approval transaction data
             const erc20Interface = new Contract(tokenAddress, erc20Abi, customRpcProvider) as any;
             const approvalData = erc20Interface.interface.encodeFunctionData('approve', [
               contract.address,
               contributionAmount
             ]);
-            
+
+            // Sponsor gas for approval
+            try {
+              const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
+                contractAddress: tokenAddress as `0x${string}`,
+                abi: parseAbi(["function approve(address, uint256) returns (bool)"]),
+                functionName: 'approve',
+                args: [contract.address, contributionAmount],
+              });
+
+              if (sponsorshipResult.gasSponsored) {
+                toast.success(`Gas sponsored for approval: ${sponsorshipResult.amountSponsored} CELO`);
+                await new Promise(resolve => setTimeout(resolve, 3000));
+              }
+            } catch (gasError) {
+              console.error("Gas sponsorship failed for approval:", gasError);
+            }
+
             console.log('Sending approval transaction via wagmi...');
             const approvalTxHash = await sendTransactionAsync({
               to: tokenAddress as `0x${string}`,
               data: approvalData as `0x${string}`,
             });
             console.log('Approval transaction sent:', approvalTxHash);
-            
+
             console.log('Waiting for approval confirmation via public RPC...');
             const approvalReceipt = await customRpcProvider.waitForTransaction(approvalTxHash);
             console.log('Approval confirmed:', approvalReceipt?.hash);
-            
+
             toast.success("Approval Confirmed", {
               description: "Token approval successful. Proceeding with contribution..."
             });
@@ -999,35 +1071,52 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           throw new Error(`Token approval failed: ${approvalError instanceof Error ? approvalError.message : String(approvalError)}`);
         }
       }
-      
+
       console.log('makeContribution: Calling contract.makeContribution...');
       console.log('Contract address:', contract.address);
       console.log('Group ID being passed:', groupId);
-      
+
       // Encode contribution transaction data
       const contributionData = (contract as any).contract.interface.encodeFunctionData('makeContribution', [groupId]);
       console.log('Encoded contribution data:', contributionData);
-      
+
       toast.info('Please sign the contribution transaction in your Farcaster wallet', {
         duration: 10000
       });
-      
+
+      // Sponsor gas for contribution
+      try {
+        const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
+          contractAddress: contractAddress as `0x${string}`,
+          abi: parseAbi(["function makeContribution(uint256)"]),
+          functionName: 'makeContribution',
+          args: [groupId],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+      }
+
       const txHash = await sendTransactionAsync({
         to: contractAddress as `0x${string}`,
         data: contributionData as `0x${string}`,
       });
       console.log('makeContribution: Transaction sent:', txHash);
-      
+
       console.log('makeContribution: Waiting for transaction confirmation via public RPC...');
       const receipt = await customRpcProvider.waitForTransaction(txHash);
       console.log('makeContribution: Transaction confirmed:', receipt?.hash);
-      
+
       console.log('makeContribution: Refreshing groups...');
       await refreshGroups();
       console.log('makeContribution: Groups refreshed');
     } catch (err) {
       console.error('makeContribution: Error occurred:', err);
-      
+
       // Handle specific error cases with better error messages
       if (err instanceof Error) {
         if (err.message.includes("Group has not started yet")) {
@@ -1048,7 +1137,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           throw new Error("Transaction was cancelled by user.");
         }
       }
-      
+
       setError(`Failed to contribute: ${err instanceof Error ? err.message : String(err)}`);
       throw err; // Re-throw so the page component can handle the error
     } finally {
@@ -1067,18 +1156,18 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Primary: Fetch members from contract (authoritative blockchain data)
       const blockchainMembers: string[] = await contract.getGroupMembers(groupId);
       console.log(`📋 Blockchain members for group ${groupId}:`, blockchainMembers);
-      
+
       // Fetch join dates from cached blockchain API (ALWAYS - this is the source of truth)
       let dbMemberData: { [address: string]: { joinDate: string; userName: string } } = {};
       let allMemberAddresses: Set<string> = new Set(blockchainMembers.map(a => a.toLowerCase()));
-      
+
       console.log(`🔍 Fetching join dates from cached blockchain API for group ${groupId}`);
       try {
         const blockchainResponse = await fetch(`/api/thrift/join-dates-cached/${groupId}`);
         if (blockchainResponse.ok) {
           const blockchainData = await blockchainResponse.json();
           console.log('📅 Cached join dates response:', blockchainData);
-          
+
           if (blockchainData.success && blockchainData.joinDates) {
             // Use blockchain data as the primary source for join dates
             let memberIndex = 1;
@@ -1097,7 +1186,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } catch (blockchainError) {
         console.error('Failed to fetch cached join dates from blockchain:', blockchainError);
       }
-      
+
       // Fetch usernames from database and merge with join dates
       console.log(`🔍 Fetching usernames from database for group ${groupId}`);
       try {
@@ -1105,14 +1194,14 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (dbResponse.ok) {
           const dbData = await dbResponse.json();
           console.log('👤 Database members response:', dbData);
-          
+
           if (dbData.members && Array.isArray(dbData.members)) {
             dbData.members.forEach((member: any) => {
               const addr = (member.address || '').toLowerCase();
-              
+
               // Add member to our tracking set (includes creators not yet on blockchain)
               allMemberAddresses.add(addr);
-              
+
               if (addr && dbMemberData[addr]) {
                 // Merge userName from database with existing join date from blockchain
                 if (member.userName) {
@@ -1137,16 +1226,16 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } catch (dbError) {
         console.warn('Failed to fetch usernames from database:', dbError);
       }
-      
+
       // Convert set back to array for mapping
       const allMembers = Array.from(allMemberAddresses);
       console.log(`📋 Total members (blockchain + database): ${allMembers.length}`);
-      
+
       return allMembers.map((address: string, index: number) => {
         // Prioritize database data, fallback to defaults
         let joinDate: string;
         let userName: string;
-        
+
         if (dbMemberData[address.toLowerCase()]) {
           // Use database data (most accurate)
           joinDate = dbMemberData[address.toLowerCase()].joinDate;
@@ -1158,7 +1247,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           userName = `Member ${index + 1}`;
           console.warn(`📅 No data found for member ${address}, using fallback: ${joinDate}, name: ${userName}`);
         }
-        
+
         return {
           address,
           userName,
@@ -1183,16 +1272,34 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       setLoading(true);
       setError(null);
-      
+
       console.log('Distributing payout for groupId:', groupId);
+
+      // Sponsor gas
+      try {
+        const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
+          contractAddress: contractAddress as `0x${string}`,
+          abi: parseAbi(["function distributePayout(uint256)"]),
+          functionName: 'distributePayout',
+          args: [groupId],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+      }
+
       const tx = await contract.distributePayout(groupId);
       console.log('Payout transaction sent:', tx.hash);
       await tx.wait();
       console.log('Payout transaction confirmed');
-      
+
       // Add small delay to ensure blockchain state is updated
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       await refreshGroups();
       toast.success("Payout distributed successfully!");
     } catch (err) {
@@ -1200,7 +1307,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const errorMsg = `Failed to distribute payout: ${err instanceof Error ? err.message : String(err)}`;
       setError(errorMsg);
       toast.error(errorMsg);
-      
+
       // Auto-clear error after 3 seconds
       setTimeout(() => {
         setError(null);
@@ -1210,7 +1317,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
- 
+
   // Generate shareable link for a thrift group
   const generateShareLink = (groupId: number): string => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
@@ -1220,7 +1327,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Admin functions
   const activateThriftGroup = async (groupId: number): Promise<void> => {
     console.log('activateThriftGroup called with groupId:', groupId);
-    
+
     if (!contract || !isConnected) {
       console.log('activateThriftGroup: Contract or connection not available');
       console.log('Contract:', contract);
@@ -1236,24 +1343,24 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       console.log('activateThriftGroup: Setting loading to true');
       setLoading(true);
-      
+
       console.log('activateThriftGroup: Calling contract.activateThriftGroup...');
       console.log('Contract methods available:', Object.getOwnPropertyNames(Object.getPrototypeOf(contract)));
       console.log('activateThriftGroup method exists:', typeof contract.activateThriftGroup);
-      
+
       const tx = await contract.activateThriftGroup(groupId);
       console.log('activateThriftGroup: Transaction sent:', tx.hash);
-      
+
       console.log('activateThriftGroup: Waiting for transaction confirmation...');
       await tx.wait();
       console.log('activateThriftGroup: Transaction confirmed');
-      
+
       console.log('activateThriftGroup: Refreshing groups...');
       await refreshGroups();
       console.log('activateThriftGroup: Groups refreshed');
     } catch (error) {
       console.error('activateThriftGroup: Error occurred:', error);
-      
+
       // Handle specific error cases with better error messages
       if (error instanceof Error) {
         if (error.message.includes("Payout order not set")) {
@@ -1266,7 +1373,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           throw new Error("Insufficient funds to complete the transaction.");
         }
       }
-      
+
       throw error;
     } finally {
       console.log('activateThriftGroup: Setting loading to false');
@@ -1359,14 +1466,14 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           let tokenAddress = '';
           let tokenSymbol = 'cUSD'; // Default fallback
           let tokenDecimals = 18; // Default fallback
-          
+
           try {
             const tg = await readOnlyContract.getThriftGroup(groupId);
             // Support both object and array returns
             maxMembers = Number((tg.maxMembers ?? tg[5] ?? maxMembers));
             // Get token address from contract data
             tokenAddress = tg.tokenAddress ?? tg[6] ?? '';
-            
+
             // Get token info from our configuration
             if (tokenAddress) {
               const tokenConfig = getTokenByAddress(tokenAddress);
@@ -1394,12 +1501,12 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               if (contributionStatus && contributionStatus.contributionAmount) {
                 userContribution = formatUnits(contributionStatus.contributionAmount, tokenDecimals);
               }
-              
+
               // Calculate payment dates based on current round and group settings
               const currentRound = Number(info.currentRound ?? 0);
               const startTime = Number(info.startTime ?? 0);
               const contributionInterval = 7 * 24 * 60 * 60; // 7 days in seconds (assuming weekly)
-              
+
               // Get past recipient from group payouts
               if (groupPayouts && groupPayouts.length > 0) {
                 // Get the most recent payout recipient
@@ -1409,16 +1516,16 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 // If no payouts yet but there's a current recipient, use that
                 pastRecipient = currentRecipient;
               }
-              
+
               // Only calculate payment dates if group has started and is active
               if (startTime > 0 && info.isActive) {
                 const startDate = new Date(startTime * 1000);
                 const lastPayment = new Date(startDate.getTime() + (currentRound * contributionInterval * 1000));
                 const nextPayment = new Date(startDate.getTime() + ((currentRound + 1) * contributionInterval * 1000));
-                
+
                 lastPaymentDate = lastPayment;
                 nextPaymentDate = nextPayment;
-                
+
                 // User-specific payment dates (same as group for now)
                 userLastPayment = lastPayment;
                 userNextPayment = nextPayment;
@@ -1500,7 +1607,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.error(err);
       setUserGroups([]);
       setAllGroups([]);
-      
+
       // Auto-clear error after 5 seconds (longer for fetch errors)
       setTimeout(() => {
         setError(null);
@@ -1532,9 +1639,9 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const handlePayoutDistributed = (groupId: number, recipient: string, amount: bigint, cycle: bigint) => {
       console.log('PayoutDistributed event received:', { groupId, recipient, amount, cycle });
       console.log('Updating group state for groupId:', groupId, 'to round:', Number(cycle));
-      
+
       // Update the specific group's state immediately
-      setUserGroups(prevGroups => 
+      setUserGroups(prevGroups =>
         prevGroups.map(group => {
           if (group.id === groupId) {
             return {
@@ -1542,7 +1649,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               currentRound: Number(cycle),
               pastRecipient: recipient,
               // Update next payment date based on new cycle
-              nextPaymentDate: group.nextPaymentDate ? 
+              nextPaymentDate: group.nextPaymentDate ?
                 new Date(group.nextPaymentDate.getTime() + (7 * 24 * 60 * 60 * 1000)) : // Add 7 days
                 new Date(Date.now() + (7 * 24 * 60 * 60 * 1000))
             };
@@ -1552,14 +1659,14 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       );
 
       // Also update allGroups if it exists
-      setAllGroups(prevGroups => 
+      setAllGroups(prevGroups =>
         prevGroups.map(group => {
           if (group.id === groupId) {
             return {
               ...group,
               currentRound: Number(cycle),
               pastRecipient: recipient,
-              nextPaymentDate: group.nextPaymentDate ? 
+              nextPaymentDate: group.nextPaymentDate ?
                 new Date(group.nextPaymentDate.getTime() + (7 * 24 * 60 * 60 * 1000)) :
                 new Date(Date.now() + (7 * 24 * 60 * 60 * 1000))
             };
@@ -1589,16 +1696,16 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const getContributionHistory = async (groupId: number) => {
     try {
       console.log('[ThriftContext] Fetching contribution history for group:', groupId);
-      
+
       // Call the API route that handles MongoDB caching + blockchain syncing
       const response = await fetch(`/api/thrift/contributions/${groupId}`);
-      
+
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
 
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.error || 'Failed to fetch contributions');
       }
@@ -1653,7 +1760,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     try {
       console.log('Fetching contribution history for group:', groupId);
-      
+
       // First, test basic contract connectivity
       try {
         const groupInfo = await contract.getGroupInfo(groupId);
@@ -1666,7 +1773,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error('Contract connectivity test failed:', contractError);
         throw new Error('Unable to connect to smart contract');
       }
-      
+
       // Get group members to map addresses to names
       const members = await getThriftGroupMembers(groupId);
       const memberMap = new Map();
@@ -1681,15 +1788,15 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const customContract = new MiniSafeAave(contractAddress, customRpcProvider);
         const customFilter = customContract.contract.filters.ContributionMade(groupId);
         console.log('Filter created:', customFilter);
-        
+
         // Get current block to limit query range (avoid "block range too large" error)
         const currentBlock = await customRpcProvider.getBlockNumber();
         const fromBlock = Math.max(0, currentBlock - 10000); // Last ~10k blocks (~14 hours on Celo)
         console.log(`Querying events from block ${fromBlock} to ${currentBlock}...`);
-        
+
         events = await customContract.contract.queryFilter(customFilter, fromBlock, currentBlock);
         console.log('Found contribution events:', events.length);
-        
+
         if (events.length > 0) {
           console.log('First event sample from Fono:', events[0]);
         }
@@ -1700,19 +1807,19 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           code: (rpcError as any).code,
           data: (rpcError as any).data
         });
-        
+
         // Try alternative approach - query using getLogs directly
         try {
           console.log('Trying alternative event querying approach...');
-          
+
           // Get current block number to calculate a reasonable range
           const currentBlock = await customRpcProvider.getBlockNumber();
           console.log('Current block number:', currentBlock);
-          
+
           // Query last 5k blocks to avoid limitations
           const fromBlock = Math.max(0, currentBlock - 5000);
           console.log(`Querying events from block ${fromBlock} to ${currentBlock}`);
-          
+
           const allEvents = await (customRpcProvider as any).getLogs({
             address: contractAddress,
             fromBlock: fromBlock,
@@ -1720,18 +1827,18 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             topics: ['0x0a4a91237423e0a1766a761c7cb029311d8b95d6b1b81db1b949a70c98b4e08e'] // ContributionMade event signature
           });
           console.log('Total events found:', allEvents.length);
-          
+
           // Filter for specific group ID
           events = allEvents.filter(event => {
             const eventData = event as any;
-            return eventData.topics && 
-                   eventData.topics[1] && 
-                   eventData.topics[1].includes(groupId.toString(16).padStart(64, '0')); // Group ID in topics
+            return eventData.topics &&
+              eventData.topics[1] &&
+              eventData.topics[1].includes(groupId.toString(16).padStart(64, '0')); // Group ID in topics
           });
           console.log('Manually filtered ContributionMade events:', events.length);
         } catch (altError) {
           console.error('Alternative event querying also failed:', altError);
-          
+
           // Final fallback - try wallet RPC with limited range
           try {
             console.log('Trying wallet RPC as final fallback...');
@@ -1746,9 +1853,9 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           }
         }
       }
-      
+
       const contributions = [];
-      
+
       for (const event of events) {
         try {
           // Type assertion to handle ethers event types
@@ -1756,7 +1863,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (eventData.args && eventData.args.member && eventData.args.amount) {
             const memberAddress = eventData.args.member;
             const amount = eventData.args.amount;
-            
+
             // Try to get block timestamp, fallback to current time if RPC fails
             let contributionDate = new Date();
             try {
@@ -1777,7 +1884,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 console.warn('Custom RPC also failed to fetch block timestamp, using current time:', customBlockError);
               }
             }
-            
+
             // Get token info for formatting
             const groupInfo = await contract.getGroupInfo(groupId);
             const thriftGroup = await contract.getThriftGroup(groupId);
@@ -1785,7 +1892,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const tokenConfig = getTokenByAddress(tokenAddress);
             const tokenSymbol = tokenConfig?.symbol || 'CELO';
             const decimals = tokenConfig?.decimals || 18;
-            
+
             contributions.push({
               date: contributionDate,
               member: memberAddress,
@@ -1799,13 +1906,13 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           console.warn('Error processing contribution event:', eventError);
         }
       }
-      
+
       // Sort by date (newest first)
       contributions.sort((a, b) => b.date.getTime() - a.date.getTime());
-      
+
       console.log('Processed contributions:', contributions);
       return contributions;
-      
+
     } catch (error) {
       console.error('Failed to fetch contribution history:', error);
       // Return empty array instead of throwing to prevent UI crashes
