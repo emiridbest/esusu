@@ -1,0 +1,42 @@
+{
+    "accountAssociation": {
+        "header": "eyJmaWQiOjg0OTM2MywidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweEVjM2IyM0U0NTQwNzY2RWVkMmI0MDZGRTk4MTg3YzhBN0U3MjViQmMifQ",
+        "payload": "eyJkb21haW4iOiJlc3VzdS1mYXJjYXN0ZXIudmVyY2VsLmFwcCJ9",
+        "signature": "MHgzNjQwNDMwMWQ0NGI1NDNjNzM2NzFhMzE1NmU2MmFmZDA0YmZiNDVmZDY5ZjVhMmI4YThiNWMyNGIwZmI0YzFiNDA2NzVmZDI0MjI3MTM4NDIzZjNkNTFlNjUzNDQ4NTAwNjA3ZWExZWJkMDEwOTZjNWVmNjZiYzI1MjI4NTk2NDFj"
+    },
+    "frame": {
+        "version": "next",
+        "name": "Esusu",
+        "iconUrl": "https://esusu-farcaster.vercel.app/esusu.png",
+        "homeUrl": "https://esusu-farcaster.vercel.app",
+        "splashImageUrl": "https://esusu-farcaster.vercel.app/esusu.png",
+        "splashBackgroundColor": "#f5f0ec",
+        "webhookUrl": "https://api.neynar.com/f/app/9b0eeef4-765a-467d-b78c-8a6590e4d99d/event",
+        "subtitle": "Mobile data with crypto",
+        "description": "Buy mobile data bundles for Africa using cryptocurrency on Celo blockchain",
+        "primaryCategory": "finance",
+        "tags": [
+            "crypto",
+            "topup",
+            "mobile",
+            "africa",
+            "data"
+        ],
+        "heroImageUrl": "https://esusu-farcaster.vercel.app/api/og/data",
+        "tagline": "Top-up mobile data with crypto",
+        "ogTitle": "Esusu - Mobile Data Bundles",
+        "ogDescription": "Buy mobile data with crypto for Nigeria, Ghana, and more African countries",
+        "ogImageUrl": "https://esusu-farcaster.vercel.app/api/og/data",
+        "requiredChains": [
+            "eip155:42220"
+        ],
+        "requiredCapabilities": [
+            "wallet.getEthereumProvider",
+            "actions.composeCast",
+            "actions.addMiniApp",
+            "actions.openUrl",
+            "actions.close",
+            "actions.ready"
+        ]
+    }
+}

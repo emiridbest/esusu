@@ -1,0 +1,42 @@
+/**
+ * Frame Freebies Route
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { FIDMappingService } from '@/lib/frame/fidMapping';
+
+export const dynamic = 'force-dynamic';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    
+    const context = {
+      fid: body.untrustedData?.fid || body.fid,
+      walletAddress: body.untrustedData?.address,
+      inputText: body.untrustedData?.inputText,
+      buttonIndex: body.untrustedData?.buttonIndex,
+    };
+
+    if (!context.fid) {
+      return NextResponse.json({ error: 'FID required' }, { status: 400 });
+    }
+
+    const walletAddress = await FIDMappingService.getWalletFromFID(context.fid);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://esusu-farcaster.vercel.app';
+    
+    return NextResponse.json({
+      version: 'vNext',
+      image: `${baseUrl}/api/og/freebies${walletAddress ? `?wallet=${walletAddress}` : ''}`,
+      buttons: [
+        { label: '🎁 Claim G$', action: 'post', target: `${baseUrl}/api/frame/freebies/claim` },
+        { label: '🔄 Exchange', action: 'post', target: `${baseUrl}/api/frame/freebies/exchange` },
+        { label: '📊 Rewards', action: 'post', target: `${baseUrl}/api/frame/freebies/rewards` },
+        { label: '🏠 Home', action: 'post', target: `${baseUrl}/api/frame` },
+      ],
+    });
+  } catch (error) {
+    console.error('Error in frame freebies:', error);
+    return NextResponse.json({ error: 'Failed to load freebies' }, { status: 500 });
+  }
+}

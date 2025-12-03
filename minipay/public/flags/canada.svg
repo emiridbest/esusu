@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="500" viewBox="0 0 30 15">
+  <!-- Red sidebars -->
+  <rect width="30" height="15" fill="#FF0000"/>
+  
+  <!-- White center -->
+  <rect x="7.5" width="15" height="15" fill="#FFFFFF"/>
+  
+  <!-- Maple leaf -->
+  <path d="M 15,3.5 L 15.84,5.74 L 18.22,5.23 L 16.71,7.13 L 18.53,8.77 L 16.1,9.03 L 16.05,11.5 L 15,10 L 13.95,11.5 L 13.9,9.03 L 11.47,8.77 L 13.29,7.13 L 11.78,5.23 L 14.16,5.74 Z" fill="#FF0000"/>
+</svg>
