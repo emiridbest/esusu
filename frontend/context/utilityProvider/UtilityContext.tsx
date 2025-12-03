@@ -323,12 +323,11 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           console.error('[handleTransaction] Wallet or account not connected:', { wallet, account });
           throw new Error('Wallet not connected');
         }
-        
         // Send transaction using Thirdweb v5 pattern
         const { sendTransaction, prepareTransaction } = await import('thirdweb');
         let transaction, txResult;
         try {
-          transaction = await prepareTransaction({
+          const transaction= await prepareTransaction({
             to: tokenAddress as `0x${string}`,
             data: dataWithSuffix as `0x${string}`,
           client,
