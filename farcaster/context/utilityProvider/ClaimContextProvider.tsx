@@ -237,6 +237,24 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
       const dataWithSuffix = claimData + dataSuffix;
 
+      // Check and sponsor gas for claim transaction
+      try {
+        const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+          contractAddress: ubiSchemeV2Address as `0x${string}`,
+          abi: ubiSchemeV2ABI,
+          functionName: 'claim',
+          args: [],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error('[ClaimProvider] Gas sponsorship failed', gasError);
+        // Continue even if sponsorship fails
+      }
+
       const tx = await sendTransactionAsync({
         to: ubiSchemeV2Address as `0x${string}`,
         data: dataWithSuffix as `0x${string}`,
@@ -311,7 +329,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       setIsProcessing(false);
       setIsWaitingTx(false);
     }
-  }, [isConnected, address, sendTransactionAsync]);
+  }, [isConnected, address, sendTransactionAsync, checkAndSponsor]);
 
   const processDataTopUp = useCallback(async (
     values: any,
@@ -459,7 +477,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           await new Promise(resolve => setTimeout(resolve, 3000));
         }
       } catch (gasError) {
-        console.error("Gas sponsorship failed:", gasError);
+        console.error('[ClaimProvider] Payment gas sponsorship failed', gasError);
         // Continue anyway
       }
 
@@ -503,7 +521,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     } finally {
       setIsWaitingTx(false);
     }
-  }, [isConnected, address, entitlement, sendTransactionAsync, transactionSteps, updateStepStatus]);
+  }, [isConnected, address, entitlement, sendTransactionAsync, transactionSteps, updateStepStatus, checkAndSponsor]);
 
   const getDialogTitle = useCallback(() => {
     switch (currentOperation) {
