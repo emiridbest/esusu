@@ -141,8 +141,7 @@ export async function POST(request: Request) {
     const { domain, types, message } = await engagementRewards.prepareAppSignature(
       APP_ADDRESS,
       user as `0x${string}`,
-      blockNumber,
-      (inviter as `0x${string}`) || '0x0000000000000000000000000000000000000000'
+      blockNumber
     )
 
     // Sign the prepared data
