@@ -341,11 +341,23 @@ const RewardsClaimCard = () => {
 
       setStatus("Processing your claim...")
 
+      console.log('Claim Debug:', {
+        APP_ADDRESS,
+        inviter: inviterAddress || INVITER_ADDRESS,
+        validUntilBlock,
+        userAddress
+      })
+
       // Get app signature from backend
       const appSignature = await getAppSignature({
         user: userAddress!,
         validUntilBlock: validUntilBlock.toString(),
         inviter: inviterAddress || INVITER_ADDRESS
+      })
+
+      console.log('Signatures:', {
+        userSignature,
+        appSignature
       })
 
       setClaimStep('submitting')
