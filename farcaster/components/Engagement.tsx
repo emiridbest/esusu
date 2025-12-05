@@ -33,6 +33,8 @@ import {
 } from '../lib/engagementHelpers'
 import { useSearchParams } from 'next/navigation'
 import { useIdentitySDK } from "@goodsdks/react-hooks"
+import sdk from "@farcaster/frame-sdk"
+
 interface InviteReward {
   invitedWallet: string
   rewardAmount: string
@@ -273,9 +275,25 @@ const handleVerification = async () => {
       const callbackUrl = "https://farcaster.xyz/miniapps/ODGMy9CdO8UI/esusu/freebies"
       const fvLink = await identitySDK.generateFVLink(true, callbackUrl)
 
+      // Try using Farcaster SDK first to open in system browser
+      try {
+        if (sdk && sdk.actions && sdk.actions.openUrl) {
+          await sdk.actions.openUrl(fvLink)
+          toast.success("Verification opened in a new tab. Complete it and you'll be redirected back.")
+          return
+        }
+      } catch (sdkError) {
+        console.warn("Failed to open URL via Farcaster SDK:", sdkError)
+      }
+
+      // Fallback to window.open with delay as requested
       const newWindow = window.open(fvLink, "_blank", "noopener,noreferrer")
+      
       if (!newWindow) {
-        window.location.href = fvLink
+        // If popup blocked, try redirecting after a short delay
+        setTimeout(() => {
+           window.location.href = fvLink
+        }, 2000)
       } else {
         newWindow.focus()
       }
