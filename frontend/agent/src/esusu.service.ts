@@ -24,11 +24,11 @@ export class EsusuFaucetService {
      * @returns A promise that resolves with a message indicating the result of the claim.
      */
     @Tool({
-        name: 'claimForUser',
+        name: 'claimUsdtForUser',
         description: 'Claim usdt from the Esusu faucet for a specific user on minipay',
         parameters: EsusuParameters,
     })
-    public async claimForUser(
+    public async claimUsdtForUser(
         walletClient: EVMWalletClient,
         // @ts-ignore
         params: EsusuParameters
@@ -107,11 +107,11 @@ export class EsusuFaucetService {
      * @returns A promise that resolves with a message indicating the result of the claim.
      */
     @Tool({
-        name: 'claimForUser',
+        name: 'claimCeloForUser',
         description: 'Claim celo from the Esusu faucet for a specific user who is not on minipay',
         parameters: EsusuParameters,
     })
-    public async claimForUser(
+    public async claimCeloForUser(
         walletClient: EVMWalletClient,
         // @ts-ignore
         params: EsusuParameters
