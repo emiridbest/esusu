@@ -1,10 +1,10 @@
 import { PluginBase, Chain } from "@goat-sdk/core";
 import { EVMWalletClient } from "@goat-sdk/wallet-evm";
-import { EsusuService } from "./esusu.service";
+import { EsusuFaucetService } from "./esusu.service";
 
 export class EsusuPlugin extends PluginBase<EVMWalletClient> {
     constructor() {
-        super("esusu", [new EsusuService()]);
+        super("esusufaucet", [new EsusuFaucetService()]);
     }
 
     supportsChain = (chain: Chain) => chain.type === "evm";
