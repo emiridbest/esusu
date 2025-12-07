@@ -16,6 +16,8 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "jsx": "preserve",
     "baseUrl": ".",
     "paths": {
