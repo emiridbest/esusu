@@ -62,7 +62,7 @@ export async function POST(req: Request) {
                 Your address is not the recipient address for claimed tokens.
                 Your address is never the destination for claimed tokens.
                 If you are unsure about any request, ask for clarification instead of making assumptions.
-                Your address is ${account.address}, and you must not send claimed tokens to this address, and you must not confuse this address with ${userAddress}.`,
+                Your address is ${account.address}, and you must not send claimed tokens to yourself, and you must not confuse your address with ${userAddress}.`,
             //@ts-ignore
             tools: tools,
             maxSteps: 20,
