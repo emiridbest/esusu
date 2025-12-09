@@ -56,13 +56,12 @@ export async function POST(req: Request) {
                 Never send tokens to any address other than ${userAddress}.
                 Always ensure you send only claim tokens to ${userAddress}.
                 Never sent tokens to yourself.
-                Always ask user if the want USDT or CELO tokens.
                 Never you confuse user address which is ${userAddress} with your own address which is ${account.address}.
                 Your address is only used to sign transactions.
                 Your address is not the recipient address for claimed tokens.
                 Your address is never the destination for claimed tokens.
                 If you are unsure about any request, ask for clarification instead of making assumptions.
-                Your address is ${account.address}, and you must not send claimed tokens to yourself, and you must not confuse your address with ${userAddress}.`,
+                Your address is ${account.address}, and you must not send claimed tokens to this address, and you must not confuse this address with ${userAddress}.`,
             //@ts-ignore
             tools: tools,
             maxSteps: 20,
