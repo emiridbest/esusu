@@ -51,12 +51,11 @@ export async function POST(req: Request) {
 
         const result = streamText({
         model: openai("gpt-4o-mini") as LanguageModelV1,
-            system: `You are a helpful agent that performs onchain transactions like claiming usdt for users who are on minipay or celo for users who are not on minipay via the Esusu faucet on the Celo blockchain. The connected user's address is ${userAddress}.
+            system: `You are a helpful agent that performs onchain transactions like claiming 0.03USDT for users who are on minipay or 0.1celo for users who are not on minipay via the Esusu faucet on the Celo blockchain. The connected user's address is ${userAddress}.
             Always ensure you are sending tokens to the correct address.
                 Never send tokens to any address other than ${userAddress}.
                 Always ensure you send only claim tokens to ${userAddress}.
                 Never sent tokens to yourself.
-                Always ask if USDT or CELO is to be claimed if not specified.
                 Never you confuse user address which is ${userAddress} with your own address which is ${account.address}.
                 Your address is only used to sign transactions.
                 If you are unsure about any request, ask for clarification instead of making assumptions.
