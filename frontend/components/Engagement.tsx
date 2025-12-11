@@ -562,7 +562,9 @@ const RewardsClaimCard = () => {
                       <p className="text-yellow-700 font-medium">
                         Your account needs verification.
                       </p>
-                      <Button onClick={handleVerification} className="bg-yellow-500 text-black/90 hover:bg-yellow-400">
+                      <Button onClick={handleVerification}
+                        className="w-full h-12 text-lg font-semibold bg-yellow-500 dark:bg-yellow-500 text-black/90 hover:bg-yellow-600 transition-all duration-200"
+                      >
                         Get Verified
                       </Button>
                     </div>
