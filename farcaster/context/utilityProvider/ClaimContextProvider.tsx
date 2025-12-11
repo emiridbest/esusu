@@ -19,6 +19,7 @@ import {
 import { Button } from "../../components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '../../components/TransactionSteps';
 import { txCountABI, txCountAddress } from '../../utils/pay';
+import sdk from '@farcaster/frame-sdk';
 
 // Constants
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
@@ -170,29 +171,46 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     initializeClaimSDK();
   }, [isConnected, address, ClaimSDK, claimSDKLoading]);
 
-  // Handle FV (Face Verification) link generation
-  const handleVerification = useCallback(async () => {
+
+const handleVerification = useCallback(async () => {
     if (!identitySDK) {
-      return;
+      toast.error("Identity SDK not initialized")
+      return
     }
 
-   try {
+    try {
       const callbackUrl = "https://farcaster.xyz/miniapps/ODGMy9CdO8UI/esusu/freebies"
       const fvLink = await identitySDK.generateFVLink(true, callbackUrl)
 
+      // Try using Farcaster SDK first to open in system browser
+      try {
+        if (sdk && sdk.actions && sdk.actions.openUrl) {
+          await sdk.actions.openUrl(fvLink)
+          toast.success("Verification opened in a new tab. Complete it and you'll be redirected back.")
+          return
+        }
+      } catch (sdkError) {
+        console.warn("Failed to open URL via Farcaster SDK:", sdkError)
+      }
+
+      // Fallback to window.open with delay as requested
       const newWindow = window.open(fvLink, "_blank", "noopener,noreferrer")
+      
       if (!newWindow) {
-        window.location.href = fvLink
+        // If popup blocked, try redirecting after a short delay
+        setTimeout(() => {
+           window.location.href = fvLink
+        }, 2000)
       } else {
         newWindow.focus()
       }
 
       toast.success("Verification opened in a new tab. Complete it and you'll be redirected back.")
-   } catch (err) {
-      console.error("Error generating verification link:", err);
-      toast.error("Failed to generate verification link");
+    } catch (err) {
+      console.error("Error generating verification link:", err)
+      toast.error("Failed to generate verification link")
     }
-  }, [identitySDK]);
+  }, [identitySDK, sdk]);
 
   const updateStepStatus = useCallback((stepId: string, status: StepStatus, errorMessage?: string) => {
     setTransactionSteps(prevSteps => prevSteps.map(step =>
