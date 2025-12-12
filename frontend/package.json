@@ -105,6 +105,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
     "@types/hast": "^3.0.4",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/mdast": "^4.0.4",
     "@types/node": "^20.19.11",

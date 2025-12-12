@@ -44,7 +44,6 @@ interface MiniSafeContextType {
   cusdBalance: string;
   usdcBalance: string;
   usdtBalance: string;
-  tokenBalance: string;
   selectedToken: string;
   setSelectedToken: (token: string) => void;
   isApproved: boolean;
@@ -52,7 +51,6 @@ interface MiniSafeContextType {
   isApproving: boolean;
   isWaitingTx: boolean;
   isLoading: boolean;
-  interestRate: number;
 
   // Transaction dialog
   isTransactionDialogOpen: boolean;
@@ -63,7 +61,6 @@ interface MiniSafeContextType {
 
   // Functions
   getBalance: () => Promise<void>;
-  getTokenBalance: () => Promise<void>;
   handleTokenChange: (value: string) => void;
   approveSpend: () => Promise<void>;
   handleDeposit: () => Promise<void>;
@@ -79,9 +76,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const usdcAddress = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
   const cusdAddress = "0x765de816845861e75a25fca122bb6898b8b1282a";
   const usdtAddress = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e";
-  // Reward token (EST) configuration via environment
-  const rewardTokenAddressEnv = (process.env.NEXT_PUBLIC_REWARD_TOKEN_ADDRESS || '').trim();
-  const rewardTokenDecimalsDefault = Number.parseInt(process.env.NEXT_PUBLIC_REWARD_TOKEN_DECIMALS || '18', 10);
+
 
   // State values
   const [depositAmount, setDepositAmount] = useState(0);
@@ -89,13 +84,11 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [cusdBalance, setcusdBalance] = useState('0');
   const [usdcBalance, setUsdcBalance] = useState('0');
   const [usdtBalance, setusdtBalance] = useState('0');
-  const [tokenBalance, setTokenBalance] = useState('0');
   const [selectedToken, setSelectedToken] = useState('CUSD');
   const [isApproved, setIsApproved] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isWaitingTx, setIsWaitingTx] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [interestRate] = useState(5); // 5% APY for visualization
 
   // Get thirdweb v5 wallet info
   const account = useActiveAccount();
@@ -113,7 +106,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Default to G$ token address if env var not set
   const tokenAddress = process.env.NEXT_PUBLIC_TOKEN_ADDRESS || '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A';
-  const rewardTokenAddress = process.env.NEXT_PUBLIC_REWARD_TOKEN_ADDRESS || '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A';
 
   const tokenContract = tokenAddress ? getContract({
     client,
@@ -121,11 +113,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     address: tokenAddress as `0x${string}`,
   }) : null;
 
-  const rewardTokenContract = rewardTokenAddress ? getContract({
-    client,
-    chain: activeChain,
-    address: rewardTokenAddress as `0x${string}`,
-  }) : null;
+
 
   // Transaction dialog states
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
@@ -186,44 +174,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [address, miniSafeContract, cusdAddress, usdcAddress, usdtAddress]);
 
-  const getTokenBalance = useCallback(async () => {
-    if (!address || !rewardTokenContract) {
-      setTokenBalance('0');
-      return;
-    }
 
-    try {
-      // Try to read token decimals; fallback to env default
-      let decimals = rewardTokenDecimalsDefault;
-      try {
-        const d = await readContract({
-          contract: rewardTokenContract,
-          method: "function decimals() view returns (uint8)",
-          params: []
-        });
-        if (typeof d === 'number') decimals = d;
-        if (typeof d === 'bigint') decimals = Number(d);
-      } catch {
-        // Use fallback
-      }
-
-      const data = await readContract({
-        contract: rewardTokenContract,
-        method: "function balanceOf(address) view returns (uint256)",
-        params: [address as `0x${string}`]
-      });
-
-      if (typeof data === 'bigint') {
-        const formatted = formatUnits(data, decimals);
-        setTokenBalance(formatted);
-      } else {
-        setTokenBalance('0');
-      }
-    } catch (error) {
-      console.error('Error fetching reward token balance:', error);
-      setTokenBalance('0');
-    }
-  }, [address, rewardTokenContract, rewardTokenDecimalsDefault]);
 
   const handleTokenChange = (value: string) => {
     setSelectedToken(value);
@@ -414,7 +365,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Check balance and update first step
       await getBalance();
-      await getTokenBalance();
       updateStepStatus('check-balance', 'success');
       // Approval step
       updateStepStatus('approve', 'loading');
@@ -538,7 +488,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         });
         if (receipt.status === "success") {
           await getBalance();
-          await getTokenBalance();
           setDepositAmount(0);
           setIsApproved(false);
           updateStepStatus('confirm', 'success');
@@ -601,7 +550,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Fix: Properly define weiAmount
       const withdrawalValue = parseEther(withdrawalAmount.toString());
       await getBalance();
-      await getTokenBalance();
       updateStepStatus('check-balance', 'success');
 
       updateStepStatus('withdraw', 'loading');
@@ -659,7 +607,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (receipt.status === "success") {
           updateStepStatus('confirm', 'success');
           await getBalance();
-          await getTokenBalance();
           toast.success('Withdrawal successful!');
         } else {
           updateStepStatus('confirm', 'error', 'Transaction failed on blockchain');
@@ -925,9 +872,8 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     if (address) {
       getBalance();
-      getTokenBalance();
     }
-  }, [address, getBalance, getTokenBalance]);
+  }, [address, getBalance]);
 
   // Format balance for display
   const formatBalance = (balance: string | undefined, decimals = 2) => {
@@ -954,7 +900,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     cusdBalance,
     usdcBalance,
     usdtBalance,
-    tokenBalance,
     selectedToken,
     setSelectedToken,
     isApproved,
@@ -962,7 +907,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     isApproving,
     isWaitingTx,
     isLoading,
-    interestRate,
 
     // Transaction dialog
     isTransactionDialogOpen,
@@ -973,7 +917,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // Functions
     getBalance,
-    getTokenBalance,
     handleTokenChange,
     approveSpend,
     handleDeposit,

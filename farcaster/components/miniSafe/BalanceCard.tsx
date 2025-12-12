@@ -6,7 +6,6 @@ import { formatUnits } from "ethers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -15,7 +14,6 @@ import {
   WalletIcon,
   CoinsIcon,
   ClockIcon,
-  InfoIcon,
   RefreshCwIcon,
 } from "lucide-react";
 
@@ -24,14 +22,11 @@ const BalanceCard: React.FC = () => {
     cusdBalance,
     usdcBalance,
     usdtBalance,
-    tokenBalance,
     selectedToken,
     handleTokenChange,
     isLoading,
     getBalance,
-    getTokenBalance,
     formatBalance,
-    interestRate,
   } = useMiniSafe();
 
 
@@ -112,21 +107,7 @@ const BalanceCard: React.FC = () => {
               </div>
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">EST Tokens</div>
-                <Badge className="bg-black text-primary hover:bg-black/70 text-xs">Reward Token</Badge>
-              </div>
-              <div className="flex items-center justify-between bg-gradient-to-r from-primary/10 to-transparent rounded-md p-3">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-2">
-                    <CoinsIcon className="h-4 w-4 text-primary" />
-                  </div>
-                  <span className="font-medium">EST</span>
-                </div>
-                <div className="text-xl font-bold">{tokenBalance}</div>
-              </div>
-            </div>
+
           </>
         )}
 
@@ -147,16 +128,7 @@ const BalanceCard: React.FC = () => {
           </Select>
         </div>
 
-        {usdcBalance && parseFloat(formatUnits(usdcBalance || '0', 6)) > 0 && (
-          <Alert className="bg-primary/5 border-primary/20">
-            <div className="flex items-start">
-              <InfoIcon className="h-5 w-5 text-primary mr-2 mt-0.5" />
-              <AlertDescription className="text-sm">
-                Your assets are earning approximately {interestRate}% APY in EST tokens
-              </AlertDescription>
-            </div>
-          </Alert>
-        )}
+
       </CardContent>
 
       <CardFooter className="border-t border-gray-100 dark:border-gray-700 pt-4 flex items-center justify-between text-xs text-gray-500">
@@ -170,7 +142,6 @@ const BalanceCard: React.FC = () => {
           className="h-7 px-2 text-xs text-gray-500"
           onClick={() => {
             getBalance();
-            getTokenBalance();
           }}
         >
           <RefreshCwIcon className="h-3 w-3 mr-1 text-gray-500" />
