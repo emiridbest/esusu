@@ -130,9 +130,9 @@ export default function Chat() {
                                 Ask me about Esusu services, managing your finances, or how to use the platform.
                             </p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-lg dark:text-gray-400">
-                                <Button variant="outline" className="justify-start text-left p-4 h-auto bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300" onClick={() => 
-                                    handleInputChange({ target: { value: "How do I deposit funds into my Esusu account?" } } as any)}>
-                                    How do I deposit funds?
+                                <Button variant="outline" className="justify-start text-left p-4 h-auto" onClick={() => 
+                                    handleInputChange({ target: { value: "How do I claim free gas fees into my Esusu account?" } } as any)}>
+                                    How do I claim free gas fees?
                                 </Button>
                                 <Button variant="outline" className="justify-start text-left p-4 h-auto bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300" onClick={() => 
                                     handleInputChange({ target: { value: "Explain how the thrift feature works" } } as any)}>
