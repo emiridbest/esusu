@@ -6,7 +6,7 @@
 - Esusu deploys the Thirdweb SDK live
 - Extend the entire features on Esusu to Farcaster
 - Automate gas fee distribution via EsusuAI
-- Refer 2000+ users to G$
+- Refer 3000+ users to G$
 - Created a Dune dashboard to track KPIs via Divvi
 - Track G$ claims via Divvi
 - Implement Gas sponsorship
