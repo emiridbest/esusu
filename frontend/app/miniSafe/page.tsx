@@ -13,7 +13,7 @@ import { ShieldIcon } from "lucide-react";
 
 // Custom components
 import { MiniSafeProvider } from '@/context/miniSafe/MiniSafeContext';
-import {BalanceCard, BreakLockTab, WithdrawTab, DepositTab} from '@/components/miniSafe';
+import { BalanceCard, BreakLockTab, WithdrawTab, DepositTab } from '@/components/miniSafe';
 
 
 export default function MiniSafe() {
@@ -31,7 +31,7 @@ export default function MiniSafe() {
             MiniSafe
           </h1>
           <p className="text-gray-600 dark:text-gray-300 max-w-3xl">
-            Deposit your assets into a secure, time-locked vault and earn rewards. Break the timelock early using EST tokens.
+            Deposit your assets into a secure, time-locked vault and earn rewards. Break the timelock early with a 5% penalty.
           </p>
         </motion.div>
 
@@ -88,6 +88,6 @@ export default function MiniSafe() {
           <TransactionList />
         </div>
       </div>
-    </MiniSafeProvider>
+    </MiniSafeProvider >
   );
 }

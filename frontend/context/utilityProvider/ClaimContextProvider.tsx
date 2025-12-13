@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '@/components/TransactionSteps';
 import { txCountABI, txCountAddress } from '@/utils/pay';
+import useGasSponsorship from '@/hooks/useGasSponsorship';
 // Constants
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
@@ -103,6 +104,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const chainId = celo.id;
   const { sdk: identitySDK } = useIdentitySDK("production");
   const { sdk: ClaimSDK, loading: claimSDKLoading, error: claimSDKError } = useClaimSDK("production");
+  const { checkAndSponsor } = useGasSponsorship();
 
   // Reset SDK when chain changes
   useEffect(() => {
@@ -175,7 +177,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         }
 
         // Check entitlement - this is the correct way per documentation
-        const { amount, altClaimAvailable, altChainId: altChain } = 
+        const { amount, altClaimAvailable, altChainId: altChain } =
           await ClaimSDK.checkEntitlement();
 
         setEntitlement(amount);
@@ -190,10 +192,10 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         setClaimAmount(rounded);
         setAltClaimAvailable(altClaimAvailable);
         setAltChainId(altClaimAvailable ? (altChain ?? null) : null);
-        
+
         // Determine if user can claim
         setCanClaim(amount > BigInt(0));
-        
+
         // Set the initialized SDK
         setClaimSDK(ClaimSDK);
 
@@ -256,135 +258,152 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     ));
   }, []);
 
- const handleClaim = useCallback(async () => {
-  if (!isConnected || !address) {
-    toast.error("Wallet not connected");
-    return { success: false, error: new Error("Wallet not connected") };
-  }
-
-  setIsProcessing(true);
-  setIsWaitingTx(true);
-
-  try {
-    toast.info("Claiming your UBI...");
-
-    // Prepare claim transaction using the UBI Scheme V2 contract
-    const claimData = encodeFunctionData({
-      abi: ubiSchemeV2ABI,
-      functionName: 'claim',
-      args: []
-    });
-
-    if (!wallet || !account) {
-      throw new Error('Wallet not connected');
+  const handleClaim = useCallback(async () => {
+    if (!isConnected || !address) {
+      toast.error("Wallet not connected");
+      return { success: false, error: new Error("Wallet not connected") };
     }
 
-    const { sendTransaction, prepareTransaction, waitForReceipt } = await import('thirdweb');
-    const { client, activeChain } = await import('@/lib/thirdweb');
+    setIsProcessing(true);
+    setIsWaitingTx(true);
 
-    // Add Divvi referral tag to the claim transaction
-    const dataSuffix = getReferralTag({
-      user: address as `0x${string}`,
-      consumer: RECIPIENT_WALLET as `0x${string}`,
-    });
-
-    const dataWithSuffix = claimData + dataSuffix;
-
-    const claimTransaction = await prepareTransaction({
-      to: ubiSchemeV2Address as `0x${string}`,
-      data: dataWithSuffix as `0x${string}`,
-      client,
-      chain: activeChain,
-    });
-
-    const tx = await sendTransaction({
-      account,
-      transaction: claimTransaction,
-    });
-
-    // Wait for confirmation
-    const receipt = await waitForReceipt({
-      client,
-      chain: activeChain,
-      transactionHash: tx.transactionHash,
-    });
-
-    if (receipt.status !== 'success') {
-      throw new Error("Transaction failed");
-    }
-
-    // Submit claim transaction to Divvi referral system
     try {
-      await submitReferral({
-        txHash: tx.transactionHash,
-        chainId: activeChain.id,
-      });
-      console.log("Claim transaction referral submitted to Divvi.");
-    } catch (referralError) {
-      console.error("Referral submission error for claim:", referralError);
-      // Don't fail the whole operation if referral submission fails
-    }
+      toast.info("Claiming your UBI...");
 
-    // Reset claim amount after successful claim
-    setClaimAmount(null);
-    setEntitlement(BigInt(0));
-    setCanClaim(false);
-
-    toast.success("Successfully claimed G$ tokens!");
-
-    // Update transaction count with referral tracking
-    try {
-      const txCountAbi = parseAbi(["function increment()"]);
-      const txCountData = encodeFunctionData({
-        abi: txCountAbi,
-        functionName: 'increment',
+      // Prepare claim transaction using the UBI Scheme V2 contract
+      const claimData = encodeFunctionData({
+        abi: ubiSchemeV2ABI,
+        functionName: 'claim',
         args: []
       });
-      
-      const countDataSuffix = getReferralTag({
+
+      if (!wallet || !account) {
+        throw new Error('Wallet not connected');
+      }
+
+      const { sendTransaction, prepareTransaction, waitForReceipt } = await import('thirdweb');
+      const { client, activeChain } = await import('@/lib/thirdweb');
+
+      // Add Divvi referral tag to the claim transaction
+      const dataSuffix = getReferralTag({
         user: address as `0x${string}`,
         consumer: RECIPIENT_WALLET as `0x${string}`,
       });
-      
-      const countDataWithSuffix = txCountData + countDataSuffix;
 
-      const txCountTransaction = await prepareTransaction({
-        to: txCountAddress as `0x${string}`,
-        data: countDataWithSuffix as `0x${string}`,
+      const dataWithSuffix = claimData + dataSuffix;
+
+      const claimTransaction = await prepareTransaction({
+        to: ubiSchemeV2Address as `0x${string}`,
+        data: dataWithSuffix as `0x${string}`,
         client,
         chain: activeChain,
       });
 
-      const txCount = await sendTransaction({
-        account,
-        transaction: txCountTransaction,
-      });
-
+      // Sponsor gas for claim
       try {
-        await submitReferral({
-          txHash: txCount.transactionHash,
-          chainId: activeChain.id,
+        const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+          contractAddress: ubiSchemeV2Address as `0x${string}`,
+          abi: ubiSchemeV2ABI,
+          functionName: 'claim',
+          args: [],
         });
-        console.log("Transaction count referral submitted to Divvi.");
-      } catch (referralError) {
-        console.error("Referral submission error for count:", referralError);
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
       }
 
-      return { success: true, transactionHash: tx.transactionHash };
+      const tx = await sendTransaction({
+        account,
+        transaction: claimTransaction,
+      });
+
+      // Wait for confirmation
+      const receipt = await waitForReceipt({
+        client,
+        chain: activeChain,
+        transactionHash: tx.transactionHash,
+      });
+
+      if (receipt.status !== 'success') {
+        throw new Error("Transaction failed");
+      }
+
+      // Submit claim transaction to Divvi referral system
+      try {
+        await submitReferral({
+          txHash: tx.transactionHash,
+          chainId: activeChain.id,
+        });
+        console.log("Claim transaction referral submitted to Divvi.");
+      } catch (referralError) {
+        console.error("Referral submission error for claim:", referralError);
+        // Don't fail the whole operation if referral submission fails
+      }
+
+      // Reset claim amount after successful claim
+      setClaimAmount(null);
+      setEntitlement(BigInt(0));
+      setCanClaim(false);
+
+      toast.success("Successfully claimed G$ tokens!");
+
+      // Update transaction count with referral tracking
+      try {
+        const txCountAbi = parseAbi(["function increment()"]);
+        const txCountData = encodeFunctionData({
+          abi: txCountAbi,
+          functionName: 'increment',
+          args: []
+        });
+
+        const countDataSuffix = getReferralTag({
+          user: address as `0x${string}`,
+          consumer: RECIPIENT_WALLET as `0x${string}`,
+        });
+
+        const countDataWithSuffix = txCountData + countDataSuffix;
+
+        const txCountTransaction = await prepareTransaction({
+          to: txCountAddress as `0x${string}`,
+          data: countDataWithSuffix as `0x${string}`,
+          client,
+          chain: activeChain,
+        });
+
+        const txCount = await sendTransaction({
+          account,
+          transaction: txCountTransaction,
+        });
+
+        try {
+          await submitReferral({
+            txHash: txCount.transactionHash,
+            chainId: activeChain.id,
+          });
+          console.log("Transaction count referral submitted to Divvi.");
+        } catch (referralError) {
+          console.error("Referral submission error for count:", referralError);
+        }
+
+        return { success: true, transactionHash: tx.transactionHash };
+      } catch (error) {
+        console.error("Error during transaction count update:", error);
+        toast.error("There was an error updating the transaction count.");
+        return { success: false, error };
+      }
     } catch (error) {
-      console.error("Error during transaction count update:", error);
-      toast.error("There was an error updating the transaction count.");
+      console.error("Error during claim:", error);
+      toast.error(error instanceof Error ? error.message : "There was an error processing your claim.");
       return { success: false, error };
+    } finally {
+      setIsProcessing(false);
+      setIsWaitingTx(false);
     }
-  } catch (error) {
-    console.error("Error during claim:", error);
-    toast.error(error instanceof Error ? error.message : "There was an error processing your claim.");
-    return { success: false, error };
-  } finally {
-    setIsProcessing(false);
-    setIsWaitingTx(false);
-  }
-}, [isConnected, address, wallet, account]);
+  }, [isConnected, address, wallet, account]);
 
 
   const processDataTopUp = useCallback(async (
@@ -519,16 +538,34 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     try {
       setIsWaitingTx(true);
       if (!wallet || !account) throw new Error('Wallet not connected');
-      
+
       const { sendTransaction, prepareTransaction } = await import('thirdweb');
       const { client, activeChain } = await import('@/lib/thirdweb');
-      
+
       const transaction = await prepareTransaction({
         to: tokenAddress as `0x${string}`,
         data: dataWithSuffix as `0x${string}`,
         client,
         chain: activeChain,
       });
+
+      // Sponsor gas for payment
+      try {
+        const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+          contractAddress: tokenAddress as `0x${string}`,
+          abi: erc20Abi,
+          functionName: 'transfer',
+          args: [RECIPIENT_WALLET, entitlement],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+      }
+
       const tx = await sendTransaction({
         account,
         transaction,
@@ -550,11 +587,11 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       }
 
       toast.success("Payment confirmed on-chain. Processing data top-up...");
-      
+
       // Convert entitlement from wei to human-readable format (G$ has 18 decimals)
       const { formatUnits } = await import('viem');
       const convertedAmount = formatUnits(entitlement, 18);
-      
+
       return {
         transactionHash: tx.transactionHash,
         convertedAmount,

@@ -1,0 +1,2 @@
+export const txCountAddress = '0x96EA00F158fF7162D5f7Ee1b0e5b410a202b8FA3';
+export const txCountABI = [{ "inputs": [], "name": "increment", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [], "name": "txCount", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }]

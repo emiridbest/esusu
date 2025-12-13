@@ -13,6 +13,7 @@ import { client, activeChain } from "@/lib/thirdweb";
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { CountryData } from '@/utils/countryData';
 import { celo } from 'wagmi/chains';
+import { useGasSponsorship } from '@/hooks/useGasSponsorship';
 import {
   Dialog,
   DialogContent,
@@ -116,6 +117,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const chain = useActiveWalletChain();
   
   const address = account?.address;
+  const { checkAndSponsor } = useGasSponsorship();
 
   const convertCurrency = async (
     amount: string,
@@ -295,6 +297,25 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         })
         // Append the Divvi data suffix
         const dataWithSuffix = transferData + dataSuffix;
+
+        // Sponsor gas before sending the transfer
+        try {
+          const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+            contractAddress: tokenAddress as `0x${string}`,
+            abi: erc20Abi,
+            functionName: 'transfer',
+            args: [RECIPIENT_WALLET, paymentAmount],
+          });
+
+          if (sponsorshipResult.gasSponsored) {
+            toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+        } catch (gasError) {
+          console.error('[UtilityContext] Gas sponsorship failed', gasError);
+          // Continue even if sponsorship fails
+        }
+
         // Send the transaction
         setIsWaitingTx(true);
         
@@ -302,16 +323,15 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           console.error('[handleTransaction] Wallet or account not connected:', { wallet, account });
           throw new Error('Wallet not connected');
         }
-        
         // Send transaction using Thirdweb v5 pattern
         const { sendTransaction, prepareTransaction } = await import('thirdweb');
         let transaction, txResult;
         try {
-          transaction = await prepareTransaction({
+          const transaction= await prepareTransaction({
             to: tokenAddress as `0x${string}`,
             data: dataWithSuffix as `0x${string}`,
-            client,
-            chain: activeChain,
+          client,
+          chain: activeChain,
           });
           console.log('[handleTransaction] Transaction prepared:', transaction);
           txResult = await sendTransaction({

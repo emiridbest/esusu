@@ -4,7 +4,11 @@
     "emitDecoratorMetadata": true,
     "moduleResolution": "bundler",
     "target": "ES2020",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
@@ -17,25 +21,38 @@
     "jsx": "preserve",
     "incremental": true,
     "baseUrl": ".",
-    "types": ["node", "react", "react-dom"],
+    "types": [
+      "node",
+      "react",
+      "react-dom",
+      "jest"
+    ],
     "maxNodeModuleJsDepth": 0,
-    
     "plugins": [
       {
         "name": "next"
       }
     ],
     "paths": {
-      "@/*": ["*"],
-      "@local-contracts/*": ["../hardhat/*"],
-      "@esusu/backend/*": ["../backend/*"]
+      "@/*": [
+        "*"
+      ],
+      "@local-contracts/*": [
+        "../hardhat/*"
+      ],
+      "@esusu/backend/*": [
+        "../backend/*"
+      ]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.d.ts", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.d.ts",
+    ".next/types/**/*.ts"
+  ],
   "exclude": [
-    "node_modules",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/__tests__/**"
+    "node_modules"
   ]
 }

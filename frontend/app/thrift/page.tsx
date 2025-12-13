@@ -1,5 +1,5 @@
 "use client";
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { UsersIcon, CalendarIcon, BellIcon, PlusIcon, SparklesIcon, ArrowRightIcon } from 'lucide-react';
@@ -7,11 +7,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ThriftProvider } from '@/context/thrift/ThriftContext';
+import { ThriftProvider, useThrift } from '@/context/thrift/ThriftContext';
 import { CreateCampaignDialog } from '@/components/thrift/CreateCampaignDialog';
 import { CampaignList } from '@/components/thrift/CampaignList';
 import { UserCampaigns } from '@/components/thrift/UserCampaigns';
+import { useActiveAccount } from 'thirdweb/react';
 import { cn } from '@/lib/utils';
+
+// Component that watches for account changes and refreshes thrift groups
+// Component disabled - using context's built-in listeners instead
+// This was causing duplicate refreshes and flickering
+const ThriftWithAccountWatch: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Just render children - context handles everything
+  return <>{children}</>;
+};
 
 // Quick action component for thrift features
 const ThriftQuickAction = ({ 
@@ -61,7 +70,8 @@ const Thrift: React.FC = () => {
 
   return (
     <ThriftProvider>
-      <div className="max-w-screen-xl mx-auto px-4 md:px-8 pb-20">
+      <ThriftWithAccountWatch>
+        <div className="max-w-screen-xl mx-auto px-4 md:px-8 pb-20">
         {/* Header Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -243,6 +253,7 @@ const Thrift: React.FC = () => {
             </Card>
         </motion.div>
       </div>
+    </ThriftWithAccountWatch>
     </ThriftProvider>
   );
 };

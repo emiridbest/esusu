@@ -15,6 +15,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { ThemeContext } from "@/components/ThemeProvider";
 import { cn } from "@/lib/utils";
+import { requestEIP6963Providers } from "@/lib/eip6963Provider";
 import { 
   NavigationMenu,
   NavigationMenuContent,
@@ -87,6 +88,27 @@ export default function Header() {
     }
     checkAdmin();
   }, [walletAddress]);
+
+  // Detect and log available providers via EIP-6963
+  useEffect(() => {
+    const detectProviders = async () => {
+      try {
+        const providers = await requestEIP6963Providers();
+        if (providers.length > 0) {
+          console.log('Available EIP-6963 providers:', providers.map(p => ({
+            name: p.info.name,
+            rdns: p.info.rdns,
+            icon: p.info.icon,
+          })));
+        }
+      } catch (error) {
+        // Silently fail - not critical
+      }
+    };
+
+    // Detect providers when component mounts
+    detectProviders();
+  }, []);
 
   const handleSearchIconClick = () => {
     setSearchVisible(true);

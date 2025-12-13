@@ -1,0 +1,11 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "cd backend-temp && npm install --legacy-peer-deps && cd .. && npm install --legacy-peer-deps",
+  "functions": {
+    "app/api/**": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  }
+}

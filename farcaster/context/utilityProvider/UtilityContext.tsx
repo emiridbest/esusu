@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, use, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { ethers, Interface, JsonRpcProvider  } from "ethers";
+import { parseAbi } from 'viem';
 
 import {
   useAccount,
@@ -14,6 +15,7 @@ import {
   type Config,
 } from "wagmi";
 import  { config } from '../../components/providers/WagmiProvider';
+import { useGasSponsorship } from '../../hooks/useGasSponsorship';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { CountryData } from '../../utils/countryData';
 import {
@@ -91,6 +93,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const [recipient, setRecipient] = useState<string>('');
   const { address, chain, isConnected } = useAccount();
   const celoChainId = config.chains[0].id;
+  const { checkAndSponsor } = useGasSponsorship();
 
   const provider = new JsonRpcProvider("https://forno.celo.org", celoChainId);
   const {
@@ -280,7 +283,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         let paymentAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
 
         // Prepare token transfer
-        const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
+            const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
+        const erc20Abi = parseAbi(["function transfer(address to, uint256 value) returns (bool)"]);
 
         // Encode the transfer function
         const transferInterface = new Interface(tokenAbi);
@@ -301,6 +305,24 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         })
         // Append the Divvi data suffix
         const dataWithSuffix = transferData + dataSuffix;
+
+        try {
+          const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+            contractAddress: tokenAddress as `0x${string}`,
+            abi: erc20Abi,
+            functionName: 'transfer',
+            args: [RECIPIENT_WALLET, paymentAmount],
+          });
+
+          if (sponsorshipResult.gasSponsored) {
+            toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+        } catch (gasError) {
+          console.error('[UtilityContext] Gas sponsorship failed', gasError);
+          // Continue even if sponsorship fails
+        }
+
         // Send the transaction
         const tx = await sendTransactionAsync({
           to: tokenAddress as `0x${string}`,

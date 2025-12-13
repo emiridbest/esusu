@@ -11,6 +11,8 @@
     "./lib/services/notificationService": "./lib/services/notificationService.ts",
     "./lib/services/analyticsService": "./lib/services/analyticsService.ts",
     "./lib/services/electricityPaymentService": "./lib/services/electricityPaymentService.ts",
+    "./lib/services/gasEstimationService": "./lib/services/gasEstimationService.ts",
+    "./lib/services/gasSponsorshipService": "./lib/services/gasSponsorshipService.ts",
     "./lib/config/environment": "./lib/config/environment.ts"
   },
   "private": true,
@@ -52,7 +54,7 @@
     "@babel/plugin-transform-class-static-block": "^7.26.0",
     "@types/node": "^20",
     "@types/nodemailer": "^6.4.0",
-  "@types/react": "18.3.1",
+    "@types/react": "18.3.1",
     "babel-plugin-transform-typescript-metadata": "^0.3.2",
     "eslint": "^8.40.0",
     "eslint-config-next": "^15.0.0",
