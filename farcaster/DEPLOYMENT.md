@@ -77,11 +77,11 @@ Make sure to add these in Vercel Dashboard → Settings → Environment Variable
 
 ### Critical Variables:
 ```
-NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
-NEXT_PUBLIC_URL=https://your-app.vercel.app
+NEXT_PUBLIC_APP_URL=https://farcaster.xyz/miniapps/ODGMy9CdO8UI/esusu
+NEXT_PUBLIC_URL=https://farcaster.xyz/miniapps/ODGMy9CdO8UI/esusu
 NEXT_PUBLIC_FARCASTER_FID=849363
 MONGODB_URI=your_mongodb_connection_string
-NEXTAUTH_URL=https://your-app.vercel.app
+NEXTAUTH_URL=https://farcaster.xyz/miniapps/ODGMy9CdO8UI/esusu
 NEXTAUTH_SECRET=your_secret
 CELO_RPC_URL=https://forno.celo.org
 NEXT_PUBLIC_REWARD_TOKEN_ADDRESS=0x25db74CF4E7BA120526fd87e159CF656d94bAE43
@@ -167,5 +167,5 @@ To use a custom domain:
 ## Success!
 
 Your Farcaster app should now be live at:
-- **Production**: https://your-app.vercel.app
+- **Production**: https://farcaster.xyz/miniapps/ODGMy9CdO8UI/esusu
 - **Farcaster Mini App**: https://farcaster.xyz/miniapps/ODGMy9CdO8UI/esusu
