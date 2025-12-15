@@ -2,6 +2,17 @@
 
 ![Esusu Logo](https://github.com/user-attachments/assets/c1e4d15e-d400-477f-a302-98ba9e40135d)
 
+# Proof of Ship 10
+- Esusu deploys the Thirdweb SDK live
+- Extend the entire features on Esusu to Farcaster
+- Automate gas fee distribution via EsusuAI
+- Refer 3000+ users to G$
+- Created a Dune dashboard to track KPIs via Divvi
+- Track G$ claims via Divvi
+- Implement Gas sponsorship
+- Track G$ referrals via Divvi
+
+
 # Proof of Ship 9 
 - Commence viral app invite campaign: New user and inviter get G$2000 each.
 - Add airtime freebies: Prices are subsidised at over 20x.
