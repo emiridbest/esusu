@@ -22,16 +22,16 @@
             "africa",
             "data"
         ],
-        "heroImageUrl": "https://esusu-farcaster.vercel.app/esusu.png",
+        "heroImageUrl": "https://esusu-farcaster.vercel.app/farcaster.png",
         "tagline": "Top-up mobile data with crypto",
         "ogTitle": "Esusu - Mobile Data Bundles",
         "ogDescription": "Buy mobile data with crypto for Nigeria, Ghana, and more African countries",
         "ogImageUrl": "https://esusu-farcaster.vercel.app/farcaster.png",
         "castShareUrl": "https://esusu-farcaster.vercel.app",
         "screenshotUrls": ["https://esusu-farcaster.vercel.app"],
-        "imageUrl": "https://esusu-farcaster.vercel.app/esusu.png",
+        "imageUrl": "https://esusu-farcaster.vercel.app/farcaster.png",
         "buttonTitle": "Get Started",
-        "imageUrlDarkMode": "https://esusu-farcaster.vercel.app/esusu.png",
+        "imageUrlDarkMode": "https://esusu-farcaster.vercel.app/farcaster.png",
         "requiredChains": [
             "eip155:42220"
         ],
