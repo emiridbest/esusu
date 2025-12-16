@@ -11,6 +11,7 @@ import {
 } from 'thirdweb/react';
 import { getContract, readContract } from 'thirdweb';
 import { client, activeChain } from '@/lib/thirdweb';
+import useGasSponsorship from '@/hooks/useGasSponsorship';
 
 // Import Dialog components
 import {
@@ -43,7 +44,6 @@ interface MiniSafeContextType {
   cusdBalance: string;
   usdcBalance: string;
   usdtBalance: string;
-  tokenBalance: string;
   selectedToken: string;
   setSelectedToken: (token: string) => void;
   isApproved: boolean;
@@ -51,7 +51,6 @@ interface MiniSafeContextType {
   isApproving: boolean;
   isWaitingTx: boolean;
   isLoading: boolean;
-  interestRate: number;
 
   // Transaction dialog
   isTransactionDialogOpen: boolean;
@@ -62,7 +61,6 @@ interface MiniSafeContextType {
 
   // Functions
   getBalance: () => Promise<void>;
-  getTokenBalance: () => Promise<void>;
   handleTokenChange: (value: string) => void;
   approveSpend: () => Promise<void>;
   handleDeposit: () => Promise<void>;
@@ -78,9 +76,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const usdcAddress = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
   const cusdAddress = "0x765de816845861e75a25fca122bb6898b8b1282a";
   const usdtAddress = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e";
-  // Reward token (EST) configuration via environment
-  const rewardTokenAddressEnv = (process.env.NEXT_PUBLIC_REWARD_TOKEN_ADDRESS || '').trim();
-  const rewardTokenDecimalsDefault = Number.parseInt(process.env.NEXT_PUBLIC_REWARD_TOKEN_DECIMALS || '18', 10);
+
 
   // State values
   const [depositAmount, setDepositAmount] = useState(0);
@@ -88,13 +84,11 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [cusdBalance, setcusdBalance] = useState('0');
   const [usdcBalance, setUsdcBalance] = useState('0');
   const [usdtBalance, setusdtBalance] = useState('0');
-  const [tokenBalance, setTokenBalance] = useState('0');
   const [selectedToken, setSelectedToken] = useState('CUSD');
   const [isApproved, setIsApproved] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isWaitingTx, setIsWaitingTx] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [interestRate] = useState(5); // 5% APY for visualization
 
   // Get thirdweb v5 wallet info
   const account = useActiveAccount();
@@ -109,22 +103,17 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     chain: activeChain,
     address: contractAddress,
   });
-  
+
   // Default to G$ token address if env var not set
   const tokenAddress = process.env.NEXT_PUBLIC_TOKEN_ADDRESS || '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A';
-  const rewardTokenAddress = process.env.NEXT_PUBLIC_REWARD_TOKEN_ADDRESS || '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A';
-  
+
   const tokenContract = tokenAddress ? getContract({
     client,
-    chain: activeChain, 
+    chain: activeChain,
     address: tokenAddress as `0x${string}`,
   }) : null;
-  
-  const rewardTokenContract = rewardTokenAddress ? getContract({
-    client,
-    chain: activeChain,
-    address: rewardTokenAddress as `0x${string}`,
-  }) : null;
+
+
 
   // Transaction dialog states
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
@@ -136,6 +125,8 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     user: address as `0x${string}`,
     consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
   }) : '';
+
+  const { checkAndSponsor } = useGasSponsorship();
 
   const getBalance = useCallback(async () => {
     if (!address || !miniSafeContract) return;
@@ -183,44 +174,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [address, miniSafeContract, cusdAddress, usdcAddress, usdtAddress]);
 
-  const getTokenBalance = useCallback(async () => {
-    if (!address || !rewardTokenContract) {
-      setTokenBalance('0');
-      return;
-    }
 
-    try {
-      // Try to read token decimals; fallback to env default
-      let decimals = rewardTokenDecimalsDefault;
-      try {
-        const d = await readContract({
-          contract: rewardTokenContract,
-          method: "function decimals() view returns (uint8)",
-          params: []
-        });
-        if (typeof d === 'number') decimals = d;
-        if (typeof d === 'bigint') decimals = Number(d);
-      } catch {
-        // Use fallback
-      }
-
-      const data = await readContract({
-        contract: rewardTokenContract,
-        method: "function balanceOf(address) view returns (uint256)",
-        params: [address as `0x${string}`]
-      });
-
-      if (typeof data === 'bigint') {
-        const formatted = formatUnits(data, decimals);
-        setTokenBalance(formatted);
-      } else {
-        setTokenBalance('0');
-      }
-    } catch (error) {
-      console.error('Error fetching reward token balance:', error);
-      setTokenBalance('0');
-    }
-  }, [address, rewardTokenContract, rewardTokenDecimalsDefault]);
 
   const handleTokenChange = (value: string) => {
     setSelectedToken(value);
@@ -284,7 +238,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       updateStepStatus('allowance', 'loading');
       // Check allowance first
       if (!tokenContract) throw new Error('Token contract not available');
-      
+
       const allowanceData = await readContract({
         contract: tokenContract,
         method: "function allowance(address,address) view returns (uint256)",
@@ -316,7 +270,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Send the transaction with the properly encoded data
       if (!wallet || !account) throw new Error('Wallet not connected');
-      
+
       const { sendTransaction, prepareTransaction } = await import('thirdweb');
       const transaction = await prepareTransaction({
         to: tokenAddress as `0x${string}`,
@@ -324,6 +278,24 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         client,
         chain: activeChain,
       });
+
+      // Sponsor gas for approval
+      try {
+        const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+          contractAddress: tokenAddress as `0x${string}`,
+          abi: tokenAbi,
+          functionName: 'approve',
+          args: [contractAddress, depositValue],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+      }
+
       const tx = await sendTransaction({
         account,
         transaction,
@@ -393,13 +365,12 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Check balance and update first step
       await getBalance();
-      await getTokenBalance();
       updateStepStatus('check-balance', 'success');
       // Approval step
       updateStepStatus('approve', 'loading');
       // Check allowance
       if (!tokenContract) throw new Error('Token contract not available');
-      
+
       const { readContract } = await import('thirdweb');
       const allowanceData = await readContract({
         contract: tokenContract,
@@ -418,9 +389,9 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           args: [contractAddress as `0x${string}`, depositValue],
         });
         const approveDataWithSuffix = approveData + dataSuffix;
-        
+
         if (!wallet || !account) throw new Error('Wallet not connected');
-        
+
         const { sendTransaction, prepareTransaction } = await import('thirdweb');
         const approveTransaction = await prepareTransaction({
           to: tokenAddress as `0x${string}`,
@@ -428,11 +399,29 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           client,
           chain: activeChain,
         });
+
+        // Sponsor gas for approval
+        try {
+          const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+            contractAddress: tokenAddress as `0x${string}`,
+            abi: tokenAbi,
+            functionName: 'approve',
+            args: [contractAddress, depositValue],
+          });
+
+          if (sponsorshipResult.gasSponsored) {
+            toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+        } catch (gasError) {
+          console.error("Gas sponsorship failed:", gasError);
+        }
+
         const approveTx = await sendTransaction({
           account,
           transaction: approveTransaction,
         });
-        
+
         if (approveTx?.transactionHash) {
           const { waitForReceipt } = await import('thirdweb');
           await waitForReceipt({
@@ -456,7 +445,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const dataWithSuffix = depositData + dataSuffix;
 
       if (!wallet || !account) throw new Error('Wallet not connected');
-      
+
       const { sendTransaction, prepareTransaction } = await import('thirdweb');
       const depositTransaction = await prepareTransaction({
         to: contractAddress as `0x${string}`,
@@ -464,6 +453,24 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         client,
         chain: activeChain,
       });
+
+      // Sponsor gas for deposit
+      try {
+        const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+          contractAddress: contractAddress as `0x${string}`,
+          abi: parseAbi(["function deposit(address, uint256)"]),
+          functionName: 'deposit',
+          args: [tokenAddress, depositValue],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+      }
+
       const tx = await sendTransaction({
         account,
         transaction: depositTransaction,
@@ -481,7 +488,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         });
         if (receipt.status === "success") {
           await getBalance();
-          await getTokenBalance();
           setDepositAmount(0);
           setIsApproved(false);
           updateStepStatus('confirm', 'success');
@@ -544,7 +550,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Fix: Properly define weiAmount
       const withdrawalValue = parseEther(withdrawalAmount.toString());
       await getBalance();
-      await getTokenBalance();
       updateStepStatus('check-balance', 'success');
 
       updateStepStatus('withdraw', 'loading');
@@ -558,7 +563,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const dataWithSuffix = withdrawData + dataSuffix;
 
       if (!wallet || !account) throw new Error('Wallet not connected');
-      
+
       const { sendTransaction, prepareTransaction } = await import('thirdweb');
       const withdrawTransaction = await prepareTransaction({
         to: contractAddress as `0x${string}`,
@@ -566,6 +571,24 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         client,
         chain: activeChain,
       });
+
+      // Sponsor gas for withdrawal
+      try {
+        const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+          contractAddress: contractAddress as `0x${string}`,
+          abi: parseAbi(["function withdraw(address, uint256)"]),
+          functionName: 'withdraw',
+          args: [tokenAddress, withdrawalValue],
+        });
+
+        if (sponsorshipResult.gasSponsored) {
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (gasError) {
+        console.error("Gas sponsorship failed:", gasError);
+      }
+
       const tx = await sendTransaction({
         account,
         transaction: withdrawTransaction,
@@ -584,7 +607,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (receipt.status === "success") {
           updateStepStatus('confirm', 'success');
           await getBalance();
-          await getTokenBalance();
           toast.success('Withdrawal successful!');
         } else {
           updateStepStatus('confirm', 'error', 'Transaction failed on blockchain');
@@ -644,7 +666,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       let breakTx: any;
       try {
         if (!wallet || !account) throw new Error('Wallet not connected');
-        
+
         const { sendTransaction, prepareTransaction } = await import('thirdweb');
         const breakTransaction = await prepareTransaction({
           to: contractAddress as `0x${string}`,
@@ -652,6 +674,24 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           client,
           chain: activeChain,
         });
+
+        // Sponsor gas for break timelock
+        try {
+          const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+            contractAddress: contractAddress as `0x${string}`,
+            abi: parseAbi(["function breakTimelock(address)"]),
+            functionName: 'breakTimelock',
+            args: [tokenAddress],
+          });
+
+          if (sponsorshipResult.gasSponsored) {
+            toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+        } catch (gasError) {
+          console.error("Gas sponsorship failed:", gasError);
+        }
+
         breakTx = await sendTransaction({
           account,
           transaction: breakTransaction,
@@ -832,9 +872,8 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     if (address) {
       getBalance();
-      getTokenBalance();
     }
-  }, [address, getBalance, getTokenBalance]);
+  }, [address, getBalance]);
 
   // Format balance for display
   const formatBalance = (balance: string | undefined, decimals = 2) => {
@@ -861,7 +900,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     cusdBalance,
     usdcBalance,
     usdtBalance,
-    tokenBalance,
     selectedToken,
     setSelectedToken,
     isApproved,
@@ -869,7 +907,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     isApproving,
     isWaitingTx,
     isLoading,
-    interestRate,
 
     // Transaction dialog
     isTransactionDialogOpen,
@@ -880,7 +917,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // Functions
     getBalance,
-    getTokenBalance,
     handleTokenChange,
     approveSpend,
     handleDeposit,

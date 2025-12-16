@@ -8,6 +8,7 @@ import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { FrameContext } from "@farcaster/frame-node";
 import sdk, {AddFrame} from "@farcaster/frame-sdk";
+import { FarcasterProvider } from "../context/farcaster/FarcasterContext";
 import { ThriftProvider } from "../context/thrift/ThriftContext";
 
 const WagmiProvider = dynamic(
@@ -85,16 +86,26 @@ export function Providers({
     if (sdk && !isSDKLoaded) {
       const initializeSDK = async () => {
         try {
+          console.log('[DEBUG] Initializing SDK...');
           await load();
-          await sdk.actions.ready();
         } catch (error) {
-          console.error('Failed to initialize SDK:', error);
+          console.error('[DEBUG] Failed to load frame context:', error);
+        } finally {
+          // Always call ready, even if load fails or frameContext is missing
+          try {
+            console.log('[DEBUG] Calling sdk.actions.ready()...');
+            await sdk.actions.ready();
+            console.log('[DEBUG] sdk.actions.ready() called successfully versioning check.');
+          } catch (error) {
+            console.error('[DEBUG] Failed to call sdk.actions.ready():', error);
+          }
         }
       };
-      
+
       initializeSDK();
-      
+
       return () => {
+        console.log('[DEBUG] Cleaning up SDK listeners.');
         sdk.removeAllListeners();
       };
     }
@@ -129,13 +140,15 @@ export function Providers({
 
   return (
     <SessionProvider session={session}>
-      <WagmiProvider>
-        <ThriftProvider>
-          <PostHogProvider>
-              {children}
-          </PostHogProvider>
-        </ThriftProvider>
-      </WagmiProvider>
+      <FarcasterProvider>
+        <WagmiProvider>
+          <ThriftProvider>
+            <PostHogProvider>
+                {children}
+            </PostHogProvider>
+          </ThriftProvider>
+        </WagmiProvider>
+      </FarcasterProvider>
     </SessionProvider>
   );
 }

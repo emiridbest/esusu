@@ -17,7 +17,6 @@ import {
 const BreakLockTab: React.FC = () => {
   const {
     selectedToken,
-    tokenBalance,
     isWaitingTx,
     handleBreakLock,
   } = useMiniSafe();

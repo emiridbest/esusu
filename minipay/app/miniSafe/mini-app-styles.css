@@ -1,0 +1,51 @@
+/* Mini App Responsive Sizing Styles */
+
+/* Web Mini App - Fixed dimensions */
+.web-mini-app {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mobile Mini App - Responsive dimensions */
+.mobile-mini-app {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  width: 100%;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure content scrolls properly */
+.web-mini-app > *,
+.mobile-mini-app > * {
+  flex-shrink: 0;
+}
+
+/* Adjust overflow behavior for different devices */
+@media (max-width: 767px) {
+  .web-mini-app,
+  .mobile-mini-app {
+    border-radius: 0;
+    width: 95vw;
+    height: 90vh;
+    max-width: calc(100vw - 20px);
+  }
+}
+
+@media (min-width: 768px) {
+  .web-mini-app {
+    width: 424px;
+    height: 695px;
+  }
+
+  .mobile-mini-app {
+    width: 424px;
+    height: 695px;
+  }
+}

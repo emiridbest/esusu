@@ -622,7 +622,7 @@ export default function CampaignDetailsPage() {
           <Button 
             variant="outline" 
             onClick={() => router.push('/thrift')}
-            className="flex items-center gap-2 hover:scale-105 transition-transform duration-200"
+            className="flex items-center gap-2 bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300 hover:scale-105"
           >
             <ArrowLeftIcon className="h-4 w-4" />
             Back to Thrift Groups
@@ -1022,6 +1022,7 @@ export default function CampaignDetailsPage() {
                                     }
                                   }
                                 }}
+                                className="bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300"
                               >
                                 Refresh History
                               </Button>
@@ -1271,6 +1272,7 @@ export default function CampaignDetailsPage() {
                       <Button
                         onClick={() => setAdminDialogOpen(true)}
                         variant="outline"
+                        className="bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300"
                       >
                         <Settings className="h-4 w-4 mr-2" />
                         Set Order
@@ -1301,6 +1303,7 @@ export default function CampaignDetailsPage() {
                           onClick={() => distributePayout(campaign.id)}
                           disabled={isProcessing}
                           variant="outline"
+                          className="bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300"
                         >
                           <DollarSign className="h-4 w-4 mr-2" />
                           Distribute

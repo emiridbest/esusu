@@ -114,7 +114,7 @@ export default function Chat() {
                                 onClick={() => setError(null)} 
                                 variant="outline" 
                                 size="sm" 
-                                className="ml-2">
+                                className="bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300 ml-2">
                                 Dismiss
                             </Button>
                         </div>
@@ -134,15 +134,15 @@ export default function Chat() {
                                     handleInputChange({ target: { value: "How do I claim free gas fees into my Esusu account?" } } as any)}>
                                     How do I claim free gas fees?
                                 </Button>
-                                <Button variant="outline" className="justify-start text-left p-4 h-auto" onClick={() => 
+                                <Button variant="outline" className="justify-start text-left p-4 h-auto bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300" onClick={() => 
                                     handleInputChange({ target: { value: "Explain how the thrift feature works" } } as any)}>
                                     Explain thrift features
                                 </Button>
-                                <Button variant="outline" className="justify-start text-left p-4 h-auto" onClick={() => 
+                                <Button variant="outline" className="justify-start text-left p-4 h-auto bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300" onClick={() => 
                                     handleInputChange({ target: { value: "What are the fees for using Esusu?" } } as any)}>
                                     What are the fees?
                                 </Button>
-                                <Button variant="outline" className="justify-start text-left p-4 h-auto" onClick={() => 
+                                <Button variant="outline" className="justify-start text-left p-4 h-auto bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300" onClick={() => 
                                     handleInputChange({ target: { value: "How do I withdraw my savings?" } } as any)}>
                                     Withdrawal process
                                 </Button>
@@ -177,7 +177,7 @@ export default function Chat() {
                                             <Button 
                                                 variant="outline" 
                                                 size="sm" 
-                                                className="h-8 text-xs"
+                                                className="h-8 text-xs bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300"
                                                 onClick={() => reload()}
                                             >
                                                 <RotateCcw className="h-3 w-3 mr-2 text-black dark:text-gray-400" />

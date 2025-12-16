@@ -1,0 +1,422 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+// Reloadly API configuration
+const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL;
+const FX_API_ENDPOINT = process.env.NEXT_PUBLIC_FX_API_URL;
+const SANDBOX_FX_API = process.env.NEXT_PUBLIC_SANDBOX_FX_API_URL;
+const SANDBOX_API_URL = process.env.NEXT_PUBLIC_SANDBOX_API_URL;
+const PRODUCTION_API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+// Determine API URL based on environment
+const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
+const API_URL = isSandbox ? SANDBOX_API_URL : PRODUCTION_API_URL;
+
+// Use the native fetch API's RequestInit interface
+type RequestInit = Parameters<typeof fetch>[1];
+
+// Cache for token and rates to minimize API calls
+const tokenCache = {
+  token: '',
+  expiresAt: 0
+};
+
+const rateCache = new Map<string, { rate: number, timestamp: number }>();
+const RATE_CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+
+/**
+ * Get access token
+ * @returns Access token
+ */
+async function getAccessToken(): Promise<string> {
+  // Check if token is still valid
+  if (tokenCache.token && tokenCache.expiresAt > Date.now()) {
+    return tokenCache.token;
+  }
+
+  try {
+    const clientId = process.env.NEXT_CLIENT_ID;
+    const clientSecret = process.env.NEXT_CLIENT_SECRET;
+    const isSandbox =process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
+
+    if (!clientId || !clientSecret || !AUTH_URL) {
+      throw new Error('API credentials or AUTH_URL not configured');
+    }
+
+    // Get audience URL from env or default to API URL
+    const audience = process.env.NEXT_PUBLIC_AUDIENCE_URL || 
+      (isSandbox 
+        ? process.env.NEXT_PUBLIC_SANDBOX_API_URL
+        : process.env.NEXT_PUBLIC_API_URL);
+
+      const options = {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 
+        Accept: 'application/json'},
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: 'client_credentials',
+        audience: audience
+      })
+    };
+
+    const response = await fetch(AUTH_URL, options);
+
+    if (!response.ok) {
+      throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json() as {
+      access_token: string;
+      expires_in?: number;
+    };
+
+    // Store token with expiration
+    const expiresIn = data.expires_in || 3600;
+    tokenCache.token = data.access_token;
+    tokenCache.expiresAt = Date.now() + (expiresIn * 1000) - 60000; // Subtract 1 minute for safety
+    return tokenCache.token;
+  } catch (error) {
+    console.error('Error getting Reloadly access token:', error);
+    throw new Error('Failed to authenticate with Reloadly API');
+  }
+}
+
+/**
+ * Get exchange rate from Reloadly FX API
+ * @param base_currency Source currency code
+ * @param targetCurrency Target currency code
+ * @returns Exchange rate
+ */
+async function getExchangeRate(base_currency: string, targetCurrency: string): Promise<number> {
+  // Same currency, rate is 1
+  if (base_currency === targetCurrency) {
+    return 1;
+  }
+
+  // Check cache first
+  const cacheKey = `${base_currency}-${targetCurrency}`;
+  const cachedRate = rateCache.get(cacheKey);
+  if (cachedRate && (Date.now() - cachedRate.timestamp < RATE_CACHE_DURATION)) {
+    return cachedRate.rate;
+  }
+
+  try {
+    const token = await getAccessToken();
+    const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
+    const fxEndpoint = isSandbox ? SANDBOX_FX_API : FX_API_ENDPOINT;
+    
+    if (!fxEndpoint) {
+      throw new Error('FX API endpoint not configured');
+    }
+    
+    let operator;
+    if(base_currency === "ng") {
+      operator = 341
+    } else if (base_currency === "gh") {
+      operator = 643
+    } else if (base_currency === "ke") {
+      operator = 265
+    } else if (base_currency === "ug") {
+      operator = 1152
+    } else {
+      return 0;
+    }
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: process.env.NEXT_PUBLIC_ACCEPT_HEADER || 'application/com.reloadly.topups-v1+json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({operatorId: operator, amount: 1})
+    };
+    
+    // Debug logging in development only
+    if (process.env.NODE_ENV === 'development') {
+      console.log('FX API Request:', { fxEndpoint, operator, base_currency });
+    }
+
+    const response = await fetch(fxEndpoint, options)
+
+    if (!response.ok) {
+      throw new Error(`Failed to get exchange rate: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json() as {
+      fxRate?: number;
+      rate?: number;
+      source?: { amount: string };
+      target?: { amount: string };
+    };
+
+    // The API returns rate directly or might return in a different format
+    let fxRate;
+    if (data.fxRate) {
+      fxRate = data.fxRate;
+    } else if (data.rate) {
+      fxRate = data.rate;
+    } else if (data.source && data.target) {
+      // Fallback if rate is not in expected format
+      const fromAmount = parseFloat(data.source.amount);
+      const toAmount = parseFloat(data.target.amount);
+      fxRate = toAmount / fromAmount;
+    } else {
+      throw new Error('Could not determine exchange rate from API response');
+    }
+    
+    // Cache the rate
+    rateCache.set(cacheKey, {
+      rate: fxRate,
+      timestamp: Date.now()
+    });
+
+    return fxRate;
+  } catch (error) {
+    console.error('Error getting exchange rate from Reloadly:', error);
+    throw new Error('Failed to get exchange rate from Reloadly');
+  }
+}
+
+/**
+ * Convert USD to local currency
+ * @param amountUSD Amount in USD
+ * @param targetCurrency Target local currency code
+ * @returns Converted amount in local currency
+ */
+async function convertFromUSD(
+  amountUSD: number | string,
+  targetCurrency: string
+): Promise<number> {
+  try {
+    const numericAmount = typeof amountUSD === 'string' ? parseFloat(amountUSD) : amountUSD;
+    
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      throw new Error('Invalid amount for currency conversion');
+    }
+    
+    if (targetCurrency === 'USD') {
+      return numericAmount;
+    }
+
+    // Get exchange rate from USD to local currency
+    const rate = await getExchangeRate('USD', targetCurrency);
+    
+    // Calculate converted amount
+    const convertedAmount = numericAmount * rate;
+    
+    return convertedAmount;
+  } catch (error) {
+    console.error('Currency conversion error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Convert local currency to USD
+ * @param amount Amount in local currency
+ * @param base_currency Source local currency code
+ * @returns Converted amount in USD
+ */
+async function convertToUSD(
+  amount: number | string,
+  base_currency: string
+): Promise<number> {
+  try {
+    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      throw new Error('Invalid amount for currency conversion');
+    }
+    
+    if (base_currency === 'USD') {
+      return numericAmount;
+    }
+
+    // Get exchange rate from local currency to USD
+    const rate = await getExchangeRate(base_currency, 'USD');
+    
+    // Calculate converted amount
+    const convertedAmount = numericAmount / rate;
+    
+    return convertedAmount;
+  } catch (error) {
+    console.error('Currency conversion error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Convert between any two currencies via USD
+ * @param amount Amount to convert
+ * @param fromCurrency Source currency code
+ * @param toCurrency Target currency code
+ * @returns Converted amount
+ */
+async function convertCurrency(
+  amount: string | number,
+  fromCurrency: string,
+  toCurrency: string
+): Promise<number> {
+  try {
+    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      throw new Error('Invalid amount for currency conversion');
+    }
+    
+    // Same currency, no conversion needed
+    if (fromCurrency === toCurrency) {
+      return numericAmount;
+    }
+
+    // If converting to or from USD, use direct conversion
+    if (fromCurrency === 'USD') {
+      return await convertFromUSD(numericAmount, toCurrency);
+    }
+    
+    if (toCurrency === 'USD') {
+      return await convertToUSD(numericAmount, fromCurrency);
+    }
+    
+    // For cross-currency conversion, convert to USD first, then to target currency
+    const amountInUSD = await convertToUSD(numericAmount, fromCurrency);
+    const convertedAmount = await convertFromUSD(amountInUSD, toCurrency);
+    
+    return convertedAmount;
+  } catch (error) {
+    console.error('Currency conversion error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Creates authenticated request headers for Reloadly API
+ */
+async function getAuthHeaders() {
+  const token = await getAccessToken();
+  const acceptHeader = process.env.NEXT_PUBLIC_ACCEPT_HEADER || 'application/com.reloadly.topups-v1+json';
+
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    'Accept': acceptHeader
+  };
+}
+
+/**
+ * Makes an authenticated API request 
+ * @param endpoint API endpoint
+ * @param options Fetch options
+ */
+async function apiRequest(endpoint: string, options: RequestInit = {}) {
+  const headers = await getAuthHeaders();
+  const url = `${API_URL}${endpoint}`;
+
+  const response = await fetch(url, {
+    ...options,
+    headers: new Headers({
+      ...headers,
+      ...(typeof options.headers === 'object' ? options.headers : {})
+    })
+  });
+
+  if (!response.ok) {
+    // Try to parse error response
+    try {
+      const errorData = await response.json();
+      console.error('API request failed with error data:', errorData);
+      const errorMessage = errorData.message || `API request failed: ${response.status} ${response.statusText}`;
+      throw new Error(errorMessage);
+    } catch (parseError) {
+      // If parsing fails, throw basic error
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+  }
+
+  return response.json();
+}
+
+/**
+ * Makes a data bundle top-up
+ * @param params Top-up parameters
+ */
+async function makeTopup(params: {
+  operatorId: string;
+  amount: string;
+  customId: string;
+  useLocalAmount?: boolean;
+  recipientEmail?: string;
+  recipientPhone: {
+    country?: string;
+    countryCode?: string;
+    phoneNumber?: string;
+    number?: string;
+  };
+}) {
+  try {
+    // Perform input validation
+    if (!params.operatorId || !params.amount || !params.customId || !params.recipientPhone) {
+      throw new Error('Missing required fields for top-up');
+    }
+
+    const requestBody = {
+      operatorId: parseInt(params.operatorId),
+      amount: params.useLocalAmount ? parseFloat(params.amount) : null,
+      useLocalAmount: !!params.useLocalAmount,
+      recipientEmail: params.recipientEmail || null,
+      customIdentifier: params.customId,
+      recipientPhone: {
+        countryCode: params.recipientPhone.country || params.recipientPhone.countryCode || '',
+        number: params.recipientPhone.phoneNumber || params.recipientPhone.number || ''
+      },
+      senderPhone: null
+    };
+
+    // Use the apiRequest function to make the call
+    const response = await apiRequest('/topups', {
+      method: 'POST',
+      body: JSON.stringify(requestBody)
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Error making top-up:', error);
+    throw error;
+  }
+}
+
+/**
+ * GET handler for free data bundles
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const country = searchParams.get('country');
+
+    if (!country) {
+      return NextResponse.json(
+        { error: 'Country parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    // Return free data bundle information based on country
+    const freeBundles = {
+      ng: { available: true, provider: 'MTN Nigeria', bonus: '100MB' },
+      gh: { available: true, provider: 'MTN Ghana', bonus: '50MB' },
+      ke: { available: true, provider: 'Safaricom', bonus: '75MB' },
+      ug: { available: true, provider: 'MTN Uganda', bonus: '50MB' },
+    };
+
+    const bundle = freeBundles[country as keyof typeof freeBundles] || { available: false };
+
+    return NextResponse.json(bundle);
+  } catch (error) {
+    console.error('Error fetching free data:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch free data bundles' },
+      { status: 500 }
+    );
+  }
+}

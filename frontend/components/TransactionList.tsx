@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { celo } from 'wagmi/chains';
-import { createPublicClient, http, webSocket, fallback, decodeFunctionData } from 'viem';
+import { celo } from 'viem/chains';
+import { createPublicClient, http, decodeFunctionData } from 'viem';
 import { useActiveAccount } from 'thirdweb/react';
 import { stableTokenABI } from "@celo/abis";
 // import { useAddRecentTransaction } from '@rainbow-me/rainbowkit';
@@ -92,30 +92,16 @@ const TransactionList: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [page, setPage] = useState(1);
   const [transactionFilter, setTransactionFilter] = useState<'all' | 'sent' | 'received'>('all');
-  const account = useActiveAccount();
-  const address = account?.address;
   const [error, setError] = useState<string | null>(null);
   const [copiedHash, setCopiedHash] = useState<string>('');
+  const account = useActiveAccount();
+  const address = account?.address;
 
   const chains = [42220];
 
   useEffect(() => {
     const controller = new AbortController();
     const signal = controller.signal;
-
-    const CELOSCAN_API_KEY = process.env.NEXT_PUBLIC_CELOSCAN_API_KEY || '';
-    const CELOSCAN_API_BASE = process.env.NEXT_PUBLIC_CELOSCAN_API_BASE || 'https://api.celoscan.io/api';
-    const withApiKey = (qs: string) => `${qs}${CELOSCAN_API_KEY ? `&apikey=${CELOSCAN_API_KEY}` : ''}`;
-    const fetchCeloscan = async (qs: string) => {
-      const url = `${CELOSCAN_API_BASE}?${withApiKey(qs)}`;
-      const res = await fetch(url, { signal });
-      if (!res.ok) throw new Error(`Celoscan HTTP ${res.status}`);
-      const data = await res.json();
-      return data;
-    };
-    if (!CELOSCAN_API_KEY) {
-      console.warn('NEXT_PUBLIC_CELOSCAN_API_KEY not set; Celoscan requests may be rate-limited.');
-    }
 
     const fetchTransactions = async () => {
       if (!address) {
@@ -126,108 +112,122 @@ const TransactionList: React.FC = () => {
       try {
         setIsLoading(true);
         setError(null);
-        const publicClient = createPublicClient({
-          chain: celo,
-          transport: http('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8', {
-            timeout: 30_000,
-            retryCount: 3,
-          }),
-        });
+        const apiKey = process.env.NEXT_PUBLIC_CELOSCAN_API_KEY;
+        const allTransactions: Transaction[] = [];
 
-        const getPastYearBlockNumber = async (publicClient: any) => {
-          const currentTime = Math.floor(Date.now() / 1000);
-          const oneYearAgoTime = currentTime - 365 * 24 * 60 * 60; 
-          const apiKey = process.env.NEXT_PUBLIC_CELOSCAN_API_KEY;
-          const response = await fetch(`https://api.celoscan.io/api?module=block&action=getblocknobytime&timestamp=${oneYearAgoTime}&closest=after&apikey=${apiKey}`);
-          const data = await response.json();
+        for (const chainId of chains) {
+          try {
+            const response = await fetch(
+              `https://api.etherscan.io/v2/api?chainid=${chainId}&module=account&action=txlist&address=${address}&page=${page}&offset=10&sort=desc&apikey=${apiKey}`,
+              { signal }
+            );
+            
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
 
-          return data.result;
-        };
+            if (data.status === '0') {
+              const message = data.message || 'Unknown error';
+              if (message.includes('NOTOK') || message.includes('Invalid API')) {
+                throw new Error('Transaction service API key is invalid or expired. Please contact support.');
+              } else if (message.includes('Max rate limit reached')) {
+                throw new Error('Too many requests. Please wait a moment before trying again.');
+              } else {
+                throw new Error(`Transaction service error: ${message}`);
+              }
+            }
 
-        const getCurrentBlockNumber = async (publicClient: any) => {
-          const currentTime = Math.floor(Date.now() / 1000);
-          const apiKey = process.env.NEXT_PUBLIC_CELOSCAN_API_KEY;
-          const response = await fetch(`https://api.celoscan.io/api?module=block&action=getblocknobytime&timestamp=${currentTime}&closest=after&apikey=${apiKey}`);
-          const data = await response.json();
+            if (data.status === '1' && Array.isArray(data.result)) {
+              const txList: Transaction[] = data.result.map((tx: any, index: number) => {
+                let functionName = tx.functionName || 'Transaction';
+                let tokenValue = tx.value;
+                let tokenSymbol = 'CELO';
+                let tokenAddress = tx.to;
+                
+                // Extract clean function name
+                if (functionName.includes('(')) {
+                  functionName = functionName.split('(')[0];
+                }
 
-          return data.result;
-        };
-        
-        const pastYearBlockNumber = await getPastYearBlockNumber(publicClient);
-        const latestBlock = await getCurrentBlockNumber(publicClient);
-
-        const data = await fetchCeloscan(
-          `module=account&action=txlist&address=${address}&startblock=${pastYearBlockNumber}&endblock=${latestBlock}&page=${page}&offset=10&sort=desc`
-        );
-
-        if (Array.isArray(data.result)) {
-          const txList: Transaction[] = data.result.map((tx: any, index: number) => {
-            let functionName = '';
-            try {
-              const decodedInput = decodeFunctionData({
-                abi: stableTokenABI,
-                data: tx.input,
+                // Handle ERC-20 transfers
+                if (functionName === 'transfer' && tx.input && tx.input !== '0x') {
+                  try {
+                    // For ERC-20 transfers, the value is the second parameter in the input data
+                    // transfer(address,uint256) - first 4 bytes are function selector, then address (32 bytes), then value (32 bytes)
+                    const inputData = tx.input.slice(2); // Remove 0x prefix
+                    if (inputData.length >= 136) { // 4 + 32 + 32 bytes minimum
+                      // Function selector: 0-7 (8 chars), Address: 8-71 (64 chars), Value: 72-135 (64 chars)
+                      const valueHex = inputData.slice(72, 136); // Start at position 72 for the value parameter
+                      tokenValue = BigInt('0x' + valueHex).toString();
+                      
+                      // Determine token symbol from contract address
+                      const contractAddress = tx.to?.toLowerCase();
+                      const tokenInfo = TOKEN_ADDRESSES[contractAddress];
+                      if (tokenInfo) {
+                        tokenSymbol = tokenInfo.symbol;
+                      } else {
+                        tokenSymbol = 'Token';
+                      }
+                    }
+                  } catch (decodeError) {
+                    console.warn('Failed to decode transfer value:', decodeError);
+                  }
+                }
+                
+                return {
+                  args: {
+                    from: tx.from,
+                    to: tx.to,
+                    value: tokenValue,
+                    functionName,
+                  },
+                  transactionHash: tx.hash,
+                  timestamp: tx.timeStamp,
+                  key: `${chainId}-${index}`,
+                  status: tx.isError === '0',
+                  input: tx.input,
+                  tokenSymbol: tokenSymbol,
+                  tokenAddress: tokenAddress,
+                };
               });
-              functionName = decodedInput?.functionName || 'Transfer';
-            } catch (e) {
-              functionName = tx.input === '0x' ? 'Transfer' : 'Contract Interaction';
-            }
 
-            // Determine token info
-            const toAddress = tx.to?.toLowerCase();
-            const tokenInfo = TOKEN_ADDRESSES[toAddress];
-            
-            // For token transfers, check if there's a tokenValue field
-            let value = tx.value;
-            let tokenSymbol = 'CELO';
-            
-            if (tx.tokenValue) {
-              // This is a token transfer
-              value = tx.tokenValue;
-              tokenSymbol = tx.tokenName || 'Token';
+              allTransactions.push(...txList);
             }
-
-            return {
-              args: {
-                from: tx.from,
-                to: tx.to,
-                value: value,
-                functionName,
-              },
-              transactionHash: tx.hash,
-              timestamp: tx.timeStamp,
-              key: index,
-              status: tx.isError === '0',
-              input: tx.input,
-              tokenSymbol: tokenSymbol,
-              tokenAddress: tx.to,
-            };
-          });
-
-          setTransactions((prev) => {
-            const seen = new Set(prev.map(t => t.transactionHash));
-            const merged = [...prev];
-            for (const t of txList) {
-              if (!seen.has(t.transactionHash)) merged.push(t);
-            }
-            return merged;
-          });
-        } else {
-          // API returned an error or unexpected result
-          if (data?.message === 'No transactions found') {
-            // Not an error; simply no results for this page/range
-            return;
-          }
-          if (data?.message) {
-            setError(`Celoscan: ${data.message}`);
-          } else {
-            setError('Failed to load some transactions. Showing partial data.');
+          } catch (chainError) {
+            console.warn(`Error fetching transactions for chain ${chainId}:`, chainError);
+            // Continue with other chains even if one fails
           }
         }
+
+        allTransactions.sort((a, b) => {
+          const timeA = parseInt(a.timestamp || '0');
+          const timeB = parseInt(b.timestamp || '0');
+          return timeB - timeA;
+        });
+
+        setTransactions(allTransactions);
       } catch (error) {
-        if ((error as any)?.name === 'AbortError') return;
         console.error('Error fetching transactions:', error);
-        setError('Could not fetch transactions. Please try again later.');
+        
+        let errorMessage = 'Could not fetch transactions. Please try again later.';
+        
+        if (error instanceof Error) {
+          if (error.message.includes('timeout')) {
+            errorMessage = 'Transaction service is temporarily unavailable. Please try again in a few minutes.';
+          } else if (error.message.includes('HTTP 429')) {
+            errorMessage = 'Too many requests. Please wait a moment before trying again.';
+          } else if (error.message.includes('HTTP 5')) {
+            errorMessage = 'Transaction service is experiencing issues. Please try again later.';
+          } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+            errorMessage = 'Network connection issue. Please check your internet connection and try again.';
+          } else if (error.message.includes('API key')) {
+            errorMessage = error.message;
+          }
+        }
+        
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -251,7 +251,10 @@ const TransactionList: React.FC = () => {
       return balanceNumber.toExponential(2);
     }
     
-    return balanceNumber.toFixed(decimals).replace(/\.?0+$/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    const formatted = balanceNumber.toFixed(decimals).replace(/\.?0+$/, '');
+    const [integerPart, decimalPart] = formatted.split('.');
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
   }
 
   const filteredTransactions = transactions.filter(transaction => {
@@ -326,8 +329,21 @@ const TransactionList: React.FC = () => {
               Track your recent transactions on the Celo network
             </CardDescription>
             {error && (
-              <div className="mt-2 text-xs text-red-500 dark:text-red-400">
-                {error}
+              <div className="mt-2 text-xs text-red-500 dark:text-red-400 flex items-center justify-between">
+                <span>{error}</span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-6 px-2 text-xs"
+                  onClick={() => {
+                    setError(null);
+                    setPage(1);
+                    // Trigger re-fetch by changing a dependency
+                    setTransactions([]);
+                  }}
+                >
+                  Retry
+                </Button>
               </div>
             )}
           </div>
@@ -434,7 +450,7 @@ const TransactionList: React.FC = () => {
                           "font-semibold text-base",
                           isSent ? "text-orange-600 dark:text-orange-400" : "text-green-600 dark:text-green-400"
                         )}>
-                          {isSent ? '-' : '+'}{amount}
+                          {amount}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-500">
                           {transaction.tokenSymbol}
@@ -464,9 +480,22 @@ const TransactionList: React.FC = () => {
                 </svg>
               </div>
               <p className="text-base font-medium text-gray-700 dark:text-gray-300 mb-1">No transactions yet</p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">
                 {!address ? 'Connect your wallet to view transactions' : 'Your transactions will appear here'}
               </p>
+              {error && address && (
+                <p className="text-xs text-gray-400 dark:text-gray-600">
+                  You can also view your transactions directly on{' '}
+                  <a 
+                    href={`https://celoscan.io/address/${address}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    CeloScan
+                  </a>
+                </p>
+              )}
             </div>
           )}
         </div>

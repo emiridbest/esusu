@@ -6,9 +6,14 @@ import { celo } from "wagmi/chains";
 export const config = createConfig({
   chains: [celo],
   transports: {
-    [celo.id]: http(),
+    [celo.id]: http(undefined, {
+      batch: true,
+      retryCount: 3,
+      retryDelay: 1000,
+      timeout: 10000,
+    }),
   },
-  connectors: [ miniAppConnector() ],
+  connectors: [miniAppConnector()],
 });
 
 const queryClient = new QueryClient();

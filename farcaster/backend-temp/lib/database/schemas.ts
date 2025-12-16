@@ -27,7 +27,7 @@ export interface IUser extends Document {
 
 const UserSchema = new Schema<IUser>({
   walletAddress: { type: String, required: true, unique: true, index: true },
-  email: { type: String, sparse: true },
+  email: { type: String, sparse: true, unique: true },
   phone: { type: String, sparse: true },
   profileData: {
     firstName: String,
@@ -40,7 +40,7 @@ const UserSchema = new Schema<IUser>({
     aaveDeposits: { type: Number, default: 0 },
     currentAPY: { type: Number, default: 0 }
   }
-}, { 
+}, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true },
@@ -83,24 +83,24 @@ export interface ITransaction extends Document {
 const TransactionSchema = new Schema<ITransaction>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   transactionHash: { type: String, required: true, unique: true, index: true },
-  type: { 
-    type: String, 
-    required: true, 
+  type: {
+    type: String,
+    required: true,
     enum: ['savings', 'withdrawal', 'utility_payment', 'group_contribution', 'group_payout'],
-    index: true 
+    index: true
   },
-  subType: { 
-    type: String, 
-    enum: ['airtime', 'data', 'electricity', 'cable', 'aave_deposit', 'aave_withdrawal'] 
+  subType: {
+    type: String,
+    enum: ['airtime', 'data', 'electricity', 'cable', 'aave_deposit', 'aave_withdrawal']
   },
   amount: { type: Number, required: true },
   token: { type: String, required: true },
-  status: { 
-    type: String, 
-    required: true, 
-    enum: ['pending', 'confirmed', 'failed', 'completed'], 
+  status: {
+    type: String,
+    required: true,
+    enum: ['pending', 'confirmed', 'failed', 'completed'],
     default: 'pending',
-    index: true 
+    index: true
   },
   blockchainStatus: {
     confirmed: { type: Boolean, default: false },
@@ -122,7 +122,7 @@ const TransactionSchema = new Schema<ITransaction>({
     groupId: { type: Schema.Types.ObjectId, ref: 'Group' },
     contributionRound: Number
   }
-}, { 
+}, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true },
@@ -180,11 +180,11 @@ const GroupSchema = new Schema<IGroup>({
     maxMembers: { type: Number, default: 5, max: 5 }
   },
   currentRound: { type: Number, default: 0 },
-  status: { 
-    type: String, 
-    enum: ['forming', 'active', 'completed', 'paused'], 
+  status: {
+    type: String,
+    enum: ['forming', 'active', 'completed', 'paused'],
     default: 'forming',
-    index: true 
+    index: true
   },
   payoutSchedule: [{
     round: { type: Number, required: true },
@@ -195,7 +195,7 @@ const GroupSchema = new Schema<IGroup>({
     status: { type: String, enum: ['pending', 'paid', 'missed'], default: 'pending' }
   }],
   totalContributions: { type: Number, default: 0 }
-}, { 
+}, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true },
@@ -220,11 +220,11 @@ export interface INotification extends Document {
 
 const NotificationSchema = new Schema<INotification>({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-  type: { 
-    type: String, 
+  type: {
+    type: String,
     required: true,
     enum: ['contribution_due', 'payout_received', 'bill_payment_success', 'bill_payment_failed', 'group_invitation', 'savings_milestone'],
-    index: true 
+    index: true
   },
   title: { type: String, required: true },
   message: { type: String, required: true },
@@ -244,7 +244,7 @@ const NotificationSchema = new Schema<INotification>({
     }
   },
   read: { type: Boolean, default: false, index: true }
-}, { 
+}, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true },
@@ -281,7 +281,7 @@ const AnalyticsSchema = new Schema<IAnalytics>({
     groupPayouts: { type: Number, default: 0 },
     transactionCount: { type: Number, default: 0 }
   }
-}, { 
+}, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true },
@@ -306,7 +306,7 @@ const PaymentHashSchema = new Schema<IPaymentHash>({
   amount: { type: Number, required: true },
   token: { type: String, required: true },
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true }
-}, { 
+}, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true },
@@ -374,15 +374,15 @@ ThriftGroupMetadataSchema.index({ contractAddress: 1, groupId: 1 }, { unique: tr
 ThriftGroupMetadataSchema.index({ category: 1, updatedAt: -1 });
 ThriftGroupMetadataSchema.index({ tags: 1 });
 
-export const ThriftGroupMetadata = models.ThriftGroupMetadata 
+export const ThriftGroupMetadata = models.ThriftGroupMetadata
   || model<IThriftGroupMetadata>('ThriftGroupMetadata', ThriftGroupMetadataSchema);
 
- // Add indexes for performance
-  TransactionSchema.index({ 'user': 1, 'createdAt': -1 });
-  TransactionSchema.index({ 'type': 1, 'status': 1 });
-  GroupSchema.index({ 'members.user': 1 });
-  NotificationSchema.index({ 'user': 1, 'read': 1, 'createdAt': -1 });
-  AnalyticsSchema.index({ 'user': 1, 'period': 1, 'date': -1 });
+// Add indexes for performance
+TransactionSchema.index({ 'user': 1, 'createdAt': -1 });
+TransactionSchema.index({ 'type': 1, 'status': 1 });
+GroupSchema.index({ 'members.user': 1 });
+NotificationSchema.index({ 'user': 1, 'read': 1, 'createdAt': -1 });
+AnalyticsSchema.index({ 'user': 1, 'period': 1, 'date': -1 });
 
 // Contribution Event Schema - Cached blockchain events for contribution history
 export interface IContributionEvent extends Document {
@@ -413,7 +413,7 @@ const ContributionEventSchema = new Schema<IContributionEvent>({
   logIndex: { type: Number, required: true },
   timestamp: { type: Date, required: true, index: true },
   eventData: { type: Schema.Types.Mixed }
-}, { 
+}, {
   timestamps: true,
   bufferCommands: false
 });
@@ -423,7 +423,7 @@ ContributionEventSchema.index({ transactionHash: 1, logIndex: 1 }, { unique: tru
 // Composite index for efficient queries
 ContributionEventSchema.index({ groupId: 1, timestamp: -1 });
 
-export const ContributionEvent = models.ContributionEvent 
+export const ContributionEvent = models.ContributionEvent
   || model<IContributionEvent>('ContributionEvent', ContributionEventSchema);
 
 // Blockchain Sync State Schema - Track last synced block per group
@@ -441,14 +441,14 @@ const BlockchainSyncStateSchema = new Schema<IBlockchainSyncState>({
   contractAddress: { type: String, required: true },
   lastSyncedBlock: { type: Number, required: true },
   lastSyncedAt: { type: Date, required: true }
-}, { 
+}, {
   timestamps: true,
   bufferCommands: false
 });
 
 BlockchainSyncStateSchema.index({ groupId: 1, contractAddress: 1 }, { unique: true });
 
-export const BlockchainSyncState = models.BlockchainSyncState 
+export const BlockchainSyncState = models.BlockchainSyncState
   || model<IBlockchainSyncState>('BlockchainSyncState', BlockchainSyncStateSchema);
 
 // Member Join Date Schema - Cached member join dates
@@ -472,7 +472,7 @@ const MemberJoinDateSchema = new Schema<IMemberJoinDate>({
   joinTransactionHash: { type: String },
   isCreator: { type: Boolean, default: false },
   eventData: { type: Schema.Types.Mixed }
-}, { 
+}, {
   timestamps: true,
   bufferCommands: false
 });
@@ -480,5 +480,66 @@ const MemberJoinDateSchema = new Schema<IMemberJoinDate>({
 // Unique constraint: one join date per member per group
 MemberJoinDateSchema.index({ groupId: 1, memberAddress: 1 }, { unique: true });
 
-export const MemberJoinDate = models.MemberJoinDate 
+export const MemberJoinDate = models.MemberJoinDate
   || model<IMemberJoinDate>('MemberJoinDate', MemberJoinDateSchema);
+
+// Gas Sponsorship Schema - Track gas sponsorships for gasless transactions
+export interface IGasSponsorship extends Document {
+  recipientAddress: string; // User who received gas
+  amountCELO: string; // Amount of CELO sent for gas
+  transactionHash: string; // On-chain tx hash of the gas transfer
+  status: 'pending' | 'completed' | 'failed';
+  sponsoredTxHash?: string; // Hash of the transaction that was sponsored (optional)
+  gasEstimate: {
+    gasLimit: string;
+    maxFeePerGas: string;
+    maxPriorityFeePerGas?: string;
+    totalCostCELO: string;
+  };
+  userBalanceBefore: string; // User's CELO balance before sponsorship
+  metadata: {
+    contractAddress?: string;
+    functionName?: string;
+    timestamp: Date;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const GasSponsorshipSchema = new Schema<IGasSponsorship>({
+  recipientAddress: { type: String, required: true, index: true },
+  amountCELO: { type: String, required: true },
+  transactionHash: { type: String, required: true, unique: true, index: true },
+  status: {
+    type: String,
+    required: true,
+    enum: ['pending', 'completed', 'failed'],
+    default: 'pending',
+    index: true
+  },
+  sponsoredTxHash: { type: String },
+  gasEstimate: {
+    gasLimit: { type: String, required: true },
+    maxFeePerGas: { type: String, required: true },
+    maxPriorityFeePerGas: { type: String },
+    totalCostCELO: { type: String, required: true }
+  },
+  userBalanceBefore: { type: String, required: true },
+  metadata: {
+    contractAddress: { type: String },
+    functionName: { type: String },
+    timestamp: { type: Date, required: true }
+  }
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+  bufferCommands: false
+});
+
+// Indexes for rate limiting and tracking
+GasSponsorshipSchema.index({ recipientAddress: 1, createdAt: -1 });
+GasSponsorshipSchema.index({ status: 1, createdAt: -1 });
+
+export const GasSponsorship = models.GasSponsorship
+  || model<IGasSponsorship>('GasSponsorship', GasSponsorshipSchema);
