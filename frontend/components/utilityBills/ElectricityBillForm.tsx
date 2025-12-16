@@ -18,6 +18,7 @@ import { PaymentSuccessModal } from './PaymentSuccessModal';
 import DualCurrencyPrice from './DualCurrencyPrice';
 import CountrySelector from './CountrySelector';
 import { TOKENS } from '@/context/utilityProvider/tokens';
+import { TOKENS as UTILS_TOKENS } from '@/utils/tokens';
 
 const formSchema = z.object({
   country: z.string({
@@ -46,7 +47,7 @@ export default function ElectricityBillForm() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [countryCurrency, setCountryCurrency] = useState<string>("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successDetails, setSuccessDetails] = useState<any>(null); 
+  const [successDetails, setSuccessDetails] = useState<any>(null);
 
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{
@@ -119,20 +120,20 @@ export default function ElectricityBillForm() {
     getProviders();
   }, [watchCountry, form]);
 
-    // Clear filled parameters when country changes
-    useEffect(() => {
-      if (watchCountry) {
-        form.setValue("provider", "");
-        form.setValue("meterNumber", "");
-        form.setValue("amount", "");
-        // Don't reset payment token - let user keep their selection
-        // form.setValue("paymentToken", "CUSD");
-        form.setValue("email", "");
-        setAmount(0);
-        setProviderLimits(null);
-        setAmountValidation({ type: '', message: '', isValid: true });
-      }
-    }, [watchCountry]);
+  // Clear filled parameters when country changes
+  useEffect(() => {
+    if (watchCountry) {
+      form.setValue("provider", "");
+      form.setValue("meterNumber", "");
+      form.setValue("amount", "");
+      // Don't reset payment token - let user keep their selection
+      // form.setValue("paymentToken", "CUSD");
+      form.setValue("email", "");
+      setAmount(0);
+      setProviderLimits(null);
+      setAmountValidation({ type: '', message: '', isValid: true });
+    }
+  }, [watchCountry]);
 
   // Update amount when amount changes
   useEffect(() => {
@@ -353,10 +354,10 @@ export default function ElectricityBillForm() {
 
         if (backendResponse.ok && data.success) {
           const selectedProvider = providers.find(p => p.id === values.provider);
-          
+
           updateStepStatus('electricity-payment', 'success');
           updateStepStatus('top-up', 'success');
-          
+
           // Show prominent success modal instead of toast
           setSuccessDetails({
             type: 'electricity' as const,
@@ -462,8 +463,8 @@ export default function ElectricityBillForm() {
                   </FormControl>
                   <SelectContent className="bg-white">
                     {providers.map((provider) => (
-                      <SelectItem 
-                        key={provider.id} 
+                      <SelectItem
+                        key={provider.id}
                         value={provider.id}
                         className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-black/80 dark:text-white/60 dark:text-gray-200"
                       >
@@ -487,9 +488,9 @@ export default function ElectricityBillForm() {
               <FormItem>
                 <FormLabel className="text-black/80 dark:text-white/60 font-light text-sm">METER NUMBER</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Enter meter number" 
-                    {...field} 
+                  <Input
+                    placeholder="Enter meter number"
+                    {...field}
                     className="text-xs bg-gray-100 dark:bg-white/10"
                   />
                 </FormControl>
@@ -521,10 +522,10 @@ export default function ElectricityBillForm() {
                   <div className="relative">
                     <Input
                       type="number"
-                      placeholder={providerLimits 
-                        ? `Enter amount (${providerLimits.minAmount} - ${providerLimits.maxAmount})` 
-                        : countryCurrency 
-                          ? `Enter amount (${countryCurrency})` 
+                      placeholder={providerLimits
+                        ? `Enter amount (${providerLimits.minAmount} - ${providerLimits.maxAmount})`
+                        : countryCurrency
+                          ? `Enter amount (${countryCurrency})`
                           : "Enter amount"}
                       {...field}
                       className="text-xs bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white transition-all duration-200"
@@ -570,19 +571,40 @@ export default function ElectricityBillForm() {
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger className="bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white">
-                      <SelectValue placeholder="Select payment token" className="text-xs" />
+                      <SelectValue placeholder="Select payment token" className="text-xs">
+                        {field.value && (() => {
+                          const selectedTokenConfig = UTILS_TOKENS[field.value];
+                          const tokenName = TOKENS.find(t => t.id === field.value)?.name || field.value;
+                          return (
+                            <div className="flex items-center gap-2">
+                              {selectedTokenConfig?.logoUrl && (
+                                <img src={selectedTokenConfig.logoUrl} alt={tokenName} className="w-4 h-4" />
+                              )}
+                              <span>{tokenName}</span>
+                            </div>
+                          );
+                        })()}
+                      </SelectValue>
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-white">
-                    {TOKENS.map((token) => (
-                      <SelectItem 
-                        key={token.id} 
-                        value={token.id}
-                        className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-black/80 dark:text-white/60 dark:text-gray-200"
-                      >
-                        {token.name}
-                      </SelectItem>
-                    ))}
+                    {TOKENS.map((token) => {
+                      const logoUrl = UTILS_TOKENS[token.id]?.logoUrl;
+                      return (
+                        <SelectItem
+                          key={token.id}
+                          value={token.id}
+                          className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-black/80 dark:text-white/60 dark:text-gray-200"
+                        >
+                          <div className="flex items-center gap-2">
+                            {logoUrl && (
+                              <img src={logoUrl} alt={token.name} className="w-5 h-5" />
+                            )}
+                            <span>{token.name}</span>
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
                 <FormMessage className="text-red-600" />

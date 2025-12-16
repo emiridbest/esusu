@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import { Loader2, AlertCircle, CheckCircle, Info } from "lucide-react";
 import CountrySelector from '../utilityBills/CountrySelector';
 import { TOKENS } from '../../context/utilityProvider/tokens';
+import { TOKENS as UTILS_TOKENS } from '../../utils/tokens';
 import {
   fetchAirtimeOperators,
   verifyAndSwitchProvider,
@@ -370,7 +371,7 @@ export default function AirtimeForm() {
             body: JSON.stringify({
               operatorId: values.network,
               amount: enteredAmount.toString(),
-              customId: txResult.transactionHash, 
+              customId: txResult.transactionHash,
               useLocalAmount: true,
               recipientPhone: {
                 country: values.country,
@@ -386,7 +387,7 @@ export default function AirtimeForm() {
 
           if (response.ok && data.success) {
             updateStepStatus('top-up', 'success');
-            
+
             // Show success modal
             const countryData = getCountryData(values.country);
             setSuccessDetails({
@@ -675,19 +676,40 @@ export default function AirtimeForm() {
                 >
                   <FormControl>
                     <SelectTrigger className="bg-gray-100 dark:bg-white/10 text-black/90 dark:text-white/90">
-                      <SelectValue placeholder="Select payment token" className='text-xs' />
+                      <SelectValue placeholder="Select payment token" className='text-xs'>
+                        {field.value && (() => {
+                          const selectedTokenConfig = UTILS_TOKENS[field.value];
+                          const tokenName = TOKENS.find(t => t.id === field.value)?.name || field.value;
+                          return (
+                            <div className="flex items-center gap-2">
+                              {selectedTokenConfig?.logoUrl && (
+                                <img src={selectedTokenConfig.logoUrl} alt={tokenName} className="w-4 h-4" />
+                              )}
+                              <span>{tokenName}</span>
+                            </div>
+                          );
+                        })()}
+                      </SelectValue>
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-white">
-                    {TOKENS.map((token) => (
-                      <SelectItem
-                        key={token.id}
-                        value={token.id}
-                        className="text-black/90 dark:text-white/90"
-                      >
-                        {token.name}
-                      </SelectItem>
-                    ))}
+                    {TOKENS.map((token) => {
+                      const logoUrl = UTILS_TOKENS[token.id]?.logoUrl;
+                      return (
+                        <SelectItem
+                          key={token.id}
+                          value={token.id}
+                          className="text-black/90 dark:text-white/90"
+                        >
+                          <div className="flex items-center gap-2">
+                            {logoUrl && (
+                              <img src={logoUrl} alt={token.name} className="w-5 h-5" />
+                            )}
+                            <span>{token.name}</span>
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
                 <FormMessage className="text-red-600 dark:text-white/10" />
@@ -731,7 +753,7 @@ export default function AirtimeForm() {
           </Button>
         </form>
       </Form>
-      
+
       {successDetails && (
         <PaymentSuccessModal
           open={showSuccessModal}

@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import { Loader2, AlertCircle, CheckCircle, Info } from "lucide-react";
 import CountrySelector from '../utilityBills/CountrySelector';
 import { TOKENS } from '@/context/utilityProvider/tokens';
+import { TOKENS as UTILS_TOKENS } from '@/utils/tokens';
 import {
   fetchAirtimeOperators,
   verifyAndSwitchProvider,
@@ -83,7 +84,7 @@ export default function AirtimeForm() {
   const [countryCurrency, setCountryCurrency] = useState<string>("");
   const [selectedToken, setSelectedToken] = useState<string | undefined>(undefined);
   const [operatorRange, setOperatorRange] = useState<OperatorRange | null>(null);
-  
+
   const [amountValidation, setAmountValidation] = useState<{
     isValid: boolean;
     message: string;
@@ -119,137 +120,137 @@ export default function AirtimeForm() {
   const watchAmount = form.watch("amount");
   const watchPaymentToken = form.watch("paymentToken");
 
-// 1. Fetch network providers when country changes
-useEffect(() => {
-  const getNetworks = async () => {
-    if (!watchCountry) return;
+  // 1. Fetch network providers when country changes
+  useEffect(() => {
+    const getNetworks = async () => {
+      if (!watchCountry) return;
 
-    setIsLoading(true);
-    try {
-      form.setValue("network", "");
+      setIsLoading(true);
+      try {
+        form.setValue("network", "");
+        form.setValue("amount", "");
+        setOperatorRange(null);
+
+        const operators = await fetchAirtimeOperators(watchCountry);
+        setNetworks(operators);
+      } catch (error) {
+        console.error("Error fetching airtime operators:", error);
+        toast.error("Failed to load network providers. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getNetworks();
+    // Depend on country and form (used inside effect)
+  }, [watchCountry, form]);
+
+  // 2. Fetch operator range when network or country changes
+  useEffect(() => {
+    const getOperatorRange = async () => {
+      if (!watchCountry || !watchNetwork) {
+        setOperatorRange(null);
+        return;
+      }
+
+      setIsLoading(true);
       form.setValue("amount", "");
-      setOperatorRange(null);
 
-      const operators = await fetchAirtimeOperators(watchCountry);
-      setNetworks(operators);
-    } catch (error) {
-      console.error("Error fetching airtime operators:", error);
-      toast.error("Failed to load network providers. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      try {
+        const countryData = getCountryData(watchCountry);
+        const currency = countryData?.currency?.code;
 
-  getNetworks();
-  // Depend on country and form (used inside effect)
-}, [watchCountry, form]);
+        const response = await fetch(`/api/utilities/airtime/amount?provider=${watchNetwork}&country=${watchCountry}`, {
+          method: 'GET',
+        });
 
-// 2. Fetch operator range when network or country changes
-useEffect(() => {
-  const getOperatorRange = async () => {
-    if (!watchCountry || !watchNetwork) {
-      setOperatorRange(null);
+        if (response.ok) {
+          const data = await response.json();
+          setOperatorRange({
+            min: data.localMinAmount,
+            max: data.localMaxAmount,
+            currency
+          });
+        } else {
+          console.warn("Fallback to default range for country:", watchCountry);
+
+          const defaultRanges: { [key: string]: { min: number, max: number } } = {
+            ke: { min: 10, max: 10000 },
+            ug: { min: 500, max: 377857 },
+            ng: { min: 50, max: 200000 },
+            gh: { min: 1, max: 1000 },
+            za: { min: 5, max: 5000 }
+          };
+
+          const fallback = defaultRanges[watchCountry] || { min: 1, max: 1000 };
+          setOperatorRange({
+            min: fallback.min,
+            max: fallback.max,
+            currency
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching operator range:", error);
+        toast.error("Failed to load amount limits. Please try again.");
+        setOperatorRange(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getOperatorRange();
+  }, [watchNetwork, watchCountry, form]);
+
+  // 3. Validate amount against operator range
+  useEffect(() => {
+    if (!operatorRange) {
+      setAmountValidation({ isValid: true, message: '', type: 'success' });
+      setSelectedPrice(0);
       return;
     }
 
-    setIsLoading(true);
-    form.setValue("amount", "");
+    const enteredAmount = parseFloat(watchAmount);
 
-    try {
-      const countryData = getCountryData(watchCountry);
-      const currency = countryData?.currency?.code;
-
-      const response = await fetch(`/api/utilities/airtime/amount?provider=${watchNetwork}&country=${watchCountry}`, {
-        method: 'GET',
+    if (isNaN(enteredAmount)) {
+      setAmountValidation({
+        isValid: false,
+        message: 'Please enter a valid number',
+        type: 'error'
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setOperatorRange({
-          min: data.localMinAmount,
-          max: data.localMaxAmount,
-          currency
-        });
-      } else {
-        console.warn("Fallback to default range for country:", watchCountry);
-
-        const defaultRanges: { [key: string]: { min: number, max: number } } = {
-          ke: { min: 10, max: 10000 },
-          ug: { min: 500, max: 377857 },
-          ng: { min: 50, max: 200000 },
-          gh: { min: 1, max: 1000 },
-          za: { min: 5, max: 5000 }
-        };
-
-        const fallback = defaultRanges[watchCountry] || { min: 1, max: 1000 };
-        setOperatorRange({
-          min: fallback.min,
-          max: fallback.max,
-          currency
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching operator range:", error);
-      toast.error("Failed to load amount limits. Please try again.");
-      setOperatorRange(null);
-    } finally {
-      setIsLoading(false);
+      setSelectedPrice(0);
+      return;
     }
-  };
 
-  getOperatorRange();
-}, [watchNetwork, watchCountry, form]);
+    if (enteredAmount < operatorRange.min) {
+      setAmountValidation({
+        isValid: false,
+        message: `Minimum amount is ${operatorRange.min} ${operatorRange.currency}`,
+        type: 'error'
+      });
+      setSelectedPrice(0);
+    } else if (enteredAmount > operatorRange.max) {
+      setAmountValidation({
+        isValid: false,
+        message: `Maximum amount is ${operatorRange.max} ${operatorRange.currency}`,
+        type: 'error'
+      });
+      setSelectedPrice(0);
+    } else {
+      setAmountValidation({
+        isValid: true,
+        message: '',
+        type: 'success'
+      });
+      setSelectedPrice(enteredAmount);
+    }
+  }, [watchAmount, operatorRange]);
 
-// 3. Validate amount against operator range
-useEffect(() => {
-  if (!operatorRange) {
-    setAmountValidation({ isValid: true, message: '', type: 'success' });
-    setSelectedPrice(0);
-    return;
-  }
-
-  const enteredAmount = parseFloat(watchAmount);
-
-  if (isNaN(enteredAmount)) {
-    setAmountValidation({
-      isValid: false,
-      message: 'Please enter a valid number',
-      type: 'error'
-    });
-    setSelectedPrice(0);
-    return;
-  }
-
-  if (enteredAmount < operatorRange.min) {
-    setAmountValidation({
-      isValid: false,
-      message: `Minimum amount is ${operatorRange.min} ${operatorRange.currency}`,
-      type: 'error'
-    });
-    setSelectedPrice(0);
-  } else if (enteredAmount > operatorRange.max) {
-    setAmountValidation({
-      isValid: false,
-      message: `Maximum amount is ${operatorRange.max} ${operatorRange.currency}`,
-      type: 'error'
-    });
-    setSelectedPrice(0);
-  } else {
-    setAmountValidation({
-      isValid: true,
-      message: '',
-      type: 'success'
-    });
-    setSelectedPrice(enteredAmount);
-  }
-}, [watchAmount, operatorRange]);
-
-// 4. Watch payment token
-useEffect(() => {
-  if (watchPaymentToken) {
-    setSelectedToken(watchPaymentToken);
-  }
-}, [watchPaymentToken]);
+  // 4. Watch payment token
+  useEffect(() => {
+    if (watchPaymentToken) {
+      setSelectedToken(watchPaymentToken);
+    }
+  }, [watchPaymentToken]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     // Validate amount one more time before submission
@@ -393,7 +394,7 @@ useEffect(() => {
 
           if (response.ok && data.success) {
             updateStepStatus('top-up', 'success');
-            
+
             // Show prominent success modal instead of toast
             const selectedOperator = operators.find(op => op.id === values.network);
             setSuccessDetails({
@@ -422,20 +423,20 @@ useEffect(() => {
             closeTransactionDialog();
           } else {
             // Extract error message with fallbacks
-            const errorMsg = data?.error || data?.message || 
+            const errorMsg = data?.error || data?.message ||
               (response.status === 503 ? 'Service temporarily unavailable. Please try again.' :
-               response.status === 502 ? 'Top-up provider error. Payment recorded, please contact support.' :
-               response.status === 500 ? 'Server error. Payment recorded, please contact support.' :
-               response.status === 403 ? 'Payment validation failed. Please verify your transaction.' :
-               'There was an issue processing your top-up. Our team has been notified.');
-            
+                response.status === 502 ? 'Top-up provider error. Payment recorded, please contact support.' :
+                  response.status === 500 ? 'Server error. Payment recorded, please contact support.' :
+                    response.status === 403 ? 'Payment validation failed. Please verify your transaction.' :
+                      'There was an issue processing your top-up. Our team has been notified.');
+
             console.error("Top-up API Error:", {
               status: response.status,
               statusText: response.statusText,
               data,
               errorMsg
             });
-            
+
             toast.error(errorMsg);
             updateStepStatus('top-up', 'error', "Top-up failed but payment succeeded, Please screenshot this error and contact support.");
 
@@ -698,19 +699,40 @@ useEffect(() => {
                 >
                   <FormControl>
                     <SelectTrigger className="bg-gray-100 dark:bg-white/10 text-black/90 dark:text-white/90">
-                      <SelectValue placeholder="Select payment token" className='text-xs' />
+                      <SelectValue placeholder="Select payment token" className='text-xs'>
+                        {field.value && (() => {
+                          const selectedTokenConfig = UTILS_TOKENS[field.value];
+                          const tokenName = TOKENS.find(t => t.id === field.value)?.name || field.value;
+                          return (
+                            <div className="flex items-center gap-2">
+                              {selectedTokenConfig?.logoUrl && (
+                                <img src={selectedTokenConfig.logoUrl} alt={tokenName} className="w-4 h-4" />
+                              )}
+                              <span>{tokenName}</span>
+                            </div>
+                          );
+                        })()}
+                      </SelectValue>
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-white">
-                    {TOKENS.map((token) => (
-                      <SelectItem
-                        key={token.id}
-                        value={token.id}
-                        className="text-black/90 dark:text-white/90"
-                      >
-                        {token.name}
-                      </SelectItem>
-                    ))}
+                    {TOKENS.map((token) => {
+                      const logoUrl = UTILS_TOKENS[token.id]?.logoUrl;
+                      return (
+                        <SelectItem
+                          key={token.id}
+                          value={token.id}
+                          className="text-black/90 dark:text-white/90"
+                        >
+                          <div className="flex items-center gap-2">
+                            {logoUrl && (
+                              <img src={logoUrl} alt={token.name} className="w-5 h-5" />
+                            )}
+                            <span>{token.name}</span>
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
                 <FormMessage className="text-red-600 dark:text-white/10" />
