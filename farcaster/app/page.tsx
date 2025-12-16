@@ -73,9 +73,7 @@ function Dashboard() {
               onClick={() => router.push(feature.path)}
             >
               <CardHeader className="flex flex-row items-center gap-4">
-                <div className={cn("p-3 rounded-xl", feature.bgColor)}>
                   <Icon className={cn("w-6 h-6", feature.color)} />
-                </div>
                 <div>
                   <CardTitle className="text-lg">{feature.title}</CardTitle>
                   <CardDescription>{feature.description}</CardDescription>
