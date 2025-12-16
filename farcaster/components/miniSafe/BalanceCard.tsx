@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TOKENS } from "../../utils/tokens";
 
 // Icons
 import {
@@ -67,7 +68,11 @@ const BalanceCard: React.FC = () => {
               <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
                 <div className="flex items-center">
                   <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mr-2">
-                    <CoinsIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    {TOKENS['CUSD']?.logoUrl ? (
+                      <img src={TOKENS['CUSD'].logoUrl} alt="CUSD" className="w-5 h-5" />
+                    ) : (
+                      <CoinsIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    )}
                   </div>
                   <span className="font-medium">CUSD</span>
                 </div>
@@ -83,7 +88,11 @@ const BalanceCard: React.FC = () => {
               <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
                 <div className="flex items-center">
                   <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-2">
-                    <CoinsIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    {TOKENS['USDC']?.logoUrl ? (
+                      <img src={TOKENS['USDC'].logoUrl} alt="USDC" className="w-5 h-5" />
+                    ) : (
+                      <CoinsIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    )}
                   </div>
                   <span className="font-medium">USDC</span>
                 </div>
@@ -99,7 +108,11 @@ const BalanceCard: React.FC = () => {
               <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
                 <div className="flex items-center">
                   <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-2">
-                    <CoinsIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    {TOKENS['USDT']?.logoUrl ? (
+                      <img src={TOKENS['USDT'].logoUrl} alt="USDT" className="w-5 h-5" />
+                    ) : (
+                      <CoinsIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    )}
                   </div>
                   <span className="font-medium">USDT</span>
                 </div>
@@ -118,12 +131,28 @@ const BalanceCard: React.FC = () => {
             onValueChange={handleTokenChange}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select token" />
+              <SelectValue placeholder="Select token">
+                {selectedToken && (
+                  <div className="flex items-center gap-2">
+                    {TOKENS[selectedToken]?.logoUrl && (
+                      <img src={TOKENS[selectedToken].logoUrl} alt={selectedToken} className="w-4 h-4" />
+                    )}
+                    <span>{selectedToken}</span>
+                  </div>
+                )}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="CUSD">CUSD</SelectItem>
-              <SelectItem value="USDC">USDC</SelectItem>
-              <SelectItem value="USDT">USDT</SelectItem>
+              {['CUSD', 'USDC', 'USDT'].map((tokenSymbol) => (
+                <SelectItem key={tokenSymbol} value={tokenSymbol}>
+                  <div className="flex items-center gap-2">
+                    {TOKENS[tokenSymbol]?.logoUrl && (
+                      <img src={TOKENS[tokenSymbol].logoUrl} alt={tokenSymbol} className="w-4 h-4" />
+                    )}
+                    <span>{tokenSymbol}</span>
+                  </div>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
