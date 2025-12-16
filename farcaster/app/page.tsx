@@ -24,40 +24,35 @@ function Dashboard() {
       description: "Pay for data, airtime, and electricity",
       icon: Smartphone,
       path: "/utilityBills",
-      color: "text-blue-500",
-      bgColor: "bg-blue-50 dark:bg-blue-900/20"
+      color: "text-yellow-500",
     },
     {
       title: "Freebies",
       description: "Earn rewards and claim freebies",
       icon: Gift,
       path: "/freebies",
-      color: "text-pink-500",
-      bgColor: "bg-pink-50 dark:bg-pink-900/20"
+      color: "text-yellow-500",
     },
     {
       title: "Save",
       description: "Save money in your MiniSafe",
       icon: PiggyBank,
       path: "/miniSafe",
-      color: "text-green-500",
-      bgColor: "bg-green-50 dark:bg-green-900/20"
+      color: "text-yellow-500",
     },
     {
       title: "Thrift",
       description: "Join thrift groups and save together",
       icon: ShoppingBag,
       path: "/thrift",
-      color: "text-purple-500",
-      bgColor: "bg-purple-50 dark:bg-purple-900/20"
+      color: "text-yellow-500",
     },
     {
-      title: "Profile",
-      description: "Manage your account and settings",
+      title: "AI Chat",
+      description: "Ask AI for gas fees",
       icon: User,
-      path: "/profile",
-      color: "text-orange-500",
-      bgColor: "bg-orange-50 dark:bg-orange-900/20"
+      path: "/chat",
+      color: "text-yellow-500",
     }
   ];
 
@@ -78,9 +73,7 @@ function Dashboard() {
               onClick={() => router.push(feature.path)}
             >
               <CardHeader className="flex flex-row items-center gap-4">
-                <div className={cn("p-3 rounded-xl", feature.bgColor)}>
                   <Icon className={cn("w-6 h-6", feature.color)} />
-                </div>
                 <div>
                   <CardTitle className="text-lg">{feature.title}</CardTitle>
                   <CardDescription>{feature.description}</CardDescription>

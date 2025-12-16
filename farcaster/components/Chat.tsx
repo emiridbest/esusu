@@ -114,41 +114,41 @@ export default function Chat() {
                                 onClick={() => setError(null)} 
                                 variant="outline" 
                                 size="sm" 
-                                className="bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300 ml-2">
+                                className="border-black text-black dark:text-gray-400 font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300 ml-2">
                                 Dismiss
                             </Button>
                         </div>
                     )}
-                    
-                    {messages.length === 0 && !error ? (
-                        <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-                            <div className="w-16 h-16 rounded-full bg-primary dark:bg-primary flex items-center justify-center mb-6">
-                                <Sparkles className="h-8 w-8 text-black dark:text-primary-400" />
-                            </div>
-                            <h2 className="text-2xl font-bold mb-2 text-black dark:text-white/90">How can I help you today?</h2>
-                            <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8">
-                                Ask me about Esusu services, managing your finances, or how to use the platform.
-                            </p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-lg dark:text-gray-400">
-                                <Button variant="outline" className="justify-start text-left p-4 h-auto" onClick={() => 
-                                    handleInputChange({ target: { value: "How do I claim free gas fees into my Esusu account?" } } as any)}>
-                                    How do I claim free gas fees?
-                                </Button>
-                                <Button variant="outline" className="justify-start text-left p-4 h-auto bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300" onClick={() => 
-                                    handleInputChange({ target: { value: "Explain how the thrift feature works" } } as any)}>
-                                    Explain thrift features
-                                </Button>
-                                <Button variant="outline" className="justify-start text-left p-4 h-auto bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300" onClick={() => 
-                                    handleInputChange({ target: { value: "What are the fees for using Esusu?" } } as any)}>
-                                    What are the fees?
-                                </Button>
-                                <Button variant="outline" className="justify-start text-left p-4 h-auto bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300" onClick={() => 
-                                    handleInputChange({ target: { value: "How do I withdraw my savings?" } } as any)}>
-                                    Withdrawal process
-                                </Button>
-                            </div>
-                        </div>
-                    ) : (
+                
+                                      {messages.length === 0 && !error ? (
+                                          <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                                              <div className="w-16 h-16 rounded-full bg-primary dark:bg-primary flex items-center justify-center mb-6">
+                                                  <Sparkles className="h-8 w-8 text-black dark:text-primary-400" />
+                                              </div>
+                                              <h2 className="text-2xl font-bold mb-2 text-black dark:text-white/90">How can I help you today?</h2>
+                                              <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8">
+                                                  Ask me about Esusu services, managing your finances, or how to use the platform.
+                                              </p>
+                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-lg text-black dark:text-gray-400">
+                                                  <Button variant="outline" className="justify-start text-left p-4 h-auto " onClick={() => 
+                                                      handleInputChange({ target: { value: "How do I claim free gas fees?" } } as any)}>
+                                                      How do I claim free gas fees?
+                                                  </Button>
+                                                  <Button variant="outline" className="justify-start text-left p-4 h-auto " onClick={() => 
+                                                      handleInputChange({ target: { value: "Explain how the thrift feature works" } } as any)}>
+                                                      Explain thrift features
+                                                  </Button>
+                                                  <Button variant="outline" className="justify-start text-left p-4 h-auto " onClick={() => 
+                                                      handleInputChange({ target: { value: "What are the fees for using Esusu?" } } as any)}>
+                                                      What are the fees?
+                                                  </Button>
+                                                  <Button variant="outline" className="justify-start text-left p-4 h-auto " onClick={() => 
+                                                      handleInputChange({ target: { value: "How do I withdraw my savings?" } } as any)}>
+                                                      Withdrawal process
+                                                  </Button>
+                                              </div>
+                                          </div>
+                                      ) :(
                         <div className="py-6 space-y-8">
                             {messages.map((message: Message, i: number) => (
                                 <div
@@ -177,7 +177,7 @@ export default function Chat() {
                                             <Button 
                                                 variant="outline" 
                                                 size="sm" 
-                                                className="h-8 text-xs bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300"
+                                                className="h-8 text-xs border-black text-black dark:text-gray-400 font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300"
                                                 onClick={() => reload()}
                                             >
                                                 <RotateCcw className="h-3 w-3 mr-2 text-black dark:text-gray-400" />
