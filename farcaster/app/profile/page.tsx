@@ -51,7 +51,7 @@ function ProfileContent() {
             return createWalletClient({
                 account: address as `0x${string}`,
                 chain: celo,
-                transport: custom(window.ethereum as any)
+                transport: custom(window.ethereum)
             });
         }
         return null;
