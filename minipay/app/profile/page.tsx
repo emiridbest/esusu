@@ -1,14 +1,12 @@
 "use client";
-import React, { useEffect, useState, Suspense, useMemo } from "react"
-import { useAccount, useWalletClient } from 'wagmi';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { IdentitySDK } from "@goodsdks/citizen-sdk"
+import React, { useEffect, useState, Suspense } from "react"
+import { useAccount } from 'wagmi';
+import { useSearchParams } from 'next/navigation';
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, ShieldCheck, ExternalLink, HelpCircle } from "lucide-react";
-import { createPublicClient, createWalletClient, custom, http, webSocket, fallback } from 'viem';
-import { celo } from 'viem/chains';
 import { Button } from "@/components/ui/button";
+import { useIdentitySDK } from "@goodsdks/react-hooks";
 
 import { VerifyButton } from "@/components/profile/VerifyButton"
 import { IdentityCard } from "@/components/profile/IdentityCard"
@@ -17,61 +15,14 @@ import UserInfoTabs from "@/components/profile/UserInfoTabs";
 
 function ProfileContent() {
     const { address, isConnected } = useAccount();
-    const { data: walletClient } = useWalletClient();
-    const router = useRouter();
+    const { sdk: identitySDK } = useIdentitySDK("production");
     const [isSigningModalOpen, setIsSigningModalOpen] = useState(false)
     const [isVerified, setIsVerified] = useState<boolean | undefined>(false)
-    const [isWhitelisted, setIsWhitelisted] = useState<boolean | undefined>(
-        undefined,
-    )
-    const [loadingWhitelist, setLoadingWhitelist] = useState<boolean | undefined>(
-        undefined,
-    )
+    const [isWhitelisted, setIsWhitelisted] = useState<boolean | undefined>(undefined)
+    const [loadingWhitelist, setLoadingWhitelist] = useState<boolean | undefined>(undefined)
 
     const searchParams = useSearchParams();
-    const [connectedAccount, setConnectedAccount] = useState<string | undefined>(
-        undefined,
-    )
-    // Initialize IdentitySDK with proper viem clients
-    const publicClient = useMemo(() => {
-        return createPublicClient({
-            chain: celo,
-            transport: http('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8', {
-                timeout: 30_000,
-                retryCount: 3,
-            })
-        });
-    }, []);
-
-    const walletClientForSDK = useMemo(() => {
-        if (isConnected && walletClient && address) {
-            return walletClient;
-        }
-        if (isConnected && typeof window !== 'undefined' && window.ethereum && address) {
-            return createWalletClient({
-                account: address as `0x${string}`,
-                chain: celo,
-                transport: custom(window.ethereum as any)
-            });
-        }
-        return null;
-    }, [isConnected, address, walletClient]);
-
-    const identitySDK = useMemo(() => {
-        if (isConnected && publicClient && walletClientForSDK) {
-            try {
-                return new IdentitySDK({
-                    publicClient: publicClient as any,
-                    walletClient: walletClientForSDK as any,
-                    env: "production"
-                });
-            } catch (error) {
-                console.error('Failed to initialize IdentitySDK:', error);
-                return null;
-            }
-        }
-        return null;
-    }, [publicClient, walletClientForSDK, isConnected]);
+    const [connectedAccount, setConnectedAccount] = useState<string | undefined>(undefined)
 
     useEffect(() => {
         const verified = searchParams?.get("verified");
@@ -84,17 +35,27 @@ function ProfileContent() {
 
     useEffect(() => {
         const checkWhitelistStatus = async () => {
+            if (!identitySDK || !address) {
+                setLoadingWhitelist(false);
+                return;
+            }
+
             if (address && isWhitelisted === undefined) {
                 try {
                     setLoadingWhitelist(true)
                     setConnectedAccount(address)
-                    const { isWhitelisted } =
-                        (await identitySDK?.getWhitelistedRoot(address as `0x${string}`)) ?? {}
+                    const result = await identitySDK.getWhitelistedRoot(address as `0x${string}`)
 
-                    setIsWhitelisted(isWhitelisted)
-                    setIsVerified(isWhitelisted ?? false)
+                    if (result && typeof result.isWhitelisted === 'boolean') {
+                        setIsWhitelisted(result.isWhitelisted)
+                        setIsVerified(result.isWhitelisted)
+                    } else {
+                        setIsWhitelisted(false)
+                        setIsVerified(false)
+                    }
                 } catch (error) {
                     console.error("Error checking whitelist:", error)
+                    setIsWhitelisted(false)
                 } finally {
                     setLoadingWhitelist(false)
                 }
