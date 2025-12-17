@@ -7,9 +7,11 @@ import {
   Zap,
   Gift,
   PiggyBank,
-  ShoppingBag,
   User
 } from 'lucide-react';
+import {
+  UserGroupIcon,
+} from "@heroicons/react/24/outline";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { UtilityProvider } from '../context/utilityProvider/UtilityContext';
 import { ToastContainer } from 'react-toastify';
@@ -43,7 +45,7 @@ function Dashboard() {
     {
       title: "Thrift",
       description: "Join thrift groups and save together",
-      icon: ShoppingBag,
+      icon: UserGroupIcon,
       path: "/thrift",
       color: "text-yellow-500",
     },
