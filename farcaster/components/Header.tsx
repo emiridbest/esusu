@@ -184,7 +184,7 @@ export default function Header() {
     { title: "FAQ", href: "/faq" },
     { title: "Contact Us", href: "/contact" },
     { title: "Chat Assistant", href: "/chat" },
-  //  { title: "Profile", href: "/profile" },
+    { title: "Verify Identity", href: "/self" },
   ];
 
   // Function to format user display (Farcaster username or wallet address)
