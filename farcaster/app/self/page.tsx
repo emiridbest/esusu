@@ -9,7 +9,12 @@ import {
   countries, 
   getUniversalLink,
 } from "@selfxyz/qrcode";
-import { ethers } from "ethers";
+import { useAccount } from "wagmi";
+import { useMiniAppDimensions } from '@/hooks/useMiniAppDimensions';
+import { motion } from "framer-motion";
+import { ShieldIcon } from "lucide-react";
+import { Card } from "@/components/ui/card";
+
 
 export default function Home() {
   const router = useRouter();
@@ -18,9 +23,10 @@ export default function Home() {
   const [toastMessage, setToastMessage] = useState("");
   const [selfApp, setSelfApp] = useState<SelfApp | null>(null);
   const [universalLink, setUniversalLink] = useState("");
-  const [userId] = useState(ethers.ZeroAddress);
+  const { address: userId } = useAccount();
   // Use useMemo to cache the array to avoid creating a new array on each render
   const excludedCountries = useMemo(() => [countries.UNITED_STATES], []);
+  const dimensions = useMiniAppDimensions();
 
   // Use useEffect to ensure code only executes on the client side
   useEffect(() => {
@@ -105,19 +111,32 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
-      {/* Header */}
-      <div className="mb-6 md:mb-8 text-center">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-800">
-          {process.env.NEXT_PUBLIC_SELF_APP_NAME || "Self Workshop"}
-        </h1>
-        <p className="text-sm sm:text-base text-gray-600 px-2">
+
+     <div
+        className={`${dimensions.containerClass} mx-auto px-4 py-2 overflow-auto`}
+        style={{
+          width: dimensions.width,
+          height: dimensions.height,
+          maxWidth: dimensions.maxWidth,
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-2"
+        >
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+            <ShieldIcon className="mr-3 h-8 w-8 text-primary" />
+            Self Protocol
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 max-w-3xl">
           Scan QR code with Self Protocol App to verify your identity
-        </p>
-      </div>
+          </p>
+        </motion.div>
 
       {/* Main content */}
-      <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
+      <Card className="bg-white rounded-xl shadow-lg p-4 sm:p-6 w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
         <div className="flex justify-center mb-4 sm:mb-6">
           {selfApp ? (
             <SelfQRcodeWrapper
@@ -139,7 +158,7 @@ export default function Home() {
             type="button"
             onClick={copyToClipboard}
             disabled={!universalLink}
-            className="flex-1 bg-gray-800 hover:bg-gray-700 transition-colors text-white p-2 rounded-md text-sm sm:text-base disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="flex-1 bg-black/90 text-white hover:bg-gray-700 transition-colors  p-2 rounded-md text-sm sm:text-base disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {linkCopied ? "Copied!" : "Copy Universal Link"}
           </button>
@@ -148,7 +167,7 @@ export default function Home() {
             type="button"
             onClick={openSelfApp}
             disabled={!universalLink}
-            className="flex-1 bg-blue-600 hover:bg-blue-500 transition-colors text-white p-2 rounded-md text-sm sm:text-base mt-2 sm:mt-0 disabled:bg-blue-300 disabled:cursor-not-allowed"
+            className="flex-1 bg-primary hover:bg-yellow-500 transition-colors text-black p-2 rounded-md text-sm sm:text-base mt-2 sm:mt-0 disabled:bg-primary-300 disabled:cursor-not-allowed"
           >
             Open Self App
           </button>
@@ -168,7 +187,7 @@ export default function Home() {
             {toastMessage}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
-}//0xe57F4773bd9c9d8b6Cd70431117d353298B9f5BF
+}//NEXT_PUBLIC_SELF_ENDPOINT=0xe57F4773bd9c9d8b6Cd70431117d353298B9f5BF
