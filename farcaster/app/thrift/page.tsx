@@ -2,7 +2,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { UsersIcon, CalendarIcon, BellIcon, PlusIcon, SparklesIcon, ArrowRightIcon } from 'lucide-react';
+import { UsersIcon, CalendarIcon, BellIcon, PlusIcon, SparklesIcon, ArrowRightIcon, ShieldIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,32 +12,32 @@ import { CreateCampaignDialog } from '@/components/thrift/CreateCampaignDialog';
 import { CampaignList } from '@/components/thrift/CampaignList';
 import { UserCampaigns } from '@/components/thrift/UserCampaigns';
 import { cn } from '@/lib/utils';
+import { useMiniAppDimensions } from '@/hooks/useMiniAppDimensions';
 
 // Quick action component for thrift features
-const ThriftQuickAction = ({ 
-  icon, 
-  title, 
-  description, 
-  href, 
-  variant = "default" 
-}: { 
-  icon: React.ReactNode; 
-  title: string; 
-  description: string; 
+const ThriftQuickAction = ({
+  icon,
+  title,
+  description,
+  href,
+  variant = "default"
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
   href: string;
   variant?: "default" | "outline";
 }) => {
   const router = useRouter();
-  
   return (
-    <Card 
+    <Card
       className={cn(
         "cursor-pointer transition-all duration-300 hover:scale-[1.02] border-gray-100 dark:border-gray-700",
         variant === "outline" ? "bg-white/50 dark:bg-gray-800/50 backdrop-blur-md" : "bg-primary/5"
       )}
       onClick={() => router.push(href)}
     >
-      <CardContent className="p-6 flex flex-row items-center gap-4">
+      <CardContent className="p-6 flex flex-col items-center gap-4">
         <div className={cn(
           "rounded-full p-3 flex items-center justify-center",
           variant === "outline" ? "bg-primary/10" : "bg-white dark:bg-gray-800"
@@ -58,80 +58,37 @@ const ThriftQuickAction = ({
 
 const Thrift: React.FC = () => {
   const router = useRouter();
+  const dimensions = useMiniAppDimensions();
 
   return (
     <ThriftProvider>
-      <div className="max-w-screen-xl mx-auto px-4 md:px-8 pb-20">
-        {/* Header Section */}
+      <div
+        className={`${dimensions.containerClass} mx-auto px-2 py-2 overflow-auto`}
+        style={{
+          width: dimensions.width,
+          height: dimensions.height,
+          maxWidth: dimensions.maxWidth,
+        }}
+      >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-center mb-8"
+          transition={{ duration: 0.5 }}
+          className="mb-8"
         >
-          <div className="mb-6">
-            <motion.div 
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="relative inline-block"
-            >
-              <div className="absolute -inset-4 rounded-full bg-primary/10 animate-pulse blur-xl"></div>
-              <div className="relative bg-white dark:bg-gray-800 p-4 rounded-full border border-gray-100 dark:border-gray-700">
-                <UsersIcon className="h-8 w-8 text-primary" />
-              </div>
-            </motion.div>
-          </div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="mb-4"
-          >
-            <Badge variant="outline" className="px-3 py-1 text-sm bg-primary/10 text-primary border-primary/20">
-              Beta Feature
-            </Badge>
-          </motion.div>
-
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4"
-          >
-            Community Thrift Groups
-          </motion.h1>
-
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-            className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-8"
-          >
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+            <ShieldIcon className="mr-3 h-8 w-8 text-primary" />
+            Groups Savings
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 max-w-3xl">
             Join or create savings groups with friends and family. Pool your resources together and take turns receiving the collected funds.
-          </motion.p>
+          </p>
+        </motion.div>
 
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
-            className="flex flex-wrap gap-4 justify-center"
-          >
-            <CreateCampaignDialog />
-            
-            <Button 
-              variant="outline"
-              onClick={() => router.push('/miniSafe')}
-              className="rounded-full bg-black text-white hover:bg-primary/90 transition duration-200 dark:bg-white dark:text-black dark:hover:bg-primary/90"
-            >
-              Try Simple Savings
-            </Button>
-          </motion.div>
-          </motion.div>
-          
+
+
         {/* Quick Actions */}
-          <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
@@ -141,8 +98,8 @@ const Thrift: React.FC = () => {
             <SparklesIcon className="h-5 w-5 text-primary mr-2" />
             <h2 className="text-xl font-semibold dark:text-white/70">Quick Actions</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 dark:text-white">
-            <ThriftQuickAction 
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <ThriftQuickAction
               icon={<UsersIcon className="h-6 w-6 text-primary" />}
               title="Create Thrift Group"
               description="Start a new savings group"
@@ -164,10 +121,10 @@ const Thrift: React.FC = () => {
               variant="outline"
             />
           </div>
-          </motion.div>
-          
+        </motion.div>
+
         {/* Tabbed Content */}
-          <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
@@ -188,15 +145,15 @@ const Thrift: React.FC = () => {
             <TabsContent value="available-groups" className="mt-4">
               <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md">
                 <CardContent className="pt-6">
-            <CampaignList />
+                  <CampaignList />
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
-          </motion.div>
-          
+        </motion.div>
+
         {/* How It Works Section */}
-          <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
@@ -231,16 +188,16 @@ const Thrift: React.FC = () => {
                   </div>
                   <h4 className="font-medium text-lg mb-2">Take Turns</h4>
                   <p className="text-gray-600 dark:text-gray-400">Each member receives the full pool amount in rotation</p>
-                  </div>
                 </div>
-              </CardContent>
+              </div>
+            </CardContent>
             <CardFooter className="border-t border-white/20 flex justify-center">
               <div className="flex items-center text-white/80 text-sm">
-                  <CalendarIcon className="h-4 w-4 mr-2" />
-                  <span>Powered by Celo blockchain</span>
-                </div>
-              </CardFooter>
-            </Card>
+                <CalendarIcon className="h-4 w-4 mr-2" />
+                <span>Powered by Celo blockchain</span>
+              </div>
+            </CardFooter>
+          </Card>
         </motion.div>
       </div>
     </ThriftProvider>

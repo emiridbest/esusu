@@ -113,7 +113,7 @@ export default function Home() {
   return (
 
      <div
-        className={`${dimensions.containerClass} mx-auto px-4 py-2 overflow-auto`}
+        className={`${dimensions.containerClass} mx-auto px-2 py-2 overflow-auto`}
         style={{
           width: dimensions.width,
           height: dimensions.height,
@@ -124,7 +124,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-2"
+          className="mb-8"
         >
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
             <ShieldIcon className="mr-3 h-8 w-8 text-primary" />
