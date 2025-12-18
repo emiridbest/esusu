@@ -94,10 +94,6 @@ const Thrift: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="my-6"
         >
-          <div className="flex items-center mb-4">
-            <SparklesIcon className="h-5 w-5 text-primary mr-2" />
-            <h2 className="text-xl font-semibold dark:text-white/70">Quick Actions</h2>
-          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <ThriftQuickAction
               icon={<UsersIcon className="h-6 w-6 text-primary" />}
