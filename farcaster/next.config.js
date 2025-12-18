@@ -4,7 +4,7 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
-    externalDir: true // Allow importing from backend folder
+    externalDir: true, // Allow importing from backend folder
   },
   // Ensure Vercel/Next includes external backend-temp files used by API routes
   outputFileTracingIncludes: {
@@ -29,25 +29,25 @@ const nextConfig = {
         fs: false
       }
     }
-    
+
     // Add explicit path aliases for production builds
     config.resolve.alias = {
       ...config.resolve.alias,
       '@': require('path').resolve(__dirname)
     }
-    
+
     // Exclude backend-temp files from webpack bundle
     config.externals = config.externals || [];
     if (Array.isArray(config.externals)) {
       config.externals.push(/^backend-temp\//);
     }
-    
+
     // Suppress Mento SDK ethers v6 compatibility warnings
     config.ignoreWarnings = [
       { module: /@mento-protocol\/mento-sdk/ },
       { module: /backend-temp/ }
     ];
-    
+
     return config
   }
 }

@@ -32,152 +32,162 @@ const BalanceCard: React.FC = () => {
 
 
   return (
-    <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border-gray-100 dark:border-gray-700 overflow-hidden h-full dark:text-white">
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/70 via-primary/40 to-primary/10"></div>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xl flex items-center">
-          <WalletIcon className="mr-2 h-5 w-5 text-primary" />
-          My Savings
-        </CardTitle>
-        <CardDescription>Manage your secured assets</CardDescription>
-      </CardHeader>
+    <Card className="relative bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border-gray-100 dark:border-gray-700 overflow-hidden h-full dark:text-white">
+      {/* Vault glow effect */}
+      <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400/20 via-yellow-500/10 to-transparent blur-xl opacity-50 dark:opacity-30 animate-pulse" />
 
-      <CardContent className="space-y-4">
-        {isLoading ? (
-          <>
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-24" />
-              <Skeleton className="h-8 w-full" />
-            </div>
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-24" />
-              <Skeleton className="h-8 w-full" />
-            </div>
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-24" />
-              <Skeleton className="h-8 w-full" />
-            </div>
-          </>
-        ) : (
-          <>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">CUSD Balance</div>
-                <Badge variant="outline" className="text-xs">Stablecoin</Badge>
+      {/* Premium gradient line */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-300" />
+
+      {/* Content wrapper */}
+      <div className="relative z-10">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xl flex items-center">
+            <WalletIcon className="mr-2 h-5 w-5 text-yellow-600 dark:text-yellow-500" />
+            My Savings
+          </CardTitle>
+          <CardDescription>Manage your secured assets</CardDescription>
+        </CardHeader>
+
+
+        <CardContent className="space-y-4">
+          {isLoading ? (
+            <>
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-8 w-full" />
               </div>
-              <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mr-2">
-                    {TOKENS['CUSD']?.logoUrl ? (
-                      <img src={TOKENS['CUSD'].logoUrl} alt="CUSD" className="w-5 h-5" />
-                    ) : (
-                      <CoinsIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    )}
-                  </div>
-                  <span className="font-medium">CUSD</span>
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">CUSD Balance</div>
+                  <Badge variant="outline" className="text-xs">Stablecoin</Badge>
                 </div>
-                <div className="text-xl font-bold">{cusdBalance ? formatBalance(formatUnits(cusdBalance || '0', 18)) : '0.00'}</div>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">USDC Balance</div>
-                <Badge variant="outline" className="text-xs">Stablecoin</Badge>
-              </div>
-              <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-2">
-                    {TOKENS['USDC']?.logoUrl ? (
-                      <img src={TOKENS['USDC'].logoUrl} alt="USDC" className="w-5 h-5" />
-                    ) : (
-                      <CoinsIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    )}
+                <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mr-2">
+                      {TOKENS['CUSD']?.logoUrl ? (
+                        <img src={TOKENS['CUSD'].logoUrl} alt="CUSD" className="w-5 h-5" />
+                      ) : (
+                        <CoinsIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      )}
+                    </div>
+                    <span className="font-medium">CUSD</span>
                   </div>
-                  <span className="font-medium">USDC</span>
+                  <div className="text-xl font-bold">{cusdBalance ? formatBalance(formatUnits(cusdBalance || '0', 18)) : '0.00'}</div>
                 </div>
-                <div className="text-xl font-bold">{usdcBalance ? formatBalance(formatUnits(usdcBalance || '0', 6)) : '0.00'}</div>
               </div>
-            </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">USDT Balance</div>
-                <Badge variant="outline" className="text-xs">Stablecoin</Badge>
-              </div>
-              <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-2">
-                    {TOKENS['USDT']?.logoUrl ? (
-                      <img src={TOKENS['USDT'].logoUrl} alt="USDT" className="w-5 h-5" />
-                    ) : (
-                      <CoinsIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    )}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">USDC Balance</div>
+                  <Badge variant="outline" className="text-xs">Stablecoin</Badge>
+                </div>
+                <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-2">
+                      {TOKENS['USDC']?.logoUrl ? (
+                        <img src={TOKENS['USDC'].logoUrl} alt="USDC" className="w-5 h-5" />
+                      ) : (
+                        <CoinsIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      )}
+                    </div>
+                    <span className="font-medium">USDC</span>
                   </div>
-                  <span className="font-medium">USDT</span>
+                  <div className="text-xl font-bold">{usdcBalance ? formatBalance(formatUnits(usdcBalance || '0', 6)) : '0.00'}</div>
                 </div>
-                <div className="text-xl font-bold">{usdtBalance ? formatBalance(formatUnits(usdtBalance || '0', 6)) : '0.00'}</div>
               </div>
-            </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">USDT Balance</div>
+                  <Badge variant="outline" className="text-xs">Stablecoin</Badge>
+                </div>
+                <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-2">
+                      {TOKENS['USDT']?.logoUrl ? (
+                        <img src={TOKENS['USDT'].logoUrl} alt="USDT" className="w-5 h-5" />
+                      ) : (
+                        <CoinsIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      )}
+                    </div>
+                    <span className="font-medium">USDT</span>
+                  </div>
+                  <div className="text-xl font-bold">{usdtBalance ? formatBalance(formatUnits(usdtBalance || '0', 6)) : '0.00'}</div>
+                </div>
+              </div>
 
 
-          </>
-        )}
+            </>
+          )}
 
-        <div className="pt-2">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Select token</div>
-          <Select
-            value={selectedToken}
-            onValueChange={handleTokenChange}
+          <div className="pt-2">
+            <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Select token</div>
+            <Select
+              value={selectedToken}
+              onValueChange={handleTokenChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select token">
+                  {selectedToken && (
+                    <div className="flex items-center gap-2">
+                      {TOKENS[selectedToken]?.logoUrl && (
+                        <img src={TOKENS[selectedToken].logoUrl} alt={selectedToken} className="w-4 h-4" />
+                      )}
+                      <span>{selectedToken}</span>
+                    </div>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {['CUSD', 'USDC', 'USDT'].map((tokenSymbol) => (
+                  <SelectItem key={tokenSymbol} value={tokenSymbol}>
+                    <div className="flex items-center gap-2">
+                      {TOKENS[tokenSymbol]?.logoUrl && (
+                        <img src={TOKENS[tokenSymbol].logoUrl} alt={tokenSymbol} className="w-4 h-4" />
+                      )}
+                      <span>{tokenSymbol}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+
+        </CardContent>
+
+        <CardFooter className="border-t border-gray-100 dark:border-gray-700 pt-4 flex items-center justify-between text-xs text-gray-500">
+          <div className="flex items-center">
+            <ClockIcon className="h-3 w-3 mr-1" />
+            <span>Updated just now</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs text-gray-500"
+            onClick={() => {
+              getBalance();
+            }}
           >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select token">
-                {selectedToken && (
-                  <div className="flex items-center gap-2">
-                    {TOKENS[selectedToken]?.logoUrl && (
-                      <img src={TOKENS[selectedToken].logoUrl} alt={selectedToken} className="w-4 h-4" />
-                    )}
-                    <span>{selectedToken}</span>
-                  </div>
-                )}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {['CUSD', 'USDC', 'USDT'].map((tokenSymbol) => (
-                <SelectItem key={tokenSymbol} value={tokenSymbol}>
-                  <div className="flex items-center gap-2">
-                    {TOKENS[tokenSymbol]?.logoUrl && (
-                      <img src={TOKENS[tokenSymbol].logoUrl} alt={tokenSymbol} className="w-4 h-4" />
-                    )}
-                    <span>{tokenSymbol}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-
-      </CardContent>
-
-      <CardFooter className="border-t border-gray-100 dark:border-gray-700 pt-4 flex items-center justify-between text-xs text-gray-500">
-        <div className="flex items-center">
-          <ClockIcon className="h-3 w-3 mr-1" />
-          <span>Updated just now</span>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 px-2 text-xs text-gray-500"
-          onClick={() => {
-            getBalance();
-          }}
-        >
-          <RefreshCwIcon className="h-3 w-3 mr-1 text-gray-500" />
-          Refresh
-        </Button>
-      </CardFooter>
+            <RefreshCwIcon className="h-3 w-3 mr-1 text-gray-500" />
+            Refresh
+          </Button>
+        </CardFooter>
+      </div>
     </Card>
+
   );
 };
 

@@ -24,40 +24,40 @@ function Dashboard() {
       description: "Pay for data, airtime, and electricity",
       icon: Smartphone,
       path: "/utilityBills",
-      color: "text-blue-500",
-      bgColor: "bg-blue-50 dark:bg-blue-900/20"
+      color: "text-yellow-600 dark:text-yellow-500",
+      bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
     },
     {
       title: "Freebies",
       description: "Earn rewards and claim freebies",
       icon: Gift,
       path: "/freebies",
-      color: "text-pink-500",
-      bgColor: "bg-pink-50 dark:bg-pink-900/20"
+      color: "text-yellow-600 dark:text-yellow-500",
+      bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
     },
     {
       title: "Save",
       description: "Save money in your MiniSafe",
       icon: PiggyBank,
       path: "/miniSafe",
-      color: "text-green-500",
-      bgColor: "bg-green-50 dark:bg-green-900/20"
+      color: "text-yellow-600 dark:text-yellow-500",
+      bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
     },
     {
       title: "Thrift",
       description: "Join thrift groups and save together",
       icon: ShoppingBag,
       path: "/thrift",
-      color: "text-purple-500",
-      bgColor: "bg-purple-50 dark:bg-purple-900/20"
+      color: "text-yellow-600 dark:text-yellow-500",
+      bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
     },
     {
       title: "Profile",
       description: "Manage your account and settings",
       icon: User,
       path: "/profile",
-      color: "text-orange-500",
-      bgColor: "bg-orange-50 dark:bg-orange-900/20"
+      color: "text-yellow-600 dark:text-yellow-500",
+      bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
     }
   ];
 
@@ -74,7 +74,7 @@ function Dashboard() {
           return (
             <Card
               key={feature.title}
-              className="cursor-pointer hover:shadow-lg transition-all duration-200 border-none bg-white/50 backdrop-blur-sm dark:bg-gray-900/50"
+              className="cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all duration-200 border-none bg-white/50 backdrop-blur-sm dark:bg-gray-900/50"
               onClick={() => router.push(feature.path)}
             >
               <CardHeader className="flex flex-row items-center gap-4">
