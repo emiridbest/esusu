@@ -310,7 +310,7 @@ export function CampaignList() {
 
       {/* Share Campaign Dialog */}
       <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dark:text-white/90">
           <DialogHeader>
             <DialogTitle>Share Thrift Group</DialogTitle>
           </DialogHeader>
@@ -364,7 +364,7 @@ export function CampaignList() {
 
       {/* Join Campaign Dialog */}
       <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dark:text-white/90">
           <DialogHeader>
             <DialogTitle>Join Thrift Group</DialogTitle>
           </DialogHeader>
