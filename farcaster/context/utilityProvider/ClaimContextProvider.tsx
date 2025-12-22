@@ -273,10 +273,12 @@ const handleVerification = useCallback(async () => {
         // Continue even if sponsorship fails
       }
 
-      const tx = await sendTransactionAsync({
+     /* const tx = await sendTransactionAsync({
         to: ubiSchemeV2Address as `0x${string}`,
         data: dataWithSuffix as `0x${string}`,
       });
+*/
+      const tx = await claimSDK.claim();
 
       if (!tx) {
         return { success: false, error: new Error("No transaction returned from claim") };
@@ -347,7 +349,7 @@ const handleVerification = useCallback(async () => {
       setIsProcessing(false);
       setIsWaitingTx(false);
     }
-  }, [isConnected, address, sendTransactionAsync, checkAndSponsor]);
+  }, [isConnected, address, sendTransactionAsync, claimSDK, checkAndSponsor]);
 
   const processDataTopUp = useCallback(async (
     values: any,

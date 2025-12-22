@@ -315,34 +315,34 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       } catch (gasError) {
         console.error("Gas sponsorship failed:", gasError);
       }
-      /*const tx = await sendTransactionAsync({
+     /* const tx = await sendTransactionAsync({
         to: ubiSchemeV2Address as `0x${string}`,
         data: dataWithSuffix as `0x${string}`,
-      });*/
-      //use claimSDK to claim
-      if (!claimSDK) {
-        toast.error("Claim SDK not initialized");
-        return { success: false, error: new Error("Claim SDK not initialized") };
-      }
-
+      });
+*/
       const tx = await claimSDK.claim();
+      // Wait for confirmation
+      const receipt = await waitForReceipt({
+        client,
+        chain: activeChain,
+        transactionHash: tx.transactionHash,
+      });
 
-      if (!tx) {
-        return { success: false, error: new Error("No transaction returned from claim") };
+      if (receipt.status !== 'success') {
+        throw new Error("Transaction failed");
       }
 
       // Submit claim transaction to Divvi referral system
-    /*  try {
+      try {
         await submitReferral({
-          txHash: tx,
-          chainId: celo.id,
+          txHash: tx.transactionHash,
+          chainId: activeChain.id,
         });
         console.log("Claim transaction referral submitted to Divvi.");
       } catch (referralError) {
         console.error("Referral submission error for claim:", referralError);
         // Don't fail the whole operation if referral submission fails
       }
-      */
 
       // Reset claim amount after successful claim
       setClaimAmount(null);
@@ -403,7 +403,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       setIsProcessing(false);
       setIsWaitingTx(false);
     }
-  }, [isConnected, address, wallet, account]);
+  }, [isConnected, address, wallet, account, claimSDK, checkAndSponsor]);
 
 
   const processDataTopUp = useCallback(async (
