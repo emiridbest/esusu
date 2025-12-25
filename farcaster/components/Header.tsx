@@ -184,7 +184,7 @@ export default function Header() {
     { title: "FAQ", href: "/faq" },
     { title: "Contact Us", href: "/contact" },
     { title: "Chat Assistant", href: "/chat" },
-    { title: "Profile", href: "/profile" },
+    { title: "Verify Identity", href: "/self" },
   ];
 
   // Function to format user display (Farcaster username or wallet address)
@@ -283,11 +283,11 @@ export default function Header() {
                       className="rounded-full px-4 border-gray-200 hover:border-primary/80 flex items-center gap-2 bg-white dark:bg-gray-800 shadow-sm"
                     >
                       <div className="h-6 w-6 rounded-full bg-gradient-to-r from-primary to-primary/60 flex items-center justify-center">
-                        <span className="text-white text-xs">
+                        <span className="text-black text-xs">
                           {address ? address.substring(2, 4).toUpperCase() : ''}
                         </span>
                       </div>
-                      <span className="font-medium text-sm">{formatUserDisplay(address as string)}</span>
+                      <span className="font-medium text-sm text-black dark:text-white">{formatUserDisplay(address as string)}</span>
                       <ChevronDownIcon className="h-4 w-4 opacity-70" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -328,7 +328,7 @@ export default function Header() {
                       {/* Connected Status for Mobile */}
                       <div className="flex items-center space-x-3 py-3 px-4 mb-2 bg-primary/10 rounded-lg">
                         <div className="h-10 w-10 rounded-full bg-gradient-to-r from-primary to-primary/60 flex items-center justify-center">
-                          <span className="text-white">
+                          <span className="text-black">
                             {address ? address.substring(2, 4).toUpperCase() : ''}
                           </span>
                         </div>
@@ -393,7 +393,7 @@ export default function Header() {
                             <Link
                               key={item.title}
                               href={item.href}
-                              className="py-2 px-4 block hover:bg-primary/10 hover:text-primary rounded-lg transition-all duration-300"
+                              className="py-2 px-4 block text-black/50 dark:text-gray-500 text-xs hover:bg-primary/10 hover:text-primary rounded-lg transition-all duration-300"
                             >
                               {item.title}
                             </Link>

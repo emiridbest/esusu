@@ -11,6 +11,7 @@
 - Track G$ claims via Divvi
 - Implement Gas sponsorship
 - Track G$ referrals via Divvi
+- Implement Self Protocol on Farcaster
 
 
 # Proof of Ship 9 

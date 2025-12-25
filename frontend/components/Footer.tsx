@@ -17,16 +17,16 @@ export default function Footer() {
   
   const navItems = [
     { name: "Home", icon: HomeIcon, path: "/", ariaLabel: "Navigate to home" },
-    { name: "Save", icon: ArchiveBoxArrowDownIcon, path: "/miniSafe", ariaLabel: "Navigate to savings" },
-    { name: "Pay Bills", icon: StoreIcon, path: "/utilityBills", ariaLabel: "Navigate to utility bills" },
     { name: "Freebies", icon: GiftIcon, path: "/freebies", ariaLabel: "Navigate to freebies" },
+    { name: "Pay Bills", icon: StoreIcon, path: "/utilityBills", ariaLabel: "Navigate to utility bills" },
+    { name: "Save", icon: ArchiveBoxArrowDownIcon, path: "/miniSafe", ariaLabel: "Navigate to savings" },
     { name: "Thrift", icon: UserGroupIcon, path: "/thrift", ariaLabel: "Navigate to thrift" },
-    //{ name: "Profile", icon: UserIcon, path: "/profile", ariaLabel: "Navigate to profile" }
+   // { name: "Profile", icon: UserIcon, path: "/profile", ariaLabel: "Navigate to profile" }
   ];
 
   return (
     <footer className="sm:hidden fixed bottom-0 w-full backdrop-blur-md bg-white/70 dark:bg-black/70 border-t border-gray-200 dark:border-gray-800 shadow-lg z-40">
-      <div className="flex justify-around py-3">
+      <div className="flex justify-around py-3 text">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
@@ -39,7 +39,7 @@ export default function Footer() {
                 "flex flex-col items-center space-y-1 transition-all duration-200 hover:scale-110",
                 "text-xs focus:outline-none",
                 active 
-                  ? "text-primary" 
+                  ? "text-black dark:text-primary font-semibold" 
                   : "text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
               )}
               aria-label={item.ariaLabel}

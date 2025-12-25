@@ -1,0 +1,193 @@
+"use client";
+
+import React, { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import {
+  SelfQRcodeWrapper,
+  SelfAppBuilder,
+  type SelfApp,
+  countries, 
+  getUniversalLink,
+} from "@selfxyz/qrcode";
+import { useAccount } from "wagmi";
+import { useMiniAppDimensions } from '@/hooks/useMiniAppDimensions';
+import { motion } from "framer-motion";
+import { ShieldIcon } from "lucide-react";
+import { Card } from "@/components/ui/card";
+
+
+export default function Home() {
+  const router = useRouter();
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [selfApp, setSelfApp] = useState<SelfApp | null>(null);
+  const [universalLink, setUniversalLink] = useState("");
+  const { address: userId } = useAccount();
+  // Use useMemo to cache the array to avoid creating a new array on each render
+  const excludedCountries = useMemo(() => [countries.UNITED_STATES], []);
+  const dimensions = useMiniAppDimensions();
+
+  // Use useEffect to ensure code only executes on the client side
+  useEffect(() => {
+    try {
+      const app = new SelfAppBuilder({
+        version: 2,
+        appName: "Esusu",
+        scope: process.env.NEXT_PUBLIC_SELF_SCOPE_SEED,
+        endpoint: `${process.env.NEXT_PUBLIC_SELF_ENDPOINT}`,
+        logoBase64:
+          "https://i.postimg.cc/mrmVf9hm/self.png", // url of a png image, base64 is accepted but not recommended
+        userId: userId,
+        endpointType: "celo",
+          // [Onchain Verification] "celo" for mainnet smart contract ,
+          // [Onchain Verification] "staging_celo" for testnet smart contract,
+          // [Offchain Verification] "https" mainnet https endpoint,
+          // [Offchain Verification] "staging_https" for testnet https endpoint
+        userIdType: "hex", // use 'hex' for ethereum address or 'uuid' for uuidv4
+        userDefinedData: "Welcome to Esusu!!!",
+        
+        // [DEEPLINK CALLBACK] Uncomment to automatically redirect user to your app after verification
+        //deeplinkCallback: `your-app-deeplink-url`,
+        
+        disclosures: { 
+          // What you want to verify from users identity:
+          minimumAge: 18,
+          // ofac: true,
+          excludedCountries: excludedCountries,
+          
+          // What you want users to reveal:
+          // name: false,
+          // issuing_state: true,
+          // nationality: true,
+          // date_of_birth: true,
+          // passport_number: false,
+          // gender: true,
+          // expiry_date: false,
+        }
+      }).build();
+
+      setSelfApp(app);
+      setUniversalLink(getUniversalLink(app));
+    } catch (error) {
+      console.error("Failed to initialize Self app:", error);
+    }
+  }, [excludedCountries, userId]);
+
+  const displayToast = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const copyToClipboard = () => {
+    if (!universalLink) return;
+
+    navigator.clipboard
+      .writeText(universalLink)
+      .then(() => {
+        setLinkCopied(true);
+        displayToast("Universal link copied to clipboard!");
+        setTimeout(() => setLinkCopied(false), 2000);
+      })
+      .catch((err) => {
+        console.error("Failed to copy text: ", err);
+        displayToast("Failed to copy link");
+      });
+  };
+
+  const openSelfApp = () => {
+    if (!universalLink) return;
+
+    window.open(universalLink, "_blank");
+    displayToast("Opening Self App...");
+  };
+
+  const handleSuccessfulVerification = () => {
+    displayToast("Verification successful! Redirecting...");
+    setTimeout(() => {
+      router.push("/verified");
+    }, 1500);
+  };
+
+  return (
+
+     <div
+        className={`${dimensions.containerClass} mx-auto px-2 py-2 overflow-auto`}
+        style={{
+          width: dimensions.width,
+          height: dimensions.height,
+          maxWidth: dimensions.maxWidth,
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+            <ShieldIcon className="mr-3 h-8 w-8 text-primary" />
+            Self Protocol
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 max-w-3xl">
+          Scan QR code with Self Protocol App to verify your identity
+          </p>
+        </motion.div>
+
+      {/* Main content */}
+      <Card className="bg-white rounded-xl shadow-lg p-4 sm:p-6 w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
+        <div className="flex justify-center mb-4 sm:mb-6">
+          {selfApp ? (
+            <SelfQRcodeWrapper
+              selfApp={selfApp}
+              onSuccess={handleSuccessfulVerification}
+              onError={() => {
+                displayToast("Error: Failed to verify identity");
+              }}
+            />
+          ) : (
+            <div className="w-[256px] h-[256px] bg-gray-200 animate-pulse flex items-center justify-center">
+              <p className="text-gray-500 text-sm">Loading QR Code...</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2 mb-4 sm:mb-6">
+          <button
+            type="button"
+            onClick={copyToClipboard}
+            disabled={!universalLink}
+            className="flex-1 bg-black/90 text-white hover:bg-gray-700 transition-colors  p-2 rounded-md text-sm sm:text-base disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {linkCopied ? "Copied!" : "Copy Universal Link"}
+          </button>
+
+          <button
+            type="button"
+            onClick={openSelfApp}
+            disabled={!universalLink}
+            className="flex-1 bg-primary hover:bg-yellow-500 transition-colors text-black p-2 rounded-md text-sm sm:text-base mt-2 sm:mt-0 disabled:bg-primary-300 disabled:cursor-not-allowed"
+          >
+            Open Self App
+          </button>
+
+
+        </div>
+        <div className="flex flex-col items-center gap-2 mt-2">
+          <span className="text-gray-500 text-xs uppercase tracking-wide">User Address</span>
+          <div className="bg-gray-100 rounded-md px-3 py-2 w-full text-center break-all text-sm font-mono text-gray-800 border border-gray-200">
+            {userId ? userId : <span className="text-gray-400">Not connected</span>}
+          </div>
+        </div>
+
+        {/* Toast notification */}
+        {showToast && (
+          <div className="fixed bottom-4 right-4 bg-gray-800 text-white py-2 px-4 rounded shadow-lg animate-fade-in text-sm">
+            {toastMessage}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}//NEXT_PUBLIC_SELF_ENDPOINT=0xe57F4773bd9c9d8b6Cd70431117d353298B9f5BF

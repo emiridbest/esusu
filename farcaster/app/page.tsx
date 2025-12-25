@@ -7,9 +7,11 @@ import {
   Zap,
   Gift,
   PiggyBank,
-  ShoppingBag,
   User
 } from 'lucide-react';
+import {
+  UserGroupIcon,
+} from "@heroicons/react/24/outline";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { UtilityProvider } from '../context/utilityProvider/UtilityContext';
 import { ToastContainer } from 'react-toastify';
@@ -46,14 +48,14 @@ function Dashboard() {
     {
       title: "Thrift",
       description: "Join thrift groups and save together",
-      icon: ShoppingBag,
+      icon: UserGroupIcon,
       path: "/thrift",
       color: "text-yellow-600 dark:text-yellow-500",
       bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
     },
     {
-      title: "Profile",
-      description: "Manage your account and settings",
+      title: "AI Chat",
+      description: "Ask AI for gas fees",
       icon: User,
       path: "/profile",
       color: "text-yellow-600 dark:text-yellow-500",
@@ -78,9 +80,7 @@ function Dashboard() {
               onClick={() => router.push(feature.path)}
             >
               <CardHeader className="flex flex-row items-center gap-4">
-                <div className={cn("p-3 rounded-xl", feature.bgColor)}>
                   <Icon className={cn("w-6 h-6", feature.color)} />
-                </div>
                 <div>
                   <CardTitle className="text-lg">{feature.title}</CardTitle>
                   <CardDescription>{feature.description}</CardDescription>

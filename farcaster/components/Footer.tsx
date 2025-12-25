@@ -21,7 +21,7 @@ export default function Footer() {
     { name: "Utility Bills", icon: ArchiveBoxArrowDownIcon, path: "/utilityBills", ariaLabel: "Navigate to utility bills" },
     { name: "Save", icon: PiggyBank, path: "/miniSafe", ariaLabel: "Navigate to savings" },
     { name: "Thrift", icon: UserGroupIcon, path: "/thrift", ariaLabel: "Navigate to thrift" },
-    { name: "Profile", icon: UserIcon, path: "/profile", ariaLabel: "Navigate to profile" }
+   // { name: "Profile", icon: UserIcon, path: "/profile", ariaLabel: "Navigate to profile" }
   ];
 
   return (

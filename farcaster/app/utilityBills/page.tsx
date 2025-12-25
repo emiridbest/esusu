@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { PhoneIcon, Smartphone, Zap, Tv, WalletIcon, CreditCard, Loader2 } from 'lucide-react';
+import { PhoneIcon, Smartphone, Zap, Tv, WalletIcon, CreditCard, Loader2, ShieldIcon } from 'lucide-react';
 import Head from 'next/head';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -78,7 +78,6 @@ function MainContent() {
             </TabsContent>
 
           </Tabs>
-        </CardContent>
       </Card>
     </div>
   );

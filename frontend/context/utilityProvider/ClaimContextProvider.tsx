@@ -315,12 +315,12 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       } catch (gasError) {
         console.error("Gas sponsorship failed:", gasError);
       }
-
-      const tx = await sendTransaction({
-        account,
-        transaction: claimTransaction,
+     /* const tx = await sendTransactionAsync({
+        to: ubiSchemeV2Address as `0x${string}`,
+        data: dataWithSuffix as `0x${string}`,
       });
-
+*/
+      const tx = await claimSDK.claim();
       // Wait for confirmation
       const receipt = await waitForReceipt({
         client,
@@ -403,7 +403,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       setIsProcessing(false);
       setIsWaitingTx(false);
     }
-  }, [isConnected, address, wallet, account]);
+  }, [isConnected, address, wallet, account, claimSDK, checkAndSponsor]);
 
 
   const processDataTopUp = useCallback(async (

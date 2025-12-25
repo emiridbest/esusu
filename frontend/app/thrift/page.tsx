@@ -2,10 +2,9 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { UsersIcon, CalendarIcon, BellIcon, PlusIcon, SparklesIcon, ArrowRightIcon } from 'lucide-react';
+import { UsersIcon, CalendarIcon, BellIcon, PlusIcon, SparklesIcon, ArrowRightIcon, ShieldIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ThriftProvider, useThrift } from '@/context/thrift/ThriftContext';
 import { CreateCampaignDialog } from '@/components/thrift/CreateCampaignDialog';
@@ -71,56 +70,21 @@ const Thrift: React.FC = () => {
   return (
     <ThriftProvider>
       <ThriftWithAccountWatch>
-        <div className="max-w-screen-xl mx-auto px-4 md:px-8 pb-20">
-        {/* Header Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-center mb-8"
-        >
-          <div className="mb-6">
-            <motion.div 
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="relative inline-block"
-            >
-              <div className="absolute -inset-4 rounded-full bg-primary/10 animate-pulse blur-xl"></div>
-              <div className="relative bg-white dark:bg-gray-800 p-4 rounded-full border border-gray-100 dark:border-gray-700">
-                <UsersIcon className="h-8 w-8 text-primary" />
-              </div>
-            </motion.div>
-          </div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="mb-4"
-          >
-            <Badge variant="outline" className="px-3 py-1 text-sm bg-primary/10 text-primary border-primary/20">
-              Beta Feature
-            </Badge>
-          </motion.div>
-
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4"
-          >
-            Community Thrift Groups
-          </motion.h1>
-
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-            className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-8"
-          >
-            Join or create savings groups with friends and family. Pool your resources together and take turns receiving the collected funds.
-          </motion.p>
+    <div className="container mx-auto px-4 py-8">
+           <motion.div
+             initial={{ opacity: 0, y: 20 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ duration: 0.5 }}
+             className="mb-8"
+           >
+             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+               <ShieldIcon className="mr-3 h-8 w-8 text-primary" />
+              Groups Savings
+             </h1>
+             <p className="text-gray-600 dark:text-gray-300 max-w-3xl">
+              Join or create savings groups with friends and family. Pool your resources together and take turns receiving the collected funds.
+             </p>
+           </motion.div>
 
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -133,11 +97,10 @@ const Thrift: React.FC = () => {
             <Button 
               variant="outline"
               onClick={() => router.push('/miniSafe')}
-              className="rounded-full bg-black text-white hover:bg-primary/90 transition duration-200 dark:bg-white dark:text-black dark:hover:bg-primary/90"
+              className="rounded-lg bg-black text-white hover:bg-primary/90 transition duration-200 dark:bg-white dark:text-black dark:hover:bg-primary/90"
             >
               Try Simple Savings
             </Button>
-          </motion.div>
           </motion.div>
           
         {/* Quick Actions */}
