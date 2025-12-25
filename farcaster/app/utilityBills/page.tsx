@@ -78,6 +78,7 @@ function MainContent() {
             </TabsContent>
 
           </Tabs>
+        </CardContent>
       </Card>
     </div>
   );
