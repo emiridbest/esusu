@@ -25,11 +25,28 @@ const tokenCache = {
 };
 
 const rateCache = new Map<string, { rate: number, timestamp: number }>();
-const RATE_CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+const RATE_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+// Whitelist of valid fiat currency codes (ISO 4217) - excludes crypto
+const FIAT_CURRENCIES = new Set([
+  'USD', 'EUR', 'GBP', 'NGN', 'GHS', 'KES', 'UGX', 'ZAR', 'INR', 'PHP',
+  'MXN', 'BRL', 'ARS', 'COP', 'PEN', 'CLP', 'JMD', 'HTG', 'DOP', 'TTD',
+  'BBD', 'XCD', 'BSD', 'KYD', 'AWG', 'ANG', 'SRD', 'GYD', 'BZD', 'PAB',
+  'CRC', 'NIO', 'HNL', 'GTQ', 'SVC', 'CUP', 'CUC', 'XOF', 'XAF', 'MAD',
+  'EGP', 'TND', 'DZD', 'LYD', 'SDG', 'ETB', 'TZS', 'RWF', 'BIF', 'MWK',
+  'ZMW', 'BWP', 'NAD', 'LSL', 'SZL', 'MZN', 'AOA', 'CDF', 'CAD', 'AUD',
+  'NZD', 'JPY', 'CNY', 'KRW', 'SGD', 'HKD', 'TWD', 'THB', 'MYR', 'IDR',
+  'VND', 'PKR', 'BDT', 'LKR', 'NPR', 'MMK', 'KHR', 'LAK', 'AFN', 'IRR',
+  'IQD', 'JOD', 'KWD', 'LBP', 'OMR', 'QAR', 'SAR', 'SYP', 'YER', 'AED',
+  'ILS', 'TRY', 'RUB', 'UAH', 'PLN', 'CZK', 'HUF', 'RON', 'BGN', 'HRK',
+  'RSD', 'MKD', 'ALL', 'BAM', 'GEL', 'AMD', 'AZN', 'KZT', 'UZS', 'KGS',
+  'TJS', 'TMT', 'MNT', 'CHF', 'SEK', 'NOK', 'DKK', 'ISK'
+]);
 
 // Resolve a representative operatorId for a given local currency.
 // Note: FX rates are operator-specific in Reloadly; choose a stable, widely-used operator per country.
-function resolveOperatorIdForCurrency(currencyCode: string): number {
+// Returns null for unsupported currencies (will fall back to fxratesapi)
+function resolveOperatorIdForCurrency(currencyCode: string): number | null {
   const code = (currencyCode || '').toUpperCase();
   switch (code) {
     case 'NGN':
@@ -45,7 +62,47 @@ function resolveOperatorIdForCurrency(currencyCode: string): number {
     case 'UG':
       return 1152; // MTN Uganda
     default:
-      throw new Error(`Unsupported or unknown currency for FX: ${currencyCode}`);
+      return null; // Will use fxratesapi fallback
+  }
+}
+
+/**
+ * Fallback FX rate provider using fxratesapi.com
+ * Used when Reloadly operator is not available for a currency
+ */
+async function getFxRatesApiRate(targetCurrency: string): Promise<number> {
+  const cacheKey = `fxrates-USD-${targetCurrency}`;
+  const cached = rateCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < RATE_CACHE_DURATION) {
+    return cached.rate;
+  }
+
+  // Validate it's a fiat currency
+  if (!FIAT_CURRENCIES.has(targetCurrency.toUpperCase())) {
+    throw new Error(`Unsupported or crypto currency: ${targetCurrency}`);
+  }
+
+  try {
+    const response = await fetch(`https://api.fxratesapi.com/latest?base=USD&currencies=${targetCurrency}`);
+    if (!response.ok) {
+      throw new Error(`FxRatesAPI request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const rate = data.rates?.[targetCurrency.toUpperCase()];
+
+    if (!rate || typeof rate !== 'number') {
+      throw new Error(`No rate found for ${targetCurrency}`);
+    }
+
+    // Cache the rate
+    rateCache.set(cacheKey, { rate, timestamp: Date.now() });
+    console.log(`💱 FxRatesAPI rate for USD -> ${targetCurrency}: ${rate}`);
+
+    return rate;
+  } catch (error) {
+    console.error('FxRatesAPI error:', error);
+    throw new Error(`Failed to get exchange rate for ${targetCurrency}`);
   }
 }
 
@@ -69,15 +126,17 @@ async function getAccessToken(): Promise<string> {
     }
 
     // Get audience URL from env or default to API URL
-    const audience = process.env.RELOADLY_AUDIENCE_URL || 
-      (isSandbox 
+    const audience = process.env.RELOADLY_AUDIENCE_URL ||
+      (isSandbox
         ? (process.env.NEXT_PUBLIC_SANDBOX_API_URL)
         : (process.env.NEXT_PUBLIC_API_URL));
 
     const options = {
       method: 'POST',
-      headers: {'Content-Type': 'application/json', 
-        Accept: 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
       body: JSON.stringify({
         client_id: clientId,
         client_secret: clientSecret,
@@ -109,7 +168,7 @@ async function getAccessToken(): Promise<string> {
 }
 
 /**
- * Get exchange rate from Reloadly FX API
+ * Get exchange rate from Reloadly FX API or fxratesapi fallback
  * @param base_currency Source currency code
  * @param targetCurrency Target currency code
  * @returns Exchange rate
@@ -127,21 +186,30 @@ async function getExchangeRate(base_currency: string, targetCurrency: string): P
     return cachedRate.rate;
   }
 
+  // Determine which currency to use for operator resolution.
+  // If converting from USD -> local, base_currency will be 'USD', so use targetCurrency instead.
+  const currencyForOperator = (base_currency || '').toUpperCase() === 'USD'
+    ? targetCurrency
+    : base_currency;
+  const operator = resolveOperatorIdForCurrency(currencyForOperator);
+
+  // If no Reloadly operator available, use fxratesapi fallback
+  if (operator === null) {
+    console.log(`No Reloadly operator for ${currencyForOperator}, using fxratesapi fallback`);
+    const fallbackRate = await getFxRatesApiRate(targetCurrency);
+    rateCache.set(cacheKey, { rate: fallbackRate, timestamp: Date.now() });
+    return fallbackRate;
+  }
+
+  // Use Reloadly FX API for supported currencies
   try {
     const token = await getAccessToken();
     const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
     const fxEndpoint = isSandbox ? SANDBOX_FX_API : FX_API_ENDPOINT;
-    
+
     if (!fxEndpoint) {
       throw new Error('FX API endpoint not configured');
     }
-
-    // Determine which currency to use for operator resolution.
-    // If converting from USD -> local, base_currency will be 'USD', so use targetCurrency instead.
-    const currencyForOperator = (base_currency || '').toUpperCase() === 'USD'
-      ? targetCurrency
-      : base_currency;
-    const operator = resolveOperatorIdForCurrency(currencyForOperator);
 
     // Normalize endpoint in case ENV is misconfigured (e.g., contains /{id}/fx-rate suffix)
     let normalizedFxEndpoint = fxEndpoint;
@@ -163,7 +231,7 @@ async function getExchangeRate(base_currency: string, targetCurrency: string): P
     console.log('🔍 Calling Reloadly FX endpoint:', normalizedFxEndpoint);
     console.log('📤 Request body:', options.body);
 
-  const response = await fetchWithRetry(normalizedFxEndpoint, options, 3, 2000);
+    const response = await fetchWithRetry(normalizedFxEndpoint, options, 3, 2000);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -193,14 +261,14 @@ async function getExchangeRate(base_currency: string, targetCurrency: string): P
         fxRate = targetAmount / sourceAmount;
       }
     }
-    
+
     if (!fxRate || typeof fxRate !== 'number' || isNaN(fxRate)) {
       console.error('❌ Could not extract valid exchange rate from response:', data);
       throw new Error('Could not determine exchange rate from Reloadly FX API response');
     }
-    
+
     console.log('💱 Final exchange rate for', base_currency, '->', targetCurrency, ':', fxRate);
-    
+
     // Cache the rate
     rateCache.set(cacheKey, {
       rate: fxRate,
@@ -226,21 +294,21 @@ async function convertFromUSD(
 ): Promise<number> {
   try {
     const numericAmount = typeof amountUSD === 'string' ? parseFloat(amountUSD) : amountUSD;
-    
+
     if (isNaN(numericAmount) || numericAmount <= 0) {
       throw new Error('Invalid amount for currency conversion');
     }
-    
+
     if (targetCurrency === 'USD') {
       return numericAmount;
     }
 
     // Get exchange rate from USD to local currency
     const rate = await getExchangeRate('USD', targetCurrency);
-    
+
     // Calculate converted amount
     const convertedAmount = numericAmount * rate;
-    
+
     return convertedAmount;
   } catch (error) {
     console.error('Currency conversion error:', error);
@@ -260,21 +328,21 @@ async function convertToUSD(
 ): Promise<number> {
   try {
     const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    
+
     if (isNaN(numericAmount) || numericAmount <= 0) {
       throw new Error('Invalid amount for currency conversion');
     }
-    
+
     if (base_currency === 'USD') {
       return numericAmount;
     }
 
     // Get exchange rate from local currency to USD
     const rate = await getExchangeRate(base_currency, 'USD');
-    
+
     // Calculate converted amount
     const convertedAmount = numericAmount / rate;
-    
+
     return convertedAmount;
   } catch (error) {
     console.error('Currency conversion error:', error);
@@ -286,7 +354,7 @@ async function convertToUSD(
 export async function POST(request: NextRequest) {
   try {
     const { amount, base_currency } = await request.json();
-    
+
     if (!amount || !base_currency) {
       return NextResponse.json(
         { error: 'Missing required parameters' },
@@ -297,7 +365,7 @@ export async function POST(request: NextRequest) {
     try {
       let convertedAmount: number;
       let rate: number;
-      
+
       if (base_currency === 'USD') {
         // Convert from USD to local currency
         convertedAmount = await convertFromUSD(amount, base_currency);
@@ -307,7 +375,7 @@ export async function POST(request: NextRequest) {
         convertedAmount = await convertToUSD(amount, base_currency);
         rate = convertedAmount / parseFloat(amount);
       }
-      
+
       return NextResponse.json({
         fromAmount: parseFloat(amount),
         toAmount: convertedAmount.toFixed(2),
@@ -318,7 +386,7 @@ export async function POST(request: NextRequest) {
       console.error('Currency conversion error:', conversionError);
       throw conversionError;
     }
-    
+
   } catch (error: any) {
     console.error('Exchange rate API error:', error);
     return NextResponse.json(

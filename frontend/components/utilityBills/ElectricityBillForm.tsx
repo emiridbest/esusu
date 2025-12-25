@@ -437,6 +437,7 @@ export default function ElectricityBillForm() {
                           field.onChange(val);
                           if (val) setCountryCurrency(val.toUpperCase());
                         }}
+                        serviceFilter="electricity"
                       />
                     </div>
                   </FormControl>

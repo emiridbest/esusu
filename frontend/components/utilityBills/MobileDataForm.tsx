@@ -331,7 +331,8 @@ export default function MobileDataForm() {
               transactionHash: paymentResult.transactionHash,
               provider: selectedOperator?.name,
               emailSent: data.emailSent,
-              smsSent: data.smsSent
+              smsSent: data.smsSent,
+              pinCode: data.pinCode // PIN code for DingConnect ReadReceipt products
             });
             setShowSuccessModal(true);
 
@@ -431,6 +432,7 @@ export default function MobileDataForm() {
                           field.onChange(val);
                           if (val) setCountryCurrency(val);
                         }}
+                        serviceFilter="data"
                       />
                     </div>
                   </FormControl>

@@ -212,18 +212,59 @@ export async function POST(request: NextRequest) {
     // Clean and format phone number (remove spaces, dashes, etc.)
     const cleanedPhoneNumber = recipientPhone.phoneNumber.replace(/[\s\-\+]/g, '');
 
-    // Make the top-up request
-    const result = await makeTopup({
-      operatorId,
-      amount,
-      customId: customId,
-      recipientPhone: {
-        country: recipientPhone.country,
-        phoneNumber: cleanedPhoneNumber
-      },
-      recipientEmail: email,
-      useLocalAmount: true // Use local amount for better price accessibility
-    });
+    // Check if this is a DingConnect provider
+    const isDingProvider = String(operatorId).startsWith('ding_');
+    let result: { transactionId: string; status: string; pinCode?: string };
+
+    if (isDingProvider) {
+      // DingConnect flow
+      const { sendDingTransfer, isDingSandboxMode, getDingProducts } = await import('../../../lib/dingConnect');
+      const skuCode = String(operatorId).replace('ding_', '');
+      console.log('Processing DingConnect transfer:', { skuCode, amount, phone: cleanedPhoneNumber });
+
+      // In sandbox mode, fetch the product to get the UAT number
+      let uatNumber: string | undefined;
+      if (isDingSandboxMode()) {
+        console.log('[DING SANDBOX MODE] Fetching product for UAT number...');
+        const country = recipientPhone.country?.toUpperCase() || 'NG';
+        const products = await getDingProducts(country);
+        const product = products.find((p: any) => p.SkuCode === skuCode);
+        uatNumber = product?.UatNumber;
+        if (uatNumber) {
+          console.log('[DING SANDBOX MODE] Found UAT number:', uatNumber);
+        } else {
+          console.warn('[DING SANDBOX MODE] No UAT number found for SKU:', skuCode);
+        }
+      }
+
+      const dingResult = await sendDingTransfer(skuCode, cleanedPhoneNumber, parseFloat(amount), uatNumber);
+      result = {
+        transactionId: dingResult.TransferId,
+        status: dingResult.Status,
+        pinCode: dingResult.ReceiptText || undefined
+      };
+
+      if (dingResult.ErrorCode) {
+        throw new Error(dingResult.ErrorText || `DingConnect error: ${dingResult.ErrorCode}`);
+      }
+    } else {
+      // Reloadly flow (existing logic)
+      const reloadlyResult = await makeTopup({
+        operatorId,
+        amount,
+        customId: customId,
+        recipientPhone: {
+          country: recipientPhone.country,
+          phoneNumber: cleanedPhoneNumber
+        },
+        recipientEmail: email,
+        useLocalAmount: true
+      });
+      result = {
+        transactionId: reloadlyResult.transactionId,
+        status: reloadlyResult.status
+      };
+    }
 
     // Send email notification if wallet address and email are provided
     let emailSent = false;
@@ -232,11 +273,11 @@ export async function POST(request: NextRequest) {
       try {
         // Update user profile with email if provided
         await UserService.updateUserProfile(walletAddress, { email });
-        
+
         // Get currency code from country
         const countryData = getCountryData(recipientPhone.country);
         const currencyCode = countryData?.currency?.code || 'USD';
-        
+
         // Send notification
         const notification = await NotificationService.sendUtilityPaymentNotification(
           walletAddress,

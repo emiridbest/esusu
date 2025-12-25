@@ -397,6 +397,7 @@ export default function MobileDataForm() {
                           field.onChange(val);
                           if (val) setCountryCurrency(val);
                         }}
+                        serviceFilter="data"
                       />
                     </div>
                   </FormControl>

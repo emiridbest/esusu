@@ -30,25 +30,25 @@ async function getAccessToken(): Promise<string> {
 
     return tokenCache.token;
   }
- 
+
   try {
     const clientId = process.env.NEXT_CLIENT_ID;
     const clientSecret = process.env.NEXT_CLIENT_SECRET;
     const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
- 
+
     if (!clientId || !clientSecret) {
       throw new Error('Reloadly API credentials not configured');
     }
 
     // Use regular API audience - make sure we have the full URL without truncation
-    const audience = isSandbox 
+    const audience = isSandbox
       ? process.env.NEXT_PUBLIC_SANDBOX_API_URL
       : process.env.NEXT_PUBLIC_API_URL;
-    
+
     if (!audience) {
       throw new Error('API audience URL not configured');
     }
- 
+
 
 
     if (!AUTH_URL) {
@@ -58,7 +58,7 @@ async function getAccessToken(): Promise<string> {
     const options = {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json', 
+        'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
       body: JSON.stringify({
@@ -68,25 +68,25 @@ async function getAccessToken(): Promise<string> {
         audience: audience
       })
     };
- 
+
     const response = await fetch(AUTH_URL, options);
- 
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Authentication error response:', errorText);
       throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
     }
- 
+
     const data = await response.json() as {
       access_token: string;
       expires_in?: number;
     };
- 
+
     // Store token with expiration
     const expiresIn = data.expires_in || 3600;
     tokenCache.token = data.access_token;
     tokenCache.expiresAt = Date.now() + (expiresIn * 1000) - 60000; // Subtract 1 minute for safety
-    
+
     return tokenCache.token;
   } catch (error) {
     console.error('Error getting Reloadly access token:', error);
@@ -117,13 +117,13 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const headers = await getAuthHeaders();
   const url = `${API_URL}${endpoint}`;
 
- const response = await fetch(url, {
-  ...options,
-  headers: new Headers({
-    ...headers,
-    ...(typeof options.headers === 'object' ? options.headers : {})
-  })
-});
+  const response = await fetch(url, {
+    ...options,
+    headers: new Headers({
+      ...headers,
+      ...(typeof options.headers === 'object' ? options.headers : {})
+    })
+  });
 
   if (!response.ok) {
     // Try to parse error response
@@ -155,48 +155,66 @@ async function getOperatorsByCountry(countryCode: string, dataOnly: boolean, bun
     throw error;
   }
 }
-
+import { getDingProviders, formatDingProvidersToOperators } from '@/lib/dingConnect';
+import { isDingConnectCountry } from '@/utils/countryData';
 
 export async function GET(request: NextRequest) {
-    const searchParams = request.nextUrl.searchParams;
-    const country = searchParams.get('country');
+  const searchParams = request.nextUrl.searchParams;
+  const country = searchParams.get('country');
 
-    if (!country) {
-        return NextResponse.json({ error: 'Country code is required' }, { status: 400 });
-    }
+  if (!country) {
+    return NextResponse.json({ error: 'Country code is required' }, { status: 400 });
+  }
 
-    try {
-        const operators = await getOperatorsByCountry(country, false, false, false);
+  try {
+    // Check if this is a DingConnect-only country (Tier 2)
+    const isDingOnly = isDingConnectCountry(country);
 
-        if (!Array.isArray(operators)) {
-            console.error('Invalid response format from API:', operators);
-            return NextResponse.json({
-                error: 'Invalid response from operator service',
-                details: 'Expected an array of operators'
-            }, { status: 500 });
-        }
-        
-        // Filter out data and data bundle operators
-        const filteredOperators = operators.filter((op: any) => {
+    let reloadlyOperators: { id: string; name: string; logoUrls: string[] }[] = [];
+
+    // Try Reloadly first (unless it's a DingConnect-only country)
+    if (!isDingOnly) {
+      try {
+        const reloadlyOperatorsRaw = await getOperatorsByCountry(country, false, false, false);
+
+        if (Array.isArray(reloadlyOperatorsRaw)) {
+          const filteredOperators = reloadlyOperatorsRaw.filter((op: any) => {
             const operatorName = (op.name || '').toLowerCase();
-            return !operatorName.includes('data') && 
-                         !operatorName.includes('bundle') &&
-                         !operatorName.includes('internet');
-        });
-        
-        // Transform the data to match our frontend requirements
-        const formattedOperators = filteredOperators.map((op: any) => ({
+            return !operatorName.includes('data') &&
+              !operatorName.includes('bundle') &&
+              !operatorName.includes('internet');
+          });
+          reloadlyOperators = filteredOperators.map((op: any) => ({
             id: op.operatorId?.toString() || (op.id || '').toString(),
             name: op.name || 'Unknown Provider',
             logoUrls: op.logoUrls || [],
-        }));
-
-        return NextResponse.json(formattedOperators);
-    } catch (error: any) {
-        console.error('Error fetching operators:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch mobile providers', details: error.message },
-            { status: 500 }
-        );
+          }));
+        }
+      } catch (err: any) {
+        console.warn('Reloadly fetch failed:', err.message);
+      }
     }
+
+    // If Reloadly returned results, use them
+    if (reloadlyOperators.length > 0) {
+      return NextResponse.json(reloadlyOperators);
+    }
+
+    // Fallback to DingConnect
+    console.log(`Using DingConnect fallback for ${country}`);
+    const dingProviders = await getDingProviders(country).catch(err => {
+      console.warn('DingConnect fetch failed:', err.message);
+      return [];
+    });
+
+    const dingOperators = formatDingProvidersToOperators(dingProviders);
+    return NextResponse.json(dingOperators);
+
+  } catch (error: any) {
+    console.error('Error fetching operators:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch mobile providers', details: error.message },
+      { status: 500 }
+    );
+  }
 }

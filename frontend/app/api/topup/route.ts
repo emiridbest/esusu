@@ -5,6 +5,7 @@ import { TransactionService } from '@esusu/backend/lib/services/transactionServi
 import { NotificationService } from '@esusu/backend/lib/services/notificationService';
 import { AnalyticsService } from '@esusu/backend/lib/services/analyticsService';
 import { UserService } from '@esusu/backend/lib/services/userService';
+import { sendDingTransfer } from '@/lib/dingConnect';
 
 
 // Rate limiting and API key configuration
@@ -46,7 +47,7 @@ const VALID_TOKENS = {
   'USDC': '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
   'USDT': '0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e',
   // GoodDollar (G$) on Celo mainnet – used for freebies flow
-  'G$':   '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A'
+  'G$': '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A'
 } as const;
 
 // Token decimals mapping for accurate amount validation
@@ -223,7 +224,7 @@ async function makeTopup(params: {
 async function validatePayment(validation: PaymentValidation): Promise<{ isValid: boolean; error?: string }> {
   try {
     const provider = new ethers.JsonRpcProvider(CELO_RPC_URL);
-    
+
     // Get transaction details
     const tx = await provider.getTransaction(validation.transactionHash);
     if (!tx) {
@@ -235,37 +236,37 @@ async function validatePayment(validation: PaymentValidation): Promise<{ isValid
     const pollInterval = 2000; // 2 seconds between polls
     let receipt = null;
     let confirmations = 0;
-    
+
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       receipt = await provider.getTransactionReceipt(validation.transactionHash);
-      
+
       if (receipt) {
         // Receipt found, now check confirmations
         if (receipt.status !== 1) {
           return { isValid: false, error: 'On-chain transaction failed' };
         }
-        
+
         const currentBlock = await provider.getBlockNumber();
         confirmations = currentBlock - receipt.blockNumber;
-        
+
         // If we have enough confirmations, break out of polling loop
         if (confirmations >= MIN_CONFIRMATIONS) {
           break;
         }
-        
+
         console.log(`Transaction found in block ${receipt.blockNumber}, current block ${currentBlock}, confirmations: ${confirmations}/${MIN_CONFIRMATIONS}`);
       }
-      
+
       // If not the last attempt, wait before trying again
       if (attempt < maxAttempts - 1) {
         await new Promise(resolve => setTimeout(resolve, pollInterval));
       }
     }
-    
+
     if (!receipt) {
       return { isValid: false, error: 'Transaction not confirmed - timeout waiting for confirmation' };
     }
-    
+
     // Final confirmation check
     if (confirmations < MIN_CONFIRMATIONS) {
       return { isValid: false, error: `Transaction needs ${MIN_CONFIRMATIONS} confirmation(s), currently has ${confirmations}` };
@@ -291,7 +292,7 @@ async function validatePayment(validation: PaymentValidation): Promise<{ isValid
     const transferInterface = new ethers.Interface([
       'function transfer(address to, uint256 value) returns (bool)'
     ]);
-    
+
     try {
       const decoded = transferInterface.parseTransaction({ data: tx.data });
       if (decoded?.name !== 'transfer') {
@@ -312,7 +313,7 @@ async function validatePayment(validation: PaymentValidation): Promise<{ isValid
         decimals = TOKEN_DECIMALS[validation.paymentToken as keyof typeof TOKEN_DECIMALS] ?? 18;
       }
       const expectedAmountWei = ethers.parseUnits(validation.expectedAmount, decimals);
-      
+
       if (transferAmount < expectedAmountWei) {
         return { isValid: false, error: 'Insufficient payment amount' };
       }
@@ -336,7 +337,7 @@ async function validatePayment(validation: PaymentValidation): Promise<{ isValid
 export async function POST(request: NextRequest) {
   let body: any;
   let walletAddress: string | undefined;
-  
+
   try {
 
     // Basic IP rate limiting
@@ -355,19 +356,19 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const { 
-      operatorId, 
-      amount, 
-      recipientPhone, 
-      email, 
-      transactionHash, 
-      expectedAmount, 
+    const {
+      operatorId,
+      amount,
+      recipientPhone,
+      email,
+      transactionHash,
+      expectedAmount,
       paymentToken,
       serviceType,
-      type 
+      type
     } = body;
-    
-    
+
+
     // SECURITY: Validate required fields including payment proof
     if (!operatorId || !amount || !recipientPhone || !recipientPhone.country || !recipientPhone.phoneNumber) {
       console.error('Missing required fields:', { operatorId, amount, recipientPhone });
@@ -388,7 +389,7 @@ export async function POST(request: NextRequest) {
 
     // Validate expectedAmount is a valid number
     const parsedAmount = parseFloat(expectedAmount);
-    
+
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       return NextResponse.json(
         { success: false, error: `Invalid payment amount: ${expectedAmount}` },
@@ -406,7 +407,7 @@ export async function POST(request: NextRequest) {
         { status: 503 }
       );
     }
-    
+
     const hashUsed = await TransactionService.isPaymentHashUsed(transactionHash);
     if (hashUsed) {
       return NextResponse.json(
@@ -456,7 +457,7 @@ export async function POST(request: NextRequest) {
         { status: 503 }
       );
     }
-    
+
     walletAddress = tx?.from;
 
     if (!walletAddress) {
@@ -474,7 +475,7 @@ export async function POST(request: NextRequest) {
     try {
       // Determine subType based on serviceType/type (if provided) or operatorId
       let subType: 'airtime' | 'data' | 'electricity' | 'cable';
-      
+
       // Use serviceType (from context) or type (from components) if explicitly provided
       const transactionType = serviceType || type;
       if (transactionType === 'airtime') {
@@ -484,7 +485,7 @@ export async function POST(request: NextRequest) {
       } else {
         // Fall back to operatorId-based detection
         const operatorIdLower = String(operatorId).toLowerCase();
-        
+
         if (operatorIdLower.includes('airtime') || operatorIdLower.includes('mobile-topup')) {
           subType = 'airtime';
         } else if (operatorIdLower.includes('data') || operatorIdLower.includes('data-bundle')) {
@@ -497,7 +498,7 @@ export async function POST(request: NextRequest) {
           subType = 'electricity';
         }
       }
-      
+
       // Record transaction in database
       const transactionData = {
         walletAddress,
@@ -513,35 +514,79 @@ export async function POST(request: NextRequest) {
           metadata: { email, useLocalAmount: true }
         }
       };
-      
+
       const transaction = await TransactionService.createTransaction(transactionData);
 
       // Clean and format phone number (remove spaces, dashes, etc.)
       const cleanedPhoneNumber = recipientPhone.phoneNumber.replace(/[\s\-\+]/g, '');
-      
-      // Make the top-up request
-      let result;
+
+      // Make the top-up request - route based on operator prefix
+      let result: { transactionId: string; status: string; pinCode?: string };
+      const isDingProvider = String(operatorId).startsWith('ding_');
+
       try {
-        result = await makeTopup({
-          operatorId,
-          amount,
-          customId: transactionHash,
-          recipientPhone: {
-            country: recipientPhone.country,
-            phoneNumber: cleanedPhoneNumber
-          },
-          recipientEmail: email,
-          useLocalAmount: true
-        });
+        if (isDingProvider) {
+          // DingConnect flow - extract the actual SKU code
+          const skuCode = String(operatorId).replace('ding_', '');
+          console.log('Processing DingConnect transfer:', { skuCode, amount, phone: cleanedPhoneNumber });
+
+          // In sandbox mode, fetch the product to get the UAT number
+          const { isDingSandboxMode, getDingProducts } = await import('@/lib/dingConnect');
+          let uatNumber: string | undefined;
+
+          if (isDingSandboxMode()) {
+            console.log('[DING SANDBOX MODE] Fetching product for UAT number...');
+            const country = recipientPhone.country?.toUpperCase() || 'NG';
+            const products = await getDingProducts(country);
+            const product = products.find(p => p.SkuCode === skuCode);
+            uatNumber = product?.UatNumber;
+
+            if (uatNumber) {
+              console.log('[DING SANDBOX MODE] Found UAT number:', uatNumber);
+            } else {
+              console.warn('[DING SANDBOX MODE] No UAT number found for SKU:', skuCode);
+            }
+          }
+
+          const dingResult = await sendDingTransfer(skuCode, cleanedPhoneNumber, parseFloat(amount), uatNumber);
+
+          result = {
+            transactionId: dingResult.TransferId,
+            status: dingResult.Status,
+            pinCode: dingResult.ReceiptText || undefined // This is the PIN for ReadReceipt products
+          };
+
+          if (dingResult.ErrorCode) {
+            throw new Error(dingResult.ErrorText || `DingConnect error: ${dingResult.ErrorCode}`);
+          }
+        } else {
+          // Reloadly flow (existing logic)
+          const reloadlyResult = await makeTopup({
+            operatorId,
+            amount,
+            customId: transactionHash,
+            recipientPhone: {
+              country: recipientPhone.country,
+              phoneNumber: cleanedPhoneNumber
+            },
+            recipientEmail: email,
+            useLocalAmount: true
+          });
+
+          result = {
+            transactionId: reloadlyResult.transactionId,
+            status: reloadlyResult.status
+          };
+        }
       } catch (topupError: any) {
-        console.error('Reloadly top-up request failed:', topupError);
+        console.error(`${isDingProvider ? 'DingConnect' : 'Reloadly'} top-up request failed:`, topupError);
         // Mark transaction as failed
         try {
           await TransactionService.updateTransactionStatus(transactionHash, 'failed');
         } catch (statusErr) {
           console.error('Failed to update transaction status:', statusErr);
         }
-        
+
         // Send failure notification
         try {
           await NotificationService.sendUtilityPaymentNotification(
@@ -557,10 +602,10 @@ export async function POST(request: NextRequest) {
         } catch (notifErr) {
           console.error('Failed to send failure notification:', notifErr);
         }
-        
+
         return NextResponse.json(
-          { 
-            success: false, 
+          {
+            success: false,
             error: `Top-up service error: ${topupError?.message || 'Failed to process top-up with provider'}`,
             details: topupError?.response?.data || topupError?.message
           },
@@ -601,7 +646,7 @@ export async function POST(request: NextRequest) {
             paymentToken
           }
         );
-        
+
         // Check if email/SMS was sent from notification channels
         emailSent = notification.channels?.email?.sent || false;
         smsSent = notification.channels?.sms?.sent || false;
@@ -623,14 +668,15 @@ export async function POST(request: NextRequest) {
         transactionId: result.transactionId,
         dbTransactionId: (transaction as any)._id,
         status: result.status,
+        pinCode: result.pinCode, // PIN code for DingConnect ReadReceipt products
         emailSent,
         smsSent,
-        message: 'Top-up successful and recorded'
+        message: result.pinCode ? 'Top-up successful! Your PIN code is in the response.' : 'Top-up successful and recorded'
       });
 
     } catch (dbError: any) {
       console.error('Database error during top-up:', dbError);
-      
+
       // Send failure notification (best effort)
       if (walletAddress) {
         try {
@@ -648,7 +694,7 @@ export async function POST(request: NextRequest) {
           console.error('Failed to send failure notification:', notifErr);
         }
       }
-      
+
       // Mark transaction as failed for visibility
       try {
         await TransactionService.updateTransactionStatus(transactionHash, 'failed');
@@ -663,8 +709,8 @@ export async function POST(request: NextRequest) {
       })) : [];
 
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: `Database error: ${dbError?.message || 'Failed to record transaction'}`,
           details: dbError?.message,
           validationErrors: validationErrors.length > 0 ? validationErrors : undefined

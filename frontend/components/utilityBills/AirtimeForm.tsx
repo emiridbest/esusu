@@ -405,7 +405,8 @@ export default function AirtimeForm() {
               transactionHash: paymentResult.transactionHash,
               provider: selectedOperator?.name,
               emailSent: data.emailSent,
-              smsSent: data.smsSent
+              smsSent: data.smsSent,
+              pinCode: data.pinCode // PIN code for DingConnect ReadReceipt products
             });
             setShowSuccessModal(true);
 
@@ -502,6 +503,7 @@ export default function AirtimeForm() {
                           field.onChange(val);
                           if (val) setCountryCurrency(val.toUpperCase());
                         }}
+                        serviceFilter="airtime"
                       />
                     </div>
                   </FormControl>
