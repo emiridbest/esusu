@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import React from 'react';
 import { useMiniSafe } from '@/context/miniSafe/MiniSafeContext';
 import { formatUnits } from "ethers";

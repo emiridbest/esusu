@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getDingProducts } from '@/lib/dingConnect';
+
 // Base URLs from environment variables
 const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL;
 const SANDBOX_API_URL = process.env.NEXT_PUBLIC_SANDBOX_API_URL;
@@ -30,25 +32,25 @@ async function getAccessToken(): Promise<string> {
 
     return tokenCache.token;
   }
- 
+
   try {
     const clientId = process.env.NEXT_CLIENT_ID;
     const clientSecret = process.env.NEXT_CLIENT_SECRET;
     const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
- 
+
     if (!clientId || !clientSecret) {
       throw new Error('Reloadly API credentials not configured');
     }
 
     // Use regular API audience - make sure we have the full URL without truncation
-    const audience = isSandbox 
+    const audience = isSandbox
       ? process.env.NEXT_PUBLIC_SANDBOX_API_URL
       : process.env.NEXT_PUBLIC_API_URL;
-    
+
     if (!audience) {
       throw new Error('API audience URL not configured');
     }
- 
+
 
 
     if (!AUTH_URL) {
@@ -58,7 +60,7 @@ async function getAccessToken(): Promise<string> {
     const options = {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json', 
+        'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
       body: JSON.stringify({
@@ -68,25 +70,25 @@ async function getAccessToken(): Promise<string> {
         audience: audience
       })
     };
- 
+
     const response = await fetch(AUTH_URL, options);
- 
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Authentication error response:', errorText);
       throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
     }
- 
+
     const data = await response.json() as {
       access_token: string;
       expires_in?: number;
     };
- 
+
     // Store token with expiration
     const expiresIn = data.expires_in || 3600;
     tokenCache.token = data.access_token;
     tokenCache.expiresAt = Date.now() + (expiresIn * 1000) - 60000; // Subtract 1 minute for safety
-    
+
     return tokenCache.token;
   } catch (error) {
     console.error('Error getting Reloadly access token:', error);
@@ -117,13 +119,13 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const headers = await getAuthHeaders();
   const url = `${API_URL}${endpoint}`;
 
- const response = await fetch(url, {
-  ...options,
-  headers: new Headers({
-    ...headers,
-    ...(typeof options.headers === 'object' ? options.headers : {})
-  })
-});
+  const response = await fetch(url, {
+    ...options,
+    headers: new Headers({
+      ...headers,
+      ...(typeof options.headers === 'object' ? options.headers : {})
+    })
+  });
 
   if (!response.ok) {
     // Try to parse error response
@@ -143,9 +145,9 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
 
 // Interface for operator details
 interface OperatorDetails {
-    operatorId: number;
-    localMinAmount?: number;
-    localMaxAmount?: number;
+  operatorId: number;
+  localMinAmount?: number;
+  localMaxAmount?: number;
 }
 /**
  * Gets details of a specific operator
@@ -161,32 +163,61 @@ async function getOperator(operatorId: number) {
 }
 
 export async function GET(request: NextRequest) {
-    const searchParams = request.nextUrl.searchParams;
-    const provider = searchParams.get('provider');
-    const country = searchParams.get('country');
-    if (!provider || !country) {
-        return NextResponse.json({ error: 'Provider ID and country code are required' }, { status: 400 });
+  const searchParams = request.nextUrl.searchParams;
+  const provider = searchParams.get('provider');
+  const country = searchParams.get('country');
+  if (!provider || !country) {
+    return NextResponse.json({ error: 'Provider ID and country code are required' }, { status: 400 });
+  }
+
+  try {
+    // Check if this is a DingConnect provider
+    const isDingProvider = provider.startsWith('ding_');
+
+    if (isDingProvider) {
+      // DingConnect flow - get min/max from products
+      const providerCode = provider.replace('ding_', '');
+      console.log(`Fetching DingConnect amounts for ${country}, provider: ${providerCode}`);
+
+      const dingProducts = await getDingProducts(country.toUpperCase());
+      const providerProducts = dingProducts.filter(
+        p => p.ProviderCode.toLowerCase() === providerCode.toLowerCase()
+      );
+
+      if (providerProducts.length === 0) {
+        return NextResponse.json({ localMinAmount: null, localMaxAmount: null });
+      }
+
+      // Calculate min/max from all products for this provider
+      const amounts = providerProducts.map(p => p.Minimum.SendValue);
+      const maxAmounts = providerProducts.map(p => p.Maximum.SendValue);
+
+      return NextResponse.json({
+        localMinAmount: Math.min(...amounts),
+        localMaxAmount: Math.max(...maxAmounts)
+      });
     }
 
-    try {
-        const operatorId = parseInt(provider);
-        const operatorDetails = await getOperator(operatorId) as OperatorDetails;
-        if (!operatorDetails) {
-            return NextResponse.json({ error: 'Operator not found' }, { status: 404 });
-        }
-
-        // Extract only localMinAmount and localMaxAmount
-        const amountRange = {
-            localMinAmount: operatorDetails.localMinAmount || null,
-            localMaxAmount: operatorDetails.localMaxAmount || null
-        };
-        
-        return NextResponse.json(amountRange);
-    } catch (error: any) {
-        console.error('Error fetching amount range:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch amount range', details: error.message },
-            { status: 500 }
-        );
+    // Reloadly flow
+    const operatorId = parseInt(provider);
+    const operatorDetails = await getOperator(operatorId) as OperatorDetails;
+    if (!operatorDetails) {
+      return NextResponse.json({ error: 'Operator not found' }, { status: 404 });
     }
+
+    // Extract only localMinAmount and localMaxAmount
+    const amountRange = {
+      localMinAmount: operatorDetails.localMinAmount || null,
+      localMaxAmount: operatorDetails.localMaxAmount || null
+    };
+
+    return NextResponse.json(amountRange);
+  } catch (error: any) {
+    console.error('Error fetching amount range:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch amount range', details: error.message },
+      { status: 500 }
+    );
+  }
 }
+
