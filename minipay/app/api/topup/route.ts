@@ -286,7 +286,7 @@ export async function POST(request: NextRequest) {
             type: 'topup',
             amount: parseFloat(amount),
             recipient: cleanedPhoneNumber,
-            transactionHash: String(result.transactionId || result.transaction_id || ''),
+            transactionHash: String(result.transactionId || ''),
             paymentToken: currencyCode,
             currency: currencyCode
           } as any // Type assertion to handle currency field

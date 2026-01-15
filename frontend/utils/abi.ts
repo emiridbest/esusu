@@ -38,16 +38,16 @@ export class MiniSafeAave {
   }
 
   // Thrift Group Operations
-  async createThriftGroup(contributionAmount: BigNumberish, startDate: BigNumberish, isPublic: boolean, tokenAddress: string) {
-    return await this.contract.createThriftGroup(contributionAmount, startDate, isPublic, tokenAddress);
+  async createThriftGroup(contributionAmount: BigNumberish, startDate: BigNumberish, isPublic: boolean, tokenAddress: string, email: string, phone: string) {
+    return await this.contract.createThriftGroup(contributionAmount, startDate, isPublic, tokenAddress, email, phone);
   }
 
-  async joinPublicGroup(groupId: BigNumberish) {
-    return await this.contract.joinPublicGroup(groupId);
+  async joinPublicGroup(groupId: BigNumberish, email: string, phone: string) {
+    return await this.contract.joinPublicGroup(groupId, email, phone);
   }
 
-  async addMemberToPrivateGroup(groupId: BigNumberish, memberAddress: string) {
-    return await this.contract.addMemberToPrivateGroup(groupId, memberAddress);
+  async addMemberToPrivateGroup(groupId: BigNumberish, memberAddress: string, email: string, phone: string) {
+    return await this.contract.addMemberToPrivateGroup(groupId, memberAddress, email, phone);
   }
 
   async makeContribution(groupId: BigNumberish) {

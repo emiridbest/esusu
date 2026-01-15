@@ -319,6 +319,12 @@ export function CampaignList() {
                     <span className="text-muted-foreground">Current Round:</span>
                     <span>{selectedGroup?.currentRound}</span>
                   </div>
+                  {selectedGroup?.isPublic && (
+                    <div className="flex justify-between text-amber-500">
+                      <span className="text-muted-foreground">Required Collateral:</span>
+                      <span className="font-bold">{(parseFloat(selectedGroup?.depositAmount || '0') * 5).toFixed(2)} {selectedGroup?.tokenSymbol || 'cUSD'}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 

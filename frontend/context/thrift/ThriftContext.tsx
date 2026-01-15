@@ -52,8 +52,8 @@ export interface ThriftMember {
 export interface ThriftContextType {
   userGroups: ThriftGroup[];
   allGroups: ThriftGroup[];
-  createThriftGroup: (name: string, description: string, depositAmount: string, maxMembers: number, isPublic: boolean, tokenAddress?: string, startDate?: Date, creatorName?: string) => Promise<void>;
-  joinThriftGroup: (groupId: number, userName?: string) => Promise<void>;
+  createThriftGroup: (name: string, description: string, depositAmount: string, maxMembers: number, isPublic: boolean, tokenAddress?: string, startDate?: Date, creatorName?: string, email?: string, phone?: string) => Promise<void>;
+  joinThriftGroup: (groupId: number, userName?: string, email?: string, phone?: string) => Promise<void>;
   checkJoinStatus: (groupId: number) => Promise<{
     isMember: boolean;
     groupInfo: any;
@@ -69,7 +69,7 @@ export interface ThriftContextType {
     startDate: Date | null;
     timeUntilStart: number | null;
   }>;
-  addMemberToPrivateGroup: (groupId: number, memberAddress: string) => Promise<void>;
+  addMemberToPrivateGroup: (groupId: number, memberAddress: string, email?: string, phone?: string) => Promise<void>;
   makeContribution: (groupId: number) => Promise<void>;
   distributePayout: (groupId: number) => Promise<void>;
   getThriftGroupMembers: (groupId: number) => Promise<ThriftMember[]>;
@@ -197,7 +197,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [initialize]);
 
   // Create thrift group contract interaction
-  const createThriftGroup = async (name: string, description: string, depositAmount: string, maxMembers: number, isPublic: boolean, tokenAddress?: string, startDate?: Date, creatorName?: string) => {
+  const createThriftGroup = async (name: string, description: string, depositAmount: string, maxMembers: number, isPublic: boolean, tokenAddress?: string, startDate?: Date, creatorName?: string, email?: string, phone?: string) => {
     if (!contract || !isConnected) {
       throw new Error("Wallet not connected or contract not initialized");
     }
@@ -281,9 +281,9 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
           contractAddress: contractAddress as `0x${string}`,
-          abi: parseAbi(["function createThriftGroup(uint256, uint256, bool, address) returns (uint256)"]),
+          abi: parseAbi(["function createThriftGroup(uint256, uint256, bool, address, string, string) returns (uint256)"]),
           functionName: 'createThriftGroup',
-          args: [amount, BigInt(startTimestamp), isPublic, finalTokenAddress],
+          args: [amount, BigInt(startTimestamp), isPublic, finalTokenAddress, email || "", phone || ""],
         });
 
         if (sponsorshipResult.gasSponsored) {
@@ -294,7 +294,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error("Gas sponsorship failed:", gasError);
       }
 
-      const tx = await contract.createThriftGroup(amount, startTimestamp, isPublic, finalTokenAddress);
+      const tx = await contract.createThriftGroup(amount, startTimestamp, isPublic, finalTokenAddress, email || "", phone || "");
       const receipt = await tx.wait();
 
       // Try to parse the emitted event to get the new groupId
@@ -510,7 +510,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Join public thrift group contract interaction
-  const joinThriftGroup = async (groupId: number, userName?: string) => {
+  const joinThriftGroup = async (groupId: number, userName?: string, email?: string, phone?: string) => {
     if (!contract || !isConnected) {
       throw new Error("Wallet not connected or contract not initialized");
     }
@@ -534,13 +534,70 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       console.log('Attempting to join group:', groupId);
 
+      // Check for collateral requirement if group is public
+      if (status.groupInfo?.isPublic) {
+        const contributionAmount = BigInt(status.groupInfo.contributionAmount);
+        const collateralAmount = contributionAmount * 5n; // 5x collateral
+
+        if (collateralAmount > 0n) {
+          // We need to get the token address. It's not in checkJoinStatus groupInfo fully. 
+          // We need to fetch it or rely on what we have. 
+          // status.groupInfo only has minimal info.
+          // Let's fetch the full group struct to be sure.
+          const fullGroup = await contract.getThriftGroup(groupId);
+          const tokenAddress = fullGroup.tokenAddress || fullGroup[6];
+
+          if (tokenAddress) {
+            const erc20Abi = [
+              "function approve(address spender, uint256 amount) returns (bool)",
+              "function allowance(address owner, address spender) view returns (uint256)",
+              "function balanceOf(address owner) view returns (uint256)"
+            ];
+            const erc20Contract = new Contract(tokenAddress, erc20Abi, provider) as any;
+            const signer = await provider.getSigner();
+            const erc20WithSigner = erc20Contract.connect(signer);
+
+            const currentAllowance = await (erc20WithSigner as any).allowance(account, contract.address);
+            const userBalance = await (erc20WithSigner as any).balanceOf(account);
+
+            if (userBalance < collateralAmount) {
+              const requiredFormatted = formatUnits(collateralAmount, 18); // Assuming 18 for now or fetch decimals
+              throw new Error(`Insufficient balance for collateral. You need ${requiredFormatted} tokens.`);
+            }
+
+            if (currentAllowance < collateralAmount) {
+              toast.info("Approval Required for Collateral", {
+                description: "Public groups require locking 5x contribution as collateral. Please approve."
+              });
+              // Sponsor gas for approval
+              try {
+                const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
+                  contractAddress: tokenAddress as `0x${string}`,
+                  abi: parseAbi(["function approve(address, uint256) returns (bool)"]),
+                  functionName: 'approve',
+                  args: [contract.address, collateralAmount],
+                });
+                if (sponsorshipResult.gasSponsored) {
+                  toast.success(`Gas sponsored for approval`);
+                  await new Promise(resolve => setTimeout(resolve, 3000));
+                }
+              } catch (e) { console.error(e); }
+
+              const approvalTx = await (erc20WithSigner as any).approve(contract.address, collateralAmount);
+              await approvalTx.wait();
+              toast.success("Collateral Approved");
+            }
+          }
+        }
+      }
+
       // Sponsor gas for joinPublicGroup
       try {
         const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
           contractAddress: contractAddress as `0x${string}`,
-          abi: parseAbi(["function joinPublicGroup(uint256)"]),
+          abi: parseAbi(["function joinPublicGroup(uint256, string, string)"]),
           functionName: 'joinPublicGroup',
-          args: [BigInt(groupId)],
+          args: [BigInt(groupId), email || "", phone || ""],
         });
 
         if (sponsorshipResult.gasSponsored) {
@@ -551,7 +608,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error("Gas sponsorship failed:", gasError);
       }
 
-      const tx = await contract.joinPublicGroup(groupId);
+      const tx = await contract.joinPublicGroup(groupId, email || "", phone || "");
       console.log('Join transaction sent:', tx.hash);
 
       const receipt = await tx.wait();
@@ -775,7 +832,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Add member to private group contract interaction
-  const addMemberToPrivateGroup = async (groupId: number, memberAddress: string) => {
+  const addMemberToPrivateGroup = async (groupId: number, memberAddress: string, email?: string, phone?: string) => {
     if (!contract || !isConnected) {
       throw new Error("Wallet not connected or contract not initialized");
     }
@@ -788,9 +845,9 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
           contractAddress: contractAddress as `0x${string}`,
-          abi: parseAbi(["function addMemberToPrivateGroup(uint256, address)"]),
+          abi: parseAbi(["function addMemberToPrivateGroup(uint256, address, string, string)"]),
           functionName: 'addMemberToPrivateGroup',
-          args: [BigInt(groupId), memberAddress],
+          args: [BigInt(groupId), memberAddress, email || "", phone || ""],
         });
 
         if (sponsorshipResult.gasSponsored) {
@@ -801,7 +858,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error("Gas sponsorship failed:", gasError);
       }
 
-      const tx = await contract.addMemberToPrivateGroup(groupId, memberAddress);
+      const tx = await contract.addMemberToPrivateGroup(groupId, memberAddress, email || "", phone || "");
       await tx.wait();
 
       await refreshGroups();
