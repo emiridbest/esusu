@@ -2,7 +2,7 @@ import { ethers, type ContractRunner, type BigNumberish, type Contract } from 'e
 import MiniSafeAaveUpgradeableABI from './abis/MiniSafeAaveUpgradeable.json';
 
 export const contractAddress = "0x118f324CF54cFEdC316B5246Bd78375E5089f245"; // Replace with actual deployed address
-export const abi = MiniSafeAaveUpgradeableABI;
+export const abi = MiniSafeAaveUpgradeableABI.abi;
 
 /**
  * MiniSafeAave contract wrapper for ethers v6
@@ -12,7 +12,7 @@ export class MiniSafeAave {
   address: string;
 
   constructor(address: string, signerOrProvider: ContractRunner) {
-    this.contract = new ethers.Contract(address, MiniSafeAaveUpgradeableABI, signerOrProvider);
+    this.contract = new ethers.Contract(address, MiniSafeAaveUpgradeableABI.abi, signerOrProvider);
     this.address = address;
   }
 
