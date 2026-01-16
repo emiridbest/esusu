@@ -20,11 +20,13 @@ export function CampaignList() {
   const { address, isConnected } = useAccount();
   const [categoryFilter, setCategoryFilter] = useState('');
   const [tagsFilter, setTagsFilter] = useState('');
-  
+
   const [selectedGroup, setSelectedGroup] = useState<ThriftGroup | null>(null);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [userName, setUserName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [shareableLink, setShareableLink] = useState('');
   const [editOpen, setEditOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<ThriftGroup | null>(null);
@@ -49,13 +51,15 @@ export function CampaignList() {
 
   const handleJoinGroup = async () => {
     if (!selectedGroup) return;
-    
+
     try {
-      console.log('📤 CampaignList - Joining group with userName:', userName);
-      await joinThriftGroup(selectedGroup.id, userName);  // ✅ Pass userName!
+      console.log('📤 CampaignList - Joining group with details:', { userName, email, phone });
+      await joinThriftGroup(selectedGroup.id, userName, email, phone);  // ✅ Pass userName, email, phone!
       setJoinDialogOpen(false);
       setUserName('');
-      
+      setEmail('');
+      setPhone('');
+
       toast({
         title: "Successfully joined!",
         description: `You are now a member of ${selectedGroup.name}`,
@@ -288,11 +292,11 @@ export function CampaignList() {
             <div className="grid gap-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="shareLink" className="text-right">Share Link</Label>
-                <Input 
-                  id="shareLink" 
+                <Input
+                  id="shareLink"
                   value={shareableLink}
                   readOnly
-                  className="col-span-3" 
+                  className="col-span-3"
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
               </div>
@@ -303,7 +307,7 @@ export function CampaignList() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShareDialogOpen(false)} className="bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300">Cancel</Button>
-            <Button 
+            <Button
               onClick={copyToClipboard}
             >
               Copy Link
@@ -339,27 +343,57 @@ export function CampaignList() {
           </DialogHeader>
           <div className="py-4">
             <p className="mb-4">You are joining: <strong>{selectedGroup?.name}</strong></p>
-            <p className="text-sm text-gray-500 mb-6">
+            <p className="text-sm text-gray-500 mb-2">
               Deposit amount: {selectedGroup?.depositAmount} {selectedGroup?.tokenSymbol || 'cUSD'}
             </p>
+            {selectedGroup?.isPublic && (
+              <p className="text-sm text-amber-600 dark:text-amber-500 mb-6 font-medium">
+                Required Collateral: {(parseFloat(selectedGroup?.depositAmount || '0') * 5).toFixed(2)} {selectedGroup?.tokenSymbol || 'cUSD'}
+              </p>
+            )}
             <div className="grid gap-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="userName" className="text-right">Your Name</Label>
-                <Input 
-                  id="userName" 
+              <div className="space-y-2">
+                <Label htmlFor="userName">Your Display Name</Label>
+                <Input
+                  id="userName"
                   value={userName}
                   onChange={(e) => setUserName(e.target.value)}
-                  className="col-span-3" 
-                  placeholder="Enter your name" 
+                  placeholder="e.g. Satoshi Nakamoto"
+                  className="text-lg"
+                />
+                <p className="text-xs text-muted-foreground">This name will be visible to other group members.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="text-lg"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+1234567890"
+                  className="text-lg"
                 />
               </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setJoinDialogOpen(false)} className="bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300">Cancel</Button>
-            <Button 
+            <Button
               onClick={handleJoinGroup}
-              disabled={loading || !userName.trim()}
+              disabled={loading || !userName.trim() || !email.trim() || !phone.trim()}
             >
               {loading ? 'Joining...' : 'Join Group'}
             </Button>

@@ -1,20 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import { ThriftGroup, ThriftMember, useThrift } from '@/context/thrift/ThriftContext';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
 import { contractAddress } from '@/utils/abi';
+import { ThriftGroupCard } from '@/components/thrift/ThriftGroupCard';
+import { GroupDetailsDialog } from '@/components/thrift/GroupDetailsDialog';
+import { Button } from '@/components/ui/button';
+import { PlusCircle } from 'lucide-react';
 
 export function UserCampaigns() {
   const { userGroups, getThriftGroupMembers, loading, error } = useThrift();
@@ -23,7 +18,11 @@ export function UserCampaigns() {
   const [address, setAddress] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<ThriftGroup | null>(null);
-  
+
+  // Details Dialog State
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<ThriftGroup | null>(null);
+
   // Check if wallet is connected
   useEffect(() => {
     const checkConnection = async () => {
@@ -40,18 +39,13 @@ export function UserCampaigns() {
         setConnected(false);
       }
     };
-
     checkConnection();
-    
-    // Setup listeners for connection changes
     if (typeof window !== 'undefined' && window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
         setConnected(accounts.length > 0);
         setAddress(accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
       };
-      
       window.ethereum.on('accountsChanged', handleAccountsChanged);
-      
       return () => {
         if (window.ethereum.removeListener) {
           window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
@@ -59,14 +53,16 @@ export function UserCampaigns() {
       };
     }
   }, []);
-  
-  // Load members for all user groups
+
+  // Load members for all user groups (Background fetch)
+  // Optimization warning: This fetches for ALL groups. 
+  // Good for trust score logic but maybe lazy load later.
   useEffect(() => {
     const loadAllMembers = async () => {
       if (!connected || userGroups.length === 0) return;
-      
+
       const membersMap: { [key: number]: ThriftMember[] } = {};
-      
+
       for (const group of userGroups) {
         try {
           const members = await getThriftGroupMembers(group.id);
@@ -75,40 +71,55 @@ export function UserCampaigns() {
           console.error(`Failed to fetch members for group ${group.id}:`, error);
         }
       }
-      
       setGroupMembers(membersMap);
     };
-    
     loadAllMembers();
   }, [userGroups, connected, getThriftGroupMembers]);
-  
+
+  const handleManageClick = (group: ThriftGroup) => {
+    setSelectedGroup(group);
+    setDetailsOpen(true);
+  };
+
+  const handleEditClick = (group: ThriftGroup) => {
+    setEditGroup(group);
+    setEditOpen(true);
+  };
+
+  const handleShareClick = (group: ThriftGroup) => {
+    // Implement share logic or reuse from CampaignList if needed
+    // For now, details dialog might be enough
+    console.log("Share", group.name);
+  };
+
   if (!connected) {
     return (
-      <Card className="w-full">
+      <Card className="w-full border-dashed border-2">
         <CardContent className="pt-6">
           <div className="text-center p-8">
-            <p>Please connect your wallet to view your thrift groups.</p>
+            <p className="text-muted-foreground">Please connect your wallet to view your thrift groups.</p>
           </div>
         </CardContent>
       </Card>
     );
   }
-  
+
   if (loading) {
     return (
-      <Card className="w-full">
+      <Card className="w-full border-none shadow-none bg-transparent">
         <CardContent className="pt-6">
           <div className="text-center p-8">
-            <p>Loading your thrift groups...</p>
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading your thrift groups...</p>
           </div>
         </CardContent>
       </Card>
     );
   }
-  
+
   if (error) {
     return (
-      <Card className="w-full">
+      <Card className="w-full border-red-500/20 bg-red-500/5">
         <CardContent className="pt-6">
           <div className="text-center p-8 text-red-500">
             <p>Error: {error}</p>
@@ -117,192 +128,52 @@ export function UserCampaigns() {
       </Card>
     );
   }
-  
+
   if (userGroups.length === 0) {
     return (
-      <Card className="w-full">
-        <CardContent className="pt-6">
-          <div className="text-center p-8">
-            <p>You have not joined any thrift groups yet. Create one to get started!</p>
+      <Card className="w-full border-dashed">
+        <CardContent className="pt-12 pb-12 flex flex-col items-center justify-center">
+          <div className="bg-primary/10 p-4 rounded-full mb-4">
+            <PlusCircle className="h-8 w-8 text-primary" />
           </div>
+          <h3 className="text-lg font-semibold mb-2">No Groups Joined</h3>
+          <p className="text-muted-foreground max-w-sm text-center mb-6">
+            You haven&apos;t joined any thrift groups yet. Browse available groups to start saving with your community.
+          </p>
+          <Button onClick={() => document.getElementById('available-groups-trigger')?.click()}>
+            Browse Groups
+          </Button>
         </CardContent>
       </Card>
     );
   }
-  
+
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Your Thrift Groups</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="overview">
-          <TabsList className="mb-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="members">Members</TabsTrigger>
-            <TabsTrigger value="contributions">Contributions</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview">
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Deposit</TableHead>
-                    <TableHead>Members</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {userGroups.map((group) => (
-                    <TableRow key={group.id}>
-                      <TableCell className="font-medium">
-                        <a 
-                          href={`/thrift/${group.id}`}
-                          className="hover:underline text-primary"
-                        >
-                          {group.name}
-                        </a>
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        {group.description}
-                      </TableCell>
-                      <TableCell>{parseFloat(group.depositAmount)} {group.tokenSymbol || 'cUSD'}</TableCell>
-                      <TableCell>{group.totalMembers}/{group.maxMembers}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <a 
-                            href={`/thrift/${group.id}`}
-                            className="text-xs px-3 py-1 border rounded hover:bg-muted text-center"
-                          >
-                            View
-                          </a>
-                          {address && group.meta?.createdBy && address === String(group.meta.createdBy).toLowerCase() && (
-                            <button
-                              className="text-xs px-3 py-1 border rounded hover:bg-muted"
-                              onClick={() => { setEditGroup(group); setEditOpen(true); }}
-                            >
-                              Edit
-                            </button>
-                          )}
-                          {group.isUserMember && group.isActive && (
-                            <button
-                              className="text-xs px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90"
-                              onClick={() => {/* Add make contribution logic */}}
-                            >
-                              Contribute
-                            </button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="members">
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Group</TableHead>
-                    <TableHead>Members</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {userGroups.map((group) => (
-                    <TableRow key={group.id}>
-                      <TableCell className="font-medium">
-                        <a 
-                          href={`/thrift/${group.id}`}
-                          className="hover:underline text-primary"
-                        >
-                          {group.name}
-                        </a>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          {groupMembers[group.id]?.map((member, idx) => (
-                            <div key={idx} className="text-sm">
-                              <div className="font-medium">{member.userName || `Member ${idx + 1}`}</div>
-                              <span className="text-xs text-gray-500">
-                                {member.address.substring(0, 6)}...{member.address.substring(member.address.length - 4)}
-                              </span>
-                            </div>
-                          )) || <span className="text-gray-500">Loading members...</span>}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={(
-                          group.isActive && group.totalMembers >= group.maxMembers 
-                            ? "bg-green-50 text-green-700 border-green-200" 
-                            : group.isActive 
-                              ? "bg-blue-50 text-blue-700 border-blue-200"
-                              : "bg-yellow-50 text-yellow-700 border-yellow-200"
-                        ) + " border"}>
-                          {group.isActive && group.totalMembers >= group.maxMembers 
-                            ? 'Full' 
-                            : group.isActive 
-                              ? 'Active'
-                              : 'Pending'}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="contributions">
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Group</TableHead>
-                    <TableHead>Your Contribution</TableHead>
-                    <TableHead>Last Payment</TableHead>
-                    <TableHead>Next Payment</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {userGroups.map((group) => (
-                    <TableRow key={group.id}>
-                      <TableCell className="font-medium">
-                        <a 
-                          href={`/thrift/${group.id}`}
-                          className="hover:underline text-primary"
-                        >
-                          {group.name}
-                        </a>
-                      </TableCell>
-                      <TableCell>
-                        {group.userContribution ? `${parseFloat(group.userContribution)} ${group.tokenSymbol || 'cUSD'}` : `${parseFloat(group.depositAmount)} ${group.tokenSymbol || 'cUSD'}`}
-                      </TableCell>
-                      <TableCell>
-                        {group.userLastPayment ? group.userLastPayment.toLocaleDateString() : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {group.userNextPayment 
-                          ? group.userNextPayment.toLocaleDateString() 
-                          : group.isActive 
-                            ? (group.currentRound === 0 ? "Round 1" : `Round ${group.currentRound + 1}`)
-                            : "Not Started"
-                        }
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+        {userGroups.map((group) => (
+          <ThriftGroupCard
+            key={group.id}
+            group={group}
+            currentUserAddress={address}
+            variant="manage"
+            onManage={handleManageClick}
+            onShare={handleShareClick}
+            onEdit={handleEditClick}
+            onJoin={() => { }} // Not used in manage mode
+          />
+        ))}
+      </div>
+
+      {/* Group Details Dialog */}
+      <GroupDetailsDialog
+        group={selectedGroup}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        members={selectedGroup ? (groupMembers[selectedGroup.id] || []) : []}
+        currentUserAddress={address}
+      />
+
       {/* Edit Metadata Dialog */}
       {editGroup ? (
         <EditMetadataDialog
@@ -317,10 +188,9 @@ export function UserCampaigns() {
           initialTags={editGroup.meta?.tags}
           onSaved={() => {
             setEditOpen(false);
-            // no direct refresh function here; rely on ThriftContext updates triggered elsewhere or reload page
           }}
         />
       ) : null}
-    </Card>
+    </>
   );
 }

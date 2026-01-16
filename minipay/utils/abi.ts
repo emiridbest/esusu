@@ -1,8 +1,8 @@
 import { ethers, type ContractRunner, type BigNumberish, type Contract } from 'ethers';
 import MiniSafeAaveUpgradeableABI from './abis/MiniSafeAaveUpgradeable.json';
 
-export const contractAddress = "0x2fD5fF0270264441432659b97D0ea49008649584"; // Replace with actual deployed address
-export const abi = MiniSafeAaveUpgradeableABI;
+export const contractAddress = "0x27238ABE11880376a0F933184197945ab46A5938"; // Replace with actual deployed address
+export const abi = MiniSafeAaveUpgradeableABI.abi;
 
 /**
  * MiniSafeAave contract wrapper for ethers v6
@@ -12,7 +12,7 @@ export class MiniSafeAave {
   address: string;
 
   constructor(address: string, signerOrProvider: ContractRunner) {
-    this.contract = new ethers.Contract(address, MiniSafeAaveUpgradeableABI, signerOrProvider);
+    this.contract = new ethers.Contract(address, MiniSafeAaveUpgradeableABI.abi, signerOrProvider);
     this.address = address;
   }
 
@@ -38,16 +38,16 @@ export class MiniSafeAave {
   }
 
   // Thrift Group Operations
-  async createThriftGroup(contributionAmount: BigNumberish, startDate: BigNumberish, isPublic: boolean, tokenAddress: string) {
-    return await this.contract.createThriftGroup(contributionAmount, startDate, isPublic, tokenAddress);
+  async createThriftGroup(contributionAmount: BigNumberish, startDate: BigNumberish, isPublic: boolean, tokenAddress: string, email: string, phone: string) {
+    return await this.contract.createThriftGroup(contributionAmount, startDate, isPublic, tokenAddress, email, phone);
   }
 
-  async joinPublicGroup(groupId: BigNumberish) {
-    return await this.contract.joinPublicGroup(groupId);
+  async joinPublicGroup(groupId: BigNumberish, email: string, phone: string) {
+    return await this.contract.joinPublicGroup(groupId, email, phone);
   }
 
-  async addMemberToPrivateGroup(groupId: BigNumberish, memberAddress: string) {
-    return await this.contract.addMemberToPrivateGroup(groupId, memberAddress);
+  async addMemberToPrivateGroup(groupId: BigNumberish, memberAddress: string, email: string, phone: string) {
+    return await this.contract.addMemberToPrivateGroup(groupId, memberAddress, email, phone);
   }
 
   async makeContribution(groupId: BigNumberish) {

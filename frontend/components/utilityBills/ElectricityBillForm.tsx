@@ -18,6 +18,7 @@ import { PaymentSuccessModal } from './PaymentSuccessModal';
 import DualCurrencyPrice from './DualCurrencyPrice';
 import CountrySelector from './CountrySelector';
 import { TOKENS } from '@/context/utilityProvider/tokens';
+import { TOKENS as UTILS_TOKENS } from '@/utils/tokens';
 
 const formSchema = z.object({
   country: z.string({
@@ -46,7 +47,7 @@ export default function ElectricityBillForm() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [countryCurrency, setCountryCurrency] = useState<string>("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successDetails, setSuccessDetails] = useState<any>(null); 
+  const [successDetails, setSuccessDetails] = useState<any>(null);
 
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{
@@ -119,20 +120,20 @@ export default function ElectricityBillForm() {
     getProviders();
   }, [watchCountry, form]);
 
-    // Clear filled parameters when country changes
-    useEffect(() => {
-      if (watchCountry) {
-        form.setValue("provider", "");
-        form.setValue("meterNumber", "");
-        form.setValue("amount", "");
-        // Don't reset payment token - let user keep their selection
-        // form.setValue("paymentToken", "CUSD");
-        form.setValue("email", "");
-        setAmount(0);
-        setProviderLimits(null);
-        setAmountValidation({ type: '', message: '', isValid: true });
-      }
-    }, [watchCountry]);
+  // Clear filled parameters when country changes
+  useEffect(() => {
+    if (watchCountry) {
+      form.setValue("provider", "");
+      form.setValue("meterNumber", "");
+      form.setValue("amount", "");
+      // Don't reset payment token - let user keep their selection
+      // form.setValue("paymentToken", "CUSD");
+      form.setValue("email", "");
+      setAmount(0);
+      setProviderLimits(null);
+      setAmountValidation({ type: '', message: '', isValid: true });
+    }
+  }, [watchCountry]);
 
   // Update amount when amount changes
   useEffect(() => {
@@ -353,10 +354,10 @@ export default function ElectricityBillForm() {
 
         if (backendResponse.ok && data.success) {
           const selectedProvider = providers.find(p => p.id === values.provider);
-          
+
           updateStepStatus('electricity-payment', 'success');
           updateStepStatus('top-up', 'success');
-          
+
           // Show prominent success modal instead of toast
           setSuccessDetails({
             type: 'electricity' as const,
@@ -418,260 +419,281 @@ export default function ElectricityBillForm() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-white via-black-50 to-primary-50 dark:from-black dark:via-black-0 dark:to-black p-6 rounded-xl border border-primary-400/20 dark:border-primary-400/30">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="country"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-white/60 font-light text-sm">COUNTRY</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <CountrySelector
-                      value={field.value}
-                      onChange={(val) => {
-                        field.onChange(val);
-                        if (val) setCountryCurrency(val.toUpperCase());
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 dark:from-yellow-400/10 to-transparent pointer-events-none rounded-lg"></div>
-                  </div>
-                </FormControl>
-                <FormMessage className="text-red-600" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="provider"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-white/60 font-light text-sm">ELECTRICITY PROVIDER</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  disabled={isLoading || providers.length === 0}
-                >
+    <Card className="bg-white/50 dark:bg-black/40 backdrop-blur-md border border-gray-100 dark:border-gray-800 shadow-lg shadow-primary/5">
+      <CardContent className="p-6">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="country"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">COUNTRY</FormLabel>
                   <FormControl>
-                    <SelectTrigger className="bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white">
-                      <SelectValue placeholder={providers.length === 0 ? "Select a country first" : "Select electricity provider"} className="text-xs" />
-                    </SelectTrigger>
+                    <div className="relative">
+                      <CountrySelector
+                        value={field.value}
+                        onChange={(val) => {
+                          field.onChange(val);
+                          if (val) setCountryCurrency(val.toUpperCase());
+                        }}
+                        serviceFilter="electricity"
+                      />
+                    </div>
                   </FormControl>
-                  <SelectContent className="bg-white">
-                    {providers.map((provider) => (
-                      <SelectItem 
-                        key={provider.id} 
-                        value={provider.id}
-                        className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-black/80 dark:text-white/60 dark:text-gray-200"
-                      >
-                        {provider.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {isLoading && <div className="text-sm text-gray-600 mt-1 flex items-center">
-                  <Loader2 className="h-3 w-3 animate-spin mr-1 text-yellow-500" /> Loading providers...
-                </div>}
-                <FormMessage className="text-red-600" />
-              </FormItem>
-            )}
-          />
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="meterNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-white/60 font-light text-sm">METER NUMBER</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="Enter meter number" 
-                    {...field} 
-                    className="text-xs bg-gray-100 dark:bg-white/10"
-                  />
-                </FormControl>
-                {isValidating && (
-                  <div className="text-sm text-yellow-600 dark:text-yellow-300 mt-1 flex items-center">
-                    <Loader2 className="h-3 w-3 animate-spin mr-1" /> Validating meter number...
-                  </div>
-                )}
-                {validationResult && (
-                  <div className={`text-sm mt-1 ${validationResult.valid ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {validationResult.valid
-                      ? `✓ Valid meter: ${validationResult.customerName || 'Meter number validated'}${validationResult.outstandingAmount ? ` (Outstanding: ${validationResult.outstandingAmount})` : ''}`
-                      : `✗ ${validationResult.error || 'Invalid meter number'}`
-                    }
-                  </div>
-                )}
-                <FormMessage className="text-red-600" />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="provider"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">ELECTRICITY PROVIDER</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={isLoading || providers.length === 0}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-700">
+                        <SelectValue placeholder={providers.length === 0 ? "Select a country first" : "Select electricity provider"} className="text-xs" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-white dark:bg-black border-gray-200 dark:border-gray-800">
+                      {providers.map((provider) => (
+                        <SelectItem
+                          key={provider.id}
+                          value={provider.id}
+                        >
+                          {provider.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {isLoading && <div className="text-xs text-muted-foreground mt-1 flex items-center">
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading providers...
+                  </div>}
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-white/60 font-light text-sm">AMOUNT</FormLabel>
-                <FormControl>
-                  <div className="relative">
+            <FormField
+              control={form.control}
+              name="meterNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">METER NUMBER</FormLabel>
+                  <FormControl>
                     <Input
-                      type="number"
-                      placeholder={providerLimits 
-                        ? `Enter amount (${providerLimits.minAmount} - ${providerLimits.maxAmount})` 
-                        : countryCurrency 
-                          ? `Enter amount (${countryCurrency})` 
-                          : "Enter amount"}
+                      placeholder="Enter meter number"
                       {...field}
-                      className="text-xs bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white transition-all duration-200"
-                      disabled={isLoading}
+                      className="bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-700"
                     />
-                    {/* Only show amount validation if not validating meter */}
-                    {!isValidating && amountValidation.message && (
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                        {amountValidation.type === 'error' && <AlertCircle className="h-4 w-4 text-red-500" />}
-                        {amountValidation.type === 'warning' && <AlertCircle className="h-4 w-4 text-yellow-500" />}
-                        {amountValidation.type === 'info' && <Info className="h-4 w-4 text-blue-500" />}
-                        {amountValidation.type === 'success' && <CheckCircle className="h-4 w-4 text-green-500" />}
-                      </div>
-                    )}
-                  </div>
-                </FormControl>
-
-                {/* Only show amount validation if not validating meter */}
-                {!isValidating && amountValidation.message && (
-                  <div className={`text-xs mt-1 flex items-center ${amountValidation.type === 'error'
-                    ? 'text-red-600 dark:text-red-400'
-                    : amountValidation.type === 'warning'
-                      ? 'text-yellow-600 dark:text-yellow-400'
-                      : amountValidation.type === 'info'
-                        ? 'text-blue-600 dark:text-blue-400'
-                        : 'text-green-600 dark:text-green-400'
-                    }`}>
-                    {amountValidation.message}
-                  </div>
-                )}
-
-                <FormMessage className="text-red-600" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="paymentToken"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-white/60 font-light text-sm">PAYMENT TOKEN</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white">
-                      <SelectValue placeholder="Select payment token" className="text-xs" />
-                    </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="bg-white">
-                    {TOKENS.map((token) => (
-                      <SelectItem 
-                        key={token.id} 
-                        value={token.id}
-                        className="hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:bg-yellow-100 dark:focus:bg-yellow-800/30 text-black/80 dark:text-white/60 dark:text-gray-200"
-                      >
-                        {token.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage className="text-red-600" />
-              </FormItem>
-            )}
-          />
+                  {isValidating && (
+                    <div className="text-xs text-yellow-600 dark:text-yellow-500 mt-1 flex items-center">
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" /> Validating meter number...
+                    </div>
+                  )}
+                  {validationResult && (
+                    <div className={`text-xs mt-1 ${validationResult.valid ? 'text-green-500' : 'text-red-500'}`}>
+                      {validationResult.valid
+                        ? `✓ Valid meter: ${validationResult.customerName || 'Meter number validated'}${validationResult.outstandingAmount ? ` (Outstanding: ${validationResult.outstandingAmount})` : ''}`
+                        : `✗ ${validationResult.error || 'Invalid meter number'}`
+                      }
+                    </div>
+                  )}
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
 
-          {amount > 0 && amountValidation.isValid && TOKENS.some(token => token.id === selectedToken) && watchCountry && watchProvider && !isLoading ? (
-            <Card className="bg-gradient-to-r from-yellow-100 via-yellow-200 to-yellow-100 dark:from-yellow-400 dark:via-yellow-300 dark:to-yellow-400 border-2 border-yellow-300 dark:border-0 shadow-lg shadow-yellow-400/20 dark:shadow-yellow-400/30">
-              <CardContent className="pt-4">
-                <div className="flex flex-col space-y-1">
-                  <div className="text-sm font-light text-black/80 dark:text-white/60 dark:text-black">
-                    Payment Amount:
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">AMOUNT</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        placeholder={providerLimits
+                          ? `Enter amount (${providerLimits.minAmount} - ${providerLimits.maxAmount})`
+                          : countryCurrency
+                            ? `Enter amount (${countryCurrency})`
+                            : "Enter amount"}
+                        {...field}
+                        className="bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-700"
+                        disabled={isLoading}
+                      />
+                      {/* Only show amount validation if not validating meter */}
+                      {!isValidating && amountValidation.message && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          {amountValidation.type === 'error' && <AlertCircle className="h-4 w-4 text-red-500" />}
+                          {amountValidation.type === 'warning' && <AlertCircle className="h-4 w-4 text-yellow-500" />}
+                          {amountValidation.type === 'info' && <Info className="h-4 w-4 text-blue-500" />}
+                          {amountValidation.type === 'success' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                        </div>
+                      )}
+                    </div>
+                  </FormControl>
+
+                  {/* Only show amount validation if not validating meter */}
+                  {!isValidating && amountValidation.message && (
+                    <div className={`text-xs mt-1 flex items-center ${amountValidation.type === 'error'
+                      ? 'text-red-500'
+                      : amountValidation.type === 'warning'
+                        ? 'text-yellow-500'
+                        : amountValidation.type === 'info'
+                          ? 'text-blue-500'
+                          : 'text-green-500'
+                      }`}>
+                      {amountValidation.message}
+                    </div>
+                  )}
+
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="paymentToken"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">PAYMENT TOKEN</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-700">
+                        <SelectValue placeholder="Select payment token" className="text-xs">
+                          {field.value && (() => {
+                            const selectedTokenConfig = UTILS_TOKENS[field.value];
+                            const tokenName = TOKENS.find(t => t.id === field.value)?.name || field.value;
+                            return (
+                              <div className="flex items-center gap-2">
+                                {selectedTokenConfig?.logoUrl && (
+                                  <img src={selectedTokenConfig.logoUrl} alt={tokenName} className="w-4 h-4" />
+                                )}
+                                <span>{tokenName}</span>
+                              </div>
+                            );
+                          })()}
+                        </SelectValue>
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-white dark:bg-black border-gray-200 dark:border-gray-800">
+                      {TOKENS.map((token) => {
+                        const logoUrl = UTILS_TOKENS[token.id]?.logoUrl;
+                        return (
+                          <SelectItem
+                            key={token.id}
+                            value={token.id}
+                          >
+                            <div className="flex items-center gap-2">
+                              {logoUrl && (
+                                <img src={logoUrl} alt={token.name} className="w-5 h-5" />
+                              )}
+                              <span>{token.name}</span>
+                            </div>
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+
+            {amount > 0 && amountValidation.isValid && TOKENS.some(token => token.id === selectedToken) && watchCountry && watchProvider && !isLoading ? (
+              <Card className="bg-primary/5 border-primary/20 dark:bg-primary/10">
+                <CardContent className="pt-4">
+                  <div className="flex flex-col space-y-1">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Payment Amount
+                    </div>
+                    <div className="text-2xl font-bold text-primary">
+                      <DualCurrencyPrice
+                        amount={Number(watchAmount)}
+                        stablecoin={selectedToken}
+                        countryCurrency={watchCountry}
+                        showTotal={true}
+                      />
+                    </div>
                   </div>
-                  <div className="text-gray-900 dark:text-black font-medium">
-                    <DualCurrencyPrice
-                      amount={Number(watchAmount)}
-                      stablecoin={selectedToken}
-                      countryCurrency={watchCountry}
-                      showTotal={true}
+                </CardContent>
+              </Card>
+            ) : amount > 0 && amountValidation.isValid && (isLoading || !watchProvider || !watchCountry) && (
+              <Card className="bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-700 animate-pulse">
+                <CardContent className="pt-4">
+                  <div className="flex flex-col space-y-1">
+                    <div className="text-xs font-medium text-muted-foreground">
+                      Payment Amount
+                    </div>
+                    <div className="text-lg font-medium">
+                      Loading conversion...
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">EMAIL ADDRESS</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="email"
+                      placeholder="Enter your email address"
+                      {...field}
+                      className="bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-700"
                     />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ) : amount > 0 && amountValidation.isValid && (isLoading || !watchProvider || !watchCountry) && (
-            <Card className="bg-gradient-to-r from-yellow-100 via-yellow-200 to-yellow-100 dark:from-yellow-400 dark:via-yellow-300 dark:to-yellow-400 border-2 border-yellow-300 dark:border-0 shadow-lg shadow-yellow-400/20 dark:shadow-yellow-400/30">
-              <CardContent className="pt-4">
-                <div className="flex flex-col space-y-1">
-                  <div className="text-sm font-medium text-gray-800 dark:text-black">
-                    Payment Amount:
-                  </div>
-                  <div className="text-gray-900 dark:text-black font-medium animate-pulse">
-                    Loading conversion...
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  </FormControl>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-black/80 dark:text-white/60 font-light text-sm">EMAIL ADDRESS</FormLabel>
-                <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="Enter your email address"
-                    {...field}
-                    className="text-xs bg-white dark:bg-black/90 border-2 border-black/70 hover:border-black/70 dark:hover:border-yellow-400 dark:focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 dark:focus:ring-yellow-400/30 transition-all duration-200 text-black/90 dark:text-white/90 placeholder:text-black-500 dark:placeholder:text-black-400"
-                  />
-                </FormControl>
-                <FormMessage className="text-red-600" />
-              </FormItem>
-            )}
+            <Button
+              type="submit"
+              className="w-full font-semibold"
+              disabled={isProcessing || !watchAmount || Number(watchAmount) <= 0 || (validationResult && !validationResult.valid) || isValidating}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                `Pay with ${selectedToken}`
+              )}
+            </Button>
+          </form>
+        </Form>
+
+        {/* Success Modal */}
+        {successDetails && (
+          <PaymentSuccessModal
+            open={showSuccessModal}
+            onClose={() => {
+              setShowSuccessModal(false);
+              setSuccessDetails(null);
+              // Navigate to transaction page after modal is closed
+              router.push(`/tx/${successDetails.transactionHash}`);
+            }}
+            paymentDetails={successDetails}
           />
-
-          <Button
-            type="submit"
-            className="w-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-400 hover:from-yellow-500 hover:via-yellow-600 hover:to-yellow-500 dark:from-yellow-400 dark:via-yellow-500 dark:to-yellow-400 dark:hover:from-yellow-500 dark:hover:via-yellow-600 dark:hover:to-yellow-500 text-black font-light py-3 shadow-lg shadow-yellow-400/30 dark:shadow-yellow-400/40 border-0 transition-all duration-200 hover:shadow-xl hover:shadow-yellow-400/40 dark:hover:shadow-yellow-400/50 transform hover:-translate-y-0.5"
-            disabled={isProcessing || !watchAmount || Number(watchAmount) <= 0 || (validationResult && !validationResult.valid) || isValidating}
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin text-black" />
-                Processing...
-              </>
-            ) : (
-              `Pay with ${selectedToken}`
-            )}
-          </Button>
-        </form>
-      </Form>
-
-      {/* Success Modal */}
-      {successDetails && (
-        <PaymentSuccessModal
-          open={showSuccessModal}
-          onClose={() => {
-            setShowSuccessModal(false);
-            setSuccessDetails(null);
-            // Navigate to transaction page after modal is closed
-            router.push(`/tx/${successDetails.transactionHash}`);
-          }}
-          paymentDetails={successDetails}
-        />
-      )}
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

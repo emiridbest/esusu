@@ -26,35 +26,40 @@ function Dashboard() {
       description: "Pay for data, airtime, and electricity",
       icon: Smartphone,
       path: "/utilityBills",
-      color: "text-yellow-500",
+      color: "text-yellow-600 dark:text-yellow-500",
+      bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
     },
     {
       title: "Freebies",
       description: "Earn rewards and claim freebies",
       icon: Gift,
       path: "/freebies",
-      color: "text-yellow-500",
+      color: "text-yellow-600 dark:text-yellow-500",
+      bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
     },
     {
       title: "Save",
       description: "Save money in your MiniSafe",
       icon: PiggyBank,
       path: "/miniSafe",
-      color: "text-yellow-500",
+      color: "text-yellow-600 dark:text-yellow-500",
+      bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
     },
     {
       title: "Thrift",
       description: "Join thrift groups and save together",
       icon: UserGroupIcon,
       path: "/thrift",
-      color: "text-yellow-500",
+      color: "text-yellow-600 dark:text-yellow-500",
+      bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
     },
     {
       title: "AI Chat",
       description: "Ask AI for gas fees",
       icon: User,
-      path: "/chat",
-      color: "text-yellow-500",
+      path: "/profile",
+      color: "text-yellow-600 dark:text-yellow-500",
+      bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
     }
   ];
 
@@ -71,7 +76,7 @@ function Dashboard() {
           return (
             <Card
               key={feature.title}
-              className="cursor-pointer hover:shadow-lg transition-all duration-200 border-none bg-white/50 backdrop-blur-sm dark:bg-gray-900/50"
+              className="cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all duration-200 border-none bg-white/50 backdrop-blur-sm dark:bg-gray-900/50"
               onClick={() => router.push(feature.path)}
             >
               <CardHeader className="flex flex-row items-center gap-4">

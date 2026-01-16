@@ -1,17 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ThriftGroup, useThrift } from '@/context/thrift/ThriftContext';
-import { UsersIcon, CalendarIcon, Share2Icon } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
 import { contractAddress } from '@/utils/abi';
+import { ThriftGroupCard } from '@/components/thrift/ThriftGroupCard';
+import { YieldCalculator } from '@/components/thrift/YieldCalculator';
+import { Share2Icon } from 'lucide-react';
 
 export function CampaignList() {
   const { allGroups, joinThriftGroup, generateShareLink, loading, error, refreshGroups } = useThrift();
@@ -20,11 +21,13 @@ export function CampaignList() {
   const [address, setAddress] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [tagsFilter, setTagsFilter] = useState('');
-  
+
   const [selectedGroup, setSelectedGroup] = useState<ThriftGroup | null>(null);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [userName, setUserName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [shareableLink, setShareableLink] = useState('');
   const [editOpen, setEditOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<ThriftGroup | null>(null);
@@ -47,16 +50,16 @@ export function CampaignList() {
     };
 
     checkConnection();
-    
+
     // Setup listeners for connection changes
     if (typeof window !== 'undefined' && window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
         setConnected(accounts.length > 0);
         setAddress(accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
       };
-      
+
       window.ethereum.on('accountsChanged', handleAccountsChanged);
-      
+
       return () => {
         if (window.ethereum.removeListener) {
           window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
@@ -83,13 +86,15 @@ export function CampaignList() {
 
   const handleJoinGroup = async () => {
     if (!selectedGroup) return;
-    
+
     try {
-      console.log('📤 CampaignList - Joining group with userName:', userName);
-      await joinThriftGroup(selectedGroup.id, userName);  // ✅ Pass userName!
+      console.log('📤 CampaignList - Joining group with details:', { userName, email, phone });
+      await joinThriftGroup(selectedGroup.id, userName, email, phone);
       setJoinDialogOpen(false);
       setUserName('');
-      
+      setEmail('');
+      setPhone('');
+
       toast({
         title: "Successfully joined!",
         description: `You are now a member of ${selectedGroup.name}`,
@@ -120,10 +125,10 @@ export function CampaignList() {
 
   if (!connected) {
     return (
-      <Card className="w-full">
+      <Card className="w-full border-dashed border-2">
         <CardContent className="pt-6">
           <div className="text-center p-8">
-            <p>Please connect your wallet to view and join thrift groups.</p>
+            <p className="text-muted-foreground">Please connect your wallet to view and join thrift groups.</p>
           </div>
         </CardContent>
       </Card>
@@ -132,10 +137,11 @@ export function CampaignList() {
 
   if (loading) {
     return (
-      <Card className="w-full">
+      <Card className="w-full border-none shadow-none bg-transparent">
         <CardContent className="pt-6">
           <div className="text-center p-8">
-            <p>Loading your thrift groups...</p>
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading your thrift groups...</p>
           </div>
         </CardContent>
       </Card>
@@ -144,7 +150,7 @@ export function CampaignList() {
 
   if (error) {
     return (
-      <Card className="w-full">
+      <Card className="w-full border-red-500/20 bg-red-500/5">
         <CardContent className="pt-6">
           <div className="text-center p-8 text-red-500">
             <p>Error: {error}</p>
@@ -156,9 +162,9 @@ export function CampaignList() {
 
   if (allGroups.length === 0) {
     return (
-      <Card className="w-full">
+      <Card className="w-full border-dashed">
         <CardContent className="pt-6">
-          <div className="text-center p-8">
+          <div className="text-center p-8 text-muted-foreground">
             <p>No thrift groups available yet. Create one to get started!</p>
           </div>
         </CardContent>
@@ -188,34 +194,36 @@ export function CampaignList() {
   return (
     <>
       {/* Filters */}
-      <div className="w-full mb-4">
-        <div className="rounded-md border p-4 bg-background">
+      <div className="w-full mb-6">
+        <div className="rounded-xl border border-border/50 p-4 bg-background/50 backdrop-blur-sm">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="categoryFilter">Category</Label>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="categoryFilter" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Category</Label>
               <Input
                 id="categoryFilter"
-                placeholder="e.g. savings, friends, work"
+                placeholder="e.g. savings, friends"
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
+                className="bg-background"
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="tagsFilter">Tags</Label>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="tagsFilter" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tags</Label>
               <Input
                 id="tagsFilter"
-                placeholder="comma,separated,tags"
+                placeholder="tag1, tag2"
                 value={tagsFilter}
                 onChange={(e) => setTagsFilter(e.target.value)}
+                className="bg-background"
               />
             </div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 onClick={() => { setCategoryFilter(''); setTagsFilter(''); }}
-                className="w-full md:w-auto border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-black text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="w-full md:w-auto text-muted-foreground hover:text-foreground"
               >
-                Clear Filters
+                Clear
               </Button>
             </div>
           </div>
@@ -224,86 +232,29 @@ export function CampaignList() {
 
       {/* List */}
       {filteredGroups.length === 0 ? (
-        <Card className="w-full">
-          <CardContent className="pt-8 pb-8 text-center">
-            <div className="text-base font-medium mb-1">No results</div>
-            <div className="text-sm text-neutral-500 mb-4">Try clearing filters or adjust your category/tags.</div>
+        <Card className="w-full border-dashed bg-transparent">
+          <CardContent className="pt-12 pb-12 text-center">
+            <div className="text-lg font-medium mb-2">No matching groups found</div>
+            <div className="text-sm text-neutral-500 mb-6">Try adjusting your filters</div>
             <Button
               variant="outline"
               onClick={() => { setCategoryFilter(''); setTagsFilter(''); }}
-              className="text-foreground border-border bg-background hover:bg-accent hover:text-accent-foreground"
             >
               Clear Filters
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
           {filteredGroups.map((group) => (
-            <Card key={group.id} className="overflow-hidden hover:shadow-md transition-shadow">
-              {group.meta?.coverImageUrl ? (
-                <img src={group.meta.coverImageUrl} alt={group.name} className="w-full h-40 object-cover" onError={() => { /* ignore */ }} />
-              ) : null}
-              <CardHeader className="bg-primary/5 pb-3">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-lg font-semibold">{group.name}</CardTitle>
-                    {address && group.meta?.createdBy && address === String(group.meta.createdBy).toLowerCase() && (
-                      <Button size="sm" variant="outline" onClick={() => handleEditClick(group)}>Edit</Button>
-                    )}
-                  </div>
-                  <Badge className="bg-primary/10 text-primary border border-primary/20">
-                    {parseFloat(group.depositAmount)} {group.tokenSymbol || 'cUSD'}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
-                  {group.description}
-                </p>
-                <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <UsersIcon className="h-3 w-3" />
-                    <span>{group.totalMembers}/{group.maxMembers} members</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <CalendarIcon className="h-3 w-3" />
-                    <span>{group.isActive ? 'Active' : 'Pending'}</span>
-                  </div>
-                  {group.meta?.category ? (
-                    <div className="flex items-center gap-1">
-                      <span className="font-medium">Category:</span>
-                      <span>{group.meta.category}</span>
-                    </div>
-                  ) : null}
-                  {group.meta?.tags && group.meta.tags.length > 0 ? (
-                    <div className="flex items-center gap-1">
-                      <span className="font-medium">Tags:</span>
-                      <span>{group.meta.tags.join(', ')}</span>
-                    </div>
-                  ) : null}
-                </div>
-              </CardContent>
-              <CardFooter className="border-t pt-3 flex justify-between">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-xs flex items-center gap-1"
-                  onClick={() => handleShareClick(group)}
-                >
-                  <Share2Icon className="h-3 w-3" />
-                  Share
-                </Button>
-                <Button
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => handleJoinClick(group)}
-                  disabled={group.totalMembers >= group.maxMembers}
-                >
-                  {group.totalMembers >= group.maxMembers ? 'Full' : 'Join Group'}
-                </Button>
-              </CardFooter>
-            </Card>
+            <ThriftGroupCard
+              key={group.id}
+              group={group}
+              currentUserAddress={address}
+              onJoin={handleJoinClick}
+              onShare={handleShareClick}
+              onEdit={handleEditClick}
+            />
           ))}
         </div>
       )}
@@ -315,31 +266,20 @@ export function CampaignList() {
             <DialogTitle>Share Thrift Group</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="mb-4">Share <strong>{selectedGroup?.name}</strong> with your friends</p>
+            <p className="mb-4 text-sm text-muted-foreground">Share <strong>{selectedGroup?.name}</strong> with your friends</p>
             <div className="grid gap-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="shareLink" className="text-right">Share Link</Label>
-                <Input 
-                  id="shareLink" 
+              <div className="flex items-center gap-2">
+                <Input
+                  id="shareLink"
                   value={shareableLink}
                   readOnly
-                  className="col-span-3" 
+                  className="flex-1 font-mono text-xs"
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
+                <Button onClick={copyToClipboard} size="icon" variant="outline"><Share2Icon className="h-4 w-4" /></Button>
               </div>
-              <p className="text-sm text-gray-500">
-                Anyone with this link can request to join your thrift group. You will need to approve their request.
-              </p>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShareDialogOpen(false)}>Cancel</Button>
-            <Button 
-              onClick={copyToClipboard}
-            >
-              Copy Link
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -364,36 +304,96 @@ export function CampaignList() {
 
       {/* Join Campaign Dialog */}
       <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] dark:text-white/90">
+        <DialogContent className="sm:max-w-[800px] overflow-hidden">
           <DialogHeader>
-            <DialogTitle>Join Thrift Group</DialogTitle>
+            <DialogTitle className="text-2xl">Join {selectedGroup?.name}</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
-            <p className="mb-4">You are joining: <strong>{selectedGroup?.name}</strong></p>
-            <p className="text-sm text-gray-500 mb-6">
-              Deposit amount: {selectedGroup?.depositAmount} {selectedGroup?.tokenSymbol || 'cUSD'}
-            </p>
-            <div className="grid gap-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="userName" className="text-right">Your Name</Label>
-                <Input 
-                  id="userName" 
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
+            {/* Left Column: Form */}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-sm font-semibold mb-2 text-muted-foreground">Group Details</h3>
+                <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Required Deposit:</span>
+                    <span className="font-bold">{selectedGroup?.depositAmount} {selectedGroup?.tokenSymbol || 'cUSD'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Current Round:</span>
+                    <span>{selectedGroup?.currentRound}</span>
+                  </div>
+                  {selectedGroup?.isPublic && (
+                    <div className="flex justify-between text-amber-500">
+                      <span className="text-muted-foreground">Required Collateral:</span>
+                      <span className="font-bold">{(parseFloat(selectedGroup?.depositAmount || '0') * 5).toFixed(2)} {selectedGroup?.tokenSymbol || 'cUSD'}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="userName">Your Display Name</Label>
+                <Input
+                  id="userName"
                   value={userName}
                   onChange={(e) => setUserName(e.target.value)}
-                  className="col-span-3" 
-                  placeholder="Enter your name" 
+                  placeholder="e.g. Satoshi Nakamoto"
+                  className="text-lg"
+                />
+                <p className="text-xs text-muted-foreground">This name will be visible to other group members.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="text-lg"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+1234567890"
+                  className="text-lg"
                 />
               </div>
             </div>
+
+            {/* Right Column: Calculator */}
+            <div className="border-l pl-8 border-border/50">
+              <h3 className="text-sm font-semibold mb-4 text-muted-foreground">Estimated Returns</h3>
+              <YieldCalculator
+                depositToken={selectedGroup?.tokenSymbol || 'cUSD'}
+                defaultAmount={parseFloat(selectedGroup?.depositAmount || '0')}
+                APY={5 + (parseFloat(selectedGroup?.depositAmount || '0') > 100 ? 2 : 0)} // Dynamic mocked APY based on size
+              />
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setJoinDialogOpen(false)}>Cancel</Button>
-            <Button 
-              onClick={handleJoinGroup}
-              disabled={loading || !userName.trim()}
-            >
-              {loading ? 'Joining...' : 'Join Group'}
-            </Button>
+
+          <DialogFooter className="sm:justify-between items-center pt-4 border-t mt-4">
+            <div className="text-xs text-muted-foreground">
+              By joining, you agree to the group rules.
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setJoinDialogOpen(false)}>Cancel</Button>
+              <Button
+                onClick={handleJoinGroup}
+                disabled={loading || !userName.trim() || !email.trim() || !phone.trim()}
+                className="bg-primary text-primary-foreground font-bold px-8"
+              >
+                {loading ? 'Confirming...' : 'Join Now'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -28,6 +28,7 @@ interface PaymentSuccessModalProps {
     provider?: string;
     emailSent?: boolean;
     smsSent?: boolean;
+    pinCode?: string; // PIN code for DingConnect ReadReceipt products
   };
 }
 
@@ -70,13 +71,13 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
         >
           {/* Background Gradient */}
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-purple-500/10 to-green-500/20 rounded-2xl blur-3xl"></div>
-          
+
           <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-gray-700/50 shadow-xl">
             {/* Success Header */}
             <div className="relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-yellow-500/10"></div>
               <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-primary/5"></div>
-              
+
               <DialogHeader className="relative px-8 py-8 text-center">
                 <motion.div
                   initial={{ scale: 0 }}
@@ -94,7 +95,7 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                     </div>
                   </div>
                 </motion.div>
-                
+
                 <motion.div
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
@@ -128,7 +129,7 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                     <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Type</span>
                     <span className="font-semibold text-primary">{getPaymentTypeLabel()}</span>
                   </motion.div>
-                  
+
                   <motion.div
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
@@ -162,6 +163,34 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                     >
                       <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Provider</span>
                       <span className="font-semibold text-gray-900 dark:text-white">{paymentDetails.provider}</span>
+                    </motion.div>
+                  )}
+
+                  {/* PIN Code Display - Prominent styling for voucher products */}
+                  {paymentDetails.pinCode && (
+                    <motion.div
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: 0.68, duration: 0.3 }}
+                      className="py-4 my-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border-2 border-green-200 dark:border-green-700"
+                    >
+                      <div className="text-center">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-green-600 dark:text-green-400">Your Top-up PIN</span>
+                        <div className="flex items-center justify-center gap-2 mt-2">
+                          <span className="font-mono text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent tracking-widest">
+                            {paymentDetails.pinCode}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(paymentDetails.pinCode!, 'PIN Code')}
+                            className="h-8 w-8 hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-green-600"
+                          >
+                            <Copy className="h-5 w-5" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-green-600/80 dark:text-green-400/80 mt-2">Dial *126*PIN# to redeem</p>
+                      </div>
                     </motion.div>
                   )}
 
@@ -252,7 +281,7 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                     </div>
                     <span className="font-medium text-gray-700 dark:text-gray-300">Receipt</span>
                   </motion.div>
-                  
+
                   {paymentDetails.emailSent !== false && (
                     <motion.div
                       initial={{ scale: 0 }}
@@ -277,7 +306,7 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                       </span>
                     </motion.div>
                   )}
-                  
+
                   {paymentDetails.smsSent !== false && (
                     <motion.div
                       initial={{ scale: 0 }}
@@ -303,7 +332,7 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                     </motion.div>
                   )}
                 </div>
-                
+
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getDingProducts, formatDingProductsToPlans } from '@/lib/dingConnect';
+
 // Base URLs from environment variables
 const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL;
 const SANDBOX_API_URL = process.env.NEXT_PUBLIC_SANDBOX_API_URL;
@@ -174,9 +176,38 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Check if this is a DingConnect provider
+    const isDingProvider = provider.startsWith('ding_');
+
+    if (isDingProvider) {
+      // DingConnect flow - fetch products for this country and filter by provider
+      const providerCode = provider.replace('ding_', '');
+      console.log(`[DingConnect] Fetching products for ${country}, looking for provider: ${providerCode}`);
+
+      const dingProducts = await getDingProducts(country.toUpperCase());
+
+      // Debug: Log all unique provider codes from products
+      const uniqueProviderCodes = [...new Set(dingProducts.map(p => p.ProviderCode))];
+      console.log(`[DingConnect] Found ${dingProducts.length} total products. Unique ProviderCodes:`, uniqueProviderCodes);
+
+      // Filter products by provider code (case-insensitive)
+      const providerProducts = dingProducts.filter(
+        p => p.ProviderCode.toLowerCase() === providerCode.toLowerCase()
+      );
+
+      console.log(`[DingConnect] Matched ${providerProducts.length} products for "${providerCode}"`);
+
+      // Format to standard bundle format
+      const formattedBundles = formatDingProductsToPlans(providerProducts);
+
+      console.log(`[DingConnect] Returning ${formattedBundles.length} data plans for ${providerCode}`);
+      return NextResponse.json(formattedBundles);
+    }
+
+    // Reloadly flow
     const operatorId = parseInt(provider);
     const operatorDetails = await getOperator(operatorId) as OperatorDetails;
-    
+
     if (!operatorDetails) {
       return NextResponse.json({ error: 'Operator not found' }, { status: 404 });
     }
@@ -189,7 +220,7 @@ export async function GET(request: NextRequest) {
     // Get the bundles for this operator - prioritize fixedAmountsDescriptions, then localFixedAmountsDescriptions
     // Use local currency prices (like working version)
     let bundles: any = operatorDetails.localFixedAmountsDescriptions;
-    
+
     // If no bundles found, try dataBundles field
     if (!bundles) {
       bundles = operatorDetails.dataBundles;

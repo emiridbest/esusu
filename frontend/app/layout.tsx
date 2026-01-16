@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import FloatingChat from "@/components/FloatingChat";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import "@/styles/globals.css";
+import "flag-icons/css/flag-icons.min.css";
 import { Toaster } from "@/components/ui/sonner";
 // Import Google Fonts
 import { Inter, Poppins, Roboto, Dancing_Script, Caveat, Kalam } from 'next/font/google'
@@ -61,17 +62,17 @@ export default function RootLayout({
       <body className={`${inter.variable} ${poppins.variable} ${roboto.variable} ${dancingScript.variable} ${caveat.variable} ${kalam.variable} font-sans italic`}>
         <ThemeProvider>
           <Providers>
-              <div className="min-h-screen bg-gradient-radial from-white via-gray-50 to-gray-100 dark:from-black dark:via-black dark:to-black">
-                <Header />
-                <main className="py-6 px-4 sm:px-6 lg:px-8">
-                  <div className="max-w-7xl mx-auto">
-                    {children}
-                  </div>
-                </main>
-                <Toaster />
-                <FloatingChat />
-                <Footer />
-              </div>
+            <div className="min-h-screen bg-gradient-radial from-white via-gray-50 to-gray-100 dark:from-black dark:via-black dark:to-black">
+              <Header />
+              <main className="py-6 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-7xl mx-auto">
+                  {children}
+                </div>
+              </main>
+              <Toaster />
+              <FloatingChat />
+              <Footer />
+            </div>
           </Providers>
         </ThemeProvider>
       </body>

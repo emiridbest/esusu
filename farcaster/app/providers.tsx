@@ -7,9 +7,10 @@ import { SessionProvider } from "next-auth/react";
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { FrameContext } from "@farcaster/frame-node";
-import sdk, {AddFrame} from "@farcaster/frame-sdk";
+import sdk, { AddFrame } from "@farcaster/frame-sdk";
 import { FarcasterProvider } from "../context/farcaster/FarcasterContext";
 import { ThriftProvider } from "../context/thrift/ThriftContext";
+import { MiniSafeProvider } from "../context/miniSafe/MiniSafeContext";
 
 const WagmiProvider = dynamic(
   () => import("../components/providers/WagmiProvider"),
@@ -52,7 +53,7 @@ export function Providers({
   const [context, setContext] = useState<FrameContext>();
   const [addFrameResult, setAddFrameResult] = useState("");
 
- const addFrame = useCallback(async () => {
+  const addFrame = useCallback(async () => {
     try {
       await sdk.actions.addFrame();
     } catch (error) {
@@ -67,7 +68,7 @@ export function Providers({
       setAddFrameResult(`Error: ${error}`);
     }
   }, []);
-  
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -82,7 +83,7 @@ export function Providers({
         console.error('Failed to load frame context:', error);
       }
     };
-    
+
     if (sdk && !isSDKLoaded) {
       const initializeSDK = async () => {
         try {
@@ -143,9 +144,11 @@ export function Providers({
       <FarcasterProvider>
         <WagmiProvider>
           <ThriftProvider>
-            <PostHogProvider>
+            <MiniSafeProvider>
+              <PostHogProvider>
                 {children}
-            </PostHogProvider>
+              </PostHogProvider>
+            </MiniSafeProvider>
           </ThriftProvider>
         </WagmiProvider>
       </FarcasterProvider>
