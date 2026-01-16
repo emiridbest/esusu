@@ -36,7 +36,7 @@ export default function CampaignDetailsPage() {
   const router = useRouter();
   const campaignId = typeof id === 'string' ? parseInt(id) : -1;
 
-  const { userGroups, allGroups, joinThriftGroup, checkJoinStatus, checkGroupStatus, makeContribution, distributePayout, getThriftGroupMembers, getContributionHistory, generateShareLink, activateThriftGroup, setPayoutOrder, emergencyWithdraw, refreshGroups, loading, error } = useThrift();
+  const { userGroups, allGroups, joinThriftGroup, checkJoinStatus, checkGroupStatus, makeContribution, distributePayout, getThriftGroupMembers, getContributionHistory, generateShareLink, activateThriftGroup, setPayoutOrder, emergencyWithdraw, addMemberToPrivateGroup, refreshGroups, loading, error } = useThrift();
   const { address, isConnected } = useAccount();
   const { toast } = useToast();
 
@@ -80,6 +80,10 @@ export default function CampaignDetailsPage() {
   const [metadata, setMetadata] = useState<any | null>(null);
   const [isGroupAdmin, setIsGroupAdmin] = useState(false);
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
+  const [addMemberAddress, setAddMemberAddress] = useState('');
+  const [addMemberEmail, setAddMemberEmail] = useState('');
+  const [addMemberPhone, setAddMemberPhone] = useState('');
   const [payoutOrder, setPayoutOrderInput] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [memberOrder, setMemberOrder] = useState<string[]>([]);
@@ -540,6 +544,46 @@ export default function CampaignDetailsPage() {
     const newOrder = [...memberOrder];
     [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
     setMemberOrder(newOrder);
+  };
+
+  const handleAddMember = async () => {
+    if (!campaign) return;
+
+    if (!addMemberAddress || !addMemberAddress.startsWith('0x')) {
+      toast({
+        title: "Invalid address",
+        description: "Please enter a valid wallet address starting with 0x",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await addMemberToPrivateGroup(campaign.id, addMemberAddress, addMemberEmail, addMemberPhone);
+      setAddMemberDialogOpen(false);
+      setAddMemberAddress('');
+      setAddMemberEmail('');
+      setAddMemberPhone('');
+
+      toast({
+        title: "Member added",
+        description: "The member has been added to the private group successfully.",
+      });
+
+      // Refresh members
+      const members = await getThriftGroupMembers(campaign.id);
+      setCampaignMembers(members);
+    } catch (error) {
+      console.error("Failed to add member:", error);
+      toast({
+        title: "Failed to add member",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleEmergencyWithdraw = async () => {
@@ -1335,6 +1379,37 @@ export default function CampaignDetailsPage() {
                       </Button>
                     </motion.div>
                   </motion.div>
+
+                  {/* Add Member (Private Groups) */}
+                  {!campaign.isPublic && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.5, delay: 2.2 }}
+                      whileHover={{ scale: 1.02 }}
+                      className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50"
+                    >
+                      <div>
+                        <h3 className="font-medium">Add Member</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Add a member to this private group
+                        </p>
+                      </div>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Button
+                          onClick={() => setAddMemberDialogOpen(true)}
+                          disabled={isProcessing || campaign.totalMembers >= campaign.maxMembers}
+                          variant="outline"
+                        >
+                          <UsersIcon className="h-4 w-4 mr-2" />
+                          Add Member
+                        </Button>
+                      </motion.div>
+                    </motion.div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1583,6 +1658,59 @@ export default function CampaignDetailsPage() {
               disabled={memberOrder.length === 0 || isProcessing}
             >
               {isProcessing ? 'Processing...' : 'Set Order'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Member Dialog */}
+      <Dialog open={addMemberDialogOpen} onOpenChange={setAddMemberDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add Member to Private Group</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="mb-4">Add a new member to <strong>{campaign?.name}</strong></p>
+
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="addMemberAddress">Wallet Address</Label>
+                <Input
+                  id="addMemberAddress"
+                  value={addMemberAddress}
+                  onChange={(e) => setAddMemberAddress(e.target.value)}
+                  placeholder="0x..."
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="addMemberEmail">Email</Label>
+                <Input
+                  id="addMemberEmail"
+                  type="email"
+                  value={addMemberEmail}
+                  onChange={(e) => setAddMemberEmail(e.target.value)}
+                  placeholder="name@example.com"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="addMemberPhone">Phone</Label>
+                <Input
+                  id="addMemberPhone"
+                  type="tel"
+                  value={addMemberPhone}
+                  onChange={(e) => setAddMemberPhone(e.target.value)}
+                  placeholder="+1234567890"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddMemberDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleAddMember}
+              disabled={isProcessing || !addMemberAddress}
+            >
+              {isProcessing ? 'Adding...' : 'Add Member'}
             </Button>
           </DialogFooter>
         </DialogContent>

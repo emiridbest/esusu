@@ -324,7 +324,9 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!newGroupId) {
         try {
           const total = await contract.totalThriftGroups();
-          newGroupId = Number(total);
+          // Total is incremented after creation, so the new ID is total - 1
+          const totalNum = Number(total);
+          newGroupId = totalNum > 0 ? totalNum - 1 : 0;
         } catch (_) {
           // ignore
         }
@@ -332,7 +334,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // Persist off-chain metadata (best-effort) with signature auth
       try {
-        if (newGroupId && provider && account) {
+        if (newGroupId !== null && newGroupId !== undefined && provider && account) {
           const ts = Date.now();
           const msg = [
             'Esusu: Thrift Metadata Update',
@@ -367,7 +369,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       // Store creator as first member in the database with their name
-      if (newGroupId && account) {
+      if (newGroupId !== null && newGroupId !== undefined && account) {
         try {
           const finalCreatorName = creatorName || 'Creator';
           console.log('🎯 Storing creator in database:', {
@@ -1432,7 +1434,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return;
       }
 
-      const groupIds = Array.from({ length: totalGroups }, (_, i) => i + 1);
+      const groupIds = Array.from({ length: totalGroups }, (_, i) => i);
 
       // Fetch all groups in parallel per group for better UX
       for (const groupId of groupIds) {

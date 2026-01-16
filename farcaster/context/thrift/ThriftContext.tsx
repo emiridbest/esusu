@@ -392,7 +392,9 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!newGroupId) {
         try {
           const total = await contract.totalThriftGroups();
-          newGroupId = Number(total);
+          // Total is incremented after creation, so the new ID is total - 1
+          const totalNum = Number(total);
+          newGroupId = totalNum > 0 ? totalNum - 1 : 0;
         } catch (_) {
           // ignore
         }
@@ -400,7 +402,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // Persist off-chain metadata (best-effort) with signature auth
       try {
-        if (newGroupId && provider && account) {
+        if (newGroupId !== null && newGroupId !== undefined && provider && account) {
           const ts = Date.now();
           const msg = [
             'Esusu: Thrift Metadata Update',
@@ -435,7 +437,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       // Store creator as first member in the database with their name
-      if (newGroupId && account) {
+      if (newGroupId !== null && newGroupId !== undefined && account) {
         try {
           const finalCreatorName = creatorName || 'Creator';
           console.log('🎯 Storing creator in database:', {
@@ -1488,10 +1490,15 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Function to fetch all thrift groups
   const refreshGroups = async () => {
-    if (!readOnlyContract || !isConnected || !account) {
+    // Prefer using the connected contract (signer) for fresher data, fallback to read-only (RPC)
+    const targetContract = contract || readOnlyContract;
+
+    if (!targetContract || !isConnected || !account) {
       setUserGroups([]);
       setAllGroups([]);
-      setError('Please connect your wallet to view thrift groups.');
+      if (!targetContract) {
+        setError('Please connect your wallet to view thrift groups.');
+      }
       return;
     }
 
@@ -1502,8 +1509,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const fetchedGroups: ThriftGroup[] = [];
       const userGroupsTemp: ThriftGroup[] = [];
 
-      // Determine total groups from contract and iterate 1..total (using readOnlyContract)
-      const totalGroupsBn = await readOnlyContract.totalThriftGroups();
+      // Determine total groups from contract and iterate 1..total
+      const totalGroupsBn = await targetContract.totalThriftGroups();
       const totalGroups = Number(totalGroupsBn);
       if (totalGroups === 0) {
         setAllGroups([]);
@@ -1511,19 +1518,19 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return;
       }
 
-      const groupIds = Array.from({ length: totalGroups }, (_, i) => i + 1);
+      const groupIds = Array.from({ length: totalGroups }, (_, i) => i);
 
       // Fetch all groups in parallel per group for better UX (using readOnlyContract)
       for (const groupId of groupIds) {
         try {
           // Parallel fetch with error handling for non-existent groups
           const [info, members, payoutOrder, isMember, currentRecipient, groupPayouts] = await Promise.all([
-            readOnlyContract.getGroupInfo(groupId).catch(() => null),
-            readOnlyContract.getGroupMembers(groupId).catch(() => []),
-            readOnlyContract.getPayoutOrder(groupId).catch(() => []),
-            account ? readOnlyContract.isGroupMember(groupId, account).catch(() => false) : Promise.resolve(false),
-            readOnlyContract.getCurrentRecipient(groupId).catch(() => null),
-            readOnlyContract.getGroupPayouts(groupId).catch(() => []),
+            targetContract.getGroupInfo(groupId).catch(() => null),
+            targetContract.getGroupMembers(groupId).catch(() => []),
+            targetContract.getPayoutOrder(groupId).catch(() => []),
+            account ? targetContract.isGroupMember(groupId, account).catch(() => false) : Promise.resolve(false),
+            targetContract.getCurrentRecipient(groupId).catch(() => null),
+            targetContract.getGroupPayouts(groupId).catch(() => []),
           ]);
 
           // Skip uninitialized groups (contributionAmount == 0) without using BigInt literals
@@ -1537,7 +1544,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           let tokenDecimals = 18; // Default fallback
 
           try {
-            const tg = await readOnlyContract.getThriftGroup(groupId);
+            const tg = await targetContract.getThriftGroup(groupId);
             // Support both object and array returns
             maxMembers = Number((tg.maxMembers ?? tg[5] ?? maxMembers));
             // Get token address from contract data
@@ -1566,7 +1573,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (account) {
             try {
               // Get user's contribution status
-              const contributionStatus = await readOnlyContract.checkContributionDue(account, groupId);
+              const contributionStatus = await targetContract.checkContributionDue(account, groupId);
               if (contributionStatus && contributionStatus.contributionAmount) {
                 userContribution = formatUnits(contributionStatus.contributionAmount, tokenDecimals);
               }
