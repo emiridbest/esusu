@@ -72,7 +72,7 @@ export interface ThriftContextType {
     startDate: Date | null;
     timeUntilStart: number | null;
   }>;
-  addMemberToPrivateGroup: (groupId: number, memberAddress: string, email?: string, phone?: string) => Promise<void>;
+  addMemberToPrivateGroup: (groupId: number, memberAddress: string, email?: string, phone?: string, userName?: string) => Promise<void>;
   makeContribution: (groupId: number) => Promise<void>;
   distributePayout: (groupId: number) => Promise<void>;
   getThriftGroupMembers: (groupId: number) => Promise<ThriftMember[]>;
@@ -912,7 +912,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Add member to private group contract interaction
-  const addMemberToPrivateGroup = async (groupId: number, memberAddress: string, email?: string, phone?: string) => {
+  const addMemberToPrivateGroup = async (groupId: number, memberAddress: string, email?: string, phone?: string, userName?: string) => {
     if (!contract || !isConnected) {
       throw new Error("Wallet not connected or contract not initialized");
     }
@@ -940,6 +940,25 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       const tx = await contract.addMemberToPrivateGroup(groupId, memberAddress, email || "", phone || "");
       await tx.wait();
+
+      // Save member name to database if provided
+      if (userName) {
+        try {
+          await fetch(`/api/groups/${groupId}/members`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userAddress: memberAddress,
+              userName: userName,
+              role: 'member',
+              joinDate: new Date().toISOString()
+            })
+          });
+        } catch (apiError) {
+          console.warn('Failed to save member name to database:', apiError);
+          // Don't fail the operation if just the name save fails
+        }
+      }
 
       await refreshGroups();
       toast.success("Member added successfully!");

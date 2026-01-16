@@ -86,6 +86,7 @@ export default function CampaignDetailsPage() {
   const [addMemberAddress, setAddMemberAddress] = useState('');
   const [addMemberEmail, setAddMemberEmail] = useState('');
   const [addMemberPhone, setAddMemberPhone] = useState('');
+  const [addMemberName, setAddMemberName] = useState('');
   const [payoutOrder, setPayoutOrderInput] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [memberOrder, setMemberOrder] = useState<string[]>([]);
@@ -562,11 +563,12 @@ export default function CampaignDetailsPage() {
 
     setIsProcessing(true);
     try {
-      await addMemberToPrivateGroup(campaign.id, addMemberAddress, addMemberEmail, addMemberPhone);
+      await addMemberToPrivateGroup(campaign.id, addMemberAddress, addMemberEmail, addMemberPhone, addMemberName);
       setAddMemberDialogOpen(false);
       setAddMemberAddress('');
       setAddMemberEmail('');
       setAddMemberPhone('');
+      setAddMemberName('');
 
       toast({
         title: "Member added",
@@ -1647,6 +1649,15 @@ export default function CampaignDetailsPage() {
             <p className="mb-4">Add a new member to <strong>{campaign?.name}</strong></p>
 
             <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="addMemberName">Name</Label>
+                <Input
+                  id="addMemberName"
+                  value={addMemberName}
+                  onChange={(e) => setAddMemberName(e.target.value)}
+                  placeholder="John Doe"
+                />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="addMemberAddress">Wallet Address</Label>
                 <Input
