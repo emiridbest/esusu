@@ -854,18 +854,18 @@ export default function CampaignDetailsPage() {
                                 <span className="text-muted-foreground">Current Rotation</span>
                                 <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                                   {campaign.isActive
-                                    ? (campaign.currentRound === 0 ? "Round 1" : `Round ${campaign.currentRound + 1}`)
+                                    ? `Round ${campaign.currentRound}`
                                     : "Not Started"
                                   }
                                 </Badge>
                               </div>
                               <div className="mb-4">
                                 <Progress
-                                  value={campaign.totalMembers > 0 ? Math.min((campaign.currentRound / campaign.totalMembers) * 100, 100) : 0}
+                                  value={campaign.totalMembers > 0 ? Math.min((Math.max(0, campaign.completedPayouts - 1) / campaign.totalMembers) * 100, 100) : 0}
                                   className="h-3 mb-2"
                                 />
                                 <div className="text-xs text-muted-foreground text-center">
-                                  {campaign.totalMembers > 0 ? Math.min((campaign.currentRound / campaign.totalMembers) * 100, 100).toFixed(1) : 0}% Complete
+                                  {campaign.totalMembers > 0 ? Math.min((Math.max(0, campaign.completedPayouts - 1) / campaign.totalMembers) * 100, 100).toFixed(1) : 0}% Complete
                                 </div>
                               </div>
                               <div className="flex flex-wrap gap-4 text-sm">
@@ -885,10 +885,10 @@ export default function CampaignDetailsPage() {
                                           return getMemberName(campaign.pastRecipient);
                                         }
 
-                                        // Fallback: calculate from payout order and current round
-                                        if (campaign.payoutOrder && campaign.payoutOrder.length > 0 && campaign.currentRound > 0) {
-                                          const pastIndex = campaign.currentRound - 1;
-                                          if (pastIndex < campaign.payoutOrder.length) {
+                                        // Fallback: calculate from payout order and completed payouts (current cycle)
+                                        if (campaign.payoutOrder && campaign.payoutOrder.length > 0) {
+                                          const pastIndex = campaign.completedPayouts - 2; // -1 for 0-based, -1 for previous
+                                          if (pastIndex >= 0 && pastIndex < campaign.payoutOrder.length) {
                                             const pastRecipient = campaign.payoutOrder[pastIndex];
                                             return getMemberName(pastRecipient);
                                           }
@@ -911,8 +911,8 @@ export default function CampaignDetailsPage() {
                                       <div className="font-medium">
                                         {(() => {
                                           if (campaign.payoutOrder && campaign.payoutOrder.length > 0) {
-                                            const nextIndex = campaign.currentRound;
-                                            if (nextIndex < campaign.payoutOrder.length) {
+                                            const nextIndex = campaign.completedPayouts - 1; // -1 for 0-based
+                                            if (nextIndex >= 0 && nextIndex < campaign.payoutOrder.length) {
                                               const nextRecipient = campaign.payoutOrder[nextIndex];
                                               return getMemberName(nextRecipient);
                                             }
