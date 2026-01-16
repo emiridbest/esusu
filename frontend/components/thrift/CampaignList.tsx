@@ -345,7 +345,7 @@ export function CampaignList() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address (Optional)</Label>
+                <Label htmlFor="email">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
@@ -357,7 +357,7 @@ export function CampaignList() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number (Optional)</Label>
+                <Label htmlFor="phone">Phone Number</Label>
                 <Input
                   id="phone"
                   type="tel"
@@ -388,7 +388,7 @@ export function CampaignList() {
               <Button variant="outline" onClick={() => setJoinDialogOpen(false)}>Cancel</Button>
               <Button
                 onClick={handleJoinGroup}
-                disabled={loading || !userName.trim()}
+                disabled={loading || !userName.trim() || !email.trim() || !phone.trim()}
                 className="bg-primary text-primary-foreground font-bold px-8"
               >
                 {loading ? 'Confirming...' : 'Join Now'}

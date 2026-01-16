@@ -147,7 +147,7 @@ export function CreateCampaignDialog() {
                       value={creatorName}
                       onChange={(e) => setCreatorName(e.target.value)}
                       className="col-span-3"
-                      placeholder="John Doe (optional)"
+                      placeholder="John Doe"
                     />
                   </div>
 
@@ -159,7 +159,7 @@ export function CreateCampaignDialog() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="col-span-3"
-                      placeholder="name@example.com (optional)"
+                      placeholder="name@example.com"
                     />
                   </div>
 
@@ -171,7 +171,7 @@ export function CreateCampaignDialog() {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       className="col-span-3"
-                      placeholder="+1234567890 (optional)"
+                      placeholder="+1234567890"
                     />
                   </div>
 
@@ -299,8 +299,8 @@ export function CreateCampaignDialog() {
             </Button>
             <Button
               onClick={handleSubmit}
-              className="mb-2 rounded-full"
-              disabled={loading || !connected || !name || !description || !contributionAmount || !maxMembers || !selectedToken || !startDate}
+              className="mb-2 rounded-lg"
+              disabled={loading || !connected || !name || !description || !contributionAmount || !maxMembers || !selectedToken || !startDate || !creatorName || !email || !phone}
             >
               {loading ? 'Creating...' : 'Create Group'}
             </Button>
