@@ -986,28 +986,39 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const erc20Abi = [
             "function approve(address spender, uint256 amount) returns (bool)",
             "function allowance(address owner, address spender) view returns (uint256)",
-            "function balanceOf(address owner) view returns (uint256)"
+            "function balanceOf(address owner) view returns (uint256)",
+            "function decimals() view returns (uint8)"
           ];
 
-          const erc20Contract = new Contract(tokenAddress, erc20Abi, provider) as any;
+          // Use read-only contract for view functions
+          const erc20ReadOnly = new Contract(tokenAddress, erc20Abi, customRpcProvider) as any;
           const signer = await provider.getSigner();
-          const erc20WithSigner = erc20Contract.connect(signer);
+          const erc20WithSigner = erc20ReadOnly.connect(signer); // Connect signer for write operations
+
+          // Check decimals
+          let tokenDecimals = 18;
+          try {
+            tokenDecimals = await (erc20ReadOnly as any).decimals();
+          } catch (decimalError) {
+            console.warn('Failed to fetch decimals, defaulting to 18:', decimalError);
+          }
 
           // Check current allowance
-          const currentAllowance = await (erc20WithSigner as any).allowance(account, contract.address);
+          const currentAllowance = await (erc20ReadOnly as any).allowance(account, contract.address);
           console.log('Current allowance:', currentAllowance.toString());
 
           // Check user balance
-          const userBalance = await (erc20WithSigner as any).balanceOf(account);
+          const userBalance = await (erc20ReadOnly as any).balanceOf(account);
           console.log('User balance:', userBalance.toString());
 
           if (userBalance < contributionAmount) {
-            const userBalanceFormatted = formatUnits(userBalance, 18);
-            const requiredAmountFormatted = formatUnits(contributionAmount, 18);
+            const userBalanceFormatted = formatUnits(userBalance, tokenDecimals);
+            const requiredAmountFormatted = formatUnits(contributionAmount, tokenDecimals);
 
             console.log('Showing insufficient balance toast:', {
               userBalance: userBalanceFormatted,
-              required: requiredAmountFormatted
+              required: requiredAmountFormatted,
+              decimals: tokenDecimals
             });
 
             try {
@@ -1100,7 +1111,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error("Gas sponsorship failed:", gasError);
       }
 
-      const tx = await contract.makeContribution(groupId);
+      const tx = await contract["makeContribution(uint256)"](groupId);
       console.log('makeContribution: Transaction sent:', tx.hash);
 
       console.log('makeContribution: Waiting for transaction confirmation...');

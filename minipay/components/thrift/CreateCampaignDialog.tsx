@@ -22,9 +22,8 @@ export function CreateCampaignDialog() {
   const [selectedToken, setSelectedToken] = useState<string>('USDC');
   const [startDate, setStartDate] = useState<string>(() => {
     // Default to tomorrow
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
+    const today = new Date();
+    return today.toISOString().split('T')[0];
   });
   const [creatorName, setCreatorName] = useState<string>(''); // Creator's name
   const [email, setEmail] = useState('');
@@ -42,6 +41,13 @@ export function CreateCampaignDialog() {
         throw new Error('Invalid token selected');
       }
 
+      let startDateTime = new Date(startDate);
+      if (startDateTime.getTime() <= Date.now()) {
+        // If the selected date (midnight) is in the past (i.e., it's "Today"),
+        // set start time to 5 minutes in the future to pass the contract check.
+        startDateTime = new Date(Date.now() + 5 * 60 * 1000);
+      }
+
       await createThriftGroup(
         name,
         description,
@@ -49,7 +55,7 @@ export function CreateCampaignDialog() {
         parseInt(maxMembers),
         isPublic,
         tokenConfig.address,
-        new Date(startDate),
+        startDateTime,
         creatorName || undefined, // Pass creator name
         email,
         phone
@@ -214,11 +220,7 @@ export function CreateCampaignDialog() {
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
                       className="col-span-3"
-                      min={(() => {
-                        const tomorrow = new Date();
-                        tomorrow.setDate(tomorrow.getDate() + 1);
-                        return tomorrow.toISOString().split('T')[0];
-                      })()}
+                      min={new Date().toISOString().split('T')[0]}
                     />
                   </div>
 

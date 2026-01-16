@@ -1064,11 +1064,20 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const erc20Abi = [
             "function approve(address spender, uint256 amount) returns (bool)",
             "function allowance(address owner, address spender) view returns (uint256)",
-            "function balanceOf(address owner) view returns (uint256)"
+            "function balanceOf(address owner) view returns (uint256)",
+            "function decimals() view returns (uint8)"
           ];
 
           // Use read-only contract for view functions
           const erc20ReadOnly = new Contract(tokenAddress, erc20Abi, customRpcProvider) as any;
+
+          // Check decimals
+          let tokenDecimals = 18;
+          try {
+            tokenDecimals = await (erc20ReadOnly as any).decimals();
+          } catch (decimalError) {
+            console.warn('Failed to fetch decimals, defaulting to 18:', decimalError);
+          }
 
           // Check current allowance
           const currentAllowance = await (erc20ReadOnly as any).allowance(account, contract.address);
@@ -1079,12 +1088,13 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           console.log('User balance:', userBalance.toString());
 
           if (userBalance < contributionAmount) {
-            const userBalanceFormatted = formatUnits(userBalance, 18);
-            const requiredAmountFormatted = formatUnits(contributionAmount, 18);
+            const userBalanceFormatted = formatUnits(userBalance, tokenDecimals);
+            const requiredAmountFormatted = formatUnits(contributionAmount, tokenDecimals);
 
             console.log('Showing insufficient balance toast:', {
               userBalance: userBalanceFormatted,
-              required: requiredAmountFormatted
+              required: requiredAmountFormatted,
+              decimals: tokenDecimals
             });
 
             try {
@@ -1167,7 +1177,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.log('Group ID being passed:', groupId);
 
       // Encode contribution transaction data
-      const contributionData = (contract as any).contract.interface.encodeFunctionData('makeContribution', [groupId]);
+      const contributionData = (contract as any).contract.interface.encodeFunctionData('makeContribution(uint256)', [groupId]);
       console.log('Encoded contribution data:', contributionData);
 
       toast.info('Please sign the contribution transaction in your Farcaster wallet', {

@@ -369,6 +369,7 @@ export default function CampaignDetailsPage() {
     });
 
     // Check if group is active before attempting contribution
+    // Check if group is active before attempting contribution
     if (!campaign.isActive) {
       console.log('Group is not active, showing error');
       toast({
@@ -1499,7 +1500,7 @@ export default function CampaignDetailsPage() {
                   onChange={(e) => setContributionAmount(e.target.value)}
                   className="col-span-3"
                   placeholder="100"
-                  disabled={!campaign.isActive}
+                  disabled={true}
                 />
               </div>
             </div>
@@ -1513,7 +1514,7 @@ export default function CampaignDetailsPage() {
               }}
               disabled={loading || !campaign.isActive}
             >
-              {loading ? 'Processing...' : !campaign.isActive ? 'Group Not Active' : 'Contribute'}
+              {loading ? 'Processing...' : 'Contribute'}
             </Button>
           </DialogFooter>
         </DialogContent>
