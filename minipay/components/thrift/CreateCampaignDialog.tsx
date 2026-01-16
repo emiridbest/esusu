@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useThrift } from '@/context/thrift/ThriftContext';
 import { PlusIcon } from 'lucide-react';
-import { TOKENS, getSupportedThriftTokens, type TokenConfig } from '@/utils/tokens';
+import { TOKENS, getSupportedThriftTokens, getTokenBySymbol, type TokenConfig } from '@/utils/tokens';
 import { useAccount } from 'wagmi';
 
 export function CreateCampaignDialog() {
@@ -37,7 +37,7 @@ export function CreateCampaignDialog() {
     if (!name || !description || !contributionAmount || !maxMembers || !selectedToken || !startDate) return;
 
     try {
-      const tokenConfig = TOKENS[selectedToken];
+      const tokenConfig = getTokenBySymbol(selectedToken);
       if (!tokenConfig) {
         throw new Error('Invalid token selected');
       }
@@ -168,7 +168,7 @@ export function CreateCampaignDialog() {
                         <SelectValue placeholder="Select a token" />
                       </SelectTrigger>
                       <SelectContent>
-                        {getSupportedThriftTokens().filter(token => token.symbol !== 'cUSD').map((token) => (
+                        {getSupportedThriftTokens().map((token) => (
                           <SelectItem key={token.symbol} value={token.symbol}>
                             <div className="flex items-center gap-2">
                               {token.logoUrl && (
