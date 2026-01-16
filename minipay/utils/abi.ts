@@ -1,7 +1,7 @@
 import { ethers, type ContractRunner, type BigNumberish, type Contract } from 'ethers';
 import MiniSafeAaveUpgradeableABI from './abis/MiniSafeAaveUpgradeable.json';
 
-export const contractAddress = "0x118f324CF54cFEdC316B5246Bd78375E5089f245"; // Replace with actual deployed address
+export const contractAddress = "0x641d3860142C206328E737B6CF3851C91C2938d0"; // Replace with actual deployed address
 export const abi = MiniSafeAaveUpgradeableABI.abi;
 
 /**
