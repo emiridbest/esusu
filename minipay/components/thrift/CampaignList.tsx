@@ -25,6 +25,8 @@ export function CampaignList() {
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [userName, setUserName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [shareableLink, setShareableLink] = useState('');
   const [editOpen, setEditOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<ThriftGroup | null>(null);
@@ -51,10 +53,12 @@ export function CampaignList() {
     if (!selectedGroup) return;
 
     try {
-      console.log('📤 CampaignList - Joining group with userName:', userName);
-      await joinThriftGroup(selectedGroup.id, userName);  // ✅ Pass userName!
+      console.log('📤 CampaignList - Joining group with details:', { userName, email, phone });
+      await joinThriftGroup(selectedGroup.id, userName, email, phone);  // ✅ Pass userName, email, phone!
       setJoinDialogOpen(false);
       setUserName('');
+      setEmail('');
+      setPhone('');
 
       toast({
         title: "Successfully joined!",
@@ -348,14 +352,39 @@ export function CampaignList() {
               </p>
             )}
             <div className="grid gap-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="userName" className="text-right">Your Name</Label>
+              <div className="space-y-2">
+                <Label htmlFor="userName">Your Display Name</Label>
                 <Input
                   id="userName"
                   value={userName}
                   onChange={(e) => setUserName(e.target.value)}
-                  className="col-span-3"
-                  placeholder="Enter your name"
+                  placeholder="e.g. Satoshi Nakamoto"
+                  className="text-lg"
+                />
+                <p className="text-xs text-muted-foreground">This name will be visible to other group members.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address (Optional)</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="text-lg"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number (Optional)</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+1234567890"
+                  className="text-lg"
                 />
               </div>
             </div>
