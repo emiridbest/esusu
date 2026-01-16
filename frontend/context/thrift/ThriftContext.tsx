@@ -260,7 +260,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } catch (_) {
         // If not accessible, proceed without check
       }
-      if (minContribution !== undefined) {
+      if (minContribution !== undefined && isPublic) {
         // Both are bigint in ethers v6; avoid BigInt literals by comparing directly
         if (amount < minContribution) {
           const msg = `Deposit amount is below the minimum contribution: ${formatUnits(minContribution, 18)}.`;

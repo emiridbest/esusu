@@ -19,7 +19,7 @@ export function CreateCampaignDialog() {
   const [contributionAmount, setContributionAmount] = useState('');
   const [maxMembers, setMaxMembers] = useState('5');
   const [isPublic, setIsPublic] = useState(true);
-  const [selectedToken, setSelectedToken] = useState<string>('CUSD');
+  const [selectedToken, setSelectedToken] = useState<string>('USDC');
   const [startDate, setStartDate] = useState<string>(() => {
     // Default to tomorrow
     const tomorrow = new Date();
@@ -67,7 +67,7 @@ export function CreateCampaignDialog() {
     setContributionAmount('');
     setMaxMembers('5');
     setIsPublic(true);
-    setSelectedToken('CUSD');
+    setSelectedToken('USDC');
     // Reset to tomorrow
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -168,7 +168,7 @@ export function CreateCampaignDialog() {
                         <SelectValue placeholder="Select a token" />
                       </SelectTrigger>
                       <SelectContent>
-                        {getSupportedThriftTokens().map((token) => (
+                        {getSupportedThriftTokens().filter(token => token.symbol !== 'cUSD').map((token) => (
                           <SelectItem key={token.symbol} value={token.symbol}>
                             <div className="flex items-center gap-2">
                               {token.logoUrl && (
