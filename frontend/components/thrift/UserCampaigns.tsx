@@ -20,6 +20,8 @@ export function UserCampaigns() {
 
   // View state for flipping cards
   const [viewMode, setViewMode] = useState<'overview' | 'members'>('overview');
+  // Loading state for members per group
+  const [membersLoading, setMembersLoading] = useState<{ [key: number]: boolean }>({});
 
   // Check if wallet is connected
   useEffect(() => {
@@ -52,22 +54,34 @@ export function UserCampaigns() {
     }
   }, []);
 
-  // Load members for all user groups (Background fetch)
+  // Load members for all user groups (Parallel fetch)
   useEffect(() => {
     const loadAllMembers = async () => {
       if (!connected || userGroups.length === 0) return;
 
-      const membersMap: { [key: number]: ThriftMember[] } = {};
+      // Initialize loading state for all groups
+      const initialLoadingState = userGroups.reduce((acc, group) => ({ ...acc, [group.id]: true }), {});
+      setMembersLoading(initialLoadingState);
 
-      for (const group of userGroups) {
+      const fetchGroupMembers = async (group: ThriftGroup) => {
         try {
           const members = await getThriftGroupMembers(group.id);
-          membersMap[group.id] = members;
+          return { id: group.id, members };
         } catch (error) {
           console.error(`Failed to fetch members for group ${group.id}:`, error);
+          return { id: group.id, members: [] };
         }
-      }
+      };
+
+      const results = await Promise.all(userGroups.map(fetchGroupMembers));
+
+      const membersMap: { [key: number]: ThriftMember[] } = {};
+      results.forEach(result => {
+        membersMap[result.id] = result.members;
+      });
+
       setGroupMembers(membersMap);
+      setMembersLoading({}); // Clear loading state
     };
     loadAllMembers();
   }, [userGroups, connected, getThriftGroupMembers]);
@@ -211,6 +225,7 @@ export function UserCampaigns() {
             onShare={handleShareClick}
             onEdit={handleEditClick}
             members={groupMembers[group.id] || []}
+            isLoading={!!membersLoading[group.id]}
           />
         ))}
       </div>

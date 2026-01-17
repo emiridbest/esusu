@@ -17,9 +17,10 @@ interface FlippableThriftCardProps {
     onShare: (group: ThriftGroup) => void;
     onEdit: (group: ThriftGroup) => void;
     members: ThriftMember[];
+    isLoading?: boolean;
 }
 
-export function FlippableThriftCard({ group, currentUserAddress, isFlipped, onShare, onEdit, members }: FlippableThriftCardProps) {
+export function FlippableThriftCard({ group, currentUserAddress, isFlipped, onShare, onEdit, members, isLoading }: FlippableThriftCardProps) {
     const isCreator = currentUserAddress && group.meta?.createdBy && currentUserAddress.toLowerCase() === String(group.meta.createdBy).toLowerCase();
     const router = useRouter();
 
@@ -134,12 +135,30 @@ export function FlippableThriftCard({ group, currentUserAddress, isFlipped, onSh
                         <CardTitle className="text-base font-bold flex items-center justify-between">
                             <span>{group.name} Members</span>
                             <Badge variant="secondary" className="text-xs">
-                                {members.length}/{group.maxMembers}
+                                {isLoading ? (
+                                    <span className="w-8 h-4 bg-muted animate-pulse rounded block"></span>
+                                ) : (
+                                    `${members.length}/${group.maxMembers}`
+                                )}
                             </Badge>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0 overflow-y-auto h-[calc(100%-60px)]">
-                        {members.length > 0 ? (
+                        {isLoading ? (
+                            <ul className="divide-y divide-border">
+                                {[1, 2, 3].map((_, idx) => (
+                                    <li key={idx} className="flex items-center justify-between p-3">
+                                        <div className="flex items-center gap-3 w-full">
+                                            <div className="w-8 h-8 rounded-full bg-muted animate-pulse"></div>
+                                            <div className="flex flex-col gap-1 w-full max-w-[120px]">
+                                                <div className="h-3 w-20 bg-muted animate-pulse rounded"></div>
+                                                <div className="h-2 w-16 bg-muted animate-pulse rounded"></div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : members.length > 0 ? (
                             <ul className="divide-y divide-border">
                                 {members.map((member, idx) => (
                                     <li key={idx} className="flex items-center justify-between p-3 hover:bg-muted/50">
