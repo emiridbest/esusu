@@ -296,7 +296,7 @@ export default function CampaignDetailsPage() {
     };
 
     checkGroupAdmin();
-  }, [campaign, address]);
+  }, [campaign, address, metaCreatedBy]);
 
   const handleJoinClick = () => {
     setJoinDialogOpen(true);

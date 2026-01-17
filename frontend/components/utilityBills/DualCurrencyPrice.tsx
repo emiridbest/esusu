@@ -147,7 +147,7 @@ export default function DualCurrencyPrice({
       }
     };
     fetchPrices();
-  }, [amount, stablecoin, includeGasFee, showTotal, convertCurrency, countryCurrency]);
+  }, [amount, stablecoin, includeGasFee, showTotal, convertCurrency, countryCurrency, celoUsdPrice]);
 
   if (loading) {
     return (

@@ -45,50 +45,12 @@ const ThriftAdminPage: React.FC = () => {
   const [payoutOrder, setPayoutOrder] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  useEffect(() => {
-    checkAdminStatus();
-  }, []);
 
-  useEffect(() => {
-    if (contract && userAddress && allGroups.length > 0) {
-      checkUserThriftGroups(contract, userAddress);
-    }
-  }, [allGroups, contract, userAddress]);
 
-  const checkAdminStatus = async () => {
-    setLoading(true);
-    try {
-      const ethereum = (window as any).ethereum;
-      if (!ethereum) {
-        setLoading(false);
-        return;
-      }
-
-      const provider = new ethers.BrowserProvider(ethereum);
-      const signerObj = await provider.getSigner();
-      setSigner(signerObj);
-      const address = await signerObj.getAddress();
-      setUserAddress(address);
-      
-      // Initialize contract
-      const contractInstance = new MiniSafeAave(contractAddress, signerObj);
-      setContract(contractInstance);
-      
-      // Check which groups the user is admin of
-      await checkUserThriftGroups(contractInstance, address);
-      
-    } catch (err) {
-      console.error('Error checking admin status:', err);
-      setError('Failed to connect wallet');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkUserThriftGroups = async (contractInstance: MiniSafeAave, address: string) => {
+  const checkUserThriftGroups = React.useCallback(async (contractInstance: MiniSafeAave, address: string) => {
     try {
       const userGroupsList: ThriftGroupAdmin[] = [];
-      
+
       // Check each group to see if user is admin
       for (const group of allGroups) {
         try {
@@ -115,20 +77,60 @@ const ThriftAdminPage: React.FC = () => {
           console.warn(`Failed to check admin status for group ${group.id}:`, err);
         }
       }
-      
+
       setUserGroups(userGroupsList);
     } catch (err) {
       console.error('Error checking user thrift groups:', err);
       setError('Failed to load thrift groups');
     }
-  };
+  }, [allGroups]);
+
+  const checkAdminStatus = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const ethereum = (window as any).ethereum;
+      if (!ethereum) {
+        setLoading(false);
+        return;
+      }
+
+      const provider = new ethers.BrowserProvider(ethereum);
+      const signerObj = await provider.getSigner();
+      setSigner(signerObj);
+      const address = await signerObj.getAddress();
+      setUserAddress(address);
+
+      // Initialize contract
+      const contractInstance = new MiniSafeAave(contractAddress, signerObj);
+      setContract(contractInstance);
+
+      // Check which groups the user is admin of
+      await checkUserThriftGroups(contractInstance, address);
+
+    } catch (err) {
+      console.error('Error checking admin status:', err);
+      setError('Failed to connect wallet');
+    } finally {
+      setLoading(false);
+    }
+  }, [checkUserThriftGroups]);
+
+  useEffect(() => {
+    checkAdminStatus();
+  }, [checkAdminStatus]);
+
+  useEffect(() => {
+    if (contract && userAddress && allGroups.length > 0) {
+      checkUserThriftGroups(contract, userAddress);
+    }
+  }, [allGroups, contract, userAddress, checkUserThriftGroups]);
 
   const handleAction = async (action: () => Promise<any>, successMessage: string) => {
     if (!contract) return;
-    
+
     setIsProcessing(true);
     setError(null);
-    
+
     try {
       const tx = await action();
       await tx.wait();
@@ -155,7 +157,7 @@ const ThriftAdminPage: React.FC = () => {
       toast.error('Please enter payout order');
       return;
     }
-    
+
     const addresses = payoutOrder.split(',').map(addr => addr.trim());
     await handleAction(
       () => contract!.setPayoutOrder(groupId, addresses),
@@ -174,7 +176,7 @@ const ThriftAdminPage: React.FC = () => {
     if (!confirm('Are you sure you want to perform emergency withdrawal? This action cannot be undone.')) {
       return;
     }
-    
+
     await handleAction(
       () => contract!.emergencyWithdraw(groupId),
       `Emergency withdrawal executed for group ${groupId}`
@@ -369,7 +371,7 @@ const ThriftAdminPage: React.FC = () => {
                       ))}
                     </select>
                   </div>
-                  
+
                   {selectedGroup && (
                     <div>
                       <Label htmlFor="payout-order">Payout Order (comma-separated addresses)</Label>
@@ -384,7 +386,7 @@ const ThriftAdminPage: React.FC = () => {
                       </p>
                     </div>
                   )}
-                  
+
                   {selectedGroup && (
                     <Button
                       onClick={() => setGroupPayoutOrder(selectedGroup.id)}
@@ -455,11 +457,11 @@ const ThriftAdminPage: React.FC = () => {
               <Alert className="mb-6">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Warning:</strong> Emergency actions should only be used in critical situations. 
+                  <strong>Warning:</strong> Emergency actions should only be used in critical situations.
                   These actions may have irreversible consequences.
                 </AlertDescription>
               </Alert>
-              
+
               <div className="space-y-4">
                 {userGroups.map((group) => (
                   <div key={group.id} className="flex items-center justify-between p-4 border border-red-200 rounded-lg">

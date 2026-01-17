@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { ethers } from 'ethers';
 import { MiniSafeAave, contractAddress, abi } from '../../utils/abi';
 
+const hardcodedAdmin = "0x5b2e388403b60972777873e359a5D04a832836b3".toLowerCase();
+
 const AdminPanel: React.FC = () => {
   const router = useRouter();
   const [isOwner, setIsOwner] = useState<boolean | null>(null);
@@ -13,7 +15,6 @@ const AdminPanel: React.FC = () => {
   const [signer, setSigner] = useState<any>(null);
   const [supportedTokens, setSupportedTokens] = useState<string[]>([]);
   const [ownerAddress, setOwnerAddress] = useState<string>('');
-  const hardcodedAdmin = "0x5b2e388403b60972777873e359a5D04a832836b3".toLowerCase();
 
   useEffect(() => {
     let mounted = true;

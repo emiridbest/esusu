@@ -129,9 +129,7 @@ export default function ReceiptsPage() {
                 <ReceiptText className="h-8 w-8 text-muted-foreground/50" />
               </div>
               <h3 className="font-semibold text-lg mb-1">No Receipts Found</h3>
-              <p className="text-muted-foreground text-sm max-w-[250px] mx-auto">
-                You haven't made any transactions yet. When you do, they will appear here.
-              </p>
+              You haven&apos;t made any transactions yet. When you do, they will appear here.
             </div>
           ) : (
             <div className="grid gap-4">
