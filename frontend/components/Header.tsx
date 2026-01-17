@@ -42,9 +42,10 @@ import { inAppWallet, createWallet } from "thirdweb/wallets";
 import { client, activeChain } from "../lib/thirdweb";
 import { useActiveAccount } from "thirdweb/react";
 
+const hardcodedAdmin = "0x5b2e388403b60972777873e359a5D04a832836b3".toLowerCase();
+
 export default function Header() {
   // Admin badge logic
-  const hardcodedAdmin = "0x5b2e388403b60972777873e359a5D04a832836b3".toLowerCase();
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
   const account = useActiveAccount();

@@ -133,7 +133,7 @@ export default function ElectricityBillForm() {
       setProviderLimits(null);
       setAmountValidation({ type: '', message: '', isValid: true });
     }
-  }, [watchCountry]);
+  }, [watchCountry, form]);
 
   // Update amount when amount changes
   useEffect(() => {
