@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThriftGroup } from '@/context/thrift/ThriftContext';
 import { UsersIcon, CalendarIcon, Share2Icon, WalletIcon } from 'lucide-react';
-import { TrustScore } from '@/components/ui/TrustScore';
 import { cn } from '@/lib/utils'; // Assuming global utility for class merging
 
 interface ThriftGroupCardProps {
@@ -20,36 +19,6 @@ interface ThriftGroupCardProps {
 }
 
 export function ThriftGroupCard({ group, currentUserAddress, onJoin, onShare, onEdit, variant = 'discovery', onManage }: ThriftGroupCardProps) {
-    // Trust Score Calculation Logic
-    // 1. Member Saturation (max 40 pts)
-    const saturation = Math.min((group.totalMembers / group.maxMembers) * 100, 100);
-    const saturationScore = (saturation / 100) * 40;
-
-    // 2. Longevity / Maturity (max 30 pts)
-    // Cap at round 10 for max score
-    const roundScore = Math.min((group.currentRound * 3), 30);
-
-    // 3. Deposit Value (max 20 pts)
-    // Higher value = higher commitment
-    const depositVal = parseFloat(group.depositAmount);
-    let valueScore = 0;
-    if (depositVal >= 100) valueScore = 20;
-    else if (depositVal >= 50) valueScore = 15;
-    else if (depositVal >= 10) valueScore = 10;
-    else valueScore = 5;
-
-    // 4. Activity Status (max 10 pts)
-    const statusScore = group.isActive ? 10 : 5; // Pending is still okay
-
-    const totalScore = Math.round(saturationScore + roundScore + valueScore + statusScore);
-
-    const trustFactors = [
-        { label: 'Participation', value: `${group.totalMembers}/${group.maxMembers}`, status: saturation >= 80 ? 'good' as const : 'neutral' as const },
-        { label: 'Maturity', value: `Round ${group.currentRound}`, status: group.currentRound > 2 ? 'good' as const : 'neutral' as const },
-        { label: 'Stake Size', value: `${depositVal}`, status: depositVal >= 50 ? 'good' as const : 'neutral' as const },
-        { label: 'Status', value: group.isActive ? 'Active' : 'Pending', status: group.isActive ? 'good' as const : 'neutral' as const },
-    ];
-
     const isCreator = currentUserAddress && group.meta?.createdBy && currentUserAddress.toLowerCase() === String(group.meta.createdBy).toLowerCase();
 
     return (
@@ -86,7 +55,6 @@ export function ThriftGroupCard({ group, currentUserAddress, onJoin, onShare, on
                         )}
                         <CardTitle className="text-lg font-bold leading-tight">{group.name}</CardTitle>
                     </div>
-                    <TrustScore score={totalScore} factors={trustFactors} size="sm" />
                 </div>
             </CardHeader>
 

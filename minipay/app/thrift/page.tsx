@@ -159,120 +159,121 @@ const Thrift: React.FC = () => {
             <SparklesIcon className="h-5 w-5 text-primary mr-2" />
             <h2 className="text-xl font-semibold dark:text-white/70">Quick Actions</h2>
           </div>
-          <ThriftQuickAction
-            icon={<UsersIcon className="h-6 w-6 text-primary" />}
-            title="Create Thrift Group"
-            description="Start a new savings group"
-            href="#"
-            variant="outline"
-            onClick={() => setCreateDialogOpen(true)}
-          />
-          <ThriftQuickAction
-            icon={<CalendarIcon className="h-6 w-6 text-primary" />}
-            title="Join Group"
-            description="Find and join existing groups"
-            href="#"
-            variant="outline"
-            onClick={() => {
-              setActiveTab("available-groups");
-              scrollToTabs();
-            }}
-          />
-          <ThriftQuickAction
-            icon={<BellIcon className="h-6 w-6 text-primary" />}
-            title="Manage Groups"
-            description="View your active groups"
-            href="#"
-            variant="outline"
-            onClick={() => {
-              setActiveTab("my-groups");
-              scrollToTabs();
-            }}
-          />
-      </div>
-      <CreateCampaignDialog isOpen={createDialogOpen} onOpenChange={setCreateDialogOpen} />
-    </motion.div>
-          
-        {/* Tabbed Content */ }
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5, delay: 0.3 }}
-    className="mt-8"
-  >
-    <div ref={tabsRef}>
-      <Tabs defaultValue="my-groups" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="my-groups">My Groups</TabsTrigger>
-          <TabsTrigger value="available-groups">Available Groups</TabsTrigger>
-        </TabsList>
-        <TabsContent value="my-groups" className="mt-4">
-          <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md">
-            <CardContent className="pt-6">
-              <UserCampaigns />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="available-groups" className="mt-4">
-          <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md">
-            <CardContent className="pt-6">
-              <CampaignList />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <ThriftQuickAction
+              icon={<UsersIcon className="h-6 w-6 text-primary" />}
+              title="Create Thrift Group"
+              description="Start a new savings group"
+              href="#"
+              variant="outline"
+              onClick={() => setCreateDialogOpen(true)}
+            />
+            <ThriftQuickAction
+              icon={<CalendarIcon className="h-6 w-6 text-primary" />}
+              title="Join Group"
+              description="Find and join existing groups"
+              href="#"
+              variant="outline"
+              onClick={() => {
+                setActiveTab("available-groups");
+                scrollToTabs();
+              }}
+            />
+            <ThriftQuickAction
+              icon={<BellIcon className="h-6 w-6 text-primary" />}
+              title="Manage Groups"
+              description="View your active groups"
+              href="#"
+              variant="outline"
+              onClick={() => {
+                setActiveTab("my-groups");
+                scrollToTabs();
+              }}
+            />
+          </div>
+          <CreateCampaignDialog isOpen={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+        </motion.div>
 
-  {/* How It Works Section */ }
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5, delay: 0.4 }}
-    className="mt-10"
-  >
-    <Card className="bg-gradient-to-r from-primary/20 to-purple-500/20 backdrop-blur-md border-none overflow-hidden">
-      <CardContent className="p-6 sm:p-8">
-        <div className="text-center mb-8">
-          <h3 className="text-2xl font-semibold mb-2">How Thrift Groups Work</h3>
-          <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Save money together with friends and family through our blockchain-powered thrift system
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-              <UsersIcon className="h-8 w-8 text-primary" />
-            </div>
-            <h4 className="font-medium text-lg mb-2">Create & Join</h4>
-            <p className="text-gray-600 dark:text-gray-400">Start a group or join existing ones with friends and family</p>
+        {/* Tabbed Content */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="mt-8"
+        >
+          <div ref={tabsRef}>
+            <Tabs defaultValue="my-groups" value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="my-groups">My Groups</TabsTrigger>
+                <TabsTrigger value="available-groups">Available Groups</TabsTrigger>
+              </TabsList>
+              <TabsContent value="my-groups" className="mt-4">
+                <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md">
+                  <CardContent className="pt-6">
+                    <UserCampaigns />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="available-groups" className="mt-4">
+                <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md">
+                  <CardContent className="pt-6">
+                    <CampaignList />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
-          <div className="text-center">
-            <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-              <CalendarIcon className="h-8 w-8 text-primary" />
-            </div>
-            <h4 className="font-medium text-lg mb-2">Regular Contributions</h4>
-            <p className="text-gray-600 dark:text-gray-400">Make consistent payments into your group pool on schedule</p>
-          </div>
-          <div className="text-center">
-            <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-              <BellIcon className="h-8 w-8 text-primary" />
-            </div>
-            <h4 className="font-medium text-lg mb-2">Take Turns</h4>
-            <p className="text-gray-600 dark:text-gray-400">Each member receives the full pool amount in rotation</p>
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter className="border-t border-white/20 flex justify-center">
-        <div className="flex items-center text-white/80 text-sm">
-          <CalendarIcon className="h-4 w-4 mr-2" />
-          <span>Powered by Celo blockchain</span>
-        </div>
-      </CardFooter>
-    </Card>
-  </motion.div>
-      </div >
-    </ThriftProvider >
+        </motion.div>
+
+        {/* How It Works Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mt-10"
+        >
+          <Card className="bg-gradient-to-r from-primary/20 to-purple-500/20 backdrop-blur-md border-none overflow-hidden">
+            <CardContent className="p-6 sm:p-8">
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-semibold mb-2">How Thrift Groups Work</h3>
+                <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                  Save money together with friends and family through our blockchain-powered thrift system
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center">
+                  <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                    <UsersIcon className="h-8 w-8 text-primary" />
+                  </div>
+                  <h4 className="font-medium text-lg mb-2">Create & Join</h4>
+                  <p className="text-gray-600 dark:text-gray-400">Start a group or join existing ones with friends and family</p>
+                </div>
+                <div className="text-center">
+                  <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                    <CalendarIcon className="h-8 w-8 text-primary" />
+                  </div>
+                  <h4 className="font-medium text-lg mb-2">Regular Contributions</h4>
+                  <p className="text-gray-600 dark:text-gray-400">Make consistent payments into your group pool on schedule</p>
+                </div>
+                <div className="text-center">
+                  <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                    <BellIcon className="h-8 w-8 text-primary" />
+                  </div>
+                  <h4 className="font-medium text-lg mb-2">Take Turns</h4>
+                  <p className="text-gray-600 dark:text-gray-400">Each member receives the full pool amount in rotation</p>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="border-t border-white/20 flex justify-center">
+              <div className="flex items-center text-white/80 text-sm">
+                <CalendarIcon className="h-4 w-4 mr-2" />
+                <span>Powered by Celo blockchain</span>
+              </div>
+            </CardFooter>
+          </Card>
+        </motion.div>
+      </div>
+    </ThriftProvider>
   );
 };
 
