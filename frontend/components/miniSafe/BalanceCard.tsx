@@ -82,7 +82,7 @@ const BalanceCard: React.FC = () => {
             <div className="p-4 rounded-xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-black border border-gray-100 dark:border-gray-800 shadow-sm">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Value</span>
-                <Badge variant="outline" className="text-[10px] py-0 h-5 bg-green-50 text-green-700 border-green-200 gap-1">
+                <Badge variant="outline" className="text-[10px] py-0 h-5 bg-green-500/10 text-green-500 border-green-500 gap-1">
                   <TrendingUp className="h-3 w-3" /> APY ~4.5%
                 </Badge>
               </div>

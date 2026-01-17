@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useState, useCallback, useContext, useEffect } from 'react';
+import React, { createContext, useState, useCallback, useContext, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { contractAddress, abi } from '@/utils/abi';
 import { encodeFunctionData, parseAbi, parseUnits, formatUnits, parseEther } from "viem";
@@ -98,20 +98,21 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const isConnected = !!account && !!wallet;
 
   // Get contract instances using Thirdweb v5
-  const miniSafeContract = getContract({
+  const miniSafeContract = useMemo(() => getContract({
     client,
     chain: activeChain,
     address: contractAddress,
-  });
+    abi: abi as any,
+  }), [contractAddress]);
 
   // Default to G$ token address if env var not set
   const tokenAddress = process.env.NEXT_PUBLIC_TOKEN_ADDRESS || '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A';
 
-  const tokenContract = tokenAddress ? getContract({
+  const tokenContract = useMemo(() => tokenAddress ? getContract({
     client,
     chain: activeChain,
     address: tokenAddress as `0x${string}`,
-  }) : null;
+  }) : null, [tokenAddress]);
 
 
 
@@ -129,9 +130,13 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { checkAndSponsor } = useGasSponsorship();
 
   const getBalance = useCallback(async () => {
-    if (!address || !miniSafeContract) return;
+    if (!address || !miniSafeContract) {
+      console.log('getBalance skipping: missing address or contract', { address, hasContract: !!miniSafeContract });
+      return;
+    }
 
     try {
+      console.log('getBalance starting', { address, contractAddress });
       setIsLoading(true);
 
       // Read CUSD balance using Thirdweb v5 readContract with ABI
@@ -140,6 +145,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         method: "function getBalance(address,address) view returns (uint256)",
         params: [address as `0x${string}`, cusdAddress as `0x${string}`]
       });
+      console.log('Got cusdData', cusdData);
 
       // Set balance, ensuring we never have empty string
       setcusdBalance(cusdData ? cusdData.toString() : '0');
@@ -150,6 +156,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         method: "function getBalance(address,address) view returns (uint256)",
         params: [address as `0x${string}`, usdcAddress as `0x${string}`]
       });
+      console.log('Got usdcData', usdcData);
 
       // Set balance, ensuring we never have empty string
       setUsdcBalance(usdcData ? usdcData.toString() : '0');
@@ -160,6 +167,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         method: "function getBalance(address,address) view returns (uint256)",
         params: [address as `0x${string}`, usdtAddress as `0x${string}`]
       });
+      console.log('Got usdtData', usdtData);
 
       // Set balance, ensuring we never have empty string
       setusdtBalance(usdtData ? usdtData.toString() : '0');
