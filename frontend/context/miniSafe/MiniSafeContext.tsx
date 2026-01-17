@@ -247,11 +247,16 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const depositValue = parseUnits(depositAmount.toString(), decimals);
 
       updateStepStatus('allowance', 'loading');
+      updateStepStatus('allowance', 'loading');
       // Check allowance first
-      if (!tokenContract) throw new Error('Token contract not available');
+      const activeTokenContract = getContract({
+        client,
+        chain: activeChain,
+        address: tokenAddress as `0x${string}`,
+      });
 
       const allowanceData = await readContract({
-        contract: tokenContract,
+        contract: activeTokenContract,
         method: "function allowance(address,address) view returns (uint256)",
         params: [address as `0x${string}`, contractAddress as `0x${string}`]
       });
@@ -380,11 +385,15 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Approval step
       updateStepStatus('approve', 'loading');
       // Check allowance
-      if (!tokenContract) throw new Error('Token contract not available');
+      const activeTokenContract = getContract({
+        client,
+        chain: activeChain,
+        address: tokenAddress as `0x${string}`,
+      });
 
       const { readContract } = await import('thirdweb');
       const allowanceData = await readContract({
-        contract: tokenContract,
+        contract: activeTokenContract,
         method: "function allowance(address owner, address spender) view returns (uint256)",
         params: [address as `0x${string}`, contractAddress as `0x${string}`]
       });
