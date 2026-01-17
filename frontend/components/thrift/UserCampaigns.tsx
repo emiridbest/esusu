@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 
 export function UserCampaigns() {
-  const { userGroups, getThriftGroupMembers, loading, error } = useThrift();
+  const { userGroups, getThriftGroupMembers, loading, error, refreshGroups } = useThrift();
   const [groupMembers, setGroupMembers] = useState<{ [key: number]: ThriftMember[] }>({});
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
@@ -188,6 +188,7 @@ export function UserCampaigns() {
           initialTags={editGroup.meta?.tags}
           onSaved={() => {
             setEditOpen(false);
+            refreshGroups();
           }}
         />
       ) : null}

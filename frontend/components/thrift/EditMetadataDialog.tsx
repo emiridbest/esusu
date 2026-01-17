@@ -65,7 +65,16 @@ export default function EditMetadataDialog(props: EditMetadataDialogProps) {
         const origin = window.location.origin;
         const chainId = (await provider.getNetwork()).chainId.toString();
         const msgRes = await fetch(`/api/auth/siwe/message?address=${signerAddress}&chainId=${chainId}&domain=${encodeURIComponent(window.location.host)}&uri=${encodeURIComponent(origin)}`);
-        const msgData = await msgRes.json();
+
+        let msgData;
+        const msgText = await msgRes.text();
+        try {
+          msgData = JSON.parse(msgText);
+        } catch (e) {
+          console.error("Failed to parse SIWE message response:", msgText);
+          throw new Error(`SIWE Server Error: ${msgText.substring(0, 50)}...`);
+        }
+
         if (!msgRes.ok) {
           throw new Error(msgData?.error || 'Failed to get SIWE message');
         }
@@ -75,11 +84,30 @@ export default function EditMetadataDialog(props: EditMetadataDialogProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ address: signerAddress, message: msgData.message, signature: siweSignature })
         });
-        const verifyData = await verifyRes.json();
+
+        let verifyData;
+        const verifyText = await verifyRes.text();
+        try {
+          verifyData = JSON.parse(verifyText);
+        } catch (e) {
+          console.error("Failed to parse SIWE verify response:", verifyText);
+          throw new Error(`SIWE Verify Failed: ${verifyText.substring(0, 50)}`);
+        }
+
         if (!verifyRes.ok) {
           throw new Error(verifyData?.error || 'SIWE verification failed');
         }
       }
+
+      console.log("Saving metadata with payload:", {
+        contractAddress,
+        groupId,
+        name,
+        description,
+        coverImageUrl,
+        category,
+        tags
+      });
 
       // 3) Now call metadata API without per-request signature (session will be used)
       const res = await fetch("/api/thrift/metadata", {
@@ -96,7 +124,15 @@ export default function EditMetadataDialog(props: EditMetadataDialogProps) {
         }),
       });
 
-      const data = await res.json();
+      const resText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(resText);
+      } catch (e) {
+        console.error("Failed to parse metadata save response:", resText);
+        throw new Error(`Server Error: ${resText.substring(0, 100)}...`);
+      }
+
       if (!res.ok) {
         throw new Error(data?.error || "Failed to save metadata");
       }
