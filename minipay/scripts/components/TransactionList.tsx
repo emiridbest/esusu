@@ -5,7 +5,7 @@ import { createPublicClient, http, webSocket, fallback, decodeFunctionData } fro
 import { useAccount } from 'wagmi';
 import { stableTokenABI } from "@celo/abis";
 // import { useAddRecentTransaction } from '@rainbow-me/rainbowkit';
-import { 
+import {
   ArrowDownIcon,
   ArrowUpIcon,
   ExternalLinkIcon,
@@ -16,10 +16,10 @@ import {
   CopyIcon,
   CheckIcon,
 } from "lucide-react";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
+import {
+  Card,
+  CardContent,
+  CardHeader,
   CardTitle,
   CardDescription,
   CardFooter
@@ -69,7 +69,7 @@ const formatDate = (timestamp: string | undefined): string => {
   const date = new Date(parseInt(timestamp) * 1000);
   const now = new Date();
   const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-  
+
   if (diffInHours < 1) {
     const diffInMins = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
     return diffInMins < 1 ? 'Just now' : `${diffInMins}m ago`;
@@ -79,9 +79,9 @@ const formatDate = (timestamp: string | undefined): string => {
     const days = Math.floor(diffInHours / 24);
     return `${days}d ago`;
   }
-  
-  return date.toLocaleDateString('en-US', { 
-    month: 'short', 
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
     day: 'numeric',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
   });
@@ -102,19 +102,20 @@ const TransactionList: React.FC = () => {
     const controller = new AbortController();
     const signal = controller.signal;
 
-    const CELOSCAN_API_KEY = process.env.NEXT_PUBLIC_CELOSCAN_API_KEY || '';
-    const CELOSCAN_API_BASE = process.env.NEXT_PUBLIC_CELOSCAN_API_BASE || 'https://api.celoscan.io/api';
-    const withApiKey = (qs: string) => `${qs}${CELOSCAN_API_KEY ? `&apikey=${CELOSCAN_API_KEY}` : ''}`;
+    // Use local proxy to avoid CORS issues
+    const CELOSCAN_API_BASE = '/api/celo/proxy';
+
+    // API Key is handled by the proxy if set in env vars
+    const withApiKey = (qs: string) => qs;
+
     const fetchCeloscan = async (qs: string) => {
-      const url = `${CELOSCAN_API_BASE}?${withApiKey(qs)}`;
+      const queryString = withApiKey(qs);
+      const url = `${CELOSCAN_API_BASE}?${queryString}`;
       const res = await fetch(url, { signal });
-      if (!res.ok) throw new Error(`Celoscan HTTP ${res.status}`);
+      if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
       const data = await res.json();
       return data;
     };
-    if (!CELOSCAN_API_KEY) {
-      console.warn('NEXT_PUBLIC_CELOSCAN_API_KEY not set; Celoscan requests may be rate-limited.');
-    }
 
     const fetchTransactions = async () => {
       if (!address) {
@@ -135,23 +136,27 @@ const TransactionList: React.FC = () => {
 
         const getPastYearBlockNumber = async (publicClient: any) => {
           const currentTime = Math.floor(Date.now() / 1000);
-          const oneYearAgoTime = currentTime - 365 * 24 * 60 * 60; 
-          const apiKey = process.env.NEXT_PUBLIC_CELOSCAN_API_KEY;
-          const response = await fetch(`https://api.celoscan.io/api?module=block&action=getblocknobytime&timestamp=${oneYearAgoTime}&closest=after&apikey=${apiKey}`);
+          const oneYearAgoTime = currentTime - 365 * 24 * 60 * 60;
+          const response = await fetch(`${CELOSCAN_API_BASE}?module=block&action=getblocknobytime&timestamp=${oneYearAgoTime}&closest=after`);
           const data = await response.json();
 
+          if (data.result && typeof data.result === 'object' && data.result.blockNumber) {
+            return data.result.blockNumber;
+          }
           return data.result;
         };
 
         const getCurrentBlockNumber = async (publicClient: any) => {
           const currentTime = Math.floor(Date.now() / 1000);
-          const apiKey = process.env.NEXT_PUBLIC_CELOSCAN_API_KEY;
-          const response = await fetch(`https://api.celoscan.io/api?module=block&action=getblocknobytime&timestamp=${currentTime}&closest=after&apikey=${apiKey}`);
+          const response = await fetch(`${CELOSCAN_API_BASE}?module=block&action=getblocknobytime&timestamp=${currentTime}&closest=after`);
           const data = await response.json();
 
+          if (data.result && typeof data.result === 'object' && data.result.blockNumber) {
+            return data.result.blockNumber;
+          }
           return data.result;
         };
-        
+
         const pastYearBlockNumber = await getPastYearBlockNumber(publicClient);
         const latestBlock = await getCurrentBlockNumber(publicClient);
 
@@ -175,11 +180,11 @@ const TransactionList: React.FC = () => {
             // Determine token info
             const toAddress = tx.to?.toLowerCase();
             const tokenInfo = TOKEN_ADDRESSES[toAddress];
-            
+
             // For token transfers, check if there's a tokenValue field
             let value = tx.value;
             let tokenSymbol = 'CELO';
-            
+
             if (tx.tokenValue) {
               // This is a token transfer
               value = tx.tokenValue;
@@ -234,22 +239,22 @@ const TransactionList: React.FC = () => {
 
     fetchTransactions();
     return () => controller.abort();
-  }, [address, page]); 
+  }, [address, page]);
 
   function formatValue(value: string, tokenSymbol: string = 'CELO', decimals = 4): string {
     const tokenInfo = Object.values(TOKEN_ADDRESSES).find(t => t.symbol === tokenSymbol);
     const tokenDecimals = tokenInfo?.decimals || 18;
-    
+
     const balanceNumber = parseFloat(value) / Math.pow(10, tokenDecimals);
-    
+
     if (isNaN(balanceNumber) || balanceNumber === 0) {
       return "0.00";
     }
-    
+
     if (balanceNumber < 0.0001) {
       return balanceNumber.toExponential(2);
     }
-    
+
     return balanceNumber.toFixed(decimals).replace(/\.?0+$/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
 
@@ -294,12 +299,12 @@ const TransactionList: React.FC = () => {
       'execute': 'Execute',
       'claimRewards': 'Claim Rewards',
     };
-    
+
     // Return mapped name if exists
     if (functionMap[functionName]) {
       return functionMap[functionName];
     }
-    
+
     if (!functionName || functionName.trim() === '') {
       return 'Contract Call';
     }
@@ -308,7 +313,7 @@ const TransactionList: React.FC = () => {
       .replace(/([A-Z])/g, ' $1') // Add space before capital letters
       .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
       .trim();
-    
+
     return formatted || 'Contract Call';
   };
 
@@ -372,17 +377,17 @@ const TransactionList: React.FC = () => {
               const counterparty = isSent ? transaction.args.to : transaction.args.from;
               const amount = formatValue(transaction.args.value, transaction.tokenSymbol);
               const hasValue = parseFloat(transaction.args.value) > 0;
-              
+
               return (
-                <div 
-                  key={transaction.key} 
+                <div
+                  key={transaction.key}
                   className="flex items-center justify-between p-4 rounded-xl border border-gray-100 dark:border-gray-800 transition-all hover:shadow-md hover:border-gray-200 dark:hover:border-gray-700 bg-white dark:bg-gray-900/50"
                 >
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     <div className={cn(
                       "flex items-center justify-center w-12 h-12 rounded-full flex-shrink-0",
-                      isSent 
-                        ? "bg-orange-100 dark:bg-orange-900/20" 
+                      isSent
+                        ? "bg-orange-100 dark:bg-orange-900/20"
                         : "bg-green-100 dark:bg-green-900/20"
                     )}>
                       {isSent ? (
@@ -391,7 +396,7 @@ const TransactionList: React.FC = () => {
                         <ArrowDownIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
                       )}
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold text-sm dark:text-white">
@@ -408,12 +413,12 @@ const TransactionList: React.FC = () => {
                           </Badge>
                         )}
                       </div>
-                      
+
                       <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                         <span className="truncate">
                           {hasValue ? (isSent ? 'To' : 'From') : 'Hash'} {truncateAddress(transaction.transactionHash)}
                         </span>
-                        <button 
+                        <button
                           onClick={() => copyToClipboard(transaction.transactionHash, 'address')}
                           className="text-gray-400 hover:text-primary flex-shrink-0"
                           title="Copy transaction hash"
@@ -425,7 +430,7 @@ const TransactionList: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3 ml-4">
                     {hasValue && (
                       <div className="text-right">
@@ -440,9 +445,9 @@ const TransactionList: React.FC = () => {
                         </div>
                       </div>
                     )}
-                    
+
                     <a
-                      href={`https://celoscan.io/tx/${transaction.transactionHash}`}
+                      href={`https://explorer.celo.org/mainnet/tx/${transaction.transactionHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-gray-400 hover:text-primary transition-colors flex-shrink-0"
@@ -458,8 +463,8 @@ const TransactionList: React.FC = () => {
             <div className="text-center py-12">
               <div className="mx-auto bg-gray-100 dark:bg-gray-800 rounded-full h-16 w-16 flex items-center justify-center mb-4">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-gray-400">
-                  <path d="M9 14L4 9M4 9L9 4M4 9H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M15 10L20 15M20 15L15 20M20 15H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M9 14L4 9M4 9L9 4M4 9H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M15 10L20 15M20 15L15 20M20 15H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <p className="text-base font-medium text-gray-700 dark:text-gray-300 mb-1">No transactions yet</p>
@@ -470,7 +475,7 @@ const TransactionList: React.FC = () => {
           )}
         </div>
       </CardContent>
-      
+
       {filteredTransactions.length > 0 && (
         <CardFooter className="flex justify-center border-t border-gray-100 dark:border-gray-800 pt-4">
           <Button
