@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   ReceiptText,
 } from "lucide-react";
+import { ReceiptCard } from "@/components/receipts/ReceiptCard";
 import {
   Card,
   CardContent,
@@ -383,83 +384,18 @@ const TransactionList: React.FC = () => {
               const hasValue = parseFloat(transaction.args.value) > 0;
 
               return (
-                <div
-                  key={transaction.key}
-                  className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className={cn(
-                      "flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 border",
-                      isSent
-                        ? "bg-muted text-muted-foreground"
-                        : "bg-primary/10 text-primary"
-                    )}>
-                      {isSent ? (
-                        <ArrowUpIcon className="h-5 w-5" />
-                      ) : (
-                        <ArrowDownIcon className="h-5 w-5" />
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm">
-                          {hasValue ? (isSent ? 'Sent' : 'Received') : getFunctionDisplayName(transaction.args.functionName)}
-                        </span>
-                        {transaction.status ? (
-                          <CheckCircleIcon className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
-                        ) : (
-                          <XCircleIcon className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
-                        )}
-                        {!hasValue && (
-                          <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5 font-normal">
-                            {transaction.args.functionName}
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="truncate">
-                          {hasValue ? (isSent ? 'To' : 'From') : 'Hash'} {truncateAddress(transaction.transactionHash)}
-                        </span>
-                        <button
-                          onClick={() => copyToClipboard(transaction.transactionHash, 'address')}
-                          className="hover:text-foreground flex-shrink-0"
-                          title="Copy transaction hash"
-                        >
-                          <CopyIcon className="h-3 w-3" />
-                        </button>
-                        <span>•</span>
-                        <span className="flex-shrink-0">{formatDate(transaction.timestamp)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 ml-4">
-                    {hasValue && (
-                      <div className="text-right">
-                        <div className={cn(
-                          "font-medium text-sm",
-                          isSent ? "text-foreground" : "text-green-600 dark:text-green-400"
-                        )}>
-                          {isSent ? '-' : '+'}{amount}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {transaction.tokenSymbol}
-                        </div>
-                      </div>
-                    )}
-
-                    <a
-                      href={`https://explorer.celo.org/mainnet/tx/${transaction.transactionHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-gray-400 hover:text-primary transition-colors flex-shrink-0"
-                      title="View on explorer"
-                    >
-                      <ExternalLinkIcon className="h-4 w-4" />
-                    </a>
-                  </div>
+                <div key={transaction.key} className="mb-3">
+                  <ReceiptCard transaction={{
+                    transactionHash: transaction.transactionHash,
+                    timestamp: transaction.timestamp,
+                    status: transaction.status,
+                    functionName: getFunctionDisplayName(transaction.args.functionName),
+                    value: transaction.args.value,
+                    tokenSymbol: transaction.tokenSymbol,
+                    isSent: isSent,
+                    hasValue: hasValue,
+                    formattedAmount: amount
+                  }} />
                 </div>
               );
             })

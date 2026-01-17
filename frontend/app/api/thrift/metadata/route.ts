@@ -33,6 +33,7 @@ function isTimestampFresh(ts: number, maxSkewMs = 5 * 60 * 1000) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+
     const {
       contractAddress,
       groupId,
@@ -109,7 +110,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Only the creator can update
-    if ((existing.createdBy || '').toLowerCase() !== recovered.toLowerCase()) {
+    const creator = (existing.createdBy || '').toLowerCase();
+
+    if (creator !== recovered.toLowerCase()) {
       return NextResponse.json({ error: 'Only the creator can update metadata' }, { status: 403 });
     }
 
@@ -170,13 +173,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ items: docs });
   } catch (error: any) {
     console.error('Error fetching thrift metadata:', error);
-    
+
     // Return empty array instead of error for better UX
     if (error.message === 'Database query timeout' || error.name === 'MongoWaitQueueTimeoutError') {
       console.warn('Database timeout, returning empty metadata');
       return NextResponse.json({ items: [] });
     }
-    
+
     return NextResponse.json({ error: error?.message || 'Failed to fetch thrift metadata' }, { status: 500 });
   }
 }

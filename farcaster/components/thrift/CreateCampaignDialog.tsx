@@ -12,8 +12,17 @@ import { PlusIcon } from 'lucide-react';
 import { TOKENS, getSupportedThriftTokens, getTokenBySymbol, type TokenConfig } from '@/utils/tokens';
 import { useAccount } from 'wagmi';
 
-export function CreateCampaignDialog() {
-  const [open, setOpen] = useState(false);
+interface CreateCampaignDialogProps {
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function CreateCampaignDialog({ isOpen, onOpenChange }: CreateCampaignDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  const isControlled = isOpen !== undefined && onOpenChange !== undefined;
+  const open = isControlled ? isOpen : internalOpen;
+  const setOpen = isControlled ? onOpenChange : setInternalOpen;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [contributionAmount, setContributionAmount] = useState('');

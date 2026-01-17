@@ -8,37 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Zap, Users, Banknote, ReceiptText } from "lucide-react";
-
-interface ReceiptTx {
-  transactionHash: string;
-  type: "savings" | "withdrawal" | "utility_payment" | "group_contribution" | "group_payout";
-  subType?: "airtime" | "data" | "electricity" | "cable" | "aave_deposit" | "aave_withdrawal";
-  amount: number;
-  token: string;
-  status: "pending" | "confirmed" | "failed" | "completed";
-  createdAt?: string;
-}
-
-const typeIcon = (type: ReceiptTx["type"], subType?: ReceiptTx["subType"]) => {
-  if (type === "utility_payment") return <Zap className="h-4 w-4 text-primary" />;
-  if (type === "group_contribution" || type === "group_payout") return <Users className="h-4 w-4 text-primary" />;
-  if (type === "savings" || subType?.startsWith("aave")) return <Banknote className="h-4 w-4 text-primary" />;
-  return <ReceiptText className="h-4 w-4 text-primary" />;
-};
-
-const statusColor = (status: ReceiptTx["status"]) => {
-  switch (status) {
-    case "completed":
-      return "text-green-600";
-    case "failed":
-      return "text-red-600";
-    case "confirmed":
-      return "text-amber-600";
-    default:
-      return "text-gray-600";
-  }
-};
+import { ReceiptCard, ReceiptTx } from "@/components/receipts/ReceiptCard";
+import { ReceiptText } from "lucide-react";
 
 export default function ReceiptsPage() {
   const account = useActiveAccount();
@@ -95,98 +66,94 @@ export default function ReceiptsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <CardTitle>Receipts</CardTitle>
-              <CardDescription>Your past transactions and bill payments</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Select value={type} onValueChange={setType}>
-                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Type" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All types</SelectItem>
-                  <SelectItem value="utility_payment">Utilities</SelectItem>
-                  <SelectItem value="savings">Savings</SelectItem>
-                  <SelectItem value="withdrawal">Withdrawals</SelectItem>
-                  <SelectItem value="group_contribution">Group contrib</SelectItem>
-                  <SelectItem value="group_payout">Group payout</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
+    <div className="container max-w-4xl mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight mb-1">Receipts</h1>
+          <p className="text-muted-foreground">History of your utility bills and contributions</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <Select value={type} onValueChange={setType}>
+            <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Type" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="utility_payment">Utilities</SelectItem>
+              <SelectItem value="group_contribution">Group Contrib</SelectItem>
+              <SelectItem value="group_payout">Payouts</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="completed">Paid</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <Card className="border-dashed shadow-sm bg-muted/20">
+        <CardContent className="p-6">
           {!address ? (
-            <div className="p-6 text-sm text-muted-foreground">Connect your wallet to view receipts.</div>
+            <div className="text-center py-12">
+              <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                <ReceiptText className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <h3 className="font-semibold text-lg">Wallet Not Connected</h3>
+              <p className="text-muted-foreground text-sm">Please connect your wallet to view your transaction history.</p>
+            </div>
           ) : loading && items.length === 0 ? (
-            <div className="space-y-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3 p-2">
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-64" />
-                    <Skeleton className="h-3 w-32" />
+            <div className="grid gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 border rounded-xl bg-background">
+                  <Skeleton className="h-12 w-12 rounded-xl" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-1/3" />
+                    <Skeleton className="h-3 w-1/4" />
                   </div>
-                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-8 w-20" />
                 </div>
               ))}
             </div>
           ) : error ? (
-            <div className="p-6 text-sm text-red-600">{error}</div>
-          ) : items.length === 0 ? (
-            <div className="p-6 text-sm text-muted-foreground">No receipts found.</div>
-          ) : (
-            <ul className="divide-y divide-border rounded-md border">
-              {items.map((tx) => (
-                <li key={tx.transactionHash} className="px-3 py-3 hover:bg-muted/30 transition-colors">
-                  <Link href={`/tx/${tx.transactionHash}?type=${encodeURIComponent(tx.subType || "payment")}`} className="flex items-center gap-3">
-                    <div className="shrink-0 flex items-center justify-center h-9 w-9 rounded-full bg-primary/10">
-                      {typeIcon(tx.type, tx.subType)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {tx.subType ? tx.subType.replace("_", " ") : tx.type}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {new Date(tx.createdAt || Date.now()).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-semibold">
-                        {tx.amount} {tx.token}
-                      </div>
-                      <div className={cn("text-xs font-medium", statusColor(tx.status))}>
-                        {tx.status}
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="flex justify-between items-center pt-4">
-            <div className="text-xs text-muted-foreground">
-              Showing {items.length} receipt{items.length === 1 ? "" : "s"}
+            <div className="text-center py-12 text-red-500">
+              <p>{error}</p>
+              <Button onClick={() => fetchReceipts(true)} variant="outline" className="mt-4">Try Again</Button>
             </div>
-            {hasMore && (
-              <Button onClick={onLoadMore} variant="outline" disabled={loading}>
-                {loading ? "Loading..." : "Load more"}
+          ) : items.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="mx-auto w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                <ReceiptText className="h-8 w-8 text-muted-foreground/50" />
+              </div>
+              <h3 className="font-semibold text-lg mb-1">No Receipts Found</h3>
+              <p className="text-muted-foreground text-sm max-w-[250px] mx-auto">
+                You haven't made any transactions yet. When you do, they will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {items.map((tx) => (
+                <Link
+                  key={tx.transactionHash}
+                  href={`/tx/${tx.transactionHash}?type=${encodeURIComponent(tx.subType || "payment")}`}
+                  className="block transition-transform active:scale-[0.99]"
+                >
+                  <ReceiptCard transaction={tx} />
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {!loading && hasMore && (
+            <div className="mt-8 text-center">
+              <Button onClick={onLoadMore} variant="outline" className="w-full sm:w-auto min-w-[200px]">
+                Load More History
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

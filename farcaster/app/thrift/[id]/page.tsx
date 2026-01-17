@@ -1740,6 +1740,7 @@ export default function CampaignDetailsPage() {
         initialTags={campaign.meta?.tags}
         onSaved={({ name, description }) => {
           setCampaign((prev) => prev ? { ...prev, name, description: description || prev.description } : prev);
+          refreshGroups();
         }}
       />
     </div>
