@@ -3,11 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ThriftGroup, ThriftMember, useThrift } from '@/context/thrift/ThriftContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
 import { contractAddress } from '@/utils/abi';
-import { ThriftGroupCard } from '@/components/thrift/ThriftGroupCard';
-import { GroupDetailsDialog } from '@/components/thrift/GroupDetailsDialog';
+import { FlippableThriftCard } from '@/components/thrift/FlippableThriftCard';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 
@@ -19,9 +18,8 @@ export function UserCampaigns() {
   const [editOpen, setEditOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<ThriftGroup | null>(null);
 
-  // Details Dialog State
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<ThriftGroup | null>(null);
+  // View state for flipping cards
+  const [viewMode, setViewMode] = useState<'overview' | 'members'>('overview');
 
   // Check if wallet is connected
   useEffect(() => {
@@ -55,8 +53,6 @@ export function UserCampaigns() {
   }, []);
 
   // Load members for all user groups (Background fetch)
-  // Optimization warning: This fetches for ALL groups. 
-  // Good for trust score logic but maybe lazy load later.
   useEffect(() => {
     const loadAllMembers = async () => {
       if (!connected || userGroups.length === 0) return;
@@ -76,20 +72,53 @@ export function UserCampaigns() {
     loadAllMembers();
   }, [userGroups, connected, getThriftGroupMembers]);
 
-  const handleManageClick = (group: ThriftGroup) => {
-    setSelectedGroup(group);
-    setDetailsOpen(true);
-  };
-
   const handleEditClick = (group: ThriftGroup) => {
     setEditGroup(group);
     setEditOpen(true);
   };
 
-  const handleShareClick = (group: ThriftGroup) => {
-    // Implement share logic or reuse from CampaignList if needed
-    // For now, details dialog might be enough
-    console.log("Share", group.name);
+  const handleShareClick = async (group: ThriftGroup) => {
+    console.log('[handleShareClick] Clicked for group:', group.id);
+    const shareUrl = `${window.location.origin}/thrift/${group.id}`;
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        console.log('[handleShareClick] Copied via navigator.clipboard');
+      } else {
+        throw new Error('navigator.clipboard not available');
+      }
+    } catch (err) {
+      console.warn('[handleShareClick] navigator.clipboard failed, trying fallback:', err);
+      // Fallback method
+      const textArea = document.createElement("textarea");
+      textArea.value = shareUrl;
+
+      // Ensure it's not visible but part of DOM
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      try {
+        document.execCommand('copy');
+        console.log('[handleShareClick] Copied via execCommand');
+      } catch (fallbackErr) {
+        console.error('[handleShareClick] Fallback failed:', fallbackErr);
+        toast.error("Failed to Copy", {
+          description: "Could not copy link to clipboard.",
+        });
+        document.body.removeChild(textArea);
+        return;
+      }
+      document.body.removeChild(textArea);
+    }
+
+    toast.success("Link Copied", {
+      description: "Thrift group link copied to clipboard.",
+    });
   };
 
   if (!connected) {
@@ -149,30 +178,42 @@ export function UserCampaigns() {
   }
 
   return (
-    <>
+    <div className="space-y-6">
+      {/* Toggle Controls */}
+      <div className="flex bg-muted p-1 rounded-lg w-fit">
+        <button
+          onClick={() => setViewMode('overview')}
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${viewMode === 'overview'
+            ? 'bg-background shadow-sm text-foreground'
+            : 'text-muted-foreground hover:text-foreground'
+            }`}
+        >
+          Overview
+        </button>
+        <button
+          onClick={() => setViewMode('members')}
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${viewMode === 'members'
+            ? 'bg-background shadow-sm text-foreground'
+            : 'text-muted-foreground hover:text-foreground'
+            }`}
+        >
+          Members
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
         {userGroups.map((group) => (
-          <ThriftGroupCard
+          <FlippableThriftCard
             key={group.id}
             group={group}
             currentUserAddress={address}
-            variant="manage"
-            onManage={handleManageClick}
+            isFlipped={viewMode === 'members'}
             onShare={handleShareClick}
             onEdit={handleEditClick}
-            onJoin={() => { }} // Not used in manage mode
+            members={groupMembers[group.id] || []}
           />
         ))}
       </div>
-
-      {/* Group Details Dialog */}
-      <GroupDetailsDialog
-        group={selectedGroup}
-        open={detailsOpen}
-        onOpenChange={setDetailsOpen}
-        members={selectedGroup ? (groupMembers[selectedGroup.id] || []) : []}
-        currentUserAddress={address}
-      />
 
       {/* Edit Metadata Dialog */}
       {editGroup ? (
@@ -192,6 +233,6 @@ export function UserCampaigns() {
           }}
         />
       ) : null}
-    </>
+    </div>
   );
 }
