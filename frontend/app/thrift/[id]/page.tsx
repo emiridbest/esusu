@@ -1386,6 +1386,37 @@ export default function CampaignDetailsPage() {
                       </Button>
                     </motion.div>
                   </motion.div>
+
+                  {/* Add Member (Private Groups) */}
+                  {!campaign.isPublic && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.5, delay: 2.2 }}
+                      whileHover={{ scale: 1.02 }}
+                      className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50"
+                    >
+                      <div>
+                        <h3 className="font-medium">Add Member</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Add a member to this private group
+                        </p>
+                      </div>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Button
+                          onClick={() => setAddMemberDialogOpen(true)}
+                          disabled={isProcessing || campaign.totalMembers >= campaign.maxMembers}
+                          variant="outline"
+                        >
+                          <UsersIcon className="h-4 w-4 mr-2" />
+                          Add Member
+                        </Button>
+                      </motion.div>
+                    </motion.div>
+                  )}
                 </div>
               </CardContent>
             </Card>
