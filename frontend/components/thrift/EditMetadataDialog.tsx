@@ -150,36 +150,36 @@ export default function EditMetadataDialog(props: EditMetadataDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] rounded-lg">
+      <DialogContent className="sm:max-w-[500px] rounded-lg dark:bg-neutral-950 dark:border-neutral-800 dark:text-white">
         <DialogHeader>
-          <DialogTitle>Edit Group Details</DialogTitle>
+          <DialogTitle className="dark:text-white">Edit Group Details</DialogTitle>
         </DialogHeader>
         <div className="py-4 space-y-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">Name</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" />
+            <Label htmlFor="name" className="text-right dark:text-neutral-200">Name</Label>
+            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3 dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500" />
           </div>
           <div className="grid grid-cols-4 items-start gap-4">
-            <Label htmlFor="description" className="text-right mt-2">Description</Label>
-            <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" rows={5} />
+            <Label htmlFor="description" className="text-right mt-2 dark:text-neutral-200">Description</Label>
+            <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3 dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500" rows={5} />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="coverImageUrl" className="text-right">Cover Image URL</Label>
-            <Input id="coverImageUrl" value={coverImageUrl} onChange={(e) => setCoverImageUrl(e.target.value)} className="col-span-3" placeholder="https://..." />
+            <Label htmlFor="coverImageUrl" className="text-right dark:text-neutral-200">Cover Image URL</Label>
+            <Input id="coverImageUrl" value={coverImageUrl} onChange={(e) => setCoverImageUrl(e.target.value)} className="col-span-3 dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500" placeholder="https://..." />
           </div>
           {coverImageUrl ? (
             <div className="grid grid-cols-4 items-center gap-4">
               <div />
-              <img src={coverImageUrl} alt="Cover" className="col-span-3 rounded-md max-h-40 object-cover border" onError={() => { /* ignore preview errors */ }} />
+              <img src={coverImageUrl} alt="Cover" className="col-span-3 rounded-md max-h-40 object-cover border dark:border-neutral-700" onError={() => { /* ignore preview errors */ }} />
             </div>
           ) : null}
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="category" className="text-right">Category</Label>
-            <Input id="category" value={category} onChange={(e) => setCategory(e.target.value)} className="col-span-3" placeholder="Savings, Friends, Work, ..." />
+            <Label htmlFor="category" className="text-right dark:text-neutral-200">Category</Label>
+            <Input id="category" value={category} onChange={(e) => setCategory(e.target.value)} className="col-span-3 dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500" placeholder="Savings, Friends, Work, ..." />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="tags" className="text-right">Tags</Label>
-            <Input id="tags" value={tags} onChange={(e) => setTags(e.target.value)} className="col-span-3" placeholder="comma,separated,tags" />
+            <Label htmlFor="tags" className="text-right dark:text-neutral-200">Tags</Label>
+            <Input id="tags" value={tags} onChange={(e) => setTags(e.target.value)} className="col-span-3 dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500" placeholder="comma,separated,tags" />
           </div>
         </div>
         <DialogFooter>
