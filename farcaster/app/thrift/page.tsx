@@ -20,22 +20,32 @@ const ThriftQuickAction = ({
   title,
   description,
   href,
-  variant = "default"
+  variant = "default",
+  ...props
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
   href: string;
   variant?: "default" | "outline";
-}) => {
+  onClick?: () => void;
+} & React.ComponentProps<typeof Card>) => {
   const router = useRouter();
+
+  const handleClick = () => {
+    if (href !== "#" && href) {
+      router.push(href);
+    }
+  };
+
   return (
     <Card
       className={cn(
         "cursor-pointer transition-all duration-300 hover:scale-[1.02] border-gray-100 dark:border-gray-700",
         variant === "outline" ? "bg-white/50 dark:bg-gray-800/50 backdrop-blur-md" : "bg-primary/5"
       )}
-      onClick={() => router.push(href)}
+      onClick={handleClick}
+      {...props}
     >
       <CardContent className="p-6 flex flex-col items-center gap-2">
         <div className={cn(
@@ -59,6 +69,15 @@ const ThriftQuickAction = ({
 const Thrift: React.FC = () => {
   const router = useRouter();
   const dimensions = useMiniAppDimensions();
+  const [activeTab, setActiveTab] = React.useState("my-groups");
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const tabsRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollToTabs = () => {
+    if (tabsRef.current) {
+      tabsRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <ThriftProvider>
@@ -101,6 +120,7 @@ const Thrift: React.FC = () => {
               description="Start a new savings group"
               href="#"
               variant="outline"
+              onClick={() => setCreateDialogOpen(true)}
             />
             <ThriftQuickAction
               icon={<CalendarIcon className="h-6 w-6 text-primary" />}
@@ -108,6 +128,10 @@ const Thrift: React.FC = () => {
               description="Find and join existing groups"
               href="#"
               variant="outline"
+              onClick={() => {
+                setActiveTab("available-groups");
+                scrollToTabs();
+              }}
             />
             <ThriftQuickAction
               icon={<BellIcon className="h-6 w-6 text-primary" />}
@@ -115,8 +139,14 @@ const Thrift: React.FC = () => {
               description="View your active groups"
               href="#"
               variant="outline"
+              onClick={() => {
+                setActiveTab("my-groups");
+                scrollToTabs();
+              }}
             />
           </div>
+
+          <CreateCampaignDialog isOpen={createDialogOpen} onOpenChange={setCreateDialogOpen} />
         </motion.div>
 
         {/* Tabbed Content */}
@@ -126,26 +156,28 @@ const Thrift: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="mt-8"
         >
-          <Tabs defaultValue="my-groups" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="my-groups">My Groups</TabsTrigger>
-              <TabsTrigger value="available-groups">Available Groups</TabsTrigger>
-            </TabsList>
-            <TabsContent value="my-groups" className="mt-4">
-              <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md">
-                <CardContent className="pt-6">
-                  <UserCampaigns />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="available-groups" className="mt-4">
-              <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md">
-                <CardContent className="pt-6">
-                  <CampaignList />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+          <div ref={tabsRef}>
+            <Tabs defaultValue="my-groups" value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="my-groups">My Groups</TabsTrigger>
+                <TabsTrigger value="available-groups">Available Groups</TabsTrigger>
+              </TabsList>
+              <TabsContent value="my-groups" className="mt-4">
+                <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md">
+                  <CardContent className="pt-6">
+                    <UserCampaigns />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="available-groups" className="mt-4">
+                <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md">
+                  <CardContent className="pt-6">
+                    <CampaignList />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
         </motion.div>
 
         {/* How It Works Section */}
