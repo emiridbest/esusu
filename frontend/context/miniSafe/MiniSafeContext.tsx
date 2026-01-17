@@ -230,6 +230,9 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     updateStepStatus('check-balance', 'loading');
     await getBalance();
 
+    // Fix: Mark check balance as success
+    updateStepStatus('check-balance', 'success');
+
     try {
       const tokenAddress = getTokenAddress(selectedToken);
       const decimals = getTokenDecimals(selectedToken);
@@ -984,11 +987,11 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           <DialogHeader>
             <DialogTitle className='text-black/90 dark:text-white/90'>{getDialogTitle()}</DialogTitle>
             <DialogDescription>
-              {currentOperation === 'deposit' ?
-                `Depositing ${depositAmount} ${selectedToken}` :
-                currentOperation === 'withdraw' ?
-                  `Withdrawing ${selectedToken}` :
-                  'Breaking timelock to access funds early'}
+              {currentOperation === 'deposit' ? `Depositing ${depositAmount} ${selectedToken}` :
+                currentOperation === 'withdraw' ? `Withdrawing ${selectedToken}` :
+                  currentOperation === 'break' ? 'Breaking timelock to access funds early' :
+                    currentOperation === 'approve' ? `Approving ${selectedToken} usage` :
+                      'Transaction in progress'}
             </DialogDescription>
           </DialogHeader>
 

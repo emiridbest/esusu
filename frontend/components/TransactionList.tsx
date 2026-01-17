@@ -103,19 +103,20 @@ const TransactionList: React.FC = () => {
     const controller = new AbortController();
     const signal = controller.signal;
 
-    const CELOSCAN_API_KEY = process.env.NEXT_PUBLIC_CELOSCAN_API_KEY || '';
-    const CELOSCAN_API_BASE = process.env.NEXT_PUBLIC_CELOSCAN_API_BASE || 'https://api.celoscan.io/api';
-    const withApiKey = (qs: string) => `${qs}${CELOSCAN_API_KEY ? `&apikey=${CELOSCAN_API_KEY}` : ''}`;
+    // Use local proxy to avoid CORS issues
+    const CELOSCAN_API_BASE = '/api/celo/proxy';
+
+    // API Key is handled by the proxy if set in env vars
+    const withApiKey = (qs: string) => qs;
+
     const fetchCeloscan = async (qs: string) => {
-      const url = `${CELOSCAN_API_BASE}?${withApiKey(qs)}`;
+      const queryString = withApiKey(qs);
+      const url = `${CELOSCAN_API_BASE}?${queryString}`;
       const res = await fetch(url, { signal });
-      if (!res.ok) throw new Error(`Celoscan HTTP ${res.status}`);
+      if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
       const data = await res.json();
       return data;
     };
-    if (!CELOSCAN_API_KEY) {
-      console.warn('NEXT_PUBLIC_CELOSCAN_API_KEY not set; Celoscan requests may be rate-limited.');
-    }
 
     const fetchTransactions = async () => {
       if (!address) {
@@ -126,6 +127,7 @@ const TransactionList: React.FC = () => {
       try {
         setIsLoading(true);
         setError(null);
+        // Public client for other things, but here we use fetchCeloscan logic which uses fetch
         const publicClient = createPublicClient({
           chain: celo,
           transport: http('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8', {
@@ -134,22 +136,28 @@ const TransactionList: React.FC = () => {
           }),
         });
 
+        // Use the proxy for block number lookups too
         const getPastYearBlockNumber = async (publicClient: any) => {
           const currentTime = Math.floor(Date.now() / 1000);
           const oneYearAgoTime = currentTime - 365 * 24 * 60 * 60;
-          const apiKey = process.env.NEXT_PUBLIC_CELOSCAN_API_KEY;
-          const response = await fetch(`https://api.celoscan.io/api?module=block&action=getblocknobytime&timestamp=${oneYearAgoTime}&closest=after&apikey=${apiKey}`);
+          const response = await fetch(`${CELOSCAN_API_BASE}?module=block&action=getblocknobytime&timestamp=${oneYearAgoTime}&closest=after`);
           const data = await response.json();
 
+          // Blockscout returns { result: { blockNumber: "..." } } sometimes
+          if (data.result && typeof data.result === 'object' && data.result.blockNumber) {
+            return data.result.blockNumber;
+          }
           return data.result;
         };
 
         const getCurrentBlockNumber = async (publicClient: any) => {
           const currentTime = Math.floor(Date.now() / 1000);
-          const apiKey = process.env.NEXT_PUBLIC_CELOSCAN_API_KEY;
-          const response = await fetch(`https://api.celoscan.io/api?module=block&action=getblocknobytime&timestamp=${currentTime}&closest=after&apikey=${apiKey}`);
+          const response = await fetch(`${CELOSCAN_API_BASE}?module=block&action=getblocknobytime&timestamp=${currentTime}&closest=after`);
           const data = await response.json();
 
+          if (data.result && typeof data.result === 'object' && data.result.blockNumber) {
+            return data.result.blockNumber;
+          }
           return data.result;
         };
 
@@ -446,7 +454,7 @@ const TransactionList: React.FC = () => {
                     )}
 
                     <a
-                      href={`https://celoscan.io/tx/${transaction.transactionHash}`}
+                      href={`https://explorer.celo.org/mainnet/tx/${transaction.transactionHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors flex-shrink-0"

@@ -2,19 +2,19 @@
 export const ENGAGEMENT_CONFIG = {
   // Development contract (allows anyone to approve apps)
   DEV_REWARDS_CONTRACT: "0xb44fC3A592aDaA257AECe1Ae8956019EA53d0465" as `0x${string}`,
-  
+
   // Production contract (requires Good Labs approval)
   PROD_REWARDS_CONTRACT: "0x25db74CF4E7BA120526fd87e159CF656d94bAE43" as `0x${string}`,
-  
+
 
   APP_ADDRESS: (process.env.NEXT_PUBLIC_APP_ADDRESS as `0x${string}`) || "0x4d4cC2E0c5cBC9737A0dEc28d7C2510E2BEF5A09" as `0x${string}`,
-  
+
   // Default inviter address (optional - can be your main wallet or any address)
   INVITER_ADDRESS: (process.env.NEXT_PUBLIC_INVITER_ADDRESS as `0x${string}`) || "0x4d4cC2E0c5cBC9737A0dEc28d7C2510E2BEF5A09" as `0x${string}`,
-  
+
   // Claim cooldown period (180 days in milliseconds)
   COOLDOWN_PERIOD: 180 * 24 * 60 * 60 * 1000,
-  
+
   // Block validity period (how many blocks the signature is valid)
   SIGNATURE_VALIDITY_BLOCKS: BigInt(10), // Changed to 10 as per integration guide
 }
@@ -71,20 +71,20 @@ export function canClaimBasedOnTime(lastClaimTimestamp?: number): boolean {
 
 // Helper to get Celo Explorer URL for transaction
 export function getTransactionUrl(hash: string): string {
-  return `https://celoscan.io/tx/${hash}`
+  return `https://explorer.celo.org/mainnet/tx/${hash}`
 }
 
 // Helper to validate environment configuration
 export function validateConfiguration(): { isValid: boolean; errors: string[] } {
   const errors: string[] = []
-  
-  
+
+
   if (!ENGAGEMENT_CONFIG.APP_ADDRESS || ENGAGEMENT_CONFIG.APP_ADDRESS === "0x4d4cC2E0c5cBC9737A0dEc28d7C2510E2BEF5A09") {
   }
-  
+
   if (!ENGAGEMENT_CONFIG.INVITER_ADDRESS || ENGAGEMENT_CONFIG.INVITER_ADDRESS === "0x4d4cC2E0c5cBC9737A0dEc28d7C2510E2BEF5A09") {
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors

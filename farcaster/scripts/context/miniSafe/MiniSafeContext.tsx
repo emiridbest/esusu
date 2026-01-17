@@ -109,17 +109,17 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     chain: activeChain,
     address: contractAddress,
   });
-  
+
   // Default to G$ token address if env var not set
   const tokenAddress = process.env.NEXT_PUBLIC_TOKEN_ADDRESS || '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A';
   const rewardTokenAddress = process.env.NEXT_PUBLIC_REWARD_TOKEN_ADDRESS || '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A';
-  
+
   const tokenContract = tokenAddress ? getContract({
     client,
-    chain: activeChain, 
+    chain: activeChain,
     address: tokenAddress as `0x${string}`,
   }) : null;
-  
+
   const rewardTokenContract = rewardTokenAddress ? getContract({
     client,
     chain: activeChain,
@@ -276,6 +276,9 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     updateStepStatus('check-balance', 'loading');
     await getBalance();
 
+    // Fix: Mark check balance as success
+    updateStepStatus('check-balance', 'success');
+
     try {
       const tokenAddress = getTokenAddress(selectedToken);
       const decimals = getTokenDecimals(selectedToken);
@@ -284,7 +287,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       updateStepStatus('allowance', 'loading');
       // Check allowance first
       if (!tokenContract) throw new Error('Token contract not available');
-      
+
       const allowanceData = await readContract({
         contract: tokenContract,
         method: "function allowance(address,address) view returns (uint256)",
@@ -316,7 +319,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Send the transaction with the properly encoded data
       if (!wallet || !account) throw new Error('Wallet not connected');
-      
+
       const { sendTransaction, prepareTransaction } = await import('thirdweb');
       const transaction = await prepareTransaction({
         to: tokenAddress as `0x${string}`,
@@ -399,7 +402,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       updateStepStatus('approve', 'loading');
       // Check allowance
       if (!tokenContract) throw new Error('Token contract not available');
-      
+
       const { readContract } = await import('thirdweb');
       const allowanceData = await readContract({
         contract: tokenContract,
@@ -418,9 +421,9 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           args: [contractAddress as `0x${string}`, depositValue],
         });
         const approveDataWithSuffix = approveData + dataSuffix;
-        
+
         if (!wallet || !account) throw new Error('Wallet not connected');
-        
+
         const { sendTransaction, prepareTransaction } = await import('thirdweb');
         const approveTransaction = await prepareTransaction({
           to: tokenAddress as `0x${string}`,
@@ -432,7 +435,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           account,
           transaction: approveTransaction,
         });
-        
+
         if (approveTx?.transactionHash) {
           const { waitForReceipt } = await import('thirdweb');
           await waitForReceipt({
@@ -456,7 +459,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const dataWithSuffix = depositData + dataSuffix;
 
       if (!wallet || !account) throw new Error('Wallet not connected');
-      
+
       const { sendTransaction, prepareTransaction } = await import('thirdweb');
       const depositTransaction = await prepareTransaction({
         to: contractAddress as `0x${string}`,
@@ -558,7 +561,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const dataWithSuffix = withdrawData + dataSuffix;
 
       if (!wallet || !account) throw new Error('Wallet not connected');
-      
+
       const { sendTransaction, prepareTransaction } = await import('thirdweb');
       const withdrawTransaction = await prepareTransaction({
         to: contractAddress as `0x${string}`,
@@ -644,7 +647,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       let breakTx: any;
       try {
         if (!wallet || !account) throw new Error('Wallet not connected');
-        
+
         const { sendTransaction, prepareTransaction } = await import('thirdweb');
         const breakTransaction = await prepareTransaction({
           to: contractAddress as `0x${string}`,
@@ -948,11 +951,11 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           <DialogHeader>
             <DialogTitle className='text-black/90 dark:text-white/90'>{getDialogTitle()}</DialogTitle>
             <DialogDescription>
-              {currentOperation === 'deposit' ?
-                `Depositing ${depositAmount} ${selectedToken}` :
-                currentOperation === 'withdraw' ?
-                  `Withdrawing ${selectedToken}` :
-                  'Breaking timelock to access funds early'}
+              {currentOperation === 'deposit' ? `Depositing ${depositAmount} ${selectedToken}` :
+                currentOperation === 'withdraw' ? `Withdrawing ${selectedToken}` :
+                  currentOperation === 'break' ? 'Breaking timelock to access funds early' :
+                    currentOperation === 'approve' ? `Approving ${selectedToken} usage` :
+                      'Transaction in progress'}
             </DialogDescription>
           </DialogHeader>
 
