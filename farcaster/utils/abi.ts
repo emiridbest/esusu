@@ -1,7 +1,7 @@
 import { ethers, type ContractRunner, type BigNumberish, type Contract } from 'ethers';
 import MiniSafeAaveUpgradeableABI from './abis/MiniSafeAaveUpgradeable.json';
 
-export const contractAddress = "0x27238ABE11880376a0F933184197945ab46A5938"; // Replace with actual deployed address
+export const contractAddress = "0x219EFe7FC16060d2Da51F086FC31477D94d64D78"; // Replace with actual deployed address
 export const abi = MiniSafeAaveUpgradeableABI.abi;
 
 /**
@@ -38,16 +38,16 @@ export class MiniSafeAave {
   }
 
   // Thrift Group Operations
-  async createThriftGroup(contributionAmount: BigNumberish, startDate: BigNumberish, isPublic: boolean, tokenAddress: string, email: string, phone: string) {
-    return await this.contract.createThriftGroup(contributionAmount, startDate, isPublic, tokenAddress, email, phone);
+  async createThriftGroup(contributionAmount: BigNumberish, startDate: BigNumberish, isPublic: boolean, tokenAddress: string) {
+    return await this.contract.createThriftGroup(contributionAmount, startDate, isPublic, tokenAddress);
   }
 
-  async joinPublicGroup(groupId: BigNumberish, email: string, phone: string) {
-    return await this.contract.joinPublicGroup(groupId, email, phone);
+  async joinPublicGroup(groupId: BigNumberish) {
+    return await this.contract.joinPublicGroup(groupId);
   }
 
-  async addMemberToPrivateGroup(groupId: BigNumberish, memberAddress: string, email: string, phone: string) {
-    return await this.contract.addMemberToPrivateGroup(groupId, memberAddress, email, phone);
+  async addMemberToPrivateGroup(groupId: BigNumberish, memberAddress: string) {
+    return await this.contract.addMemberToPrivateGroup(groupId, memberAddress);
   }
 
   async makeContribution(groupId: BigNumberish) {

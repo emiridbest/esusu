@@ -88,8 +88,8 @@ export function CampaignList() {
     if (!selectedGroup) return;
 
     try {
-      console.log('📤 CampaignList - Joining group with details:', { userName, email, phone });
-      await joinThriftGroup(selectedGroup.id, userName, email, phone);
+      console.log('📤 CampaignList - Joining group with details:', { userName });
+      await joinThriftGroup(selectedGroup.id, userName);
       setJoinDialogOpen(false);
       setUserName('');
       setEmail('');
