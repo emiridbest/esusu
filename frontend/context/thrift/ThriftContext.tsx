@@ -1111,7 +1111,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error("Gas sponsorship failed:", gasError);
       }
 
-      const tx = await contract["makeContribution(uint256)"](groupId);
+      const tx = await contract.makeContribution(groupId);
       console.log('makeContribution: Transaction sent:', tx.hash);
 
       console.log('makeContribution: Waiting for transaction confirmation...');
