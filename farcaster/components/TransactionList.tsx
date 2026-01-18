@@ -324,18 +324,22 @@ const TransactionList: React.FC = () => {
   };
 
   return (
-    <Card className="border shadow-sm bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <CardHeader className="pt-6">
+    <Card className="border-none bg-white/50 backdrop-blur-md dark:bg-black/90 shadow-lg relative overflow-hidden">
+      {/* Cybro gradient header accent */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-300" />
+
+      <CardHeader className="pt-5">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-xl font-semibold flex items-center">
+            <CardTitle className="text-xl font-semibold flex items-center dark:text-white">
+              <span className="h-4 w-1 bg-yellow-500 mr-3 rounded-full" />
               Transaction History
             </CardTitle>
             <CardDescription className="mt-1">
               Track your recent transactions on the Celo network
             </CardDescription>
             {error && (
-              <div className="mt-2 text-xs text-destructive">
+              <div className="mt-2 text-xs text-red-500 dark:text-red-400">
                 {error}
               </div>
             )}
@@ -362,12 +366,12 @@ const TransactionList: React.FC = () => {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {isLoading && transactions.length === 0 ? (
             Array(4).fill(0).map((_, index) => (
-              <div key={index} className="flex items-center justify-between p-4 rounded-lg border">
+              <div key={index} className="flex items-center justify-between p-4 rounded-xl border border-gray-100 dark:border-gray-800">
                 <div className="flex items-center gap-4 flex-1">
-                  <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
+                  <Skeleton className="h-12 w-12 rounded-full flex-shrink-0" />
                   <div className="space-y-2 flex-1">
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-3 w-48" />
@@ -384,28 +388,103 @@ const TransactionList: React.FC = () => {
               const hasValue = parseFloat(transaction.args.value) > 0;
 
               return (
-                <div key={transaction.key} className="mb-3">
-                  <ReceiptCard transaction={{
-                    transactionHash: transaction.transactionHash,
-                    timestamp: transaction.timestamp,
-                    status: transaction.status,
-                    functionName: getFunctionDisplayName(transaction.args.functionName),
-                    value: transaction.args.value,
-                    tokenSymbol: transaction.tokenSymbol,
-                    isSent: isSent,
-                    hasValue: hasValue,
-                    formattedAmount: amount
-                  }} />
+                <div
+                  key={transaction.key}
+                  className="flex items-center justify-between p-4 rounded-xl border border-gray-100 dark:border-gray-800 transition-all hover:shadow-lg hover:scale-[1.01] hover:border-yellow-200 dark:hover:border-yellow-800 bg-white dark:bg-gray-900/50"
+                >
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className={cn(
+                      "flex items-center justify-center w-12 h-12 rounded-full flex-shrink-0",
+                      isSent
+                        ? "bg-orange-100 dark:bg-orange-900/20"
+                        : "bg-green-100 dark:bg-green-900/20"
+                    )}>
+                      {isSent ? (
+                        <ArrowUpIcon className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                      ) : (
+                        <ArrowDownIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-sm dark:text-white">
+                          {hasValue ? (isSent ? 'Sent' : 'Received') : getFunctionDisplayName(transaction.args.functionName)}
+                        </span>
+                        {transaction.status ? (
+                          <CheckCircleIcon className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        ) : (
+                          <XCircleIcon className="h-4 w-4 text-red-500 flex-shrink-0" />
+                        )}
+                        {!hasValue && (
+                          <Badge variant="outline" className="text-xs px-1.5 py-0 h-5">
+                            {transaction.args.functionName}
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <span className="truncate">
+                          {hasValue ? (isSent ? 'To' : 'From') : 'Hash'} {truncateAddress(transaction.transactionHash)}
+                        </span>
+                        <button
+                          onClick={() => copyToClipboard(transaction.transactionHash, 'address')}
+                          className="text-gray-400 hover:text-primary flex-shrink-0"
+                          title="Copy transaction hash"
+                        >
+                          <CopyIcon className="h-3 w-3" />
+                        </button>
+                        <span className="text-gray-300 dark:text-gray-700">•</span>
+                        <span className="flex-shrink-0">{formatDate(transaction.timestamp)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 ml-4">
+                    {hasValue && (
+                      <div className="text-right">
+                        <div className={cn(
+                          "font-semibold text-base",
+                          isSent ? "text-orange-600 dark:text-orange-400" : "text-green-600 dark:text-green-400"
+                        )}>
+                          {isSent ? '-' : '+'}{amount}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-500">
+                          {transaction.tokenSymbol}
+                        </div>
+                      </div>
+                    )}
+
+                    <a
+                      href={`https://explorer.celo.org/mainnet/tx/${transaction.transactionHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors flex-shrink-0"
+                      title="View on explorer"
+                    >
+                      <ExternalLinkIcon className="h-4 w-4" />
+                    </a>
+
+                    {/* Verified badge for known contracts */}
+                    {TOKEN_ADDRESSES[transaction.tokenAddress?.toLowerCase() || ''] && (
+                      <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-xs px-1.5 py-0 h-5 flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3" /> Verified
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               );
             })
           ) : (
             <div className="text-center py-12">
-              <div className="mx-auto bg-muted rounded-full h-12 w-12 flex items-center justify-center mb-4">
-                <ReceiptText className="h-6 w-6 text-muted-foreground" />
+              <div className="mx-auto bg-gray-100 dark:bg-gray-800 rounded-full h-16 w-16 flex items-center justify-center mb-4">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-gray-400">
+                  <path d="M9 14L4 9M4 9L9 4M4 9H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M15 10L20 15M20 15L15 20M20 15H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </div>
-              <p className="text-sm font-medium mb-1">No transactions yet</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-base font-medium text-gray-700 dark:text-gray-300 mb-1">No transactions yet</p>
+              <p className="text-sm text-gray-500 dark:text-gray-500">
                 {!address ? 'Connect your wallet to view transactions' : 'Your transactions will appear here'}
               </p>
             </div>
@@ -414,13 +493,13 @@ const TransactionList: React.FC = () => {
       </CardContent>
 
       {filteredTransactions.length > 0 && (
-        <CardFooter className="flex justify-center border-t pt-4">
+        <CardFooter className="flex justify-center border-t border-gray-100 dark:border-gray-800 pt-4">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             disabled={isLoading}
             onClick={() => setPage(page + 1)}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto bg-yellow-400/20 border-yellow-500/60 text-yellow-700 dark:text-yellow-400 font-semibold hover:bg-yellow-400/30 hover:border-yellow-500/80 transition-all duration-300"
           >
             {isLoading ? (
               <>
