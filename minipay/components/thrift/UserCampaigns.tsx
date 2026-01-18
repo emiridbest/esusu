@@ -4,13 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ThriftGroup, ThriftMember, useThrift } from '@/context/thrift/ThriftContext';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
@@ -18,21 +18,21 @@ import { contractAddress } from '@/utils/abi';
 import { useAccount } from 'wagmi';
 
 export function UserCampaigns() {
-  const { userGroups, getThriftGroupMembers, loading, error } = useThrift();
+  const { userGroups, getThriftGroupMembers, loading, error, refreshGroups } = useThrift();
   const [groupMembers, setGroupMembers] = useState<{ [key: number]: ThriftMember[] }>({});
   const { address, isConnected } = useAccount();
   const [editOpen, setEditOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<ThriftGroup | null>(null);
 
   const isWalletConnected = Boolean(isConnected && address);
-  
+
   // Load members for all user groups
   useEffect(() => {
     const loadAllMembers = async () => {
       if (!isWalletConnected || userGroups.length === 0) return;
-      
+
       const membersMap: { [key: number]: ThriftMember[] } = {};
-      
+
       for (const group of userGroups) {
         try {
           const members = await getThriftGroupMembers(group.id);
@@ -41,13 +41,13 @@ export function UserCampaigns() {
           console.error(`Failed to fetch members for group ${group.id}:`, error);
         }
       }
-      
+
       setGroupMembers(membersMap);
     };
-    
+
     loadAllMembers();
   }, [userGroups, isWalletConnected, getThriftGroupMembers]);
-  
+
   if (!isWalletConnected) {
     return (
       <Card className="w-full">
@@ -59,7 +59,7 @@ export function UserCampaigns() {
       </Card>
     );
   }
-  
+
   if (loading) {
     return (
       <Card className="w-full">
@@ -71,7 +71,7 @@ export function UserCampaigns() {
       </Card>
     );
   }
-  
+
   if (error) {
     return (
       <Card className="w-full">
@@ -83,7 +83,7 @@ export function UserCampaigns() {
       </Card>
     );
   }
-  
+
   if (userGroups.length === 0) {
     return (
       <Card className="w-full">
@@ -95,7 +95,7 @@ export function UserCampaigns() {
       </Card>
     );
   }
-  
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -108,7 +108,7 @@ export function UserCampaigns() {
             <TabsTrigger value="members">Members</TabsTrigger>
             <TabsTrigger value="contributions">Contributions</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="overview">
             <div className="rounded-md border overflow-hidden">
               <Table>
@@ -125,7 +125,7 @@ export function UserCampaigns() {
                   {userGroups.map((group) => (
                     <TableRow key={group.id}>
                       <TableCell className="font-medium">
-                        <a 
+                        <a
                           href={`/thrift/${group.id}`}
                           className="hover:underline text-primary"
                         >
@@ -139,7 +139,7 @@ export function UserCampaigns() {
                       <TableCell>{group.totalMembers}/{group.maxMembers}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <a 
+                          <a
                             href={`/thrift/${group.id}`}
                             className="text-xs px-3 py-1 border rounded hover:bg-muted text-center"
                           >
@@ -156,7 +156,7 @@ export function UserCampaigns() {
                           {group.isUserMember && group.isActive && (
                             <button
                               className="text-xs px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90"
-                              onClick={() => {/* Add make contribution logic */}}
+                              onClick={() => {/* Add make contribution logic */ }}
                             >
                               Contribute
                             </button>
@@ -169,7 +169,7 @@ export function UserCampaigns() {
               </Table>
             </div>
           </TabsContent>
-          
+
           <TabsContent value="members">
             <div className="rounded-md border overflow-hidden">
               <Table>
@@ -184,7 +184,7 @@ export function UserCampaigns() {
                   {userGroups.map((group) => (
                     <TableRow key={group.id}>
                       <TableCell className="font-medium">
-                        <a 
+                        <a
                           href={`/thrift/${group.id}`}
                           className="hover:underline text-primary"
                         >
@@ -205,15 +205,15 @@ export function UserCampaigns() {
                       </TableCell>
                       <TableCell>
                         <Badge className={(
-                          group.isActive && group.totalMembers >= group.maxMembers 
-                            ? "bg-green-50 text-green-700 border-green-200" 
-                            : group.isActive 
+                          group.isActive && group.totalMembers >= group.maxMembers
+                            ? "bg-green-50 text-green-700 border-green-200"
+                            : group.isActive
                               ? "bg-blue-50 text-blue-700 border-blue-200"
                               : "bg-yellow-50 text-yellow-700 border-yellow-200"
                         ) + " border"}>
-                          {group.isActive && group.totalMembers >= group.maxMembers 
-                            ? 'Full' 
-                            : group.isActive 
+                          {group.isActive && group.totalMembers >= group.maxMembers
+                            ? 'Full'
+                            : group.isActive
                               ? 'Active'
                               : 'Pending'}
                         </Badge>
@@ -224,7 +224,7 @@ export function UserCampaigns() {
               </Table>
             </div>
           </TabsContent>
-          
+
           <TabsContent value="contributions">
             <div className="rounded-md border overflow-hidden">
               <Table>
@@ -240,7 +240,7 @@ export function UserCampaigns() {
                   {userGroups.map((group) => (
                     <TableRow key={group.id}>
                       <TableCell className="font-medium">
-                        <a 
+                        <a
                           href={`/thrift/${group.id}`}
                           className="hover:underline text-primary"
                         >
@@ -254,9 +254,9 @@ export function UserCampaigns() {
                         {group.userLastPayment ? group.userLastPayment.toLocaleDateString() : 'N/A'}
                       </TableCell>
                       <TableCell>
-                        {group.userNextPayment 
-                          ? group.userNextPayment.toLocaleDateString() 
-                          : group.isActive 
+                        {group.userNextPayment
+                          ? group.userNextPayment.toLocaleDateString()
+                          : group.isActive
                             ? (group.currentRound === 0 ? "Round 1" : `Round ${group.currentRound + 1}`)
                             : "Not Started"
                         }
@@ -283,7 +283,7 @@ export function UserCampaigns() {
           initialTags={editGroup.meta?.tags}
           onSaved={() => {
             setEditOpen(false);
-            // no direct refresh function here; rely on ThriftContext updates triggered elsewhere or reload page
+            refreshGroups();
           }}
         />
       ) : null}

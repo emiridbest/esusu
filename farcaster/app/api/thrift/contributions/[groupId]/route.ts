@@ -30,7 +30,7 @@ export async function GET(
     await dbConnect();
     const { groupId: groupIdStr } = await params;
     const groupId = parseInt(groupIdStr);
-    
+
     if (isNaN(groupId)) {
       return NextResponse.json({ error: 'Invalid group ID' }, { status: 400 });
     }
@@ -68,7 +68,7 @@ export async function GET(
       cachedEvents = await ContributionEvent.find({ groupId })
         .sort({ timestamp: -1 })
         .lean();
-      
+
       console.log(`[ContributionHistory] Found ${cachedEvents.length} cached events in MongoDB`);
     }
 
@@ -99,9 +99,9 @@ export async function GET(
     if (needsSync) {
       const fromBlock = Math.max(startBlock, currentBlock - MAX_BLOCKS_TO_SYNC);
       const toBlock = currentBlock;
-      
+
       console.log(`[ContributionHistory] Syncing from block ${fromBlock} to ${toBlock}`);
-      
+
       const newEvents = await fetchEventsWithPagination(
         contract,
         groupId,
@@ -158,9 +158,9 @@ export async function GET(
   } catch (error: any) {
     console.error('[ContributionHistory] Error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to fetch contribution history',
-        details: error.message 
+        details: error.message
       },
       { status: 500 }
     );
@@ -184,11 +184,11 @@ async function fetchEventsWithPagination(
   // Paginate through blocks in chunks
   for (let start = fromBlock; start <= toBlock; start += CHUNK_SIZE) {
     const end = Math.min(start + CHUNK_SIZE - 1, toBlock);
-    
+
     try {
       console.log(`[Pagination] Querying blocks ${start} to ${end}`);
       const events = await contract.queryFilter(filter, start, end);
-      
+
       // Get timestamps for each event
       const eventsWithTimestamp = await Promise.all(
         events.map(async (event: any) => {
@@ -210,7 +210,7 @@ async function fetchEventsWithPagination(
 
       allEvents.push(...eventsWithTimestamp);
       console.log(`[Pagination] Found ${events.length} events in chunk`);
-      
+
       // Small delay to avoid rate limiting
       if (end < toBlock) {
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -231,7 +231,7 @@ async function fetchEventsWithPagination(
 async function storeEvents(events: any[], groupId: number): Promise<void> {
   const bulkOps = events.map((event: any) => {
     const args = event.args || event.returnValues;
-    
+
     return {
       updateOne: {
         filter: {
@@ -285,8 +285,9 @@ function formatContributions(events: any[], tokenDecimals: number, tokenSymbol: 
     // Format amount with proper decimals
     let formattedAmount = event.amount;
     try {
-      // If amount is a string BigNumber, format it
-      if (typeof event.amount === 'string' && event.amount.length > 10) {
+      // If amount is a string BigNumber/hex/bignumber, format it
+      // We check if it's a valid number-like value first
+      if (event.amount && (typeof event.amount === 'string' || typeof event.amount === 'bigint' || typeof event.amount === 'number')) {
         formattedAmount = ethers.formatUnits(event.amount, tokenDecimals);
       }
     } catch (formatError) {

@@ -24,23 +24,23 @@ export interface Campaign {
 }
 
 // Quick action component
-const QuickAction = ({ 
-  icon, 
-  title, 
-  description, 
-  href, 
-  variant = "default" 
-}: { 
-  icon: React.ReactNode; 
-  title: string; 
-  description: string; 
+const QuickAction = ({
+  icon,
+  title,
+  description,
+  href,
+  variant = "default"
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
   href: string;
   variant?: "default" | "outline";
 }) => {
   const router = useRouter();
-  
+
   return (
-    <Card 
+    <Card
       className={cn(
         "cursor-pointer transition-all duration-300 hover:scale-[1.02] border-gray-100 dark:border-gray-700",
         variant === "outline" ? "bg-white/50 dark:bg-gray-800/50 backdrop-blur-md" : "bg-primary/5"
@@ -68,7 +68,7 @@ const QuickAction = ({
 
 const Esusu: React.FC = () => {
   const router = useRouter();
-  
+
   return (
     <div className="max-w-screen-xl mx-auto px-4 md:px-8 pb-20">
       {/* Quick Actions */}
@@ -83,7 +83,7 @@ const Esusu: React.FC = () => {
           <h2 className="text-xl font-semibold dark:text-white/70">Quick Actions</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 dark:text-white">
-          <QuickAction 
+          <QuickAction
             icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
               <rect width="20" height="14" x="2" y="5" rx="2" />
               <line x1="2" x2="22" y1="10" y2="10" />
@@ -124,7 +124,7 @@ const Esusu: React.FC = () => {
           />
         </div>
       </motion.div>
-      
+
       {/* Tabbed Content */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -140,7 +140,7 @@ const Esusu: React.FC = () => {
           </TabsList>
           <TabsContent value="transactions" className="mt-4">
             <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-black/90 backdrop-blur-md">
-                <TransactionList />
+              <TransactionList />
             </Card>
           </TabsContent>
           <TabsContent value="features" className="mt-4">
@@ -152,7 +152,7 @@ const Esusu: React.FC = () => {
           </TabsContent>
         </Tabs>
       </motion.div>
-      
+
       {/* App Download Banner */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

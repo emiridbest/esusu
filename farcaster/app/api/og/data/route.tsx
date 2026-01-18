@@ -15,15 +15,16 @@ export async function GET(request: NextRequest) {
           justifyContent: 'center',
         }}
       >
-        <img 
-          src={`${process.env.NEXT_PUBLIC_URL}/farcaster.png`} 
-          alt="Esusu " 
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`${process.env.NEXT_PUBLIC_URL}/farcaster.png`}
+          alt="Esusu "
           width="1200"
           height="630"
-          style={{ 
-            width: '1200px', 
+          style={{
+            width: '1200px',
             height: '630px'
-          }} 
+          }}
         />
       </div>
     ),

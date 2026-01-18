@@ -12,13 +12,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import { ArrowUpIcon, ArrowDownIcon, Share2Icon, UsersIcon, CalendarIcon, ArrowLeftIcon, SparklesIcon, Settings, Play, DollarSign, AlertTriangle, RotateCcw, GripVertical } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -35,36 +35,36 @@ export default function CampaignDetailsPage() {
   const isJoinRequest = searchParams?.get('join') === 'true';
   const router = useRouter();
   const campaignId = typeof id === 'string' ? parseInt(id) : -1;
-  
-  const { userGroups, allGroups, joinThriftGroup, checkJoinStatus, checkGroupStatus, makeContribution, distributePayout, getThriftGroupMembers, getContributionHistory, generateShareLink, activateThriftGroup, setPayoutOrder, emergencyWithdraw, refreshGroups, loading, error } = useThrift();
+
+  const { userGroups, allGroups, joinThriftGroup, checkJoinStatus, checkGroupStatus, makeContribution, distributePayout, getThriftGroupMembers, getContributionHistory, generateShareLink, activateThriftGroup, setPayoutOrder, emergencyWithdraw, addMemberToPrivateGroup, refreshGroups, loading, error } = useThrift();
   const { address, isConnected } = useAccount();
   const { toast } = useToast();
-  
+
   const [campaign, setCampaign] = useState<ThriftGroup | null>(null);
   const [isUserMember, setIsUserMember] = useState(false);
   const [campaignMembers, setCampaignMembers] = useState<ThriftMember[]>([]);
-  
+
   // Helper function to get member name by address
   const getMemberName = (address: string): string => {
     if (!address) return 'Unknown';
-    
+
     const member = campaignMembers.find(
       m => m.address.toLowerCase() === address.toLowerCase()
     );
-    
+
     if (member?.userName) {
       return member.userName;
     }
-    
+
     // Fallback to member number based on position in array
     const memberIndex = campaignMembers.findIndex(
       m => m.address.toLowerCase() === address.toLowerCase()
     );
-    
+
     if (memberIndex >= 0) {
       return `Member ${memberIndex + 1}`;
     }
-    
+
     // Last resort: shortened address
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
   };
@@ -80,6 +80,11 @@ export default function CampaignDetailsPage() {
   const [metadata, setMetadata] = useState<any | null>(null);
   const [isGroupAdmin, setIsGroupAdmin] = useState(false);
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
+  const [addMemberAddress, setAddMemberAddress] = useState('');
+  const [addMemberEmail, setAddMemberEmail] = useState('');
+  const [addMemberPhone, setAddMemberPhone] = useState('');
+  const [addMemberName, setAddMemberName] = useState('');
   const [payoutOrder, setPayoutOrderInput] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [memberOrder, setMemberOrder] = useState<string[]>([]);
@@ -98,7 +103,7 @@ export default function CampaignDetailsPage() {
     startDate: Date | null;
     timeUntilStart: number | null;
   } | null>(null);
-  
+
   const [contributionHistory, setContributionHistory] = useState<Array<{
     date: Date;
     member: string;
@@ -107,11 +112,11 @@ export default function CampaignDetailsPage() {
     tokenSymbol: string;
     transactionHash: string;
   }>>([]);
-  
+
   // Find the campaign in user campaigns or all campaigns
   useEffect(() => {
     if (campaignId === -1) return;
-    
+
     // First try to find in user campaigns
     let foundCampaign = userGroups.find((c: ThriftGroup) => c.id === campaignId);
     if (foundCampaign) {
@@ -119,7 +124,7 @@ export default function CampaignDetailsPage() {
       setIsUserMember(true);
       return;
     }
-    
+
     // If not in user groups, check all groups
     foundCampaign = allGroups.find((c: ThriftGroup) => c.id === campaignId);
     if (foundCampaign) {
@@ -129,12 +134,12 @@ export default function CampaignDetailsPage() {
     }
 
   }, [campaignId, userGroups, allGroups]);
-  
+
   // Load campaign members
   useEffect(() => {
     const loadMembers = async () => {
       if (!campaign) return;
-      
+
       try {
         const members = await getThriftGroupMembers(campaign.id);
         setCampaignMembers(members);
@@ -145,7 +150,7 @@ export default function CampaignDetailsPage() {
         console.error("Failed to fetch members:", error);
       }
     };
-    
+
     loadMembers();
   }, [campaign, getThriftGroupMembers]);
 
@@ -167,7 +172,7 @@ export default function CampaignDetailsPage() {
     };
     loadMetadata();
   }, [campaign]);
-  
+
   // Check join status when campaign or address changes
   useEffect(() => {
     const checkStatus = async () => {
@@ -190,7 +195,7 @@ export default function CampaignDetailsPage() {
       if (campaign) {
         console.log('checkGroupStatus function available:', typeof checkGroupStatus);
         console.log('Campaign ID:', campaign.id);
-        
+
         try {
           const status = await checkGroupStatus(campaign.id);
           setGroupStatus(status);
@@ -200,7 +205,7 @@ export default function CampaignDetailsPage() {
         }
       }
     };
-    
+
     checkStatus();
   }, [campaign, checkGroupStatus]);
 
@@ -229,7 +234,7 @@ export default function CampaignDetailsPage() {
         setContributionHistory([]);
       }
     };
-    
+
     fetchContributionHistory();
   }, [campaign, groupStatus?.isStarted, getContributionHistory, toast]);
 
@@ -251,33 +256,33 @@ export default function CampaignDetailsPage() {
 
       try {
         console.log('Checking admin status for group:', campaign.id, 'address:', address);
-        
+
         // Import the contract to check admin status
         const { ethers } = await import('ethers');
         const { contractAddress, abi } = await import('@/utils/abi');
-        
+
         const ethereum = (window as any).ethereum;
         if (!ethereum) {
           console.log('Admin check: No ethereum provider');
           return;
         }
-        
+
         const provider = new ethers.BrowserProvider(ethereum);
         const contract = new ethers.Contract(contractAddress, abi, provider);
-        
+
         const groupInfo = await contract.thriftGroups(campaign.id);
         const groupAdmin = groupInfo.admin;
-        
+
         console.log('Group admin from contract:', groupAdmin);
         console.log('Current user address:', address);
-        
+
         const isAdmin = groupAdmin && groupAdmin.toLowerCase() === address.toLowerCase();
         console.log('Is group admin:', isAdmin);
-        
+
         setIsGroupAdmin(isAdmin);
       } catch (error) {
         console.error('Failed to check group admin status:', error);
-        
+
         // Fallback: Check if user is the creator based on metadata
         if (metaCreatedBy && address && address.toLowerCase() === metaCreatedBy.toLowerCase()) {
           console.log('Using fallback admin check - user is creator');
@@ -290,11 +295,11 @@ export default function CampaignDetailsPage() {
 
     checkGroupAdmin();
   }, [campaign, address]);
-  
+
   const handleJoinClick = () => {
     setJoinDialogOpen(true);
   };
-  
+
   const handleContributeClick = () => {
     console.log('Main contribute button clicked!');
     if (!campaign) {
@@ -305,30 +310,30 @@ export default function CampaignDetailsPage() {
     setContributionAmount(campaign.depositAmount);
     setContributeDialogOpen(true);
   };
-  
+
   const handleWithdrawClick = () => {
     setWithdrawDialogOpen(true);
   };
-  
+
   const handleShareClick = () => {
     if (!campaign) return;
     setShareableLink(generateShareLink(campaign.id));
     setShareDialogOpen(true);
   };
-  
+
   const handleJoinCampaign = async () => {
     if (!campaign) return;
-    
+
     try {
       await joinThriftGroup(campaign.id, joinUserName);
       setJoinDialogOpen(false);
       setIsUserMember(true);
-      
+
       toast({
         title: "Join request sent",
         description: "Your request to join this thrift group has been submitted.",
       });
-      
+
       // Clear the join param from URL
       router.replace(`/thrift/${campaignId}`);
     } catch (error) {
@@ -340,13 +345,13 @@ export default function CampaignDetailsPage() {
       });
     }
   };
-  
+
   const handleContribute = async () => {
     if (!campaign) {
       console.log('Contribute: No campaign');
       return;
     }
-    
+
     console.log('Contributing to group:', campaign.id);
     console.log('Group is active:', campaign.isActive);
     console.log('Campaign details:', {
@@ -362,7 +367,8 @@ export default function CampaignDetailsPage() {
       address,
       campaignMembers: campaign.members
     });
-    
+
+    // Check if group is active before attempting contribution
     // Check if group is active before attempting contribution
     if (!campaign.isActive) {
       console.log('Group is not active, showing error');
@@ -373,22 +379,22 @@ export default function CampaignDetailsPage() {
       });
       return;
     }
-    
+
     try {
       console.log('Calling makeContribution...');
       await makeContribution(campaign.id);
       console.log('Contribution successful');
-      
+
       setContributeDialogOpen(false);
       setContributionAmount('');
-      
+
       toast({
         title: "Contribution successful",
         description: `You've contributed to the thrift group.`,
       });
     } catch (error) {
       console.error('Contribution error:', error);
-      
+
       // Handle specific error cases with graceful notifications
       let errorMessage = "An unknown error occurred";
       if (error instanceof Error) {
@@ -406,7 +412,7 @@ export default function CampaignDetailsPage() {
           errorMessage = error.message;
         }
       }
-      
+
       toast({
         title: "Contribution failed",
         description: errorMessage,
@@ -414,14 +420,14 @@ export default function CampaignDetailsPage() {
       });
     }
   };
-  
+
   const handleWithdraw = async () => {
     if (!campaign) return;
-    
+
     try {
       await distributePayout(campaign.id);
       setWithdrawDialogOpen(false);
-      
+
       toast({
         title: "Withdrawal successful",
         description: "You've successfully withdrawn funds from the thrift group.",
@@ -435,7 +441,7 @@ export default function CampaignDetailsPage() {
       });
     }
   };
-  
+
   const copyToClipboard = () => {
     navigator.clipboard.writeText(shareableLink)
       .then(() => {
@@ -456,22 +462,22 @@ export default function CampaignDetailsPage() {
       console.log('Activate: No campaign');
       return;
     }
-    
+
     console.log('Activating group:', campaign.id);
     setIsProcessing(true);
-    
+
     try {
       console.log('Calling activateThriftGroup...');
       await activateThriftGroup(campaign.id);
       console.log('Group activated successfully');
-      
+
       toast({
         title: "Group activated",
         description: "The thrift group has been activated successfully.",
       });
     } catch (error) {
       console.error('Activation error:', error);
-      
+
       // Handle specific error cases with graceful notifications
       let errorMessage = "An unknown error occurred";
       if (error instanceof Error) {
@@ -485,7 +491,7 @@ export default function CampaignDetailsPage() {
           errorMessage = error.message;
         }
       }
-      
+
       toast({
         title: "Activation failed",
         description: errorMessage,
@@ -505,7 +511,7 @@ export default function CampaignDetailsPage() {
       });
       return;
     }
-    
+
     setIsProcessing(true);
     try {
       await setPayoutOrder(campaign.id, memberOrder);
@@ -542,13 +548,54 @@ export default function CampaignDetailsPage() {
     setMemberOrder(newOrder);
   };
 
+  const handleAddMember = async () => {
+    if (!campaign) return;
+
+    if (!addMemberAddress || !addMemberAddress.startsWith('0x')) {
+      toast({
+        title: "Invalid address",
+        description: "Please enter a valid wallet address starting with 0x",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await addMemberToPrivateGroup(campaign.id, addMemberAddress, addMemberEmail, addMemberPhone, addMemberName);
+      setAddMemberDialogOpen(false);
+      setAddMemberAddress('');
+      setAddMemberEmail('');
+      setAddMemberPhone('');
+      setAddMemberName('');
+
+      toast({
+        title: "Member added",
+        description: "The member has been added to the private group successfully.",
+      });
+
+      // Refresh members
+      const members = await getThriftGroupMembers(campaign.id);
+      setCampaignMembers(members);
+    } catch (error) {
+      console.error("Failed to add member:", error);
+      toast({
+        title: "Failed to add member",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleEmergencyWithdraw = async () => {
     if (!campaign) return;
-    
+
     if (!confirm('Are you sure you want to perform emergency withdrawal? This action cannot be undone.')) {
       return;
     }
-    
+
     setIsProcessing(true);
     try {
       await emergencyWithdraw(campaign.id);
@@ -567,7 +614,7 @@ export default function CampaignDetailsPage() {
       setIsProcessing(false);
     }
   };
-  
+
   if (loading) {
     return (
       <motion.div
@@ -583,7 +630,7 @@ export default function CampaignDetailsPage() {
       </motion.div>
     );
   }
-  
+
   if (!campaign) {
     return (
       <motion.div
@@ -603,7 +650,7 @@ export default function CampaignDetailsPage() {
       </motion.div>
     );
   }
-  
+
   return (
     <div className="max-w-screen-xl mx-auto px-4 md:px-8 pb-20">
       <motion.div
@@ -611,14 +658,14 @@ export default function CampaignDetailsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
           className="mb-6"
         >
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => router.push('/thrift')}
             className="flex items-center gap-2 hover:scale-105 transition-transform duration-200"
           >
@@ -626,7 +673,7 @@ export default function CampaignDetailsPage() {
             Back to Thrift Groups
           </Button>
         </motion.div>
-      
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -634,7 +681,7 @@ export default function CampaignDetailsPage() {
         >
           <Card className="border-gray-100 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardHeader>
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
@@ -649,9 +696,9 @@ export default function CampaignDetailsPage() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
+                      <Button
+                        size="sm"
+                        variant="outline"
                         onClick={() => setEditOpen(true)}
                         className="hover:bg-primary/10 transition-colors duration-200"
                       >
@@ -670,7 +717,7 @@ export default function CampaignDetailsPage() {
                   </Badge>
                 </motion.div>
               </motion.div>
-              <motion.p 
+              <motion.p
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
@@ -687,26 +734,26 @@ export default function CampaignDetailsPage() {
               >
                 <Tabs defaultValue="overview">
                   <TabsList className="grid w-full grid-cols-4 gap-1 bg-gray-50 dark:bg-gray-800/50">
-                    <TabsTrigger 
-                      value="overview" 
+                    <TabsTrigger
+                      value="overview"
                       className="w-full data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
                     >
                       Overview
                     </TabsTrigger>
-                    <TabsTrigger 
-                      value="members" 
+                    <TabsTrigger
+                      value="members"
                       className="w-full data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
                     >
                       Members
                     </TabsTrigger>
-                    <TabsTrigger 
-                      value="contributions" 
+                    <TabsTrigger
+                      value="contributions"
                       className="w-full data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
                     >
                       Contributions
                     </TabsTrigger>
-                    <TabsTrigger 
-                      value="history" 
+                    <TabsTrigger
+                      value="history"
                       className="w-full data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
                     >
                       History
@@ -714,7 +761,7 @@ export default function CampaignDetailsPage() {
                   </TabsList>
 
                   <TabsContent value="overview">
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: 0.6 }}
@@ -739,7 +786,7 @@ export default function CampaignDetailsPage() {
                           </CardContent>
                         </Card>
                       </motion.div>
-                      
+
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -759,7 +806,7 @@ export default function CampaignDetailsPage() {
                           </CardContent>
                         </Card>
                       </motion.div>
-                      
+
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -780,7 +827,7 @@ export default function CampaignDetailsPage() {
                         </Card>
                       </motion.div>
                     </motion.div>
-                    
+
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -806,23 +853,23 @@ export default function CampaignDetailsPage() {
                               <div className="flex justify-between text-sm mb-1">
                                 <span className="text-muted-foreground">Current Rotation</span>
                                 <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                                  {campaign.isActive 
-                                    ? (campaign.currentRound === 0 ? "Round 1" : `Round ${campaign.currentRound + 1}`)
+                                  {campaign.isActive
+                                    ? `Round ${campaign.currentRound}`
                                     : "Not Started"
                                   }
                                 </Badge>
                               </div>
                               <div className="mb-4">
-                                <Progress 
-                                  value={campaign.totalMembers > 0 ? Math.min((campaign.currentRound / campaign.totalMembers) * 100, 100) : 0} 
-                                  className="h-3 mb-2" 
+                                <Progress
+                                  value={campaign.totalMembers > 0 ? Math.min((Math.max(0, campaign.completedPayouts - 1) / campaign.totalMembers) * 100, 100) : 0}
+                                  className="h-3 mb-2"
                                 />
                                 <div className="text-xs text-muted-foreground text-center">
-                                  {campaign.totalMembers > 0 ? Math.min((campaign.currentRound / campaign.totalMembers) * 100, 100).toFixed(1) : 0}% Complete
+                                  {campaign.totalMembers > 0 ? Math.min((Math.max(0, campaign.completedPayouts - 1) / campaign.totalMembers) * 100, 100).toFixed(1) : 0}% Complete
                                 </div>
                               </div>
                               <div className="flex flex-wrap gap-4 text-sm">
-                                <motion.div 
+                                <motion.div
                                   initial={{ opacity: 0, x: -20 }}
                                   animate={{ opacity: 1, x: 0 }}
                                   transition={{ duration: 0.5, delay: 1.2 }}
@@ -837,11 +884,11 @@ export default function CampaignDetailsPage() {
                                         if (campaign.pastRecipient) {
                                           return getMemberName(campaign.pastRecipient);
                                         }
-                                        
-                                        // Fallback: calculate from payout order and current round
-                                        if (campaign.payoutOrder && campaign.payoutOrder.length > 0 && campaign.currentRound > 0) {
-                                          const pastIndex = campaign.currentRound - 1;
-                                          if (pastIndex < campaign.payoutOrder.length) {
+
+                                        // Fallback: calculate from payout order and completed payouts (current cycle)
+                                        if (campaign.payoutOrder && campaign.payoutOrder.length > 0) {
+                                          const pastIndex = campaign.completedPayouts - 2; // -1 for 0-based, -1 for previous
+                                          if (pastIndex >= 0 && pastIndex < campaign.payoutOrder.length) {
                                             const pastRecipient = campaign.payoutOrder[pastIndex];
                                             return getMemberName(pastRecipient);
                                           }
@@ -852,7 +899,7 @@ export default function CampaignDetailsPage() {
                                   </div>
                                 </motion.div>
                                 {campaign.isActive && (
-                                  <motion.div 
+                                  <motion.div
                                     initial={{ opacity: 0, x: 20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ duration: 0.5, delay: 1.3 }}
@@ -864,8 +911,8 @@ export default function CampaignDetailsPage() {
                                       <div className="font-medium">
                                         {(() => {
                                           if (campaign.payoutOrder && campaign.payoutOrder.length > 0) {
-                                            const nextIndex = campaign.currentRound;
-                                            if (nextIndex < campaign.payoutOrder.length) {
+                                            const nextIndex = campaign.completedPayouts - 1; // -1 for 0-based
+                                            if (nextIndex >= 0 && nextIndex < campaign.payoutOrder.length) {
                                               const nextRecipient = campaign.payoutOrder[nextIndex];
                                               return getMemberName(nextRecipient);
                                             }
@@ -880,229 +927,229 @@ export default function CampaignDetailsPage() {
                               </div>
                             </motion.div>
                           ) : groupStatus?.startDate ? (
-                    // Show countdown timer when group hasn't started but has a start date
-                    <CountdownTimer 
-                      targetDate={groupStatus.startDate}
-                      onComplete={() => {
-                        // Refresh group status when countdown completes
-                        if (campaign) {
-                          checkGroupStatus(campaign.id).then(setGroupStatus);
-                        }
-                      }}
-                    />
-                  ) : (
-                    // Show waiting message when group is not active
-                    <div className="text-center py-8">
-                      <div className="text-lg font-semibold text-gray-700 mb-2">
-                        {groupStatus?.isActive ? 'Group Activated' : 'Group Not Active'}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {groupStatus?.isActive 
-                          ? 'Waiting for start date...' 
-                          : 'This group has not been activated yet. Please wait for the admin to activate the group.'
-                        }
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>How This Thrift Group Works</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-                    <li>Each member contributes <strong>{campaign.depositAmount} {campaign.tokenSymbol || 'cUSD'}</strong> monthly</li>
-                    <li>The total pool is distributed to one member each month</li>
-                    <li>Order is determined when you join the group</li>
-                    <li>Everyone gets a turn to receive the full pool amount</li>
-                    <li>Missing a contribution may result in losing your turn</li>
-                  </ul>
-                </CardContent>
-              </Card>
-                    </motion.div>
-            </TabsContent>
-            
-            <TabsContent value="members">
-              <h3 className="text-lg font-medium mb-4">Group Members</h3>
-              <div className="rounded-md border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Wallet Address</TableHead>
-                      <TableHead>Join Date</TableHead>
-                      <TableHead className="text-right">Payout Position</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {campaignMembers.length > 0 ? (
-                      campaignMembers.map((member, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{member.userName || `Member ${index + 1}`}</TableCell>
-                          <TableCell className="font-mono text-xs">
-                            {member.address.substring(0, 6)}...{member.address.substring(member.address.length - 4)}
-                          </TableCell>
-                          <TableCell>{new Date(member.joinDate).toLocaleDateString()}</TableCell>
-                          <TableCell className="text-right">{member.payoutPosition !== undefined ? member.payoutPosition + 1 : index + 1}</TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center py-4">
-                          No members yet
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="contributions">
-              <h3 className="text-lg font-medium mb-4">Contribution History</h3>
-              <div className="rounded-md border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Member</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {!groupStatus?.isStarted ? (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center py-4">
-                          <div className="text-gray-500">
-                            <p className="font-medium">Group has not started yet</p>
-                            <p className="text-sm">Contributions will appear here once the group becomes active</p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : contributionHistory.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center py-4">
-                          <div className="text-gray-500">
-                            <p className="font-medium">No contributions yet</p>
-                            <p className="text-sm">Contributions will appear here as members make payments</p>
-                            <div className="flex gap-2 mt-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={async () => {
-                                  if (campaign) {
-                                    console.log('Refresh History clicked for group:', campaign.id);
-                                    try {
-                                      const history = await getContributionHistory(campaign.id);
-                                      console.log('Refresh result:', history);
-                                      setContributionHistory(history);
-                                      if (history.length === 0) {
-                                        toast({
-                                          title: "No Contributions Found",
-                                          description: "No contribution events found on the blockchain for this group.",
-                                          variant: "destructive",
-                                        });
-                                      } else {
-                                        toast({
-                                          title: "History Refreshed",
-                                          description: `Found ${history.length} contribution(s).`,
-                                        });
-                                      }
-                                    } catch (error) {
-                                      console.error('Refresh failed:', error);
-                                      toast({
-                                        title: "Refresh Failed",
-                                        description: "Failed to fetch contribution history. Please try again.",
-                                        variant: "destructive",
-                                      });
-                                    }
-                                  }
-                                }}
-                              >
-                                Refresh History
-                              </Button>
+                            // Show countdown timer when group hasn't started but has a start date
+                            <CountdownTimer
+                              targetDate={groupStatus.startDate}
+                              onComplete={() => {
+                                // Refresh group status when countdown completes
+                                if (campaign) {
+                                  checkGroupStatus(campaign.id).then(setGroupStatus);
+                                }
+                              }}
+                            />
+                          ) : (
+                            // Show waiting message when group is not active
+                            <div className="text-center py-8">
+                              <div className="text-lg font-semibold text-gray-700 mb-2">
+                                {groupStatus?.isActive ? 'Group Activated' : 'Group Not Active'}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {groupStatus?.isActive
+                                  ? 'Waiting for start date...'
+                                  : 'This group has not been activated yet. Please wait for the admin to activate the group.'
+                                }
+                              </div>
                             </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      contributionHistory.map((contribution, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">
-                            {contribution.date.toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{contribution.memberName}</span>
-                              <span className="text-xs text-gray-500 font-mono">
-                                {contribution.member.substring(0, 6)}...{contribution.member.substring(contribution.member.length - 4)}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            {contribution.amount} {contribution.tokenSymbol}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
+                          )}
+                        </CardContent>
+                      </Card>
 
-            <TabsContent value="history">
-              <h3 className="text-lg font-medium mb-4">Metadata History</h3>
-              <div className="rounded-md border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>By</TableHead>
-                      <TableHead>Changes</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {metadata?.updateLog && metadata.updateLog.length > 0 ? (
-                      [...metadata.updateLog].reverse().map((entry: any, idx: number) => {
-                        const when = entry?.at ? new Date(entry.at) : null;
-                        const by = entry?.by || '';
-                        const changes = entry?.changes || {};
-                        const fields = Object.keys(changes).filter((k) => changes[k] !== undefined);
-                        
-                        // Get display name for editor (priority: userName > member number > address)
-                        const displayName = by ? getMemberName(by) : '-';
-                        
-                        return (
-                          <TableRow key={idx}>
-                            <TableCell className="whitespace-nowrap">{when ? when.toLocaleString() : '-'}</TableCell>
-                            <TableCell className="font-mono text-xs">{displayName}</TableCell>
-                            <TableCell>
-                              {fields.length > 0 ? (
-                                <div className="flex flex-wrap gap-2 text-xs">
-                                  {fields.map((f) => (
-                                    <span key={f} className="inline-flex items-center rounded border px-2 py-0.5 bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800">
-                                      {f}
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-neutral-500">No field changes recorded</span>
-                              )}
-                            </TableCell>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>How This Thrift Group Works</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+                            <li>Each member contributes <strong>{campaign.depositAmount} {campaign.tokenSymbol || 'cUSD'}</strong> monthly</li>
+                            <li>The total pool is distributed to one member each month</li>
+                            <li>Order is determined when you join the group</li>
+                            <li>Everyone gets a turn to receive the full pool amount</li>
+                            <li>Missing a contribution may result in losing your turn</li>
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  </TabsContent>
+
+                  <TabsContent value="members">
+                    <h3 className="text-lg font-medium mb-4">Group Members</h3>
+                    <div className="rounded-md border overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Wallet Address</TableHead>
+                            <TableHead>Join Date</TableHead>
+                            <TableHead className="text-right">Payout Position</TableHead>
                           </TableRow>
-                        );
-                      })
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center py-4">No history yet</TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
+                        </TableHeader>
+                        <TableBody>
+                          {campaignMembers.length > 0 ? (
+                            campaignMembers.map((member, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{member.userName || `Member ${index + 1}`}</TableCell>
+                                <TableCell className="font-mono text-xs">
+                                  {member.address.substring(0, 6)}...{member.address.substring(member.address.length - 4)}
+                                </TableCell>
+                                <TableCell>{new Date(member.joinDate).toLocaleDateString()}</TableCell>
+                                <TableCell className="text-right">{member.payoutPosition !== undefined ? member.payoutPosition + 1 : index + 1}</TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
+                            <TableRow>
+                              <TableCell colSpan={4} className="text-center py-4">
+                                No members yet
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="contributions">
+                    <h3 className="text-lg font-medium mb-4">Contribution History</h3>
+                    <div className="rounded-md border overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Member</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {!groupStatus?.isStarted ? (
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-center py-4">
+                                <div className="text-gray-500">
+                                  <p className="font-medium">Group has not started yet</p>
+                                  <p className="text-sm">Contributions will appear here once the group becomes active</p>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ) : contributionHistory.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-center py-4">
+                                <div className="text-gray-500">
+                                  <p className="font-medium">No contributions yet</p>
+                                  <p className="text-sm">Contributions will appear here as members make payments</p>
+                                  <div className="flex gap-2 mt-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={async () => {
+                                        if (campaign) {
+                                          console.log('Refresh History clicked for group:', campaign.id);
+                                          try {
+                                            const history = await getContributionHistory(campaign.id);
+                                            console.log('Refresh result:', history);
+                                            setContributionHistory(history);
+                                            if (history.length === 0) {
+                                              toast({
+                                                title: "No Contributions Found",
+                                                description: "No contribution events found on the blockchain for this group.",
+                                                variant: "destructive",
+                                              });
+                                            } else {
+                                              toast({
+                                                title: "History Refreshed",
+                                                description: `Found ${history.length} contribution(s).`,
+                                              });
+                                            }
+                                          } catch (error) {
+                                            console.error('Refresh failed:', error);
+                                            toast({
+                                              title: "Refresh Failed",
+                                              description: "Failed to fetch contribution history. Please try again.",
+                                              variant: "destructive",
+                                            });
+                                          }
+                                        }
+                                      }}
+                                    >
+                                      Refresh History
+                                    </Button>
+                                  </div>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            contributionHistory.map((contribution, index) => (
+                              <TableRow key={index}>
+                                <TableCell className="font-medium">
+                                  {contribution.date.toLocaleDateString()}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{contribution.memberName}</span>
+                                    <span className="text-xs text-gray-500 font-mono">
+                                      {contribution.member.substring(0, 6)}...{contribution.member.substring(contribution.member.length - 4)}
+                                    </span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right font-medium">
+                                  {contribution.amount} {contribution.tokenSymbol}
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="history">
+                    <h3 className="text-lg font-medium mb-4">Metadata History</h3>
+                    <div className="rounded-md border overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>By</TableHead>
+                            <TableHead>Changes</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {metadata?.updateLog && metadata.updateLog.length > 0 ? (
+                            [...metadata.updateLog].reverse().map((entry: any, idx: number) => {
+                              const when = entry?.at ? new Date(entry.at) : null;
+                              const by = entry?.by || '';
+                              const changes = entry?.changes || {};
+                              const fields = Object.keys(changes).filter((k) => changes[k] !== undefined);
+
+                              // Get display name for editor (priority: userName > member number > address)
+                              const displayName = by ? getMemberName(by) : '-';
+
+                              return (
+                                <TableRow key={idx}>
+                                  <TableCell className="whitespace-nowrap">{when ? when.toLocaleString() : '-'}</TableCell>
+                                  <TableCell className="font-mono text-xs">{displayName}</TableCell>
+                                  <TableCell>
+                                    {fields.length > 0 ? (
+                                      <div className="flex flex-wrap gap-2 text-xs">
+                                        {fields.map((f) => (
+                                          <span key={f} className="inline-flex items-center rounded border px-2 py-0.5 bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800">
+                                            {f}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <span className="text-neutral-500">No field changes recorded</span>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })
+                          ) : (
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-center py-4">No history yet</TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </TabsContent>
 
                 </Tabs>
               </motion.div>
@@ -1182,9 +1229,9 @@ export default function CampaignDetailsPage() {
                     disabled={!isConnected || !joinStatus.canJoin}
                   >
                     <UsersIcon className="h-5 w-5 mr-2" />
-                    {!isConnected 
-                      ? 'Connect Wallet to Join' 
-                      : !joinStatus.canJoin 
+                    {!isConnected
+                      ? 'Connect Wallet to Join'
+                      : !joinStatus.canJoin
                         ? `Cannot Join - ${joinStatus.reason || 'Unknown reason'}`
                         : 'Request to Join'
                     }
@@ -1213,7 +1260,7 @@ export default function CampaignDetailsPage() {
                 </p>
               </CardHeader>
               <CardContent>
-                
+
                 <div className="grid gap-4">
                   {/* Activate Group */}
                   {!campaign.isActive && (
@@ -1335,6 +1382,37 @@ export default function CampaignDetailsPage() {
                       </Button>
                     </motion.div>
                   </motion.div>
+
+                  {/* Add Member (Private Groups) */}
+                  {!campaign.isPublic && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.5, delay: 2.2 }}
+                      whileHover={{ scale: 1.02 }}
+                      className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50"
+                    >
+                      <div>
+                        <h3 className="font-medium">Add Member</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Add a member to this private group
+                        </p>
+                      </div>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Button
+                          onClick={() => setAddMemberDialogOpen(true)}
+                          disabled={isProcessing || campaign.totalMembers >= campaign.maxMembers}
+                          variant="outline"
+                        >
+                          <UsersIcon className="h-4 w-4 mr-2" />
+                          Add Member
+                        </Button>
+                      </motion.div>
+                    </motion.div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1353,13 +1431,13 @@ export default function CampaignDetailsPage() {
             <p className="text-sm text-gray-500 mb-6">
               Monthly contribution: {campaign.depositAmount} {campaign.tokenSymbol || 'cUSD'}
             </p>
-            
+
             {!joinStatus.canJoin && joinStatus.reason && (
               <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-800 mb-4">
                 <p><strong>Cannot join this group:</strong> {joinStatus.reason}</p>
               </div>
             )}
-            
+
             {joinStatus.canJoin && (
               <div className="space-y-4">
                 <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800">
@@ -1367,12 +1445,12 @@ export default function CampaignDetailsPage() {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="joinUserName" className="text-right">Your Name</Label>
-                  <Input 
-                    id="joinUserName" 
+                  <Input
+                    id="joinUserName"
                     value={joinUserName}
                     onChange={(e) => setJoinUserName(e.target.value)}
-                    className="col-span-3" 
-                    placeholder="Enter your name" 
+                    className="col-span-3"
+                    placeholder="Enter your name"
                   />
                 </div>
               </div>
@@ -1387,7 +1465,7 @@ export default function CampaignDetailsPage() {
             }}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleJoinCampaign}
               disabled={loading || !isConnected || !joinStatus.canJoin || !joinUserName.trim()}
             >
@@ -1405,38 +1483,38 @@ export default function CampaignDetailsPage() {
           </DialogHeader>
           <div className="py-4">
             <p className="mb-4">Contributing to: <strong>{campaign.name}</strong></p>
-            
+
             {!campaign.isActive && (
               <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800 mb-4">
                 <p><strong>Group Not Active:</strong> This group has not been activated yet. Please wait for the admin to activate the group before contributing.</p>
               </div>
             )}
-            
+
             <div className="grid gap-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="amount" className="text-right">Amount</Label>
-                <Input 
-                  id="amount" 
+                <Input
+                  id="amount"
                   type="number"
                   value={contributionAmount}
                   onChange={(e) => setContributionAmount(e.target.value)}
-                  className="col-span-3" 
-                  placeholder="100" 
-                  disabled={!campaign.isActive}
+                  className="col-span-3"
+                  placeholder="100"
+                  disabled={true}
                 />
               </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setContributeDialogOpen(false)}>Cancel</Button>
-            <Button 
+            <Button
               onClick={() => {
                 console.log('Contribute button clicked!');
                 handleContribute();
               }}
               disabled={loading || !campaign.isActive}
             >
-              {loading ? 'Processing...' : !campaign.isActive ? 'Group Not Active' : 'Contribute'}
+              {loading ? 'Processing...' : 'Contribute'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1456,14 +1534,14 @@ export default function CampaignDetailsPage() {
             <p className="text-2xl font-bold mb-6">
               {parseFloat(campaign.depositAmount) * 5} {campaign.tokenSymbol || 'cUSD'}
             </p>
-            
+
             <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800">
               <p>Note: You can only withdraw once during your assigned rotation. Make sure this is the right time.</p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setWithdrawDialogOpen(false)}>Cancel</Button>
-            <Button 
+            <Button
               onClick={handleWithdraw}
               disabled={loading}
             >
@@ -1484,11 +1562,11 @@ export default function CampaignDetailsPage() {
             <div className="grid gap-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="shareLink" className="text-right">Share Link</Label>
-                <Input 
-                  id="shareLink" 
+                <Input
+                  id="shareLink"
                   value={shareableLink}
                   readOnly
-                  className="col-span-3" 
+                  className="col-span-3"
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
               </div>
@@ -1499,7 +1577,7 @@ export default function CampaignDetailsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShareDialogOpen(false)}>Cancel</Button>
-            <Button 
+            <Button
               onClick={copyToClipboard}
             >
               Copy Link
@@ -1519,12 +1597,12 @@ export default function CampaignDetailsPage() {
             <p className="text-sm text-muted-foreground mb-4">
               Drag members up or down to set the order they will receive payouts. The first member will receive the first payout.
             </p>
-            
+
             <div className="space-y-2">
               {memberOrder.map((address, index) => {
                 const member = campaignMembers.find(m => m.address === address);
                 return (
-                  <div 
+                  <div
                     key={address}
                     className="flex items-center justify-between p-3 border rounded-lg bg-card"
                   >
@@ -1568,7 +1646,7 @@ export default function CampaignDetailsPage() {
                 );
               })}
             </div>
-            
+
             {memberOrder.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 <UsersIcon className="h-8 w-8 mx-auto mb-2" />
@@ -1578,11 +1656,73 @@ export default function CampaignDetailsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAdminDialogOpen(false)}>Cancel</Button>
-            <Button 
+            <Button
               onClick={handleSetPayoutOrder}
               disabled={memberOrder.length === 0 || isProcessing}
             >
               {isProcessing ? 'Processing...' : 'Set Order'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Member Dialog */}
+      <Dialog open={addMemberDialogOpen} onOpenChange={setAddMemberDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add Member to Private Group</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="mb-4">Add a new member to <strong>{campaign?.name}</strong></p>
+
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="addMemberName">Name</Label>
+                <Input
+                  id="addMemberName"
+                  value={addMemberName}
+                  onChange={(e) => setAddMemberName(e.target.value)}
+                  placeholder="John Doe"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="addMemberAddress">Wallet Address</Label>
+                <Input
+                  id="addMemberAddress"
+                  value={addMemberAddress}
+                  onChange={(e) => setAddMemberAddress(e.target.value)}
+                  placeholder="0x..."
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="addMemberEmail">Email</Label>
+                <Input
+                  id="addMemberEmail"
+                  type="email"
+                  value={addMemberEmail}
+                  onChange={(e) => setAddMemberEmail(e.target.value)}
+                  placeholder="name@example.com"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="addMemberPhone">Phone</Label>
+                <Input
+                  id="addMemberPhone"
+                  type="tel"
+                  value={addMemberPhone}
+                  onChange={(e) => setAddMemberPhone(e.target.value)}
+                  placeholder="+1234567890"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddMemberDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleAddMember}
+              disabled={isProcessing || !addMemberAddress}
+            >
+              {isProcessing ? 'Adding...' : 'Add Member'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1601,8 +1741,9 @@ export default function CampaignDetailsPage() {
         initialTags={campaign.meta?.tags}
         onSaved={({ name, description }) => {
           setCampaign((prev) => prev ? { ...prev, name, description: description || prev.description } : prev);
+          refreshGroups();
         }}
       />
-    </div>
+    </div >
   );
 }

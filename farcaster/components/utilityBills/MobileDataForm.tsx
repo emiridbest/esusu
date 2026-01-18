@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import { Loader2 } from "lucide-react";
 import CountrySelector from '../utilityBills/CountrySelector';
 import { TOKENS } from '../../context/utilityProvider/tokens';
+import { TOKENS as UTILS_TOKENS } from '../../utils/tokens';
 import {
   fetchMobileOperators,
   fetchDataPlans,
@@ -182,14 +183,6 @@ export default function MobileDataForm() {
   }, [watchPaymentToken]);
 
 
-  /**
- *
- * @param values - The form values containing country, phone number, network, plan, and payment token.
- * @param country - The selected country for the mobile data service.
- * @param phoneNumber - The phone number to recharge.
- * @param provider - The selected network provider.
- * @returns 
- */
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsProcessing(true);
     let paymentSuccessful = false;
@@ -311,7 +304,7 @@ export default function MobileDataForm() {
 
           if (response.ok && data.success) {
             updateStepStatus('top-up', 'success');
-            
+
             // Show success modal
             const countryData = getCountryData(values.country);
             setSuccessDetails({
@@ -384,52 +377,53 @@ export default function MobileDataForm() {
       setIsProcessing(false);
     }
   }
-    return (
-      <div className="bg-gradient-to-br from-white via-black-50 to-primary-50 dark:from-black dark:via-black-0 dark:to-black p-6 rounded-xl border border-primary-400/20 dark:border-primary-400/30">
+
+  return (
+    <Card className="bg-white/50 dark:bg-black/40 backdrop-blur-md border border-gray-100 dark:border-gray-800 shadow-lg shadow-primary/5">
+      <CardContent className="p-4">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="country"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">COUNTRY</FormLabel>
+                  <FormLabel className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">COUNTRY</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <CountrySelector
-  
                         value={field.value}
                         onChange={(val) => {
                           field.onChange(val);
                           if (val) setCountryCurrency(val);
                         }}
+                        serviceFilter="data"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 dark:from-yellow-400/10 to-transparent pointer-events-none rounded-lg"></div>
                     </div>
                   </FormControl>
-                  <FormMessage className="text-red-600 dark:text-yellow-300" />
+                  <FormMessage className="text-red-500" />
                 </FormItem>
               )}
             />
-  
+
             <FormField
               control={form.control}
               name="network"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm"> NETWORK PROVIDER</FormLabel>
+                  <FormLabel className="text-muted-foreground text-xs uppercase tracking-wider font-semibold"> NETWORK PROVIDER</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || networks.length === 0}>
                     <FormControl className="relative">
-                      <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-black/90 dark:text-white/90">
+                      <SelectTrigger className="bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-700 h-10">
                         <SelectValue placeholder="Select network provider" className='text-xs'>
                           {field.value && networks && networks.length > 0 && (() => {
                             const selectedNetwork = networks.find(n => n.id === field.value);
                             if (selectedNetwork && selectedNetwork.logoUrls && selectedNetwork.logoUrls.length > 0) {
                               return (
                                 <div className="flex items-center">
-                                  <img 
-                                    src={selectedNetwork.logoUrls[0]} 
-                                    alt={selectedNetwork.name} 
+                                  <img
+                                    src={selectedNetwork.logoUrls[0]}
+                                    alt={selectedNetwork.name}
                                     className="h-4 w-4 mr-2 rounded-sm object-contain"
                                     onError={(e) => {
                                       // If image fails to load, hide it
@@ -445,7 +439,7 @@ export default function MobileDataForm() {
                         </SelectValue>
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="bg-white">
+                    <SelectContent className="bg-white dark:bg-black border-gray-200 dark:border-gray-800">
                       {networks.length > 0 ? (
                         networks.map((network) => (
                           <SelectItem
@@ -454,9 +448,9 @@ export default function MobileDataForm() {
                           >
                             <div className="flex items-center">
                               {network.logoUrls && network.logoUrls.length > 0 && (
-                                <img 
-                                  src={network.logoUrls[0]} 
-                                  alt={network.name} 
+                                <img
+                                  src={network.logoUrls[0]}
+                                  alt={network.name}
                                   className="h-5 w-5 mr-2 rounded-sm object-contain"
                                   onError={(e) => {
                                     // If image fails to load, hide it
@@ -469,37 +463,37 @@ export default function MobileDataForm() {
                           </SelectItem>
                         ))
                       ) : (
-                        <div className="px-2 py-1 text-sm text-black/90 dark:text-white/90">
+                        <div className="px-2 py-1 text-sm text-muted-foreground">
                           No network providers available
                         </div>
                       )}
                     </SelectContent>
                   </Select>
-                  {isLoading && <div className="text-sm text-black-600 dark:text-yellow-300 mt-1 flex items-center">
-                    <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-white/60 " /> Loading providers...
+                  {isLoading && <div className="text-xs text-muted-foreground mt-1 flex items-center">
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading providers...
                   </div>}
-                  <FormMessage className="text-red-600 dark:text-yellow-300" />
+                  <FormMessage className="text-red-500" />
                 </FormItem>
               )}
-            /> 
-            
-                     <FormField
+            />
+
+            <FormField
               control={form.control}
               name="plan"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">DATA PLAN</FormLabel>
+                  <FormLabel className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">DATA PLAN</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
                     disabled={isLoading || !watchNetwork || availablePlans.length === 0}
                   >
                     <FormControl>
-                      <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-black/90 dark:text-white/90">
+                      <SelectTrigger className="bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-700 h-10">
                         <SelectValue placeholder="Select data plan" className='text-xs' />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="bg-white">
+                    <SelectContent className="bg-white dark:bg-black border-gray-200 dark:border-gray-800">
                       {availablePlans.length > 0 ? (
                         availablePlans.map((plan) => (
                           <SelectItem
@@ -510,40 +504,40 @@ export default function MobileDataForm() {
                           </SelectItem>
                         ))
                       ) : (
-                        <div className="px-2 py-1 text-sm text-black/90 dark:text-white/90">
+                        <div className="px-2 py-1 text-sm text-muted-foreground">
                           No data plans available
                         </div>
                       )}
                     </SelectContent>
                   </Select>
-                  {isLoading && <div className="text-sm text-black-600 dark:text-yellow-300 mt-1 flex items-center">
-                    <Loader2 className="h-3 w-3 animate-spin mr-1 text-primary/900 dark:text-white/60 " /> Loading plans...
+                  {isLoading && <div className="text-xs text-muted-foreground mt-1 flex items-center">
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading plans...
                   </div>}
                   {!isLoading && watchNetwork && availablePlans.length === 0 && (
-                    <div className="text-sm text-red-600 dark:text-yellow-300 mt-1">
+                    <div className="text-xs text-red-500 mt-1">
                       No data plans available for this network
                     </div>
                   )}
-                  <FormMessage className="text-red-600 dark:text-yellow-300" />
+                  <FormMessage className="text-red-500" />
                 </FormItem>
               )}
             />
-  
-  
+
+
             <FormField
               control={form.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">EMAIL</FormLabel>
+                  <FormLabel className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">EMAIL</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Enter your email"
                       {...field}
-                      className="text-xs bg-gray-100 dark:bg-white/10  "
+                      className="bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-700 h-10 text-sm"
                     />
                   </FormControl>
-                  <FormMessage className="text-red-600 dark:text-yellow-300" />
+                  <FormMessage className="text-red-500" />
                 </FormItem>
               )}
             />
@@ -552,16 +546,15 @@ export default function MobileDataForm() {
               name="phoneNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">PHONE NUMBER</FormLabel>
+                  <FormLabel className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">PHONE NUMBER</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Enter phone number"
                       {...field}
-                      className="text-xs bg-gray-100 dark:bg-white/10  text-black-900 dark:text-white/90"
-  
+                      className="bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-700 h-10 text-sm"
                     />
                   </FormControl>
-                  <FormMessage className="text-red-600 dark:text-yellow-300" />
+                  <FormMessage className="text-red-500" />
                 </FormItem>
               )}
             />
@@ -570,7 +563,7 @@ export default function MobileDataForm() {
               name="paymentToken"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-black/80 dark:text-white/60  font-light text-sm">PAYMENT TOKEN</FormLabel>
+                  <FormLabel className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">PAYMENT TOKEN</FormLabel>
                   <Select
                     onValueChange={(val) => {
                       field.onChange(val);
@@ -579,34 +572,55 @@ export default function MobileDataForm() {
                     value={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger className="bg-gray-100 dark:bg-white/10  text-black/90 dark:text-white/90">
-                        <SelectValue placeholder="Select payment token" className='text-xs' />
+                      <SelectTrigger className="bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-700 h-10">
+                        <SelectValue placeholder="Select payment token" className='text-xs'>
+                          {field.value && (() => {
+                            const selectedTokenConfig = UTILS_TOKENS[field.value];
+                            const tokenName = TOKENS.find(t => t.id === field.value)?.name || field.value;
+                            return (
+                              <div className="flex items-center gap-2">
+                                {selectedTokenConfig?.logoUrl && (
+                                  <img src={selectedTokenConfig.logoUrl} alt={tokenName} className="w-4 h-4" />
+                                )}
+                                <span>{tokenName}</span>
+                              </div>
+                            );
+                          })()}
+                        </SelectValue>
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="bg-white">
-                      {TOKENS.map((token) => (
-                        <SelectItem
-                          key={token.id}
-                          value={token.id}
-                        >
-                          {token.name}
-                        </SelectItem>
-                      ))}
+                    <SelectContent className="bg-white dark:bg-black border-gray-200 dark:border-gray-800">
+                      {TOKENS.map((token) => {
+                        const logoUrl = UTILS_TOKENS[token.id]?.logoUrl;
+                        return (
+                          <SelectItem
+                            key={token.id}
+                            value={token.id}
+                          >
+                            <div className="flex items-center gap-2">
+                              {logoUrl && (
+                                <img src={logoUrl} alt={token.name} className="w-5 h-5" />
+                              )}
+                              <span>{token.name}</span>
+                            </div>
+                          </SelectItem>
+                        )
+                      })}
                     </SelectContent>
                   </Select>
-                  <FormMessage className="text-red-600 dark:text-yellow-300" />
+                  <FormMessage className="text-red-500" />
                 </FormItem>
               )}
             />
-  
+
             {selectedPrice > 0 && (
-              <Card className="bg-gradient-to-r from-yellow-100 via-yellow-200 to-yellow-100 dark:from-yellow-400 dark:via-yellow-300 dark:to-yellow-400 ">
-                <CardContent className="pt-4">
+              <Card className="bg-primary/5 border-primary/20 dark:bg-primary/10">
+                <CardContent className="pt-4 pb-4">
                   <div className="flex flex-col space-y-1">
-                    <div className="text-sm font-light text-black/80 dark:text-black">
-                      Payment Amount:
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Payment Amount
                     </div>
-                    <div className="text-black-900 dark:text-black font-medium">
+                    <div className="text-2xl font-bold text-primary">
                       <DualCurrencyPrice
                         amount={selectedPrice}
                         countryCurrency={form.getValues().country}
@@ -618,15 +632,15 @@ export default function MobileDataForm() {
                 </CardContent>
               </Card>
             )}
-  
+
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-yellow-400 via-primary/900 to-yellow-400 hover:from-primary/900 hover:via-yellow-600 hover:to-primary/900 dark:from-yellow-400 dark:via-primary/900 dark:to-yellow-400 dark:hover:from-primary/900 dark:hover:via-yellow-600 dark:hover:to-primary/900 text-black font-light py-3 shadow-lg shadow-yellow-400/30 dark:shadow-yellow-400/40 "
+              className="w-full font-semibold h-12 text-sm"
               disabled={isProcessing || !selectedPrice}
             >
               {isProcessing ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin text-black" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Processing...
                 </>
               ) : (
@@ -635,18 +649,16 @@ export default function MobileDataForm() {
             </Button>
           </form>
         </Form>
-        
-        {successDetails && (
+
+        {/* Success Modal */}
+        {showSuccessModal && successDetails && (
           <PaymentSuccessModal
             open={showSuccessModal}
-            onClose={() => {
-              setShowSuccessModal(false);
-              setSuccessDetails(null);
-              closeTransactionDialog();
-            }}
+            onClose={() => setShowSuccessModal(false)}
             paymentDetails={successDetails}
           />
         )}
-      </div>
-    );
-  }
+      </CardContent>
+    </Card>
+  );
+}

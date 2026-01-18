@@ -17,7 +17,7 @@ import { useMiniAppDimensions } from '@/hooks/useMiniAppDimensions';
 function MainContent() {
   const router = useRouter();
   const [selectedTab, setSelectedTab] = useState('mobile-data');
-  const {  countryData } = useUtility();
+  const { countryData } = useUtility();
   const dimensions = useMiniAppDimensions();
 
   const handleTabChange = (tab: string) => {
@@ -26,7 +26,7 @@ function MainContent() {
 
   return (
     <div
-      className={`${dimensions.containerClass} mx-auto px-2 pt-2 pb-10 overflow-auto`}
+      className={`${dimensions.containerClass} mx-auto px-2 py-4 overflow-auto`}
       style={{
         width: dimensions.width,
         height: dimensions.height,
@@ -34,58 +34,51 @@ function MainContent() {
       }}
     >
       {/* Main Utility Bills Card */}
-      <div >
-         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-2"
-        >
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 flex items-center">
-            <ShieldIcon className="mr-3 h-8 w-8 text-primary" />
-            Pay Bills
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300 max-w-3xl">
-          Select from mobile data, airtime, and electricity tab to get started.
-          </p>
-        </motion.div>
-        </div>
-      <Card className='backdrop-blur-md '>
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/70 via-primary/40 to-primary/10 rounded-full"></div>
-          <Tabs defaultValue="mobile-data" onValueChange={handleTabChange}>
-            <TabsList className="grid w-full grid-cols-3 gap-1">
-              <TabsTrigger 
-                value="mobile-data" 
-                className="w-full"
+      <Card className="bg-white/50 dark:bg-black/40 backdrop-blur-md border border-gray-100 dark:border-gray-800 shadow-xl shadow-primary/5">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-gray-700 to-gray-900 dark:from-white dark:via-gray-200 dark:to-white">
+            Utility Bills
+          </CardTitle>
+          <CardDescription className="text-muted-foreground text-xs">
+            Pay your utility bills with crypto
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4">
+          <Tabs defaultValue="mobile-data" onValueChange={handleTabChange} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3 gap-2 bg-gray-100/50 dark:bg-gray-900/50 p-1 rounded-xl">
+              <TabsTrigger
+                value="mobile-data"
+                className="data-[state=active]:bg-white dark:data-[state=active]:bg-black data-[state=active]:text-primary dark:data-[state=active]:text-primary data-[state=active]:shadow-md rounded-lg transition-all duration-300 font-medium text-xs py-2"
               >
-                <Smartphone className="mr-2" /> Data
+                <Smartphone className="mr-1 h-3 w-3" /> Data
               </TabsTrigger>
-              <TabsTrigger 
-                value="airtime" 
-                className="w-full"
+              <TabsTrigger
+                value="airtime"
+                className="data-[state=active]:bg-white dark:data-[state=active]:bg-black data-[state=active]:text-primary dark:data-[state=active]:text-primary data-[state=active]:shadow-md rounded-lg transition-all duration-300 font-medium text-xs py-2"
               >
-                <PhoneIcon className="mr-2" /> Airtime
+                <PhoneIcon className="mr-1 h-3 w-3" /> Airtime
               </TabsTrigger>
-              <TabsTrigger 
-                value="electricity-bill" 
-                className="w-full"
+              <TabsTrigger
+                value="electricity-bill"
+                className="data-[state=active]:bg-white dark:data-[state=active]:bg-black data-[state=active]:text-primary dark:data-[state=active]:text-primary data-[state=active]:shadow-md rounded-lg transition-all duration-300 font-medium text-xs py-2"
               >
-                <Zap className="mr-2" /> Electricity
+                <Zap className="mr-1 h-3 w-3" /> Power
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="mobile-data">
+            <TabsContent value="mobile-data" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
               <MobileDataForm />
             </TabsContent>
 
-            <TabsContent value="airtime">
+            <TabsContent value="airtime" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
               <AirtimeForm />
             </TabsContent>
-            <TabsContent value="electricity-bill">
+            <TabsContent value="electricity-bill" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
               <ElectricityBillForm />
             </TabsContent>
 
           </Tabs>
+        </CardContent>
       </Card>
     </div>
   );

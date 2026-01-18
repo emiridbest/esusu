@@ -52,8 +52,8 @@ export interface ThriftMember {
 export interface ThriftContextType {
   userGroups: ThriftGroup[];
   allGroups: ThriftGroup[];
-  createThriftGroup: (name: string, description: string, depositAmount: string, maxMembers: number, isPublic: boolean, tokenAddress?: string, startDate?: Date, creatorName?: string) => Promise<void>;
-  joinThriftGroup: (groupId: number, userName?: string) => Promise<void>;
+  createThriftGroup: (name: string, description: string, depositAmount: string, maxMembers: number, isPublic: boolean, tokenAddress?: string, startDate?: Date, creatorName?: string, email?: string, phone?: string) => Promise<void>;
+  joinThriftGroup: (groupId: number, userName?: string, email?: string, phone?: string) => Promise<void>;
   checkJoinStatus: (groupId: number) => Promise<{
     isMember: boolean;
     groupInfo: any;
@@ -69,7 +69,7 @@ export interface ThriftContextType {
     startDate: Date | null;
     timeUntilStart: number | null;
   }>;
-  addMemberToPrivateGroup: (groupId: number, memberAddress: string) => Promise<void>;
+  addMemberToPrivateGroup: (groupId: number, memberAddress: string, email?: string, phone?: string, userName?: string) => Promise<void>;
   makeContribution: (groupId: number) => Promise<void>;
   distributePayout: (groupId: number) => Promise<void>;
   getThriftGroupMembers: (groupId: number) => Promise<ThriftMember[]>;
@@ -197,7 +197,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [initialize]);
 
   // Create thrift group contract interaction
-  const createThriftGroup = async (name: string, description: string, depositAmount: string, maxMembers: number, isPublic: boolean, tokenAddress?: string, startDate?: Date, creatorName?: string) => {
+  const createThriftGroup = async (name: string, description: string, depositAmount: string, maxMembers: number, isPublic: boolean, tokenAddress?: string, startDate?: Date, creatorName?: string, email?: string, phone?: string) => {
     if (!contract || !isConnected) {
       throw new Error("Wallet not connected or contract not initialized");
     }
@@ -260,7 +260,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } catch (_) {
         // If not accessible, proceed without check
       }
-      if (minContribution !== undefined) {
+      if (minContribution !== undefined && isPublic) {
         // Both are bigint in ethers v6; avoid BigInt literals by comparing directly
         if (amount < minContribution) {
           const msg = `Deposit amount is below the minimum contribution: ${formatUnits(minContribution, 18)}.`;
@@ -281,9 +281,9 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
           contractAddress: contractAddress as `0x${string}`,
-          abi: parseAbi(["function createThriftGroup(uint256, uint256, bool, address) returns (uint256)"]),
+          abi: parseAbi(["function createThriftGroup(uint256, uint256, bool, address, string, string) returns (uint256)"]),
           functionName: 'createThriftGroup',
-          args: [amount, BigInt(startTimestamp), isPublic, finalTokenAddress],
+          args: [amount, BigInt(startTimestamp), isPublic, finalTokenAddress, email || "", phone || ""],
         });
 
         if (sponsorshipResult.gasSponsored) {
@@ -294,7 +294,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error("Gas sponsorship failed:", gasError);
       }
 
-      const tx = await contract.createThriftGroup(amount, startTimestamp, isPublic, finalTokenAddress);
+      const tx = await contract.createThriftGroup(amount, startTimestamp, isPublic, finalTokenAddress, email || "", phone || "");
       const receipt = await tx.wait();
 
       // Try to parse the emitted event to get the new groupId
@@ -324,7 +324,9 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!newGroupId) {
         try {
           const total = await contract.totalThriftGroups();
-          newGroupId = Number(total);
+          // Total is incremented after creation, so the new ID is total - 1
+          const totalNum = Number(total);
+          newGroupId = totalNum > 0 ? totalNum - 1 : 0;
         } catch (_) {
           // ignore
         }
@@ -332,7 +334,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // Persist off-chain metadata (best-effort) with signature auth
       try {
-        if (newGroupId && provider && account) {
+        if (newGroupId !== null && newGroupId !== undefined && provider && account) {
           const ts = Date.now();
           const msg = [
             'Esusu: Thrift Metadata Update',
@@ -367,7 +369,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       // Store creator as first member in the database with their name
-      if (newGroupId && account) {
+      if (newGroupId !== null && newGroupId !== undefined && account) {
         try {
           const finalCreatorName = creatorName || 'Creator';
           console.log('🎯 Storing creator in database:', {
@@ -510,7 +512,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Join public thrift group contract interaction
-  const joinThriftGroup = async (groupId: number, userName?: string) => {
+  const joinThriftGroup = async (groupId: number, userName?: string, email?: string, phone?: string) => {
     if (!contract || !isConnected) {
       throw new Error("Wallet not connected or contract not initialized");
     }
@@ -534,13 +536,70 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       console.log('Attempting to join group:', groupId);
 
+      // Check for collateral requirement if group is public
+      if (status.groupInfo?.isPublic) {
+        const contributionAmount = BigInt(status.groupInfo.contributionAmount);
+        const collateralAmount = contributionAmount * 5n; // 5x collateral
+
+        if (collateralAmount > 0n) {
+          // We need to get the token address. It's not in checkJoinStatus groupInfo fully. 
+          // We need to fetch it or rely on what we have. 
+          // status.groupInfo only has minimal info.
+          // Let's fetch the full group struct to be sure.
+          const fullGroup = await contract.getThriftGroup(groupId);
+          const tokenAddress = fullGroup.tokenAddress || fullGroup[6];
+
+          if (tokenAddress) {
+            const erc20Abi = [
+              "function approve(address spender, uint256 amount) returns (bool)",
+              "function allowance(address owner, address spender) view returns (uint256)",
+              "function balanceOf(address owner) view returns (uint256)"
+            ];
+            const erc20Contract = new Contract(tokenAddress, erc20Abi, provider) as any;
+            const signer = await provider.getSigner();
+            const erc20WithSigner = erc20Contract.connect(signer);
+
+            const currentAllowance = await (erc20WithSigner as any).allowance(account, contract.address);
+            const userBalance = await (erc20WithSigner as any).balanceOf(account);
+
+            if (userBalance < collateralAmount) {
+              const requiredFormatted = formatUnits(collateralAmount, 18); // Assuming 18 for now or fetch decimals
+              throw new Error(`Insufficient balance for collateral. You need ${requiredFormatted} tokens.`);
+            }
+
+            if (currentAllowance < collateralAmount) {
+              toast.info("Approval Required for Collateral", {
+                description: "Public groups require locking 5x contribution as collateral. Please approve."
+              });
+              // Sponsor gas for approval
+              try {
+                const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
+                  contractAddress: tokenAddress as `0x${string}`,
+                  abi: parseAbi(["function approve(address, uint256) returns (bool)"]),
+                  functionName: 'approve',
+                  args: [contract.address, collateralAmount],
+                });
+                if (sponsorshipResult.gasSponsored) {
+                  toast.success(`Gas sponsored for approval`);
+                  await new Promise(resolve => setTimeout(resolve, 3000));
+                }
+              } catch (e) { console.error(e); }
+
+              const approvalTx = await (erc20WithSigner as any).approve(contract.address, collateralAmount);
+              await approvalTx.wait();
+              toast.success("Collateral Approved");
+            }
+          }
+        }
+      }
+
       // Sponsor gas for joinPublicGroup
       try {
         const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
           contractAddress: contractAddress as `0x${string}`,
-          abi: parseAbi(["function joinPublicGroup(uint256)"]),
+          abi: parseAbi(["function joinPublicGroup(uint256, string, string)"]),
           functionName: 'joinPublicGroup',
-          args: [BigInt(groupId)],
+          args: [BigInt(groupId), email || "", phone || ""],
         });
 
         if (sponsorshipResult.gasSponsored) {
@@ -551,7 +610,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error("Gas sponsorship failed:", gasError);
       }
 
-      const tx = await contract.joinPublicGroup(groupId);
+      const tx = await contract.joinPublicGroup(groupId, email || "", phone || "");
       console.log('Join transaction sent:', tx.hash);
 
       const receipt = await tx.wait();
@@ -775,7 +834,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Add member to private group contract interaction
-  const addMemberToPrivateGroup = async (groupId: number, memberAddress: string) => {
+  const addMemberToPrivateGroup = async (groupId: number, memberAddress: string, email?: string, phone?: string, userName?: string) => {
     if (!contract || !isConnected) {
       throw new Error("Wallet not connected or contract not initialized");
     }
@@ -788,9 +847,9 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
           contractAddress: contractAddress as `0x${string}`,
-          abi: parseAbi(["function addMemberToPrivateGroup(uint256, address)"]),
+          abi: parseAbi(["function addMemberToPrivateGroup(uint256, address, string, string)"]),
           functionName: 'addMemberToPrivateGroup',
-          args: [BigInt(groupId), memberAddress],
+          args: [BigInt(groupId), memberAddress, email || "", phone || ""],
         });
 
         if (sponsorshipResult.gasSponsored) {
@@ -801,8 +860,27 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error("Gas sponsorship failed:", gasError);
       }
 
-      const tx = await contract.addMemberToPrivateGroup(groupId, memberAddress);
+      const tx = await contract.addMemberToPrivateGroup(groupId, memberAddress, email || "", phone || "");
       await tx.wait();
+
+      // Save member name to database if provided
+      if (userName) {
+        try {
+          await fetch(`/api/groups/${groupId}/members`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userAddress: memberAddress,
+              userName: userName,
+              role: 'member',
+              joinDate: new Date().toISOString()
+            })
+          });
+        } catch (apiError) {
+          console.warn('Failed to save member name to database:', apiError);
+          // Don't fail the operation if just the name save fails
+        }
+      }
 
       await refreshGroups();
       toast.success("Member added successfully!");
@@ -908,28 +986,39 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const erc20Abi = [
             "function approve(address spender, uint256 amount) returns (bool)",
             "function allowance(address owner, address spender) view returns (uint256)",
-            "function balanceOf(address owner) view returns (uint256)"
+            "function balanceOf(address owner) view returns (uint256)",
+            "function decimals() view returns (uint8)"
           ];
 
-          const erc20Contract = new Contract(tokenAddress, erc20Abi, provider) as any;
+          // Use read-only contract for view functions
+          const erc20ReadOnly = new Contract(tokenAddress, erc20Abi, customRpcProvider) as any;
           const signer = await provider.getSigner();
-          const erc20WithSigner = erc20Contract.connect(signer);
+          const erc20WithSigner = erc20ReadOnly.connect(signer); // Connect signer for write operations
+
+          // Check decimals
+          let tokenDecimals = 18;
+          try {
+            tokenDecimals = await (erc20ReadOnly as any).decimals();
+          } catch (decimalError) {
+            console.warn('Failed to fetch decimals, defaulting to 18:', decimalError);
+          }
 
           // Check current allowance
-          const currentAllowance = await (erc20WithSigner as any).allowance(account, contract.address);
+          const currentAllowance = await (erc20ReadOnly as any).allowance(account, contract.address);
           console.log('Current allowance:', currentAllowance.toString());
 
           // Check user balance
-          const userBalance = await (erc20WithSigner as any).balanceOf(account);
+          const userBalance = await (erc20ReadOnly as any).balanceOf(account);
           console.log('User balance:', userBalance.toString());
 
           if (userBalance < contributionAmount) {
-            const userBalanceFormatted = formatUnits(userBalance, 18);
-            const requiredAmountFormatted = formatUnits(contributionAmount, 18);
+            const userBalanceFormatted = formatUnits(userBalance, tokenDecimals);
+            const requiredAmountFormatted = formatUnits(contributionAmount, tokenDecimals);
 
             console.log('Showing insufficient balance toast:', {
               userBalance: userBalanceFormatted,
-              required: requiredAmountFormatted
+              required: requiredAmountFormatted,
+              decimals: tokenDecimals
             });
 
             try {
@@ -1022,7 +1111,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error("Gas sponsorship failed:", gasError);
       }
 
-      const tx = await contract.makeContribution(groupId);
+      const tx = await contract["makeContribution(uint256)"](groupId);
       console.log('makeContribution: Transaction sent:', tx.hash);
 
       console.log('makeContribution: Waiting for transaction confirmation...');
@@ -1375,7 +1464,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return;
       }
 
-      const groupIds = Array.from({ length: totalGroups }, (_, i) => i + 1);
+      const groupIds = Array.from({ length: totalGroups }, (_, i) => i);
 
       // Fetch all groups in parallel per group for better UX
       for (const groupId of groupIds) {

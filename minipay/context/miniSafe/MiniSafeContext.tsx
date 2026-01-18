@@ -88,7 +88,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [usdcBalance, setUsdcBalance] = useState('0');
   const [usdtBalance, setusdtBalance] = useState('0');
   const [tokenBalance, setTokenBalance] = useState('0');
-  const [selectedToken, setSelectedToken] = useState('CUSD');
+  const [selectedToken, setSelectedToken] = useState('USDC');
   const [isApproved, setIsApproved] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isWaitingTx, setIsWaitingTx] = useState(false);
@@ -135,7 +135,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         abi,
         functionName: "getBalance",
         args: [address as `0x${string}`, cusdAddress as `0x${string}`],
-        authorizationList: []
       } as any);
 
       // Set balance, ensuring we never have empty string
@@ -147,7 +146,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         abi,
         functionName: "getBalance",
         args: [address as `0x${string}`, usdcAddress as `0x${string}`],
-        authorizationList: []
       } as any);
 
       // Set balance, ensuring we never have empty string
@@ -159,7 +157,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         abi,
         functionName: "getBalance",
         args: [address as `0x${string}`, usdtAddress as `0x${string}`],
-        authorizationList: []
       } as any);
 
       // Set balance, ensuring we never have empty string
@@ -190,7 +187,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           address: rewardTokenAddress as `0x${string}`,
           abi: tokenAbi,
           functionName: "decimals",
-          authorizationList: []
         } as any);
         if (typeof d === 'number') decimals = d;
         if (typeof d === 'bigint') decimals = Number(d);
@@ -204,7 +200,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         abi: tokenBalanceAbi,
         functionName: "balanceOf",
         args: [address as `0x${string}`],
-        authorizationList: []
       } as any);
 
       if (typeof data === 'bigint') {
@@ -273,6 +268,9 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     updateStepStatus('check-balance', 'loading');
     await getBalance();
 
+    // Fix: Mark check balance as success
+    updateStepStatus('check-balance', 'success');
+
     try {
       const tokenAddress = getTokenAddress(selectedToken);
       const decimals = getTokenDecimals(selectedToken);
@@ -288,7 +286,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         abi: tokenAbi,
         functionName: "allowance",
         args: [address as `0x${string}`, contractAddress as `0x${string}`],
-        authorizationList: []
       } as any);
       updateStepStatus('allowance', 'success');
       // Compare BigInt values directly
@@ -413,7 +410,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         abi: allowanceAbi,
         functionName: "allowance",
         args: [address as `0x${string}`, contractAddress as `0x${string}`],
-        authorizationList: []
       } as any);
       if ((allowanceData as bigint) >= (depositValue as bigint)) {
         updateStepStatus('approve', 'success');
@@ -985,11 +981,11 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           <DialogHeader>
             <DialogTitle className='text-black/90 dark:text-white/90'>{getDialogTitle()}</DialogTitle>
             <DialogDescription>
-              {currentOperation === 'deposit' ?
-                `Depositing ${depositAmount} ${selectedToken}` :
-                currentOperation === 'withdraw' ?
-                  `Withdrawing ${selectedToken}` :
-                  'Breaking timelock to access funds early'}
+              {currentOperation === 'deposit' ? `Depositing ${depositAmount} ${selectedToken}` :
+                currentOperation === 'withdraw' ? `Withdrawing ${selectedToken}` :
+                  currentOperation === 'break' ? 'Breaking timelock to access funds early' :
+                    currentOperation === 'approve' ? `Approving ${selectedToken} usage` :
+                      'Transaction in progress'}
             </DialogDescription>
           </DialogHeader>
 

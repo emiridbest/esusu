@@ -1,14 +1,21 @@
+/* Import Google Fonts - must be at the very top */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import Google Fonts directly in CSS (alternative to next/font) */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 248, 250, 252;
   --background-end-rgb: 255, 255, 255;
+
+  /* Cybro Brand Colors */
+  --cybro-yellow: 255, 209, 0;
+  --cybro-dark-bg: 10, 10, 12;
+  --trust-high: 34, 197, 94;
+  --trust-med: 234, 179, 8;
+  --trust-low: 239, 68, 68;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,16 +28,44 @@
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
+  background: linear-gradient(to bottom,
       transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+      rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Neon glow utilities for Cybro dark mode */
+  .neon-glow-yellow {
+    box-shadow: 0 0 20px rgba(var(--cybro-yellow), 0.3),
+      0 0 40px rgba(var(--cybro-yellow), 0.1);
+  }
+
+  .neon-border {
+    border-color: rgba(var(--cybro-yellow), 0.5);
+    box-shadow: 0 0 10px rgba(var(--cybro-yellow), 0.2);
+  }
+
+  .neon-text {
+    text-shadow: 0 0 10px rgba(var(--cybro-yellow), 0.5);
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
 }

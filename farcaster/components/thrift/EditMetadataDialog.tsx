@@ -96,7 +96,15 @@ export default function EditMetadataDialog(props: EditMetadataDialogProps) {
         }),
       });
 
-      const data = await res.json();
+      const resText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(resText);
+      } catch (e) {
+        console.error("Failed to parse metadata save response:", resText);
+        throw new Error(`Server Error: ${resText.substring(0, 100)}...`);
+      }
+
       if (!res.ok) {
         throw new Error(data?.error || "Failed to save metadata");
       }

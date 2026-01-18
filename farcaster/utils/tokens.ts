@@ -50,7 +50,7 @@ export const TOKENS: Record<string, TokenConfig> = {
 
 // Get token by address
 export function getTokenByAddress(address: string): TokenConfig | undefined {
-  return Object.values(TOKENS).find(token => 
+  return Object.values(TOKENS).find(token =>
     token.address.toLowerCase() === address.toLowerCase()
   );
 }
@@ -67,7 +67,8 @@ export function getAllTokens(): TokenConfig[] {
 
 // Get supported tokens for thrift groups
 export function getSupportedThriftTokens(): TokenConfig[] {
-  return Object.values(TOKENS);
+  // Only allow stablecoins for thrift groups
+  return [TOKENS.CUSD, TOKENS.USDC, TOKENS.USDT];
 }
 
 // Format token amount
