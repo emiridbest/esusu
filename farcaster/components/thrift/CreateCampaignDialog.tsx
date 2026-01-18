@@ -97,7 +97,7 @@ export function CreateCampaignDialog({ isOpen, onOpenChange }: CreateCampaignDia
     <>
       <Button
         onClick={() => setOpen(true)}
-        className="w-full mb-6 rounded-full bg-white text-black dark:bg-primary hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50"
+        className="w-full mb-6 rounded-lg bg-white text-black dark:bg-primary hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50"
         variant="outline"
       >
         <PlusIcon className="mr-2 h-4 w-4" /> Create Thrift Group

@@ -17,11 +17,11 @@ export default function Footer() {
 
   const navItems = [
     { name: "Home", icon: HomeIcon, path: "/", ariaLabel: "Navigate to home" },
-    { name: "Freebies", icon: GiftIcon, path: "/freebies", ariaLabel: "Navigate to freebies section" },
-    { name: "Utility Bills", icon: ArchiveBoxArrowDownIcon, path: "/utilityBills", ariaLabel: "Navigate to utility bills" },
     { name: "Save", icon: PiggyBank, path: "/miniSafe", ariaLabel: "Navigate to savings" },
     { name: "Thrift", icon: UserGroupIcon, path: "/thrift", ariaLabel: "Navigate to thrift" },
-   // { name: "Profile", icon: UserIcon, path: "/profile", ariaLabel: "Navigate to profile" }
+    { name: "Utility Bills", icon: ArchiveBoxArrowDownIcon, path: "/utilityBills", ariaLabel: "Navigate to utility bills" },
+    { name: "Freebies", icon: GiftIcon, path: "/freebies", ariaLabel: "Navigate to freebies section" }
+    // { name: "Profile", icon: UserIcon, path: "/profile", ariaLabel: "Navigate to profile" }
   ];
 
   return (

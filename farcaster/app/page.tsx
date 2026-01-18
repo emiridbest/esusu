@@ -22,22 +22,6 @@ function Dashboard() {
 
   const features = [
     {
-      title: "Utility Bills",
-      description: "Pay for data, airtime, and electricity",
-      icon: Smartphone,
-      path: "/utilityBills",
-      color: "text-yellow-600 dark:text-yellow-500",
-      bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
-    },
-    {
-      title: "Freebies",
-      description: "Earn rewards and claim freebies",
-      icon: Gift,
-      path: "/freebies",
-      color: "text-yellow-600 dark:text-yellow-500",
-      bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
-    },
-    {
       title: "Save",
       description: "Save money in your MiniSafe",
       icon: PiggyBank,
@@ -50,6 +34,22 @@ function Dashboard() {
       description: "Join thrift groups and save together",
       icon: UserGroupIcon,
       path: "/thrift",
+      color: "text-yellow-600 dark:text-yellow-500",
+      bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
+    },
+    {
+      title: "Utility Bills",
+      description: "Pay for data, airtime, and electricity",
+      icon: Smartphone,
+      path: "/utilityBills",
+      color: "text-yellow-600 dark:text-yellow-500",
+      bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
+    },
+    {
+      title: "Freebies",
+      description: "Earn rewards and claim freebies",
+      icon: Gift,
+      path: "/freebies",
       color: "text-yellow-600 dark:text-yellow-500",
       bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
     },
@@ -80,7 +80,7 @@ function Dashboard() {
               onClick={() => router.push(feature.path)}
             >
               <CardHeader className="flex flex-row items-center gap-4">
-                  <Icon className={cn("w-6 h-6", feature.color)} />
+                <Icon className={cn("w-6 h-6", feature.color)} />
                 <div>
                   <CardTitle className="text-lg">{feature.title}</CardTitle>
                   <CardDescription>{feature.description}</CardDescription>

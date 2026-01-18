@@ -47,7 +47,7 @@ const ThriftQuickAction = ({
       onClick={handleClick}
       {...props}
     >
-      <CardContent className="p-6 flex flex-col items-center gap-2">
+      <CardContent className="p-4 flex flex-col items-center gap-2">
         <div className={cn(
           "rounded-full p-3 flex items-center justify-center",
           variant === "outline" ? "bg-primary/10" : "bg-white dark:bg-gray-800"
@@ -146,8 +146,8 @@ const Thrift: React.FC = () => {
             />
           </div>
 
-          <CreateCampaignDialog isOpen={createDialogOpen} onOpenChange={setCreateDialogOpen} />
         </motion.div>
+          <CreateCampaignDialog isOpen={createDialogOpen} onOpenChange={setCreateDialogOpen} />
 
         {/* Tabbed Content */}
         <motion.div
