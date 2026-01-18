@@ -2,7 +2,6 @@
 import React from 'react';
 import 'react-toastify/dist/ReactToastify.css';
 import { motion } from "framer-motion";
-import TransactionList from '@/components/TransactionList';
 
 // Shadcn/UI Components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -93,10 +92,6 @@ export default function MiniSafe() {
           </motion.div>
         </div>
 
-        {/* Transaction History */}
-        <div className="mt-8">
-          <TransactionList />
-        </div>
       </div>
     </MiniSafeProvider>
   );
