@@ -26,7 +26,7 @@ function MainContent() {
 
   return (
     <div
-      className={`${dimensions.containerClass} mx-auto px-2 py-4 overflow-auto`}
+      className={`${dimensions.containerClass} mx-auto mb-6 px-2 py-4 overflow-auto`}
       style={{
         width: dimensions.width,
         height: dimensions.height,

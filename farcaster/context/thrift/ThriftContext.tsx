@@ -1728,7 +1728,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setUserGroups([]);
       setAllGroups([]);
     }
-  }, [isConnected, contract, refreshGroups]);
+  }, [isConnected, contract]);
 
   // Listen for PayoutDistributed events to update state in real-time
   useEffect(() => {

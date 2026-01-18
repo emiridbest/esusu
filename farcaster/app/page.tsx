@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { UtilityProvider } from '../context/utilityProvider/UtilityContext';
 import { ToastContainer } from 'react-toastify';
 import { cn } from '../lib/utils';
+import TransactionList from '@/components/TransactionList';
 
 function Dashboard() {
   const router = useRouter();
@@ -89,6 +90,11 @@ function Dashboard() {
             </Card>
           );
         })}
+      </div>
+
+      {/* Transaction History */}
+      <div className="my-8">
+        <TransactionList />
       </div>
     </div>
   );
