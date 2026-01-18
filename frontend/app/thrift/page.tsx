@@ -163,7 +163,6 @@ const Thrift: React.FC = () => {
                 }}
               />
             </div>
-            <CreateCampaignDialog isOpen={createDialogOpen} onOpenChange={setCreateDialogOpen} />
           </motion.div>
 
           {/* Tabbed Content */}

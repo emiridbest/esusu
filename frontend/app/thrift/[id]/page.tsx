@@ -1483,9 +1483,9 @@ export default function CampaignDetailsPage() {
       <Dialog open={contributeDialogOpen} onOpenChange={setContributeDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Make Contribution</DialogTitle>
+            <DialogTitle className='dark:text-white/90'>Make Contribution</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 dark:text-white/90">
             <p className="mb-4">Contributing to: <strong>{campaign.name}</strong></p>
 
             {!campaign.isActive && (
@@ -1510,7 +1510,7 @@ export default function CampaignDetailsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setContributeDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" className="dark:text-white/90" onClick={() => setContributeDialogOpen(false)}>Cancel</Button>
             <Button
               onClick={() => {
                 console.log('Contribute button clicked!');
@@ -1557,7 +1557,7 @@ export default function CampaignDetailsPage() {
 
       {/* Share Dialog */}
       <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dark:text-white/90">
           <DialogHeader>
             <DialogTitle>Share Thrift Group</DialogTitle>
           </DialogHeader>
