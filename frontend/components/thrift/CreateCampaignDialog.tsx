@@ -99,8 +99,6 @@ export function CreateCampaignDialog({ isOpen, onOpenChange }: CreateCampaignDia
         tokenConfig.address,
         startDateTime,
         creatorName || undefined, // Pass creator name
-        email,
-        phone
       );
       setOpen(false);
       resetForm();

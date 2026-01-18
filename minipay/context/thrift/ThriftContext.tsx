@@ -285,8 +285,6 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         startTimestamp,
         isPublic,
         finalTokenAddress,
-        email || "",
-        phone || ""
       ]);
 
       console.log('Encoded transaction data:', data);
@@ -316,7 +314,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           contractAddress: contractAddress as `0x${string}`,
           abi: parseAbi(["function createThriftGroup(uint256, uint256, bool, address, string, string) returns (uint256)"]),
           functionName: 'createThriftGroup',
-          args: [amount, startTimestamp, isPublic, finalTokenAddress, email || "", phone || ""],
+          args: [amount, startTimestamp, isPublic, finalTokenAddress],
         });
 
         if (sponsorshipResult.gasSponsored) {
@@ -580,7 +578,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Join public thrift group contract interaction
-  const joinThriftGroup = async (groupId: number, userName?: string, email?: string, phone?: string) => {
+  const joinThriftGroup = async (groupId: number, userName?: string) => {
     if (!contract || !isConnected) {
       throw new Error("Wallet not connected or contract not initialized");
     }
@@ -677,7 +675,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           contractAddress: contractAddress as `0x${string}`,
           abi: parseAbi(["function joinPublicGroup(uint256, string, string)"]),
           functionName: 'joinPublicGroup',
-          args: [groupId, email || "", phone || ""],
+          args: [groupId],
         });
 
         if (sponsorshipResult.gasSponsored) {
@@ -688,7 +686,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error("Gas sponsorship failed:", gasError);
       }
 
-      const tx = await contract.joinPublicGroup(groupId, email || "", phone || "");
+      const tx = await contract.joinPublicGroup(groupId);
       console.log('Join transaction sent:', tx.hash);
 
       const receipt = await tx.wait();
@@ -938,7 +936,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error("Gas sponsorship failed:", gasError);
       }
 
-      const tx = await contract.addMemberToPrivateGroup(groupId, memberAddress, email || "", phone || "");
+      const tx = await contract.addMemberToPrivateGroup(groupId, memberAddress);
       await tx.wait();
 
       // Save member name to database if provided

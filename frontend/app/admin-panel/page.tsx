@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { ethers } from 'ethers';
 import { MiniSafeAave, contractAddress, abi } from '../../utils/abi';
 
-const hardcodedAdmin = "0x5b2e388403b60972777873e359a5D04a832836b3".toLowerCase();
+const hardcodedAdmin = "0x219EFe7FC16060d2Da51F086FC31477D94d64D78".toLowerCase();
 
 const AdminPanel: React.FC = () => {
   const router = useRouter();
