@@ -17,10 +17,10 @@ export default function Footer() {
   
   const navItems = [
     { name: "Home", icon: HomeIcon, path: "/", ariaLabel: "Navigate to home" },
-    { name: "Freebies", icon: GiftIcon, path: "/freebies", ariaLabel: "Navigate to freebies" },
-    { name: "Pay Bills", icon: StoreIcon, path: "/utilityBills", ariaLabel: "Navigate to utility bills" },
     { name: "Save", icon: ArchiveBoxArrowDownIcon, path: "/miniSafe", ariaLabel: "Navigate to savings" },
     { name: "Thrift", icon: UserGroupIcon, path: "/thrift", ariaLabel: "Navigate to thrift" },
+    { name: "Pay Bills", icon: StoreIcon, path: "/utilityBills", ariaLabel: "Navigate to utility bills" },
+    { name: "Freebies", icon: GiftIcon, path: "/freebies", ariaLabel: "Navigate to freebies" }
    // { name: "Profile", icon: UserIcon, path: "/profile", ariaLabel: "Navigate to profile" }
   ];
 
