@@ -4,7 +4,6 @@ import Footer from "../components/Footer";
 import Header from "../components/Header";
 import { ThemeProvider } from "../components/ThemeProvider";
 import "./globals.css";
-import "flag-icons/css/flag-icons.min.css";
 import { Metadata } from "next";
 import { Toaster } from "../components/ui/sonner";
 import { ClaimProvider } from '../context/utilityProvider/ClaimContextProvider';
@@ -49,7 +48,7 @@ export default async function RootLayout({
   const session = await getSession();
   return (
     <html lang="en">
-      <body>
+      <body className="font-mono">
         <ThemeProvider>
           <Providers session={session}>
             <ClaimProvider>

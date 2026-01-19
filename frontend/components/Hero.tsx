@@ -91,7 +91,7 @@ const Section = ({
               alt={title} 
               width={500}
               height={500}
-              className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500 dark:invert"
             />
           </div>
         </motion.figure>

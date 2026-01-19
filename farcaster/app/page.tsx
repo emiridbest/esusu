@@ -77,7 +77,7 @@ function Dashboard() {
           return (
             <Card
               key={feature.title}
-              className="cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all duration-200 border-none bg-white/50 backdrop-blur-sm dark:bg-gray-900/50"
+              className="cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all duration-200 border-none bg-white/50 backdrop-blur-sm dark:bg-neutral-800"
               onClick={() => router.push(feature.path)}
             >
               <CardHeader className="flex flex-row items-center gap-4">
