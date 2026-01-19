@@ -136,7 +136,7 @@ export function CreateCampaignDialog({ isOpen, onOpenChange, hideTrigger }: Crea
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[500px] dark:text-white rounded-lg">
+        <DialogContent className="sm:max-w-[500px] dark:text-white dark:bg-black dark:border-neutral-800 rounded-lg">
           <DialogHeader>
             <DialogTitle>Create New Thrift Group</DialogTitle>
           </DialogHeader>
@@ -150,68 +150,68 @@ export function CreateCampaignDialog({ isOpen, onOpenChange, hideTrigger }: Crea
               ) : (
                 <>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">Group Name</Label>
+                    <Label htmlFor="name" className="text-right dark:text-neutral-200">Group Name</Label>
                     <Input
                       id="name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                       placeholder="My Thrift Group"
                     />
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="creatorName" className="text-right">Your Name</Label>
+                    <Label htmlFor="creatorName" className="text-right dark:text-neutral-200">Your Name</Label>
                     <Input
                       id="creatorName"
                       value={creatorName}
                       onChange={(e) => setCreatorName(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                       placeholder="John Doe"
                     />
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="email" className="text-right">Email</Label>
+                    <Label htmlFor="email" className="text-right dark:text-neutral-200">Email</Label>
                     <Input
                       id="email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                       placeholder="name@example.com"
                     />
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="phone" className="text-right">Phone</Label>
+                    <Label htmlFor="phone" className="text-right dark:text-neutral-200">Phone</Label>
                     <Input
                       id="phone"
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                       placeholder="+1234567890"
                     />
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="description" className="text-right">Description</Label>
+                    <Label htmlFor="description" className="text-right dark:text-neutral-200">Description</Label>
                     <Textarea
                       id="description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                       placeholder="A brief description of your thrift group"
                     />
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="token" className="text-right">
+                    <Label htmlFor="token" className="text-right dark:text-neutral-200">
                       Token
                     </Label>
                     <Select value={selectedToken} onValueChange={setSelectedToken}>
-                      <SelectTrigger className="col-span-3">
+                      <SelectTrigger className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white">
                         <SelectValue placeholder="Select a token" />
                       </SelectTrigger>
                       <SelectContent>
@@ -230,7 +230,7 @@ export function CreateCampaignDialog({ isOpen, onOpenChange, hideTrigger }: Crea
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="amount" className="text-right">
+                    <Label htmlFor="amount" className="text-right dark:text-neutral-200">
                       Deposit Amount
                     </Label>
                     <Input
@@ -238,13 +238,13 @@ export function CreateCampaignDialog({ isOpen, onOpenChange, hideTrigger }: Crea
                       type="number"
                       value={contributionAmount}
                       onChange={(e) => setContributionAmount(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                       placeholder="100"
                     />
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="startDate" className="text-right">
+                    <Label htmlFor="startDate" className="text-right dark:text-neutral-200">
                       Start Date
                     </Label>
                     <Input
@@ -252,13 +252,13 @@ export function CreateCampaignDialog({ isOpen, onOpenChange, hideTrigger }: Crea
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                       min={new Date().toISOString().split('T')[0]}
                     />
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="maxMembers" className="text-right">
+                    <Label htmlFor="maxMembers" className="text-right dark:text-neutral-200">
                       Max Members
                     </Label>
                     <Input
@@ -268,13 +268,13 @@ export function CreateCampaignDialog({ isOpen, onOpenChange, hideTrigger }: Crea
                       max="10"
                       value={maxMembers}
                       onChange={(e) => setMaxMembers(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                       placeholder="5"
                     />
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="isPublic" className="text-right">
+                    <Label htmlFor="isPublic" className="text-right dark:text-neutral-200">
                       Group Type
                     </Label>
                     <div className="col-span-3 flex items-center gap-4">

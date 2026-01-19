@@ -1426,9 +1426,9 @@ export default function CampaignDetailsPage() {
 
       {/* Join Dialog */}
       <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dark:bg-black dark:border-neutral-800 dark:text-gray-100">
           <DialogHeader>
-            <DialogTitle>Join Thrift Group</DialogTitle>
+            <DialogTitle className="dark:text-white">Join Thrift Group</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="mb-4">You are requesting to join: <strong>{campaign.name}</strong></p>
@@ -1448,12 +1448,12 @@ export default function CampaignDetailsPage() {
                   <p>Your request will be reviewed by the group creator before you can join.</p>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="joinUserName" className="text-right">Your Name</Label>
+                  <Label htmlFor="joinUserName" className="text-right dark:text-neutral-200">Your Name</Label>
                   <Input
                     id="joinUserName"
                     value={joinUserName}
                     onChange={(e) => setJoinUserName(e.target.value)}
-                    className="col-span-3"
+                    className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                     placeholder="Enter your name"
                   />
                 </div>
@@ -1481,9 +1481,9 @@ export default function CampaignDetailsPage() {
 
       {/* Contribute Dialog */}
       <Dialog open={contributeDialogOpen} onOpenChange={setContributeDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dark:bg-black dark:border-neutral-800 dark:text-gray-100">
           <DialogHeader>
-            <DialogTitle className='dark:text-white/90'>Make Contribution</DialogTitle>
+            <DialogTitle className='dark:text-white'>Make Contribution</DialogTitle>
           </DialogHeader>
           <div className="py-4 dark:text-white/90">
             <p className="mb-4">Contributing to: <strong>{campaign.name}</strong></p>
@@ -1496,13 +1496,13 @@ export default function CampaignDetailsPage() {
 
             <div className="grid gap-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="amount" className="text-right">Amount</Label>
+                <Label htmlFor="amount" className="text-right dark:text-neutral-200">Amount</Label>
                 <Input
                   id="amount"
                   type="number"
                   value={contributionAmount}
                   onChange={(e) => setContributionAmount(e.target.value)}
-                  className="col-span-3"
+                  className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                   placeholder="100"
                   disabled={!campaign.isActive}
                 />
@@ -1526,9 +1526,9 @@ export default function CampaignDetailsPage() {
 
       {/* Withdraw Dialog */}
       <Dialog open={withdrawDialogOpen} onOpenChange={setWithdrawDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dark:bg-black dark:border-neutral-800 dark:text-gray-100">
           <DialogHeader>
-            <DialogTitle>Withdraw Funds</DialogTitle>
+            <DialogTitle className="dark:text-white">Withdraw Funds</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="mb-4">Withdrawing from: <strong>{campaign.name}</strong></p>
@@ -1557,20 +1557,20 @@ export default function CampaignDetailsPage() {
 
       {/* Share Dialog */}
       <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] dark:text-white/90">
+        <DialogContent className="sm:max-w-[425px] dark:bg-black dark:border-neutral-800 dark:text-gray-100">
           <DialogHeader>
-            <DialogTitle>Share Thrift Group</DialogTitle>
+            <DialogTitle className="dark:text-white">Share Thrift Group</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="mb-4">Share <strong>{campaign.name}</strong> with your friends</p>
             <div className="grid gap-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="shareLink" className="text-right">Share Link</Label>
+                <Label htmlFor="shareLink" className="text-right dark:text-neutral-200">Share Link</Label>
                 <Input
                   id="shareLink"
                   value={shareableLink}
                   readOnly
-                  className="col-span-3"
+                  className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white"
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
               </div>
@@ -1592,9 +1592,9 @@ export default function CampaignDetailsPage() {
 
       {/* Admin Dialog - Set Payout Order */}
       <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] dark:bg-black dark:border-neutral-800 dark:text-gray-100">
           <DialogHeader>
-            <DialogTitle>Set Payout Order</DialogTitle>
+            <DialogTitle className="dark:text-white">Set Payout Order</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="mb-4">Arrange the payout order for <strong>{campaign?.name}</strong></p>
@@ -1608,7 +1608,7 @@ export default function CampaignDetailsPage() {
                 return (
                   <div
                     key={address}
-                    className="flex items-center justify-between p-3 border rounded-lg bg-card"
+                    className="flex items-center justify-between p-3 border rounded-lg bg-card dark:bg-neutral-900 dark:border-neutral-800"
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex flex-col gap-1">
@@ -1672,50 +1672,54 @@ export default function CampaignDetailsPage() {
 
       {/* Add Member Dialog */}
       <Dialog open={addMemberDialogOpen} onOpenChange={setAddMemberDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dark:bg-black dark:border-neutral-800 dark:text-gray-100">
           <DialogHeader>
-            <DialogTitle>Add Member to Private Group</DialogTitle>
+            <DialogTitle className="dark:text-white">Add Member to Private Group</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="mb-4">Add a new member to <strong>{campaign?.name}</strong></p>
 
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="addMemberName">Name</Label>
+                <Label htmlFor="addMemberName" className="dark:text-neutral-200">Name</Label>
                 <Input
                   id="addMemberName"
                   value={addMemberName}
                   onChange={(e) => setAddMemberName(e.target.value)}
                   placeholder="John Doe"
+                  className="dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="addMemberAddress">Wallet Address</Label>
+                <Label htmlFor="addMemberAddress" className="dark:text-neutral-200">Wallet Address</Label>
                 <Input
                   id="addMemberAddress"
                   value={addMemberAddress}
                   onChange={(e) => setAddMemberAddress(e.target.value)}
                   placeholder="0x..."
+                  className="dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="addMemberEmail">Email</Label>
+                <Label htmlFor="addMemberEmail" className="dark:text-neutral-200">Email</Label>
                 <Input
                   id="addMemberEmail"
                   type="email"
                   value={addMemberEmail}
                   onChange={(e) => setAddMemberEmail(e.target.value)}
                   placeholder="name@example.com"
+                  className="dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="addMemberPhone">Phone</Label>
+                <Label htmlFor="addMemberPhone" className="dark:text-neutral-200">Phone</Label>
                 <Input
                   id="addMemberPhone"
                   type="tel"
                   value={addMemberPhone}
                   onChange={(e) => setAddMemberPhone(e.target.value)}
                   placeholder="+1234567890"
+                  className="dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                 />
               </div>
             </div>
