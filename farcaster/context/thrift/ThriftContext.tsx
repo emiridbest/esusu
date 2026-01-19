@@ -121,7 +121,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const provider = signer?.provider as BrowserProvider | null;
 
   // Custom RPC provider for event querying and view function calls (fallback when wallet RPC is down)
-  const customRpcProvider = new JsonRpcProvider('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8');
+  const customRpcProvider = new JsonRpcProvider('https://forno.celo.org');
 
   // Read-only contract for view functions using public RPC
   const [readOnlyContract, setReadOnlyContract] = useState<MiniSafeAave | null>(null);
@@ -169,7 +169,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
 
-      const startTimestamp = startDate ? Math.floor(startDate.getTime() / 1000) : Math.floor(Date.now() / 1000);
+      const startTimestamp = startDate ? Math.floor(startDate.getTime() / 1000) : Math.floor(Date.now() / 1000) + 300; // +5 mins buffer
 
       // Use provided token address or determine a supported token
       let finalTokenAddress = tokenAddress;
@@ -312,7 +312,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
           contractAddress: contractAddress as `0x${string}`,
-          abi: parseAbi(["function createThriftGroup(uint256, uint256, bool, address, string, string) returns (uint256)"]),
+          abi: parseAbi(["function createThriftGroup(uint256, uint256, bool, address) returns (uint256)"]),
           functionName: 'createThriftGroup',
           args: [amount, startTimestamp, isPublic, finalTokenAddress],
         });
@@ -1521,8 +1521,10 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Function to fetch all thrift groups
   const refreshGroups = async () => {
-    // Prefer using the connected contract (signer) for fresher data, fallback to read-only (RPC)
-    const targetContract = contract || readOnlyContract;
+    // CRITICAL: Always use readOnlyContract for view functions because Farcaster wallet
+    // does NOT support eth_call. The wallet-connected contract should only be used for
+    // write operations (transactions that require signing).
+    const targetContract = readOnlyContract;
 
     if (!targetContract || !isConnected || !account) {
       setUserGroups([]);
