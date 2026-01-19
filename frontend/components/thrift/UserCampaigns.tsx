@@ -194,21 +194,22 @@ export function UserCampaigns() {
   return (
     <div className="space-y-6">
       {/* Toggle Controls */}
-      <div className="flex bg-muted p-1 rounded-lg w-fit">
+      {/* Toggle Controls */}
+      <div className="flex bg-muted/50 dark:bg-white/5 backdrop-blur-sm p-1 rounded-xl w-fit border border-transparent dark:border-white/10 mb-6">
         <button
           onClick={() => setViewMode('overview')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${viewMode === 'overview'
-            ? 'bg-background shadow-sm text-foreground'
-            : 'text-muted-foreground hover:text-foreground'
+          className={`px-6 py-2 text-sm font-semibold rounded-lg transition-all duration-300 ${viewMode === 'overview'
+            ? 'bg-background dark:bg-primary text-foreground dark:text-black shadow-md scale-105'
+            : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
             }`}
         >
           Overview
         </button>
         <button
           onClick={() => setViewMode('members')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${viewMode === 'members'
-            ? 'bg-background shadow-sm text-foreground'
-            : 'text-muted-foreground hover:text-foreground'
+          className={`px-6 py-2 text-sm font-semibold rounded-lg transition-all duration-300 ${viewMode === 'members'
+            ? 'bg-background dark:bg-primary text-foreground dark:text-black shadow-md scale-105'
+            : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
             }`}
         >
           Members
