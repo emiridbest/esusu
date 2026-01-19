@@ -147,7 +147,7 @@ const Thrift: React.FC = () => {
           </div>
 
         </motion.div>
-          <CreateCampaignDialog isOpen={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+        <CreateCampaignDialog isOpen={createDialogOpen} onOpenChange={setCreateDialogOpen} hideTrigger />
 
         {/* Tabbed Content */}
         <motion.div
