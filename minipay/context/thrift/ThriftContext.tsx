@@ -1421,7 +1421,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Generate shareable link for a thrift group
   const generateShareLink = (groupId: number): string => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    return `${baseUrl}/thrift/join/${groupId}`;
+    // If contract address is available, include it
+    if (contractAddress) {
+      return `${baseUrl}/thrift/groups/${groupId}?contract=${contractAddress.toLowerCase()}`;
+    }
+    return `${baseUrl}/thrift/groups/${groupId}`;
   };
 
   // Admin functions

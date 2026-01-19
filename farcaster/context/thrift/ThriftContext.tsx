@@ -103,7 +103,7 @@ const CUSD_TOKEN_ADDRESS = TOKENS.CUSD.address;
 const ThriftContext = createContext<ThriftContextType | undefined>(undefined);
 
 export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { address: wagmiAddress, isConnected: wagmiIsConnected } = useAccount({config});
+  const { address: wagmiAddress, isConnected: wagmiIsConnected } = useAccount({ config });
   const signer = useEthersSigner({ chainId: celo.id });
   const { sendTransactionAsync } = useSendTransaction({ config });
   const [userGroups, setUserGroups] = useState<ThriftGroup[]>([]);
@@ -1288,7 +1288,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Fetch usernames from database and merge with join dates
       console.log(`🔍 Fetching usernames from database for group ${groupId}`);
       try {
-        const dbResponse = await fetch(`/api/groups/${groupId}/members`);
+        const dbResponse = await fetch(`/api/groups/${groupId}/members?contract=${contractAddress.toLowerCase()}`);
         if (dbResponse.ok) {
           const dbData = await dbResponse.json();
           console.log('👤 Database members response:', dbData);
@@ -1418,8 +1418,12 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Generate shareable link for a thrift group
   const generateShareLink = (groupId: number): string => {
-    const baseUrl = "https://farcaster.xyz/miniapps/ODGMy9CdO8UI/esusu";
-    return `${baseUrl}/thrift/join/${groupId}`;
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    // If contract address is available, include it
+    if (contractAddress) {
+      return `${baseUrl}/thrift/groups/${groupId}?contract=${contractAddress.toLowerCase()}`;
+    }
+    return `${baseUrl}/thrift/groups/${groupId}`;
   };
 
   // Admin functions
@@ -1701,7 +1705,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } catch (e) {
         console.warn('Failed to hydrate thrift metadata:', e);
       }
-console.log('Fetched thrift groups:', fetchedGroups, 'User groups:', userGroupsTemp);
+      console.log('Fetched thrift groups:', fetchedGroups, 'User groups:', userGroupsTemp);
       setAllGroups(fetchedGroups);
       setUserGroups(userGroupsTemp);
     } catch (err) {

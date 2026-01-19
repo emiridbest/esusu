@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { BrowserProvider } from "ethers";
 
 export type EditMetadataDialogProps = {
@@ -24,7 +24,7 @@ export type EditMetadataDialogProps = {
 
 export default function EditMetadataDialog(props: EditMetadataDialogProps) {
   const { open, onOpenChange, contractAddress, groupId, initialName, initialDescription, initialCoverImageUrl, initialCategory, initialTags, onSaved } = props;
-  const { toast } = useToast();
+
 
   const [name, setName] = useState(initialName || "");
   const [description, setDescription] = useState(initialDescription || "");
@@ -125,12 +125,12 @@ export default function EditMetadataDialog(props: EditMetadataDialogProps) {
         throw new Error(data?.error || "Failed to save metadata");
       }
 
-      toast({ title: "Saved", description: "Group details updated" });
+      toast.success("Saved", { description: "Group details updated" });
       onSaved?.({ name, description, coverImageUrl: coverImageUrl || undefined, category: category || undefined, tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : undefined });
       onOpenChange(false);
     } catch (e: any) {
       console.error("Failed to save thrift metadata:", e);
-      toast({ variant: "destructive", title: "Save failed", description: e?.message || String(e) });
+      toast.error("Save failed", { description: e?.message || String(e) });
     } finally {
       setSaving(false);
     }
@@ -138,7 +138,7 @@ export default function EditMetadataDialog(props: EditMetadataDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] rounded-lg">
+      <DialogContent className="sm:max-w-[500px] rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-800">
         <DialogHeader>
           <DialogTitle>Edit Group Details</DialogTitle>
         </DialogHeader>
