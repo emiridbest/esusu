@@ -23,31 +23,52 @@ export function UserCampaigns() {
   const { address, isConnected } = useAccount();
   const [editOpen, setEditOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<ThriftGroup | null>(null);
+  const [loadingMembers, setLoadingMembers] = useState(false);
 
   const isWalletConnected = Boolean(isConnected && address);
 
   // Load members for all user groups
   useEffect(() => {
+    // Don't use async directly in useEffect - create an inner function
     const loadAllMembers = async () => {
-      if (!isWalletConnected || userGroups.length === 0) return;
-
-      const membersMap: { [key: number]: ThriftMember[] } = {};
-
-      for (const group of userGroups) {
-        try {
-          const members = await getThriftGroupMembers(group.id);
-          membersMap[group.id] = members;
-        } catch (error) {
-          console.error(`Failed to fetch members for group ${group.id}:`, error);
-        }
+      if (!isWalletConnected || userGroups.length === 0) {
+        console.log('Skipping member load:', { isWalletConnected, groupCount: userGroups.length });
+        return;
       }
 
-      setGroupMembers(membersMap);
+      console.log('Loading members for', userGroups.length, 'groups');
+      setLoadingMembers(true);
+
+      try {
+        const membersMap: { [key: number]: ThriftMember[] } = {};
+
+        for (const group of userGroups) {
+          try {
+            console.log(`Fetching members for group ${group.id}`);
+            const members = await getThriftGroupMembers(group.id);
+            membersMap[group.id] = members;
+            console.log(`Loaded ${members.length} members for group ${group.id}`);
+          } catch (error) {
+            console.error(`Failed to fetch members for group ${group.id}:`, error);
+            // Continue loading other groups even if one fails
+            membersMap[group.id] = [];
+          }
+        }
+
+        console.log('Setting group members:', Object.keys(membersMap).length, 'groups');
+        setGroupMembers(membersMap);
+      } catch (error) {
+        console.error('Error loading members:', error);
+      } finally {
+        setLoadingMembers(false);
+      }
     };
 
+    // Call the async function
     loadAllMembers();
-  }, [userGroups, isWalletConnected, getThriftGroupMembers]);
+  }, [userGroups.length, isWalletConnected]); // Simplified dependencies - only length matters
 
+  // Early returns with better messaging
   if (!isWalletConnected) {
     return (
       <Card className="w-full">
@@ -78,6 +99,12 @@ export function UserCampaigns() {
         <CardContent className="pt-6">
           <div className="text-center p-8 text-red-500">
             <p>Error: {error}</p>
+            <button
+              onClick={() => refreshGroups()}
+              className="mt-4 text-xs px-3 py-1 border rounded hover:bg-muted"
+            >
+              Retry
+            </button>
           </div>
         </CardContent>
       </Card>
@@ -97,9 +124,17 @@ export function UserCampaigns() {
   }
 
   return (
+    <div>
     <Card className="w-full">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Your Thrift Groups</CardTitle>
+        <button
+          onClick={() => refreshGroups()}
+          className="text-xs px-3 py-1 border rounded hover:bg-muted"
+          disabled={loading}
+        >
+          {loading ? "Refreshing..." : "Refresh"}
+        </button>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="overview">
@@ -193,14 +228,20 @@ export function UserCampaigns() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                          {groupMembers[group.id]?.map((member, idx) => (
-                            <div key={idx} className="text-sm">
-                              <div className="font-medium">{member.userName || `Member ${idx + 1}`}</div>
-                              <span className="text-xs text-gray-500">
-                                {member.address.substring(0, 6)}...{member.address.substring(member.address.length - 4)}
-                              </span>
-                            </div>
-                          )) || <span className="text-gray-500">Loading members...</span>}
+                          {loadingMembers ? (
+                            <span className="text-gray-500">Loading members...</span>
+                          ) : groupMembers[group.id]?.length > 0 ? (
+                            groupMembers[group.id].map((member, idx) => (
+                              <div key={idx} className="text-sm">
+                                <div className="font-medium">{member.userName || `Member ${idx + 1}`}</div>
+                                <span className="text-xs text-gray-500">
+                                  {member.address.substring(0, 6)}...{member.address.substring(member.address.length - 4)}
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-gray-500">No members loaded</span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -288,5 +329,6 @@ export function UserCampaigns() {
         />
       ) : null}
     </Card>
+    </div>
   );
 }

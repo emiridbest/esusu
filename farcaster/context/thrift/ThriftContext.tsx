@@ -103,7 +103,7 @@ const CUSD_TOKEN_ADDRESS = TOKENS.CUSD.address;
 const ThriftContext = createContext<ThriftContextType | undefined>(undefined);
 
 export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { address: wagmiAddress, isConnected: wagmiIsConnected } = useAccount();
+  const { address: wagmiAddress, isConnected: wagmiIsConnected } = useAccount({config});
   const signer = useEthersSigner({ chainId: celo.id });
   const { sendTransactionAsync } = useSendTransaction({ config });
   const [userGroups, setUserGroups] = useState<ThriftGroup[]>([]);
@@ -114,7 +114,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const { checkAndSponsor } = useGasSponsorship();
 
   // Use wagmi's account state
-  const account = wagmiAddress || null;
+  const account = wagmiAddress;
   const isConnected = wagmiIsConnected;
 
   // Get provider from signer
@@ -1701,7 +1701,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } catch (e) {
         console.warn('Failed to hydrate thrift metadata:', e);
       }
-
+console.log('Fetched thrift groups:', fetchedGroups, 'User groups:', userGroupsTemp);
       setAllGroups(fetchedGroups);
       setUserGroups(userGroupsTemp);
     } catch (err) {
