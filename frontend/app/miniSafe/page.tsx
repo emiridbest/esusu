@@ -2,7 +2,6 @@
 import React from 'react';
 import 'react-toastify/dist/ReactToastify.css';
 import { motion } from "framer-motion";
-import TransactionList from '@/components/TransactionList';
 
 // Shadcn/UI Components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +18,7 @@ import { BalanceCard, BreakLockTab, WithdrawTab, DepositTab } from '@/components
 export default function MiniSafe() {
   return (
     <MiniSafeProvider>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 mb-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -81,11 +80,6 @@ export default function MiniSafe() {
               </CardContent>
             </Card>
           </motion.div>
-        </div>
-
-        {/* Transaction History */}
-        <div className="mt-8">
-          <TransactionList />
         </div>
       </div>
     </MiniSafeProvider >

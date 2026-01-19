@@ -9,7 +9,7 @@ export default function FloatingChat() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="fixed bottom-15 right-4 z-50">
       {isOpen ? (
         <div className="fixed bottom-20 right-4 w-[400px] h-[600px] bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-800">
           <div className="absolute top-2 right-2">
