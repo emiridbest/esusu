@@ -16,6 +16,7 @@
     "@celo/abis": "^11.0.0",
     "@divvi/referral-sdk": "^2.2.0",
     "@esusu/backend": "*",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fortawesome/fontawesome-svg-core": "^1.2.35",
     "@fortawesome/free-solid-svg-icons": "^6.5.2",
     "@fortawesome/react-fontawesome": "^0.2.2",
