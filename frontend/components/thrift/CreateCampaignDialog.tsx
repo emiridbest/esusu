@@ -14,9 +14,10 @@ import { TOKENS, getSupportedThriftTokens, getTokenBySymbol, type TokenConfig } 
 interface CreateCampaignDialogProps {
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
-export function CreateCampaignDialog({ isOpen, onOpenChange }: CreateCampaignDialogProps) {
+export function CreateCampaignDialog({ isOpen, onOpenChange, hideTrigger }: CreateCampaignDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
 
   const isControlled = isOpen !== undefined && onOpenChange !== undefined;
@@ -124,13 +125,15 @@ export function CreateCampaignDialog({ isOpen, onOpenChange }: CreateCampaignDia
 
   return (
     <>
-      <Button
-        onClick={() => setOpen(true)}
-        className="w-full mb-6 rounded-lg bg-white text-black dark:bg-primary hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50"
-        variant="outline"
-      >
-        <PlusIcon className="mr-2 h-4 w-4" /> Create Thrift Group
-      </Button>
+      {!hideTrigger && (
+        <Button
+          onClick={() => setOpen(true)}
+          className="w-full mb-6 rounded-lg bg-white text-black dark:bg-primary hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50"
+          variant="outline"
+        >
+          <PlusIcon className="mr-2 h-4 w-4" /> Create Thrift Group
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[500px] dark:text-white rounded-lg">
