@@ -104,7 +104,7 @@ export function CreateCampaignDialog({ isOpen, onOpenChange }: CreateCampaignDia
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[500px] dark:text-white rounded-lg">
+        <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto dark:text-white rounded-lg">
           <DialogHeader>
             <DialogTitle>Create New Thrift Group</DialogTitle>
           </DialogHeader>
