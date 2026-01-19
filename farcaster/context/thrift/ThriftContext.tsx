@@ -1246,13 +1246,16 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Function to get thrift group members
   const getThriftGroupMembers = async (groupId: number): Promise<ThriftMember[]> => {
-    if (!contract || !isConnected) {
+    // CRITICAL: Use readOnlyContract for view functions because Farcaster wallet
+    // does NOT support eth_call. The wallet-connected contract should only be used for
+    // write operations (transactions that require signing).
+    if (!readOnlyContract || !isConnected) {
       throw new Error("Wallet not connected or contract not initialized");
     }
 
     try {
       // Primary: Fetch members from contract (authoritative blockchain data)
-      const blockchainMembers: string[] = await contract.getGroupMembers(groupId);
+      const blockchainMembers: string[] = await readOnlyContract.getGroupMembers(groupId);
       console.log(`📋 Blockchain members for group ${groupId}:`, blockchainMembers);
 
       // Fetch join dates from cached blockchain API (ALWAYS - this is the source of truth)
