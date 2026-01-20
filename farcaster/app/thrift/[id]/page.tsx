@@ -112,6 +112,7 @@ export default function CampaignDetailsPage() {
     tokenSymbol: string;
     transactionHash: string;
   }>>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
   // Find the campaign in user campaigns or all campaigns
   useEffect(() => {
@@ -213,6 +214,7 @@ export default function CampaignDetailsPage() {
   useEffect(() => {
     const fetchContributionHistory = async () => {
       if (campaign && groupStatus?.isStarted) {
+        setIsHistoryLoading(true);
         try {
           console.log('Fetching contribution history for group:', campaign.id);
           const history = await getContributionHistory(campaign.id);
@@ -227,9 +229,12 @@ export default function CampaignDetailsPage() {
             });
           }
           setContributionHistory([]);
+        } finally {
+          setIsHistoryLoading(false);
         }
       } else {
         setContributionHistory([]);
+        setIsHistoryLoading(false);
       }
     };
 
@@ -994,6 +999,15 @@ export default function CampaignDetailsPage() {
                                 <div className="text-gray-500">
                                   <p className="font-medium">Group has not started yet</p>
                                   <p className="text-sm">Contributions will appear here once the group becomes active</p>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ) : isHistoryLoading ? (
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-center py-8">
+                                <div className="flex flex-col items-center justify-center">
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                                  <p className="text-sm text-muted-foreground">Loading contributions...</p>
                                 </div>
                               </TableCell>
                             </TableRow>
