@@ -41,7 +41,7 @@ export function FlippableThriftCard({ group, currentUserAddress, isFlipped, onSh
             >
                 {/* Front of Card */}
                 <Card
-                    className="absolute w-full h-full backface-hidden overflow-hidden border border-border/50 dark:border-border/60 bg-card text-card-foreground shadow-sm dark:shadow-md hover:shadow-md transition-shadow duration-300"
+                    className="absolute w-full h-full backface-hidden overflow-hidden border border-border/40 dark:border-white/10 bg-card dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-900 dark:to-black text-card-foreground shadow-sm dark:shadow-2xl hover:shadow-xl dark:hover:shadow-primary/5 hover:border-primary/20 dark:hover:border-primary/30 transition-all duration-500 group-hover/card:translate-y-[-2px]"
                     style={{
                         backfaceVisibility: 'hidden',
                         zIndex: isFlipped ? 0 : 1
@@ -55,60 +55,60 @@ export function FlippableThriftCard({ group, currentUserAddress, isFlipped, onSh
                                 className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover/card:scale-105"
                                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
                             <div className="absolute bottom-3 left-3">
-                                <Badge className="bg-primary/90 text-primary-foreground hover:bg-primary font-semibold backdrop-blur-sm shadow-sm">
+                                <Badge className="bg-primary/90 text-primary-foreground hover:bg-primary font-bold tracking-wide backdrop-blur-md shadow-lg border-0">
                                     {parseFloat(group.depositAmount)} {group.tokenSymbol || 'cUSD'}
                                 </Badge>
                             </div>
                         </div>
                     )}
 
-                    <CardHeader className={cn("pb-2", !group.meta?.coverImageUrl && "bg-muted/30 dark:bg-muted/10 pt-5")}>
+                    <CardHeader className={cn("pb-2 relative z-10", !group.meta?.coverImageUrl && "bg-gradient-to-b from-muted/30 to-transparent dark:from-white/5 pt-5")}>
                         <div className="flex justify-between items-start">
                             <div className="space-y-1 w-full">
                                 {!group.meta?.coverImageUrl && (
-                                    <Badge variant="outline" className="mb-2 border-primary/30 text-primary bg-primary/5">
+                                    <Badge variant="outline" className="mb-2 border-primary/30 text-primary bg-primary/5 dark:bg-primary/10">
                                         {parseFloat(group.depositAmount)} {group.tokenSymbol || 'cUSD'}
                                     </Badge>
                                 )}
-                                <CardTitle className="text-lg font-bold leading-tight line-clamp-1 text-foreground tracking-tight">
+                                <CardTitle className="text-lg font-bold leading-tight line-clamp-1 text-foreground tracking-tight group-hover/card:text-primary transition-colors duration-300">
                                     {group.name}
                                 </CardTitle>
                             </div>
                         </div>
                     </CardHeader>
 
-                    <CardContent className="pt-2">
-                        <p className="text-muted-foreground text-sm mb-4 line-clamp-2 min-h-[2.5em] leading-relaxed">
+                    <CardContent className="pt-2 relative z-10">
+                        <p className="text-muted-foreground text-sm mb-4 line-clamp-2 min-h-[2.5em] leading-relaxed dark:text-gray-400">
                             {group.description || "No description provided."}
                         </p>
 
                         <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-1.5 p-1 rounded-md hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted/50 dark:hover:bg-white/10 transition-colors border border-transparent dark:hover:border-primary/20">
                                 <UsersIcon className="h-3.5 w-3.5 text-primary" />
-                                <span className="font-medium text-foreground/80">{group.totalMembers}/{group.maxMembers} members</span>
+                                <span className="font-medium text-foreground/80 dark:text-gray-300">{group.totalMembers}/{group.maxMembers} members</span>
                             </div>
-                            <div className="flex items-center gap-1.5 p-1 rounded-md hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted/50 dark:hover:bg-white/10 transition-colors border border-transparent dark:hover:border-primary/20">
                                 <CalendarIcon className="h-3.5 w-3.5 text-primary" />
-                                <span className="font-medium text-foreground/80">{group.isActive ? 'Active Cycle' : 'Formation Phase'}</span>
+                                <span className="font-medium text-foreground/80 dark:text-gray-300">{group.isActive ? 'Active Cycle' : 'Formation Phase'}</span>
                             </div>
                         </div>
                     </CardContent>
 
-                    <CardFooter className="absolute bottom-0 w-full border-t border-border/50 p-3 bg-muted/20 backdrop-blur-sm flex justify-between items-center z-10">
+                    <CardFooter className="absolute bottom-0 w-full border-t border-border/40 dark:border-white/5 p-3 bg-muted/30 dark:bg-black/40 backdrop-blur-md flex justify-between items-center z-20">
                         <div className="flex gap-2">
                             <Button
                                 size="sm"
                                 variant="ghost"
-                                className="text-xs h-8 px-2 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                className="text-xs h-8 px-2.5 text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all rounded-full"
                                 onClick={handleShare}
                             >
                                 <Share2Icon className="h-3.5 w-3.5 mr-1" />
                                 Share
                             </Button>
                             {isCreator && (
-                                <Button size="sm" variant="ghost" className="text-xs h-8 px-2 text-muted-foreground hover:text-foreground hover:bg-muted/50" onClick={() => onEdit(group)}>
+                                <Button size="sm" variant="ghost" className="text-xs h-8 px-2.5 text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all rounded-full" onClick={() => onEdit(group)}>
                                     Edit
                                 </Button>
                             )}
@@ -116,7 +116,7 @@ export function FlippableThriftCard({ group, currentUserAddress, isFlipped, onSh
                         <Link href={`/thrift/${group.id}`} passHref>
                             <Button
                                 size="sm"
-                                className="text-xs h-8 px-3 bg-secondary text-secondary-foreground hover:bg-secondary/80 font-medium shadow-sm"
+                                className="text-xs h-8 px-4 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-md hover:shadow-primary/20 rounded-full transition-all duration-300 transform hover:scale-105"
                             >
                                 View
                             </Button>
@@ -126,17 +126,17 @@ export function FlippableThriftCard({ group, currentUserAddress, isFlipped, onSh
 
                 {/* Back of Card */}
                 <Card
-                    className="absolute w-full h-full backface-hidden overflow-hidden border border-border/50 dark:border-border/60 bg-card text-card-foreground shadow-sm dark:shadow-md"
+                    className="absolute w-full h-full backface-hidden overflow-hidden border border-border/40 dark:border-white/10 bg-card dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-900 dark:to-black text-card-foreground shadow-sm dark:shadow-2xl"
                     style={{
                         transform: 'rotateY(180deg)',
                         backfaceVisibility: 'hidden',
                         zIndex: isFlipped ? 1 : 0
                     }}
                 >
-                    <CardHeader className="bg-muted/30 dark:bg-muted/10 pb-3 border-b border-border/50">
-                        <CardTitle className="text-base font-bold flex items-center justify-between text-foreground">
+                    <CardHeader className="bg-gradient-to-b from-muted/30 to-transparent dark:from-white/5 pb-4 border-b border-border/40 dark:border-white/5 relative z-10">
+                        <CardTitle className="text-base font-bold flex items-center justify-between text-foreground tracking-tight">
                             <span>{group.name} Members</span>
-                            <Badge variant="secondary" className="text-xs bg-background/80 backdrop-blur-sm border border-border/50">
+                            <Badge variant="secondary" className="text-xs bg-background/50 dark:bg-white/10 backdrop-blur-md border border-border/40 dark:border-white/10 shadow-sm">
                                 {isLoading ? (
                                     <span className="w-8 h-4 bg-muted animate-pulse rounded block"></span>
                                 ) : (
@@ -145,32 +145,32 @@ export function FlippableThriftCard({ group, currentUserAddress, isFlipped, onSh
                             </Badge>
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0 overflow-y-auto h-[calc(100%-60px)] scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+                    <CardContent className="p-0 overflow-y-auto h-[calc(100%-60px)] scrollbar-thin scrollbar-thumb-muted/50 dark:scrollbar-thumb-white/10 scrollbar-track-transparent relative z-10">
                         {isLoading ? (
-                            <ul className="divide-y divide-border/50">
+                            <ul className="divide-y divide-border/40 dark:divide-white/5">
                                 {[1, 2, 3].map((_, idx) => (
                                     <li key={idx} className="flex items-center justify-between p-3 animate-pulse">
                                         <div className="flex items-center gap-3 w-full">
-                                            <div className="w-8 h-8 rounded-full bg-muted/50"></div>
+                                            <div className="w-8 h-8 rounded-full bg-muted/50 dark:bg-white/10"></div>
                                             <div className="flex flex-col gap-2 w-full max-w-[120px]">
-                                                <div className="h-3 w-24 bg-muted/50 rounded"></div>
-                                                <div className="h-2 w-16 bg-muted/50 rounded"></div>
+                                                <div className="h-3 w-24 bg-muted/50 dark:bg-white/10 rounded"></div>
+                                                <div className="h-2 w-16 bg-muted/50 dark:bg-white/10 rounded"></div>
                                             </div>
                                         </div>
                                     </li>
                                 ))}
                             </ul>
                         ) : members.length > 0 ? (
-                            <ul className="divide-y divide-border/50">
+                            <ul className="divide-y divide-border/40 dark:divide-white/5">
                                 {members.map((member, idx) => (
-                                    <li key={idx} className="flex items-center justify-between p-3 hover:bg-muted/30 transition-colors">
+                                    <li key={idx} className="flex items-center justify-between p-3 hover:bg-muted/50 dark:hover:bg-white/5 transition-colors duration-200">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary text-xs font-bold ring-1 ring-primary/20">
+                                            <div className="w-9 h-9 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary text-xs font-bold ring-1 ring-primary/20 dark:ring-primary/30 shadow-sm">
                                                 {member.userName ? member.userName.charAt(0).toUpperCase() : 'M'}
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-sm font-medium text-foreground">{member.userName || `Member ${idx + 1}`}</span>
-                                                <span className="text-xs text-muted-foreground font-mono">
+                                                <span className="text-sm font-semibold text-foreground dark:text-gray-200">{member.userName || `Member ${idx + 1}`}</span>
+                                                <span className="text-[10px] text-muted-foreground font-mono bg-muted/50 dark:bg-white/5 px-1.5 py-0.5 rounded w-fit mt-0.5">
                                                     {member.address.substring(0, 6)}...{member.address.substring(member.address.length - 4)}
                                                 </span>
                                             </div>
@@ -180,7 +180,7 @@ export function FlippableThriftCard({ group, currentUserAddress, isFlipped, onSh
                             </ul>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-6 text-center space-y-2">
-                                <UsersIcon className="h-10 w-10 text-muted-foreground/30" />
+                                <UsersIcon className="h-10 w-10 text-muted-foreground/20 dark:text-white/10" />
                                 <p className="text-sm font-medium">No members yet</p>
                             </div>
                         )}

@@ -136,8 +136,6 @@ const Thrift: React.FC = () => {
             transition={{ duration: 0.5, delay: 0.6 }}
             className="flex flex-wrap gap-4 justify-center"
           >
-            <CreateCampaignDialog />
-
             <Button
               variant="outline"
               onClick={() => router.push('/miniSafe')}
@@ -191,7 +189,7 @@ const Thrift: React.FC = () => {
               }}
             />
           </div>
-          <CreateCampaignDialog isOpen={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+          <CreateCampaignDialog isOpen={createDialogOpen} onOpenChange={setCreateDialogOpen} hideTrigger />
         </motion.div>
 
         {/* Tabbed Content */}

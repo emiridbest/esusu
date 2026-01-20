@@ -6,11 +6,12 @@ import { UserService } from '@esusu/backend/lib/services/userService';
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
-    
+
     const { searchParams } = new URL(request.url);
     const walletAddress = searchParams.get('wallet') || searchParams.get('user');
     const status = searchParams.get('status');
     const limit = parseInt(searchParams.get('limit') || '20');
+    const contractAddress = searchParams.get('contractAddress');
 
     if (!walletAddress) {
       return NextResponse.json(
@@ -27,8 +28,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let groups: any[] = await GroupService.getUserGroups(walletAddress) as any[];
-    if (status && ['forming','active','completed','paused'].includes(status)) {
+    let groups: any[] = await GroupService.getUserGroups(walletAddress, contractAddress || undefined) as any[];
+    if (status && ['forming', 'active', 'completed', 'paused'].includes(status)) {
       groups = groups.filter((g: any) => g.status === status);
     }
     if (Number.isFinite(limit) && limit > 0) {
@@ -52,15 +53,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
-    
+
     const body = await request.json();
-    const { 
-      walletAddress, 
-      name, 
+    const {
+      walletAddress,
+      name,
       description,
       contributionAmount,
       contributionToken,
-      payoutFrequency 
+      payoutFrequency
     } = body;
 
     if (!walletAddress || !name || !contributionAmount || !contributionToken) {

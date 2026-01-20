@@ -61,7 +61,7 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-[360px] p-0 overflow-hidden border-none bg-transparent shadow-2xl">
+      <DialogContent className="w-[95vw] max-w-[360px] max-h-[85vh] p-0 overflow-y-auto border-none bg-transparent shadow-2xl scrollbar-hide">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -70,13 +70,13 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
         >
           {/* Background Gradient */}
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-purple-500/10 to-green-500/20 rounded-2xl blur-3xl"></div>
-          
+
           <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-gray-700/50 shadow-xl">
             {/* Success Header */}
             <div className="relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-yellow-500/10"></div>
               <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-primary/5"></div>
-              
+
               <DialogHeader className="relative px-4 py-5 text-center">
                 <motion.div
                   initial={{ scale: 0 }}
@@ -94,7 +94,7 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                     </div>
                   </div>
                 </motion.div>
-                
+
                 <motion.div
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
@@ -128,7 +128,7 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Type</span>
                     <span className="font-semibold text-sm text-primary">{getPaymentTypeLabel()}</span>
                   </motion.div>
-                  
+
                   <motion.div
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
@@ -252,7 +252,7 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                     </div>
                     <span className="font-medium text-gray-700 dark:text-gray-300">Receipt</span>
                   </motion.div>
-                  
+
                   {paymentDetails.emailSent !== false && (
                     <motion.div
                       initial={{ scale: 0 }}
@@ -277,7 +277,7 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                       </span>
                     </motion.div>
                   )}
-                  
+
                   {paymentDetails.smsSent !== false && (
                     <motion.div
                       initial={{ scale: 0 }}
@@ -303,7 +303,7 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                     </motion.div>
                   )}
                 </div>
-                
+
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
