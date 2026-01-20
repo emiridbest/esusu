@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useThrift } from '@/context/thrift/ThriftContext';
 import { PlusIcon } from 'lucide-react';
 import { TOKENS, getSupportedThriftTokens, getTokenBySymbol, type TokenConfig } from '@/utils/tokens';
@@ -30,13 +31,13 @@ export function CreateCampaignDialog({ isOpen, onOpenChange, hideTrigger }: Crea
   const [isPublic, setIsPublic] = useState(true);
   const [selectedToken, setSelectedToken] = useState<string>('USDC');
   const [startDate, setStartDate] = useState<string>(() => {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const year = tomorrow.getFullYear();
-  const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
-  const day = String(tomorrow.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-});
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const year = tomorrow.getFullYear();
+    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const day = String(tomorrow.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
 
   const [creatorName, setCreatorName] = useState<string>(''); // Creator's name
   const [email, setEmail] = useState('');
@@ -281,27 +282,21 @@ export function CreateCampaignDialog({ isOpen, onOpenChange, hideTrigger }: Crea
                     <Label htmlFor="isPublic" className="text-right dark:text-neutral-200">
                       Group Type
                     </Label>
-                    <div className="col-span-3 flex items-center gap-4">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="groupType"
-                          checked={isPublic}
-                          onChange={() => setIsPublic(true)}
-                          className="text-primary"
-                        />
-                        <span>Public</span>
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="groupType"
-                          checked={!isPublic}
-                          onChange={() => setIsPublic(false)}
-                          className="text-primary"
-                        />
-                        <span>Private</span>
-                      </label>
+                    <div className="col-span-3">
+                      <RadioGroup
+                        value={isPublic ? "public" : "private"}
+                        onValueChange={(value) => setIsPublic(value === "public")}
+                        className="flex items-center gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="public" id="public" />
+                          <Label htmlFor="public">Public</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="private" id="private" />
+                          <Label htmlFor="private">Private</Label>
+                        </div>
+                      </RadioGroup>
                     </div>
                   </div>
 

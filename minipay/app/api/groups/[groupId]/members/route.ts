@@ -60,7 +60,7 @@ export async function GET(
     // Return members with join dates and names
     const members = (group.members || []).map((member: any, index: number) => {
       const userProfile = userMap.get(member.user);
-      const displayName = userProfile?.name || member.userName;
+      const displayName = member.userName || userProfile?.name;
 
       console.log(`👤 Member ${index + 1}:`, {
         address: member.user,
