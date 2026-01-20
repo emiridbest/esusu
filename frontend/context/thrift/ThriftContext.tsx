@@ -877,7 +877,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               userAddress: memberAddress,
               userName: userName,
               role: 'member',
-              joinDate: new Date().toISOString()
+              joinDate: new Date().toISOString(),
+              contractAddress: contractAddress
             })
           });
         } catch (apiError) {
@@ -1201,7 +1202,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Fetch usernames from database and merge with join dates
       console.log(`🔍 Fetching usernames from database for group ${groupId}`);
       try {
-        const dbResponse = await fetch(`/api/groups/${groupId}/members`);
+        const dbResponse = await fetch(`/api/groups/${groupId}/members?contract=${contractAddress.toLowerCase()}`);
         if (dbResponse.ok) {
           const dbData = await dbResponse.json();
           console.log('👤 Database members response:', dbData);

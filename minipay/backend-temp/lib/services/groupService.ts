@@ -117,17 +117,17 @@ export class GroupService {
   static async createPayoutSchedule(group: IGroup): Promise<void> {
     const { contributionInterval, startDate } = group.settings;
     const members = group.members.filter((m: any) => m.isActive);
-    
+
     // Shuffle members for random payout order
     const shuffledMembers = [...members].sort(() => Math.random() - 0.5);
-    
+
     let currentDate = new Date(startDate);
     const payoutSchedule = [];
 
     for (let round = 1; round <= members.length; round++) {
       const recipient = shuffledMembers[round - 1];
       const payoutAmount = group.settings.contributionAmount * members.length;
-      
+
       payoutSchedule.push({
         round,
         recipient: recipient.user,
@@ -149,8 +149,8 @@ export class GroupService {
   }
 
   static async processContribution(
-    groupId: string, 
-    contributorWallet: string, 
+    groupId: string,
+    contributorWallet: string,
     transactionHash: string,
     amount: number
   ): Promise<{ success: boolean; message: string }> {
@@ -172,7 +172,7 @@ export class GroupService {
     }
 
     // Check if user is a member
-    const memberIndex = group.members.findIndex((m: any) => 
+    const memberIndex = group.members.findIndex((m: any) =>
       m.user._id.toString() === contributor._id.toString() && m.isActive
     );
     if (memberIndex === -1) {
@@ -191,7 +191,7 @@ export class GroupService {
     // Check if all contributions for current round are complete
     const currentRoundContributions = group.totalContributions;
     const expectedTotal = (group.currentRound + 1) * group.settings.contributionAmount * group.members.length;
-    
+
     if (currentRoundContributions >= expectedTotal) {
       // Process payout for current round
       await this.processPayout(group);
@@ -203,7 +203,7 @@ export class GroupService {
   static async processPayout(group: IGroup): Promise<void> {
     const currentRound = group.currentRound + 1;
     const payoutInfo = group.payoutSchedule.find((p: any) => p.round === currentRound);
-    
+
     if (!payoutInfo) {
       throw new Error('Payout schedule not found for current round');
     }
@@ -251,25 +251,31 @@ export class GroupService {
     }
   }
 
-  static async getUserGroups(walletAddress: string): Promise<IGroup[]> {
+  static async getUserGroups(walletAddress: string, contractAddress?: string): Promise<IGroup[]> {
     await dbConnect();
 
     const user = await UserService.getUserByWallet(walletAddress);
     if (!user) return [];
 
-    // @ts-ignore - Mongoose union type compatibility issue
-    return Group.find({
+    const query: any = {
       'members.user': user._id,
       'members.isActive': true
-    })
-    .populate('members.user', 'walletAddress profileData')
-    .populate('payoutSchedule.recipient', 'walletAddress profileData')
-    .sort({ createdAt: -1 });
+    };
+
+    if (contractAddress) {
+      query.contractAddress = { $regex: new RegExp(`^${contractAddress}$`, 'i') };
+    }
+
+    // @ts-ignore - Mongoose union type compatibility issue
+    return Group.find(query)
+      .populate('members.user', 'walletAddress profileData')
+      .populate('payoutSchedule.recipient', 'walletAddress profileData')
+      .sort({ createdAt: -1 });
   }
 
   static async getGroupById(groupId: string): Promise<IGroup | null> {
     await dbConnect();
-    
+
     // @ts-ignore - Mongoose union type compatibility issue
     return Group.findById(groupId)
       .populate('members.user', 'walletAddress profileData')
@@ -278,15 +284,15 @@ export class GroupService {
 
   static async getAvailableGroups(limit: number = 20): Promise<IGroup[]> {
     await dbConnect();
-    
+
     // @ts-ignore - Mongoose union type compatibility issue
     return Group.find({
       status: 'forming',
       $expr: { $lt: [{ $size: '$members' }, '$settings.maxMembers'] }
     })
-    .populate('members.user', 'walletAddress profileData')
-    .sort({ createdAt: -1 })
-    .limit(limit);
+      .populate('members.user', 'walletAddress profileData')
+      .sort({ createdAt: -1 })
+      .limit(limit);
   }
 
   static async leaveGroup(groupId: string, memberWallet: string): Promise<{ success: boolean; message: string }> {
@@ -307,17 +313,17 @@ export class GroupService {
       throw new Error('User not found');
     }
 
-    const memberIndex = group.members.findIndex((m: any) => 
+    const memberIndex = group.members.findIndex((m: any) =>
       m.user.toString() === user._id.toString()
     );
-    
+
     if (memberIndex === -1) {
       throw new Error('User is not a member of this group');
     }
 
     // Remove member from group
     group.members.splice(memberIndex, 1);
-    
+
     // If no members left, delete the group
     if (group.members.length === 0) {
       // @ts-ignore - Mongoose union type compatibility issue
@@ -361,7 +367,7 @@ export class GroupService {
       currentRound: group.currentRound,
       membersCount: group.members.filter((m: any) => m.isActive).length,
       nextPayoutDate: nextPayout?.scheduledDate,
-      nextPayoutRecipient: nextPayout ? 
+      nextPayoutRecipient: nextPayout ?
         (nextPayout.recipient as any)?.walletAddress : undefined
     };
   }

@@ -169,7 +169,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
 
-      const startTimestamp = startDate ? Math.floor(startDate.getTime() / 1000) : Math.floor(Date.now() / 1000);
+      const startTimestamp = startDate ? Math.floor(startDate.getTime() / 1000) : Math.floor(Date.now() / 1000) + 300; // +5 mins buffer
 
       // Use provided token address or determine a supported token
       let finalTokenAddress = tokenAddress;
@@ -951,7 +951,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               userAddress: memberAddress,
               userName: userName,
               role: 'member',
-              joinDate: new Date().toISOString()
+              joinDate: new Date().toISOString(),
+              contractAddress: contractAddress.toLowerCase()
             })
           });
         } catch (apiError) {

@@ -450,7 +450,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             userAddress: account,
             role: 'creator',
             joinDate: new Date().toISOString(), // Group creation time
-            userName: finalCreatorName // Use provided name or default to 'Creator'
+            userName: finalCreatorName, // Use provided name or default to 'Creator'
+            contractAddress: contractAddress.toLowerCase()
           };
 
           console.log('📤 Sending creator data to API:', creatorData);
@@ -730,7 +731,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           userAddress: account,
           role: 'member',
           joinDate: actualJoinDate.toISOString(), // Send the actual blockchain timestamp
-          userName: finalUserName // Send the user name
+          userName: finalUserName, // Send the user name
+          contractAddress: contractAddress.toLowerCase()
         };
 
         console.log('💾 Storing member data in database:', {
@@ -949,7 +951,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               userAddress: memberAddress,
               userName: userName,
               role: 'member',
-              joinDate: new Date().toISOString()
+              joinDate: new Date().toISOString(),
+              contractAddress: contractAddress.toLowerCase()
             })
           });
         } catch (apiError) {
