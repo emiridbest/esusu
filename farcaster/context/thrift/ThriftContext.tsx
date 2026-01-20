@@ -1710,7 +1710,6 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } catch (e) {
         console.warn('Failed to hydrate thrift metadata:', e);
       }
-      console.log('Fetched thrift groups:', fetchedGroups, 'User groups:', userGroupsTemp);
       setAllGroups(fetchedGroups);
       setUserGroups(userGroupsTemp);
     } catch (err) {

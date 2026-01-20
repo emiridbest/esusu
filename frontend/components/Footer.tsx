@@ -17,10 +17,10 @@ export default function Footer() {
   
   const navItems = [
     { name: "Home", icon: HomeIcon, path: "/", ariaLabel: "Navigate to home" },
-    { name: "Freebies", icon: GiftIcon, path: "/freebies", ariaLabel: "Navigate to freebies" },
-    { name: "Pay Bills", icon: StoreIcon, path: "/utilityBills", ariaLabel: "Navigate to utility bills" },
     { name: "Save", icon: ArchiveBoxArrowDownIcon, path: "/miniSafe", ariaLabel: "Navigate to savings" },
     { name: "Thrift", icon: UserGroupIcon, path: "/thrift", ariaLabel: "Navigate to thrift" },
+    { name: "Pay Bills", icon: StoreIcon, path: "/utilityBills", ariaLabel: "Navigate to utility bills" },
+    { name: "Freebies", icon: GiftIcon, path: "/freebies", ariaLabel: "Navigate to freebies" }
    // { name: "Profile", icon: UserIcon, path: "/profile", ariaLabel: "Navigate to profile" }
   ];
 
@@ -40,7 +40,7 @@ export default function Footer() {
                 "text-xs focus:outline-none",
                 active 
                   ? "text-black dark:text-primary font-semibold" 
-                  : "text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
+                  : "text-gray-600 dark:text-gray-400 hover:text-black/90 dark:hover:text-white/90"
               )}
               aria-label={item.ariaLabel}
             >
@@ -62,7 +62,7 @@ export default function Footer() {
                 {item.name}
               </span>
               {active && (
-                <span className="absolute bottom-0 w-1 h-1 bg-primary rounded-full"/>
+                <span className="absolute bottom-0 w-1 h-1 bg-white/90 dark:bg-neutral-800 rounded-full"/>
               )}
             </button>
           );

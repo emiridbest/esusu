@@ -25,7 +25,7 @@ const FeatureCard = ({
   
   return (
     <motion.div 
-      className="w-full sm:w-1/2 lg:w-1/4 p-4"
+      className="w-full sm:w-1/2 lg:w-1/4 p-4 dark:bg-black" 
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
@@ -38,7 +38,7 @@ const FeatureCard = ({
           alt={title}
           width={80}
           height={80}
-          className="mx-auto mb-5 object-contain"
+          className="mx-auto mb-5 object-contain dark:invert"
         />
         
         <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white border-l-4 border-primary pl-3">
@@ -85,13 +85,13 @@ const Section = ({
           viewport={{ once: true }}
         >
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-200/50 dark:border-gray-700/50 group relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"></div>
+            <div className="absolute inset-0 "></div>
             <Image 
               src={image} 
               alt={title} 
               width={500}
               height={500}
-              className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500 dark:invert"
             />
           </div>
         </motion.figure>
@@ -156,7 +156,7 @@ const Hero: React.FC = () => {
   return (
     <>
       {/* Hero Section - Simplified */}
-      <section className="relative pt-10 pb-20 overflow-hidden bg-gradient-radial from-primary/5 via-transparent to-transparent">
+      <section className="relative pt-10 pb-20 overflow-hidden bg-gradient-radial dark:bg-black">
         <div className="max-w-screen-xl mx-auto px-4">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
             <motion.div 
@@ -235,34 +235,29 @@ const Hero: React.FC = () => {
           </div>
         </div>
       </section>
-      
       {/* Features Section - Simplified */}
-        <section className="max-w-screen-xl mx-auto px-4">
-          <motion.header 
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Everything you need to <span className="text-primary">manage your finances</span>
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Simple tools that help you save, invest and grow your wealth together
-            </p>
-          </motion.header>
-          
-            <div className="flex flex-wrap -mx-4">
-            {features.map((feature, index) => (
-              <FeatureCard 
-                key={index} 
-                {...feature} 
-                delay={index * 0.1}
-              />
-            ))}
-          </div>
-        </section>
+      <section className="max-w-screen-xl mx-auto px-4 py-16 bg-white dark:bg-black">
+        <motion.header
+          className="text-center mb-16"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
+        >
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            Everything you need to <span className="text-primary">manage your finances</span>
+          </h2>
+          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            Simple tools that help you save, invest and grow your wealth together
+          </p>
+        </motion.header>
+
+        <div className="flex flex-wrap -mx-4">
+          {features.map((feature, index) => (
+            <FeatureCard key={index} {...feature} delay={index * 0.1} />
+          ))}
+        </div>
+      </section>
       
       {/* Mobile Optimized Section */}
       <Section
@@ -270,7 +265,7 @@ const Hero: React.FC = () => {
         description="Access Esusu anywhere, anytime. Swap tokens in a tap. Send crypto like a text message. Manage your finances on the go with our intuitive mobile experience."
         image="/earn.png"
         glassBg
-        accentColor="from-primary/20 to-indigo-500/10 "
+        accentColor="black "
       >
         <Button 
           className="mt-6"

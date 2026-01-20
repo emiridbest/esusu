@@ -1,6 +1,5 @@
 /* Import Google Fonts - must be at the very top */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -27,6 +26,7 @@
 }
 
 body {
+  @apply bg-[#fdfcf9] text-zinc-900;
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(to bottom,
       transparent,
@@ -68,4 +68,7 @@ body {
 
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
+}
+html {
+  font-family: 'IBM Plex Mono', monospace;
 }

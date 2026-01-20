@@ -138,7 +138,7 @@ const Thrift: React.FC = () => {
                 description="Start a new savings group"
                 href="#"
                 variant="outline"
-                onClick={() => setCreateDialogOpen(true)}
+              onClick={() => setCreateDialogOpen(true)}
               />
               <ThriftQuickAction
                 icon={<CalendarIcon className="h-6 w-6 text-primary" />}
@@ -164,6 +164,7 @@ const Thrift: React.FC = () => {
               />
             </div>
           </motion.div>
+          <CreateCampaignDialog isOpen={createDialogOpen} onOpenChange={setCreateDialogOpen} />
 
           <CreateCampaignDialog isOpen={createDialogOpen} onOpenChange={setCreateDialogOpen} hideTrigger />
 

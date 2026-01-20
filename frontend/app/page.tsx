@@ -1,14 +1,24 @@
 "use client";
-import React from 'react';
-import { useRouter } from 'next/navigation';
+
+import React from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import TransactionList from '@/components/TransactionList';
-import Hero from '@/components/Hero';
+import TransactionList from "@/components/TransactionList";
+import Hero from "@/components/Hero";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowRightIcon, SparklesIcon } from "lucide-react";
+import {
+  ArrowRight,
+  Sparkles,
+  Wallet,
+  Star,
+  ArrowDownToLine,
+} from "lucide-react";
+import { 
+  UserGroupIcon, 
+} from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 
 export interface Campaign {
@@ -23,13 +33,12 @@ export interface Campaign {
   id: number;
 }
 
-// Quick action component
 const QuickAction = ({
   icon,
   title,
   description,
   href,
-  variant = "default"
+  variant = "default",
 }: {
   icon: React.ReactNode;
   title: string;
@@ -39,31 +48,41 @@ const QuickAction = ({
 }) => {
   const router = useRouter();
 
-  return (
-    <Card
-      className={cn(
-        "cursor-pointer transition-all duration-300 hover:scale-[1.02] border-gray-100 dark:border-gray-700",
-        variant === "outline" ? "bg-white/50 dark:bg-gray-800/50 backdrop-blur-md" : "bg-primary/5"
-      )}
-      onClick={() => router.push(href)}
-    >
-      <CardContent className="p-6 flex flex-row items-center gap-4">
-        <div className={cn(
-          "rounded-full p-3 flex items-center justify-center",
-          variant === "outline" ? "bg-primary/10" : "bg-white dark:bg-gray-800"
-        )}>
-          {icon}
-        </div>
-        <div>
-          <h3 className="font-medium text-base">{title}</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
-        </div>
-        <div className="ml-auto">
-          <ArrowRightIcon className="h-5 w-5 text-primary" />
-        </div>
-      </CardContent>
-    </Card>
-  );
+return (
+  <Card
+    className={cn(
+      "cursor-pointer transition-all duration-200 hover:shadow-md border border-gray-200 dark:border-neutral-800",
+      variant === "outline"
+        ? "bg-white dark:bg-neutral-900"
+        : "bg-gray-50 dark:bg-neutral-800"
+    )}
+    onClick={() => router.push(href)}
+  >
+    <CardContent className="p-5 flex flex-row items-center gap-4">
+      <div
+        className={cn(
+          "rounded-md p-3 flex items-center justify-center",
+          variant === "outline"
+            ? "bg-gray-100 dark:bg-neutral-700"
+            : "bg-white dark:bg-neutral-900"
+        )}
+      >
+        {icon}
+      </div>
+
+      <div>
+        <h3 className="font-medium text-base">{title}</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          {description}
+        </p>
+      </div>
+
+      <div className="ml-auto">
+        <ArrowRight className="h-5 w-5 text-primary" />
+      </div>
+    </CardContent>
+  </Card>
+);
 };
 
 const Esusu: React.FC = () => {
@@ -75,51 +94,39 @@ const Esusu: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
+        transition={{ duration: 0.4 }}
         className="my-6"
       >
-        <div className="flex items-center mb-4">
-          <SparklesIcon className="h-5 w-5 text-primary mr-2" />
-          <h2 className="text-xl font-semibold dark:text-white/70">Quick Actions</h2>
-        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 dark:text-white">
           <QuickAction
-            icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-              <rect width="20" height="14" x="2" y="5" rx="2" />
-              <line x1="2" x2="22" y1="10" y2="10" />
-            </svg>}
+            icon={<Wallet className="text-primary h-6 w-6" />}
             title="Add Funds"
             description="Lock up funds and start earning"
             href="/miniSafe"
           />
+
           <QuickAction
-            icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-              <circle cx="12" cy="8" r="6" />
-              <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
-            </svg>}
+            icon={<UserGroupIcon className="text-primary h-6 w-6" />}
             title="Join a Thrift"
             description="Save with friends and family"
             href="/thrift"
             variant="outline"
           />
+
           <QuickAction
-            icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
-              <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z" />
-              <circle cx="12" cy="12" r="1" />
-            </svg>}
-            title="Claim Esusu Loyaty Rewards"
-            description="Get reawrded for being an Esusu OG in G$"
-            href="/rewards"
-            variant="outline"
-          />
-          <QuickAction
-            icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-              <path d="m19 5-7 7-7-7" />
-              <path d="M5 19h14" />
-            </svg>}
+            icon={<ArrowDownToLine className="text-primary h-6 w-6" />}
             title="Withdraw"
             description="Transfer funds to your wallet"
             href="/miniSafe"
+            variant="outline"
+          />
+
+          <QuickAction
+            icon={<Star className="text-green-500 h-6 w-6" />}
+            title="Claim Loyalty Rewards"
+            description="Earn G$ for being an Esusu OG"
+            href="/rewards"
             variant="outline"
           />
         </div>
@@ -144,7 +151,7 @@ const Esusu: React.FC = () => {
             </Card>
           </TabsContent>
           <TabsContent value="features" className="mt-4">
-            <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md">
+            <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-black/90 backdrop-blur-md">
               <CardContent className="pt-6">
                 <Hero />
               </CardContent>
