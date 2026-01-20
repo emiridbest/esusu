@@ -30,10 +30,13 @@ export function CreateCampaignDialog({ isOpen, onOpenChange }: CreateCampaignDia
   const [isPublic, setIsPublic] = useState(true);
   const [selectedToken, setSelectedToken] = useState<string>('USDC');
   const [startDate, setStartDate] = useState<string>(() => {
-    // Default to tomorrow
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  });
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const year = tomorrow.getFullYear();
+  const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+  const day = String(tomorrow.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+});
   const [creatorName, setCreatorName] = useState<string>(''); // Creator's name
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
