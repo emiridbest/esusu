@@ -100,6 +100,7 @@ export async function POST(
   try {
     const { groupId } = await params;
     const body = await request.json();
+
     const { userAddress, role = 'member', joinDate, userName, contractAddress } = body;
 
     console.log('📥 POST /api/groups/[groupId]/members - Received:', {
@@ -121,20 +122,25 @@ export async function POST(
     await dbConnect();
 
     // 1. Update/Create Global User Profile
-    if (userName) {
+    if (userName || userAddress) { // Allow update if we have address
       try {
+        const updateData: any = {
+          updatedAt: new Date()
+        };
+
+        if (userName) updateData.name = userName;
+        if (body.email) updateData.email = body.email;
+        if (body.phone) updateData.phone = body.phone;
+
         await mongoose.connection.db?.collection('users').updateOne(
           { address: userAddress },
           {
-            $set: {
-              name: userName,
-              updatedAt: new Date()
-            },
+            $set: updateData,
             $setOnInsert: {
               address: userAddress,
               createdAt: new Date(),
-              email: '', // Can be updated later
-              phone: ''
+              email: body.email || '',
+              phone: body.phone || ''
             }
           },
           { upsert: true }
@@ -142,6 +148,58 @@ export async function POST(
         console.log(`✅ User profile updated for ${userAddress}`);
       } catch (err) {
         console.error('Failed to update user profile:', err);
+      }
+    }
+
+    // Import NotificationService dynamically
+    // Note: Minipay might share backend code or have its own structure. 
+    // Assuming relative path to lib/services exists or using alias if configured.
+    // Based on previous file reads, backend code is likely in root backend/lib
+    // But this file imports dbConnect from '@esusu/backend/lib/database/connection'
+    // Let's try to import from the same place frontend did if possible, or use the alias.
+    // The previous frontend change used '@/lib/services/notificationService'.
+    // Let's check where NotificationService is available for Minipay.
+    // It seems Minipay app folder structure mirrors frontend.
+    // Let's try the alias or relative path. 
+
+    // START DYNAMIC IMPORT BLOCK
+    let NotificationService: any = null;
+    try {
+      // Try to import from backend library directly if accessible via alias
+      const nsModule = await import('@esusu/backend/lib/services/notificationService');
+      NotificationService = nsModule.NotificationService;
+    } catch (e) {
+      console.log('Could not import NotificationService via alias, trying relative...');
+      // Fallback or ignore if cannot function
+    }
+    // END DYNAMIC IMPORT BLOCK
+
+    // Send Welcome Email if we have an email
+    if (body.email && NotificationService) {
+      try {
+        const isCreator = role === 'creator';
+        const title = isCreator ? 'Thrift Group Created Successfully' : 'Joined Thrift Group Successfully';
+        const message = isCreator
+          ? `You have successfully created the thrift group. Invite others to join!`
+          : `You have successfully joined the thrift group.`;
+
+        // Determine App URL from request
+        const appUrl = request.nextUrl.origin;
+
+        await NotificationService.createNotification({
+          userWallet: userAddress,
+          type: 'group_invitation',
+          title: title,
+          message: message,
+          data: { groupId, role },
+          sendEmail: true,
+          appName: 'Esusu MiniPay',
+          appUrl: appUrl,
+          appLogo: `${appUrl}/miniPay.png`
+        });
+        console.log(`📧 Email notification queued for ${body.email}`);
+      } catch (emailErr) {
+        console.error('Failed to send email notification:', emailErr);
       }
     }
 

@@ -451,10 +451,12 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             role: 'creator',
             joinDate: new Date().toISOString(), // Group creation time
             userName: finalCreatorName, // Use provided name or default to 'Creator'
+            email, // Pass email
+            phone, // Pass phone
             contractAddress: contractAddress.toLowerCase()
           };
 
-          console.log('📤 Sending creator data to API:', creatorData);
+
 
           const creatorResponse = await fetch(`/api/groups/${newGroupId}/members`, {
             method: 'POST',
@@ -732,8 +734,12 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           role: 'member',
           joinDate: actualJoinDate.toISOString(), // Send the actual blockchain timestamp
           userName: finalUserName, // Send the user name
+          email, // Pass email
+          phone, // Pass phone
           contractAddress: contractAddress.toLowerCase()
         };
+
+
 
         console.log('💾 Storing member data in database:', {
           ...memberData,
