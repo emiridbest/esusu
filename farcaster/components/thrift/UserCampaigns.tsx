@@ -125,210 +125,169 @@ export function UserCampaigns() {
 
   return (
     <div>
-    <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Your Thrift Groups</CardTitle>
-        <button
-          onClick={() => refreshGroups()}
-          className="text-xs px-3 py-1 border rounded hover:bg-muted"
-          disabled={loading}
-        >
-          {loading ? "Refreshing..." : "Refresh"}
-        </button>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="overview">
-          <TabsList className="mb-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="members">Members</TabsTrigger>
-            <TabsTrigger value="contributions">Contributions</TabsTrigger>
-          </TabsList>
+      <Card className="w-full">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Your Thrift Groups</CardTitle>
+          <button
+            onClick={() => refreshGroups()}
+            className="text-xs px-3 py-1 border rounded hover:bg-muted"
+            disabled={loading}
+          >
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="overview">
+            <TabsList className="mb-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="members">Members</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="overview">
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Deposit</TableHead>
-                    <TableHead>Members</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {userGroups.map((group) => (
-                    <TableRow key={group.id}>
-                      <TableCell className="font-medium">
-                        <a
-                          href={`/thrift/${group.id}`}
-                          className="hover:underline text-primary"
-                        >
-                          {group.name}
-                        </a>
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        {group.description}
-                      </TableCell>
-                      <TableCell>{parseFloat(group.depositAmount)} {group.tokenSymbol || 'cUSD'}</TableCell>
-                      <TableCell>{group.totalMembers}/{group.maxMembers}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
+            <TabsContent value="overview">
+              <div className="rounded-md border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Deposit</TableHead>
+                      <TableHead>Members</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {userGroups.map((group) => (
+                      <TableRow key={group.id}>
+                        <TableCell className="font-medium">
                           <a
                             href={`/thrift/${group.id}`}
-                            className="text-xs px-3 py-1 border rounded hover:bg-muted text-center"
+                            className="hover:underline text-primary"
                           >
-                            View
+                            {group.name}
                           </a>
-                          {address && group.meta?.createdBy && address.toLowerCase() === String(group.meta.createdBy).toLowerCase() && (
-                            <button
-                              className="text-xs px-3 py-1 border rounded hover:bg-muted"
-                              onClick={() => { setEditGroup(group); setEditOpen(true); }}
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate">
+                          {group.description}
+                        </TableCell>
+                        <TableCell>{parseFloat(group.depositAmount)} {group.tokenSymbol || 'cUSD'}</TableCell>
+                        <TableCell>{group.totalMembers}/{group.maxMembers}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <a
+                              href={`/thrift/${group.id}`}
+                              className="text-xs px-3 py-1 border rounded hover:bg-muted text-center"
                             >
-                              Edit
-                            </button>
-                          )}
-                          {group.isUserMember && group.isActive && (
-                            <button
-                              className="text-xs px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90"
-                              onClick={() => {/* Add make contribution logic */ }}
-                            >
-                              Contribute
-                            </button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
+                              View
+                            </a>
+                            {address && group.meta?.createdBy && address.toLowerCase() === String(group.meta.createdBy).toLowerCase() && (
+                              <button
+                                className="text-xs px-3 py-1 border rounded hover:bg-muted"
+                                onClick={() => { setEditGroup(group); setEditOpen(true); }}
+                              >
+                                Edit
+                              </button>
+                            )}
+                            {group.isUserMember && group.isActive && (
+                              <button
+                                className="text-xs px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                                onClick={() => {/* Add make contribution logic */ }}
+                              >
+                                Contribute
+                              </button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
 
-          <TabsContent value="members">
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Group</TableHead>
-                    <TableHead>Members</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {userGroups.map((group) => (
-                    <TableRow key={group.id}>
-                      <TableCell className="font-medium">
-                        <a
-                          href={`/thrift/${group.id}`}
-                          className="hover:underline text-primary"
-                        >
-                          {group.name}
-                        </a>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          {loadingMembers ? (
-                            <span className="text-gray-500">Loading members...</span>
-                          ) : groupMembers[group.id]?.length > 0 ? (
-                            groupMembers[group.id].map((member, idx) => (
-                              <div key={idx} className="text-sm">
-                                <div className="font-medium">{member.userName || `Member ${idx + 1}`}</div>
-                                <span className="text-xs text-gray-500">
-                                  {member.address.substring(0, 6)}...{member.address.substring(member.address.length - 4)}
-                                </span>
-                              </div>
-                            ))
-                          ) : (
-                            <span className="text-gray-500">No members loaded</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={(
-                          group.isActive && group.totalMembers >= group.maxMembers
-                            ? "bg-green-50 text-green-700 border-green-200"
-                            : group.isActive
-                              ? "bg-blue-50 text-blue-700 border-blue-200"
-                              : "bg-yellow-50 text-yellow-700 border-yellow-200"
-                        ) + " border"}>
-                          {group.isActive && group.totalMembers >= group.maxMembers
-                            ? 'Full'
-                            : group.isActive
-                              ? 'Active'
-                              : 'Pending'}
-                        </Badge>
-                      </TableCell>
+            <TabsContent value="members">
+              <div className="rounded-md border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Group</TableHead>
+                      <TableHead>Members</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
+                  </TableHeader>
+                  <TableBody>
+                    {userGroups.map((group) => (
+                      <TableRow key={group.id}>
+                        <TableCell className="font-medium">
+                          <a
+                            href={`/thrift/${group.id}`}
+                            className="hover:underline text-primary"
+                          >
+                            {group.name}
+                          </a>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            {loadingMembers ? (
+                              <span className="text-gray-500">Loading members...</span>
+                            ) : groupMembers[group.id]?.length > 0 ? (
+                              groupMembers[group.id].map((member, idx) => (
+                                <div key={idx} className="text-sm">
+                                  <div className="font-medium">{member.userName || `Member ${idx + 1}`}</div>
+                                  <span className="text-xs text-gray-500">
+                                    {member.address.substring(0, 6)}...{member.address.substring(member.address.length - 4)}
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <span className="text-gray-500">No members loaded</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={(
+                            group.isActive && group.totalMembers >= group.maxMembers
+                              ? "bg-green-50 text-green-700 border-green-200"
+                              : group.isActive
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                          ) + " border"}>
+                            {group.isActive && group.totalMembers >= group.maxMembers
+                              ? 'Full'
+                              : group.isActive
+                                ? 'Active'
+                                : 'Pending'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
 
-          <TabsContent value="contributions">
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Group</TableHead>
-                    <TableHead>Your Contribution</TableHead>
-                    <TableHead>Last Payment</TableHead>
-                    <TableHead>Next Payment</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {userGroups.map((group) => (
-                    <TableRow key={group.id}>
-                      <TableCell className="font-medium">
-                        <a
-                          href={`/thrift/${group.id}`}
-                          className="hover:underline text-primary"
-                        >
-                          {group.name}
-                        </a>
-                      </TableCell>
-                      <TableCell>
-                        {group.userContribution ? `${parseFloat(group.userContribution)} ${group.tokenSymbol || 'cUSD'}` : `${parseFloat(group.depositAmount)} ${group.tokenSymbol || 'cUSD'}`}
-                      </TableCell>
-                      <TableCell>
-                        {group.userLastPayment ? group.userLastPayment.toLocaleDateString() : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {group.userNextPayment
-                          ? group.userNextPayment.toLocaleDateString()
-                          : group.isActive
-                            ? (group.currentRound === 0 ? "Round 1" : `Round ${group.currentRound + 1}`)
-                            : "Not Started"
-                        }
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-      {/* Edit Metadata Dialog */}
-      {editGroup ? (
-        <EditMetadataDialog
-          open={editOpen}
-          onOpenChange={setEditOpen}
-          contractAddress={contractAddress}
-          groupId={editGroup.id}
-          initialName={editGroup.name}
-          initialDescription={editGroup.description}
-          initialCoverImageUrl={editGroup.meta?.coverImageUrl}
-          initialCategory={editGroup.meta?.category}
-          initialTags={editGroup.meta?.tags}
-          onSaved={() => {
-            setEditOpen(false);
-            refreshGroups();
-          }}
-        />
-      ) : null}
-    </Card>
+
+
+          </Tabs>
+        </CardContent>
+        {/* Edit Metadata Dialog */}
+        {editGroup ? (
+          <EditMetadataDialog
+            open={editOpen}
+            onOpenChange={setEditOpen}
+            contractAddress={contractAddress}
+            groupId={editGroup.id}
+            initialName={editGroup.name}
+            initialDescription={editGroup.description}
+            initialCoverImageUrl={editGroup.meta?.coverImageUrl}
+            initialCategory={editGroup.meta?.category}
+            initialTags={editGroup.meta?.tags}
+            onSaved={() => {
+              setEditOpen(false);
+              refreshGroups();
+            }}
+          />
+        ) : null}
+      </Card>
     </div>
   );
 }

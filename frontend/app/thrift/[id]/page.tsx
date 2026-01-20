@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { ArrowUpIcon, ArrowDownIcon, Share2Icon, UsersIcon, CalendarIcon, ArrowLeftIcon, SparklesIcon, Settings, Play, DollarSign, AlertTriangle, RotateCcw, GripVertical } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, Share2Icon, UsersIcon, CalendarIcon, ArrowLeftIcon, SparklesIcon, Settings, Play, DollarSign, AlertTriangle, RotateCcw, GripVertical, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
@@ -627,6 +627,33 @@ export default function CampaignDetailsPage() {
     );
   }
 
+  // Access Control for Private Groups
+  if (!campaign.isPublic && !isUserMember) {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-md">
+        <Button
+          variant="ghost"
+          onClick={() => router.push('/thrift')}
+          className="mb-4"
+        >
+          <ArrowLeftIcon className="mr-2 h-4 w-4" />
+          Back to Groups
+        </Button>
+        <Card className="border-red-200">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto bg-red-100 p-3 rounded-full w-fit mb-2">
+              <Lock className="h-8 w-8 text-red-500" />
+            </div>
+            <CardTitle className="text-red-700">Access Restricted</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center text-muted-foreground">
+            <p>This is a private group. You must be a member to view its details.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-screen-xl mx-auto px-4 md:px-8 pb-20">
       <motion.div
@@ -995,12 +1022,21 @@ export default function CampaignDetailsPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {!groupStatus?.isStarted ? (
+                          {!campaign.isActive ? (
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-center py-4">
+                                <div className="text-gray-500">
+                                  <p className="font-medium">Group has not been activated</p>
+                                  <p className="text-sm">Contributions will appear here once the admin activates the group</p>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ) : !groupStatus?.isStarted ? (
                             <TableRow>
                               <TableCell colSpan={3} className="text-center py-4">
                                 <div className="text-gray-500">
                                   <p className="font-medium">Group has not started yet</p>
-                                  <p className="text-sm">Contributions will appear here once the group becomes active</p>
+                                  <p className="text-sm">Contributions will appear here once the group start time is reached</p>
                                 </div>
                               </TableCell>
                             </TableRow>
