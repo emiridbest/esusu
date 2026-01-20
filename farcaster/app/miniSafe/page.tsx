@@ -22,7 +22,7 @@ export default function MiniSafe() {
   return (
     <MiniSafeProvider>
       <div
-        className={`${dimensions.containerClass} mx-auto px-4 py-2 overflow-auto`}
+        className={`${dimensions.containerClass} mx-auto px-4 py-2 overflow-auto mb-12`}
         style={{
           width: dimensions.width,
           height: dimensions.height,
