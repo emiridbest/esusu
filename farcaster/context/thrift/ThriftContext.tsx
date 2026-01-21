@@ -121,7 +121,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const provider = signer?.provider as BrowserProvider | null;
 
   // Custom RPC provider for event querying and view function calls (fallback when wallet RPC is down)
-  const customRpcProvider = new JsonRpcProvider('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8');
+  const customRpcProvider = new JsonRpcProvider('https://forno.celo.org');
 
   // Read-only contract for view functions using public RPC
   const [readOnlyContract, setReadOnlyContract] = useState<MiniSafeAave | null>(null);
@@ -169,7 +169,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
 
-      const startTimestamp = startDate ? Math.floor(startDate.getTime() / 1000) : Math.floor(Date.now() / 1000);
+      const startTimestamp = startDate ? Math.floor(startDate.getTime() / 1000) : Math.floor(Date.now() / 1000) + 300; // +5 mins buffer
 
       // Use provided token address or determine a supported token
       let finalTokenAddress = tokenAddress;
@@ -312,7 +312,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
           contractAddress: contractAddress as `0x${string}`,
-          abi: parseAbi(["function createThriftGroup(uint256, uint256, bool, address, string, string) returns (uint256)"]),
+          abi: parseAbi(["function createThriftGroup(uint256, uint256, bool, address) returns (uint256)"]),
           functionName: 'createThriftGroup',
           args: [amount, startTimestamp, isPublic, finalTokenAddress],
         });
@@ -450,7 +450,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             userAddress: account,
             role: 'creator',
             joinDate: new Date().toISOString(), // Group creation time
-            userName: finalCreatorName // Use provided name or default to 'Creator'
+            userName: finalCreatorName, // Use provided name or default to 'Creator'
+            contractAddress: contractAddress.toLowerCase()
           };
 
           console.log('📤 Sending creator data to API:', creatorData);
@@ -730,7 +731,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           userAddress: account,
           role: 'member',
           joinDate: actualJoinDate.toISOString(), // Send the actual blockchain timestamp
-          userName: finalUserName // Send the user name
+          userName: finalUserName, // Send the user name
+          contractAddress: contractAddress.toLowerCase()
         };
 
         console.log('💾 Storing member data in database:', {
@@ -949,7 +951,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               userAddress: memberAddress,
               userName: userName,
               role: 'member',
-              joinDate: new Date().toISOString()
+              joinDate: new Date().toISOString(),
+              contractAddress: contractAddress.toLowerCase()
             })
           });
         } catch (apiError) {
@@ -1246,13 +1249,16 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Function to get thrift group members
   const getThriftGroupMembers = async (groupId: number): Promise<ThriftMember[]> => {
-    if (!contract || !isConnected) {
+    // CRITICAL: Use readOnlyContract for view functions because Farcaster wallet
+    // does NOT support eth_call. The wallet-connected contract should only be used for
+    // write operations (transactions that require signing).
+    if (!readOnlyContract || !isConnected) {
       throw new Error("Wallet not connected or contract not initialized");
     }
 
     try {
       // Primary: Fetch members from contract (authoritative blockchain data)
-      const blockchainMembers: string[] = await contract.getGroupMembers(groupId);
+      const blockchainMembers: string[] = await readOnlyContract.getGroupMembers(groupId);
       console.log(`📋 Blockchain members for group ${groupId}:`, blockchainMembers);
 
       // Fetch join dates from cached blockchain API (ALWAYS - this is the source of truth)
@@ -1288,7 +1294,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Fetch usernames from database and merge with join dates
       console.log(`🔍 Fetching usernames from database for group ${groupId}`);
       try {
-        const dbResponse = await fetch(`/api/groups/${groupId}/members`);
+        const dbResponse = await fetch(`/api/groups/${groupId}/members?contract=${contractAddress.toLowerCase()}`);
         if (dbResponse.ok) {
           const dbData = await dbResponse.json();
           console.log('👤 Database members response:', dbData);
@@ -1418,8 +1424,12 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Generate shareable link for a thrift group
   const generateShareLink = (groupId: number): string => {
-    const baseUrl = "https://farcaster.xyz/miniapps/ODGMy9CdO8UI/esusu";
-    return `${baseUrl}/thrift/join/${groupId}`;
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    // If contract address is available, include it
+    if (contractAddress) {
+      return `${baseUrl}/thrift/groups/${groupId}?contract=${contractAddress.toLowerCase()}`;
+    }
+    return `${baseUrl}/thrift/groups/${groupId}`;
   };
 
   // Admin functions
@@ -1517,8 +1527,10 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Function to fetch all thrift groups
   const refreshGroups = async () => {
-    // Prefer using the connected contract (signer) for fresher data, fallback to read-only (RPC)
-    const targetContract = contract || readOnlyContract;
+    // CRITICAL: Always use readOnlyContract for view functions because Farcaster wallet
+    // does NOT support eth_call. The wallet-connected contract should only be used for
+    // write operations (transactions that require signing).
+    const targetContract = readOnlyContract;
 
     if (!targetContract || !isConnected || !account) {
       setUserGroups([]);

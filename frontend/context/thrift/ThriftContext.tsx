@@ -384,7 +384,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             userAddress: account,
             role: 'creator',
             joinDate: new Date().toISOString(), // Group creation time
-            userName: finalCreatorName // Use provided name or default to 'Creator'
+            userName: finalCreatorName, // Use provided name or default to 'Creator'
+            contractAddress: contract?.address // Add contract address to scoped DB lookup
           };
 
           console.log('📤 Sending creator data to API:', creatorData);
@@ -647,6 +648,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.warn('Using current time as fallback');
       }
 
+      const currentContractAddress = contract?.address || contractAddress;
+
       // Store join date in database with the actual blockchain timestamp
       try {
         const finalUserName = userName || `Member ${Date.now()}`;
@@ -654,7 +657,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           userAddress: account,
           role: 'member',
           joinDate: actualJoinDate.toISOString(), // Send the actual blockchain timestamp
-          userName: finalUserName // Send the user name
+          userName: finalUserName, // Send the user name
+          contractAddress: currentContractAddress // Scope by contract address
         };
 
         console.log('💾 Storing member data in database:', {
@@ -873,7 +877,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               userAddress: memberAddress,
               userName: userName,
               role: 'member',
-              joinDate: new Date().toISOString()
+              joinDate: new Date().toISOString(),
+              contractAddress: contractAddress
             })
           });
         } catch (apiError) {
@@ -1197,7 +1202,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Fetch usernames from database and merge with join dates
       console.log(`🔍 Fetching usernames from database for group ${groupId}`);
       try {
-        const dbResponse = await fetch(`/api/groups/${groupId}/members`);
+        const dbResponse = await fetch(`/api/groups/${groupId}/members?contract=${contractAddress.toLowerCase()}`);
         if (dbResponse.ok) {
           const dbData = await dbResponse.json();
           console.log('👤 Database members response:', dbData);

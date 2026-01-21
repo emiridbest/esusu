@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, use, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
-import { ethers, Interface, JsonRpcProvider  } from "ethers";
+import { ethers, Interface, JsonRpcProvider } from "ethers";
 import { parseAbi } from 'viem';
 
 import {
@@ -14,7 +14,7 @@ import {
   useConnectorClient,
   type Config,
 } from "wagmi";
-import  { config } from '../../components/providers/WagmiProvider';
+import { config } from '../../components/providers/WagmiProvider';
 import { useGasSponsorship } from '../../hooks/useGasSponsorship';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { CountryData } from '../../utils/countryData';
@@ -114,7 +114,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const [mento, setMento] = useState<Mento | null>(null);
 
   useEffect(() => {
-    if (!isConnected || !provider|| !address) return;
+    if (!isConnected || !provider || !address) return;
 
     const initMento = async () => {
       try {
@@ -283,7 +283,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         let paymentAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
 
         // Prepare token transfer
-            const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
+        const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
         const erc20Abi = parseAbi(["function transfer(address to, uint256 value) returns (bool)"]);
 
         // Encode the transfer function
@@ -352,11 +352,11 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
             break;
         }
         toast.success(successMessage);
-        return { 
-          success: true, 
-          transactionHash: tx as `0x${string}`, 
+        return {
+          success: true,
+          transactionHash: tx as `0x${string}`,
           convertedAmount: convertedAmount.toString(),
-          paymentToken: token 
+          paymentToken: token
         };
       } else {
         toast.error('Ethereum provider not found. Please install a Web3 wallet.');
@@ -431,21 +431,21 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     } else if (operation === 'electricity') {
       steps = [
         {
-        id: 'check-balance',
-        title: 'Check Balance',
-        description: `Checking your wallet balance`,
-        status: 'inactive'
-      },
-      {
-        id: 'send-payment',
-        title: 'Send Payment',
-        description: `Sending payment for meter ${recipient}`,
-        status: 'inactive'
-      },
-      {
-        id: 'electricity-payment',
-        title: 'Pay Electricity Bill',
-        description: `Paying electricity bill for meter ${recipient}`,
+          id: 'check-balance',
+          title: 'Check Balance',
+          description: `Checking your wallet balance`,
+          status: 'inactive'
+        },
+        {
+          id: 'send-payment',
+          title: 'Send Payment',
+          description: `Sending payment for meter ${recipient}`,
+          status: 'inactive'
+        },
+        {
+          id: 'electricity-payment',
+          title: 'Pay Electricity Bill',
+          description: `Paying electricity bill for meter ${recipient}`,
           status: 'inactive'
         }
       ];
@@ -524,7 +524,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
       {/* Multi-step Transaction Dialog */}
       <Dialog open={isTransactionDialogOpen} onOpenChange={(open) => !isWaitingTx && !open && closeTransactionDialog()}>
-        <DialogContent className="sm:max-w-md border rounded-lg">
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto border rounded-lg">
           <DialogHeader>
             <DialogTitle className='text-black/90 dark:text-white/90'>{getDialogTitle()}</DialogTitle>
             <DialogDescription>

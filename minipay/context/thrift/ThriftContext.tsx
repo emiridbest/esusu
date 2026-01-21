@@ -169,7 +169,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
 
-      const startTimestamp = startDate ? Math.floor(startDate.getTime() / 1000) : Math.floor(Date.now() / 1000);
+      const startTimestamp = startDate ? Math.floor(startDate.getTime() / 1000) : Math.floor(Date.now() / 1000) + 300; // +5 mins buffer
 
       // Use provided token address or determine a supported token
       let finalTokenAddress = tokenAddress;
@@ -450,7 +450,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             userAddress: account,
             role: 'creator',
             joinDate: new Date().toISOString(), // Group creation time
-            userName: finalCreatorName // Use provided name or default to 'Creator'
+            userName: finalCreatorName, // Use provided name or default to 'Creator'
+            contractAddress: contractAddress.toLowerCase() // Add contract address to scoped DB lookup
           };
 
           console.log('📤 Sending creator data to API:', creatorData);
@@ -730,7 +731,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           userAddress: account,
           role: 'member',
           joinDate: actualJoinDate.toISOString(), // Send the actual blockchain timestamp
-          userName: finalUserName // Send the user name
+          userName: finalUserName, // Send the user name
+          contractAddress: contractAddress.toLowerCase() // Add contract address to scoped DB lookup
         };
 
         console.log('💾 Storing member data in database:', {
@@ -949,7 +951,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               userAddress: memberAddress,
               userName: userName,
               role: 'member',
-              joinDate: new Date().toISOString()
+              joinDate: new Date().toISOString(),
+              contractAddress: contractAddress.toLowerCase()
             })
           });
         } catch (apiError) {
@@ -1288,7 +1291,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Fetch usernames from database and merge with join dates
       console.log(`🔍 Fetching usernames from database for group ${groupId}`);
       try {
-        const dbResponse = await fetch(`/api/groups/${groupId}/members`);
+        const dbResponse = await fetch(`/api/groups/${groupId}/members?contract=${contractAddress.toLowerCase()}`);
         if (dbResponse.ok) {
           const dbData = await dbResponse.json();
           console.log('👤 Database members response:', dbData);
@@ -1419,7 +1422,11 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Generate shareable link for a thrift group
   const generateShareLink = (groupId: number): string => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    return `${baseUrl}/thrift/join/${groupId}`;
+    // If contract address is available, include it
+    if (contractAddress) {
+      return `${baseUrl}/thrift/groups/${groupId}?contract=${contractAddress.toLowerCase()}`;
+    }
+    return `${baseUrl}/thrift/groups/${groupId}`;
   };
 
   // Admin functions
