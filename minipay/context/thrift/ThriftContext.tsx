@@ -1018,14 +1018,17 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Check if user is a member of the group
     try {
-      const isMember = await contract.isGroupMember(groupId, account);
+      if (!readOnlyContract) throw new Error("Contract not initialized");
+      const isMember = await readOnlyContract.isGroupMember(groupId, account);
       console.log('User is member of group:', isMember);
       if (!isMember) {
         throw new Error("You are not a member of this group. Please join the group before contributing.");
       }
     } catch (memberCheckError) {
       console.error('Failed to check membership:', memberCheckError);
-      // Don't throw here, let the contract call handle it
+      if (memberCheckError instanceof Error && memberCheckError.message.includes("You are not a member")) {
+        throw memberCheckError;
+      }
     }
 
     try {
@@ -1037,9 +1040,9 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const detailedStatus = await checkGroupStatus(groupId);
       console.log('makeContribution: Detailed group status:', detailedStatus);
 
-      // Also check the raw contract data
-      const groupInfo = await contract.getGroupInfo(groupId);
-      const thriftGroup = await contract.getThriftGroup(groupId);
+      // Also check the raw contract data using read-only provider
+      const groupInfo = await readOnlyContract.getGroupInfo(groupId);
+      const thriftGroup = await readOnlyContract.getThriftGroup(groupId);
       console.log('makeContribution: Raw contract data:', {
         groupInfo: {
           isActive: groupInfo.isActive,
