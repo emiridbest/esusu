@@ -35,6 +35,7 @@ export interface ThriftGroup {
   userLastPayment?: Date;
   userNextPayment?: Date;
   pastRecipient?: string;
+  admin?: string;
   meta?: {
     createdBy?: string;
     coverImageUrl?: string;
@@ -1679,6 +1680,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             userLastPayment,
             userNextPayment,
             pastRecipient,
+            admin: info.admin,
           };
 
           fetchedGroups.push(group);

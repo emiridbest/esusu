@@ -250,54 +250,21 @@ export default function CampaignDetailsPage() {
 
   // Check if user is group admin
   useEffect(() => {
-    const checkGroupAdmin = async () => {
-      if (!campaign || !address) {
-        console.log('Admin check: No campaign or address');
-        setIsGroupAdmin(false);
-        return;
-      }
+    if (campaign && address) {
+      // Use admin from contract if available, otherwise fallback to creator metadata
+      const isAdminFromContract = campaign.admin && campaign.admin.toLowerCase() === address.toLowerCase();
 
-      try {
-        console.log('Checking admin status for group:', campaign.id, 'address:', address);
+      // Fallback: Check if user is the creator based on metadata
+      const isCreator = metaCreatedBy && address.toLowerCase() === metaCreatedBy.toLowerCase();
 
-        // Import the contract to check admin status
-        const { ethers } = await import('ethers');
-        const { contractAddress, abi } = await import('@/utils/abi');
+      const isAdmin = isAdminFromContract || isCreator;
+      console.log('Admin check:', { isAdmin, isAdminFromContract, isCreator, address, contractAdmin: campaign.admin, creator: metaCreatedBy });
 
-        const ethereum = (window as any).ethereum;
-        if (!ethereum) {
-          console.log('Admin check: No ethereum provider');
-          return;
-        }
-
-        const provider = new ethers.BrowserProvider(ethereum);
-        const contract = new ethers.Contract(contractAddress, abi, provider);
-
-        const groupInfo = await contract.thriftGroups(campaign.id);
-        const groupAdmin = groupInfo.admin;
-
-        console.log('Group admin from contract:', groupAdmin);
-        console.log('Current user address:', address);
-
-        const isAdmin = groupAdmin && groupAdmin.toLowerCase() === address.toLowerCase();
-        console.log('Is group admin:', isAdmin);
-
-        setIsGroupAdmin(isAdmin);
-      } catch (error) {
-        console.error('Failed to check group admin status:', error);
-
-        // Fallback: Check if user is the creator based on metadata
-        if (metaCreatedBy && address && address.toLowerCase() === metaCreatedBy.toLowerCase()) {
-          console.log('Using fallback admin check - user is creator');
-          setIsGroupAdmin(true);
-        } else {
-          setIsGroupAdmin(false);
-        }
-      }
-    };
-
-    checkGroupAdmin();
-  }, [campaign, address]);
+      setIsGroupAdmin(!!isAdmin);
+    } else {
+      setIsGroupAdmin(false);
+    }
+  }, [campaign, address, metaCreatedBy]);
 
   const handleJoinClick = () => {
     setJoinDialogOpen(true);
