@@ -1108,17 +1108,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               decimals: tokenDecimals
             });
 
-            try {
-              toast.error("Insufficient Token Balance", {
-                description: `You have ${userBalanceFormatted} tokens but need ${requiredAmountFormatted} tokens to make this contribution.`,
-              });
-              console.log('Toast notification sent successfully');
-            } catch (toastError) {
-              console.error('Failed to show toast:', toastError);
-            }
-
-            // Return early instead of throwing error to prevent console error
-            return;
+            throw new Error(`Insufficient Token Balance: You have ${userBalanceFormatted} tokens but need ${requiredAmountFormatted} tokens to make this contribution.`);
           }
 
           // If allowance is insufficient, request approval
