@@ -74,7 +74,7 @@ export function UserCampaigns() {
       <Card className="w-full">
         <CardContent className="pt-6">
           <div className="text-center p-8">
-            <p>Please connect your wallet to view your thrift groups.</p>
+            <p>Please connect your wallet to view your Esusu groups.</p>
           </div>
         </CardContent>
       </Card>
@@ -86,7 +86,7 @@ export function UserCampaigns() {
       <Card className="w-full">
         <CardContent className="pt-6">
           <div className="text-center p-8">
-            <p>Loading your thrift groups...</p>
+            <p>Loading your Esusu groups...</p>
           </div>
         </CardContent>
       </Card>
@@ -116,7 +116,7 @@ export function UserCampaigns() {
       <Card className="w-full">
         <CardContent className="pt-6">
           <div className="text-center p-8">
-            <p>You have not joined any thrift groups yet. Create one to get started!</p>
+            <p>You have not joined any Esusu groups yet. Create one to get started!</p>
           </div>
         </CardContent>
       </Card>
@@ -125,23 +125,24 @@ export function UserCampaigns() {
 
   return (
     <div>
-      <Card className="w-full">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Your Thrift Groups</CardTitle>
-          <button
-            onClick={() => refreshGroups()}
-            className="text-xs px-3 py-1 border rounded hover:bg-muted"
-            disabled={loading}
-          >
-            {loading ? "Refreshing..." : "Refresh"}
-          </button>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="overview">
-            <TabsList className="mb-4">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="members">Members</TabsTrigger>
-            </TabsList>
+    <Card className="w-full">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>My Esusu Groups</CardTitle>
+        <button
+          onClick={() => refreshGroups()}
+          className="text-xs px-3 py-1 border rounded hover:bg-muted"
+          disabled={loading}
+        >
+          {loading ? "Refreshing..." : "Refresh"}
+        </button>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="overview">
+          <TabsList className="mb-4">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="members">Members</TabsTrigger>
+            <TabsTrigger value="contributions">Contributions</TabsTrigger>
+          </TabsList>
 
             <TabsContent value="overview">
               <div className="rounded-md border overflow-hidden">

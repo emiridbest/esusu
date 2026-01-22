@@ -1172,7 +1172,7 @@ export default function CampaignDetailsPage() {
               </motion.div>
             </CardContent>
 
-            <CardFooter className="gap-3">
+            <CardFooter className="flex flex-col sm:flex-row gap-3">
               {isUserMember ? (
                 <>
                   <motion.div

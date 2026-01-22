@@ -180,7 +180,7 @@ export function UserCampaigns() {
             <PlusCircle className="h-8 w-8 text-primary" />
           </div>
           <h3 className="text-lg font-semibold mb-2">No Groups Joined</h3>
-          <p className="text-muted-foreground max-w-sm text-center mb-6">
+          <p className="text-white/60max-w-sm text-center mb-6">
             You haven&apos;t joined any thrift groups yet. Browse available groups to start saving with your community.
           </p>
           <Button onClick={() => document.getElementById('available-groups-trigger')?.click()}>
@@ -230,7 +230,6 @@ export function UserCampaigns() {
           />
         ))}
       </div>
-
       {/* Edit Metadata Dialog */}
       {editGroup ? (
         <EditMetadataDialog
