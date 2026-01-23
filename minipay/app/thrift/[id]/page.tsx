@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { ArrowUpIcon, ArrowDownIcon, Share2Icon, UsersIcon, CalendarIcon, ArrowLeftIcon, SparklesIcon, Settings, Play, DollarSign, AlertTriangle, RotateCcw, GripVertical } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, Share2Icon, UsersIcon, CalendarIcon, ArrowLeftIcon, SparklesIcon, Settings, Play, DollarSign, AlertTriangle, RotateCcw, GripVertical, Lock } from 'lucide-react';
 import { toast } from "sonner";
 import { useRouter } from 'next/navigation';
 import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
@@ -112,6 +112,7 @@ export default function CampaignDetailsPage() {
     tokenSymbol: string;
     transactionHash: string;
   }>>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
   // Find the campaign in user campaigns or all campaigns
   useEffect(() => {
@@ -213,6 +214,7 @@ export default function CampaignDetailsPage() {
   useEffect(() => {
     const fetchContributionHistory = async () => {
       if (campaign && groupStatus?.isStarted) {
+        setIsHistoryLoading(true);
         try {
           console.log('Fetching contribution history for group:', campaign.id);
           const history = await getContributionHistory(campaign.id);
@@ -227,9 +229,12 @@ export default function CampaignDetailsPage() {
             });
           }
           setContributionHistory([]);
+        } finally {
+          setIsHistoryLoading(false);
         }
       } else {
         setContributionHistory([]);
+        setIsHistoryLoading(false);
       }
     };
 
@@ -245,54 +250,21 @@ export default function CampaignDetailsPage() {
 
   // Check if user is group admin
   useEffect(() => {
-    const checkGroupAdmin = async () => {
-      if (!campaign || !address) {
-        console.log('Admin check: No campaign or address');
-        setIsGroupAdmin(false);
-        return;
-      }
+    if (campaign && address) {
+      // Use admin from contract if available, otherwise fallback to creator metadata
+      const isAdminFromContract = campaign.admin && campaign.admin.toLowerCase() === address.toLowerCase();
 
-      try {
-        console.log('Checking admin status for group:', campaign.id, 'address:', address);
+      // Fallback: Check if user is the creator based on metadata
+      const isCreator = metaCreatedBy && address.toLowerCase() === metaCreatedBy.toLowerCase();
 
-        // Import the contract to check admin status
-        const { ethers } = await import('ethers');
-        const { contractAddress, abi } = await import('@/utils/abi');
+      const isAdmin = isAdminFromContract || isCreator;
+      console.log('Admin check:', { isAdmin, isAdminFromContract, isCreator, address, contractAdmin: campaign.admin, creator: metaCreatedBy });
 
-        const ethereum = (window as any).ethereum;
-        if (!ethereum) {
-          console.log('Admin check: No ethereum provider');
-          return;
-        }
-
-        const provider = new ethers.BrowserProvider(ethereum);
-        const contract = new ethers.Contract(contractAddress, abi, provider);
-
-        const groupInfo = await contract.thriftGroups(campaign.id);
-        const groupAdmin = groupInfo.admin;
-
-        console.log('Group admin from contract:', groupAdmin);
-        console.log('Current user address:', address);
-
-        const isAdmin = groupAdmin && groupAdmin.toLowerCase() === address.toLowerCase();
-        console.log('Is group admin:', isAdmin);
-
-        setIsGroupAdmin(isAdmin);
-      } catch (error) {
-        console.error('Failed to check group admin status:', error);
-
-        // Fallback: Check if user is the creator based on metadata
-        if (metaCreatedBy && address && address.toLowerCase() === metaCreatedBy.toLowerCase()) {
-          console.log('Using fallback admin check - user is creator');
-          setIsGroupAdmin(true);
-        } else {
-          setIsGroupAdmin(false);
-        }
-      }
-    };
-
-    checkGroupAdmin();
-  }, [campaign, address]);
+      setIsGroupAdmin(!!isAdmin);
+    } else {
+      setIsGroupAdmin(false);
+    }
+  }, [campaign, address, metaCreatedBy]);
 
   const handleJoinClick = () => {
     setJoinDialogOpen(true);
@@ -618,6 +590,33 @@ export default function CampaignDetailsPage() {
           </Button>
         </div>
       </motion.div>
+    );
+  }
+
+  // Access Control for Private Groups
+  if (!campaign.isPublic && !isUserMember) {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-md">
+        <Button
+          variant="ghost"
+          onClick={() => router.push('/thrift')}
+          className="mb-4"
+        >
+          <ArrowLeftIcon className="mr-2 h-4 w-4" />
+          Back to Groups
+        </Button>
+        <Card className="border-red-200">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto bg-red-100 p-3 rounded-full w-fit mb-2">
+              <Lock className="h-8 w-8 text-red-500" />
+            </div>
+            <CardTitle className="text-red-700">Access Restricted</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center text-muted-foreground">
+            <p>This is a private group. You must be a member to view its details.</p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -989,12 +988,30 @@ export default function CampaignDetailsPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {!groupStatus?.isStarted ? (
+                          {!campaign.isActive ? (
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-center py-4">
+                                <div className="text-gray-500">
+                                  <p className="font-medium">Group has not been activated</p>
+                                  <p className="text-sm">Contributions will appear here once the admin activates the group</p>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ) : !groupStatus?.isStarted ? (
                             <TableRow>
                               <TableCell colSpan={3} className="text-center py-4">
                                 <div className="text-gray-500">
                                   <p className="font-medium">Group has not started yet</p>
-                                  <p className="text-sm">Contributions will appear here once the group becomes active</p>
+                                  <p className="text-sm">Contributions will appear here once the group start time is reached</p>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ) : isHistoryLoading ? (
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-center py-8">
+                                <div className="flex flex-col items-center justify-center">
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                                  <p className="text-sm text-muted-foreground">Loading contributions...</p>
                                 </div>
                               </TableCell>
                             </TableRow>
