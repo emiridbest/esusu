@@ -125,24 +125,24 @@ export function UserCampaigns() {
 
   return (
     <div>
-    <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>My Esusu Groups</CardTitle>
-        <button
-          onClick={() => refreshGroups()}
-          className="text-xs px-3 py-1 border rounded hover:bg-muted"
-          disabled={loading}
-        >
-          {loading ? "Refreshing..." : "Refresh"}
-        </button>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="overview">
-          <TabsList className="mb-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="members">Members</TabsTrigger>
-            <TabsTrigger value="contributions">Contributions</TabsTrigger>
-          </TabsList>
+      <Card className="w-full">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>My Esusu Groups</CardTitle>
+          <button
+            onClick={() => refreshGroups()}
+            className="text-xs px-3 py-1 border rounded hover:bg-muted"
+            disabled={loading}
+          >
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="overview">
+            <TabsList className="mb-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="members">Members</TabsTrigger>
+
+            </TabsList>
 
             <TabsContent value="overview">
               <div className="rounded-md border overflow-hidden">
