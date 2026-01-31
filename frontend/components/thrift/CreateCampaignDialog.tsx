@@ -42,43 +42,11 @@ export function CreateCampaignDialog({ isOpen, onOpenChange, hideTrigger }: Crea
   const [creatorName, setCreatorName] = useState<string>(''); // Creator's name
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [connected, setConnected] = useState(false);
 
-  const { createThriftGroup, loading, error } = useThrift();
 
-  // Check if wallet is connected
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-          setConnected(accounts && accounts.length > 0);
-        } catch (error) {
-          console.error("Error checking connection:", error);
-          setConnected(false);
-        }
-      } else {
-        setConnected(false);
-      }
-    };
+  const { createThriftGroup, loading, error, isConnected } = useThrift();
 
-    checkConnection();
 
-    // Setup listeners for connection changes
-    if (typeof window !== 'undefined' && window.ethereum) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        setConnected(accounts.length > 0);
-      };
-
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-
-      return () => {
-        if (window.ethereum.removeListener) {
-          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        }
-      };
-    }
-  }, []);
 
   const handleSubmit = async () => {
     if (!name || !description || !contributionAmount || !maxMembers || !selectedToken || !startDate) return;
@@ -147,7 +115,7 @@ export function CreateCampaignDialog({ isOpen, onOpenChange, hideTrigger }: Crea
           </DialogHeader>
           <div className="py-4">
             <div className="grid gap-6">
-              {!connected ? (
+              {!isConnected ? (
                 <div className="text-center">
                   <p className="mb-4">Connect your wallet to create a thrift group</p>
                   <Button className='rounded-full dark:bg-primary'> Please Connect Wallet</Button>
@@ -319,7 +287,7 @@ export function CreateCampaignDialog({ isOpen, onOpenChange, hideTrigger }: Crea
             <Button
               onClick={handleSubmit}
               className="mb-2 rounded-lg"
-              disabled={loading || !connected || !name || !description || !contributionAmount || !maxMembers || !selectedToken || !startDate || !creatorName || !email || !phone}
+              disabled={loading || !isConnected || !name || !description || !contributionAmount || !maxMembers || !selectedToken || !startDate || !creatorName || !email || !phone}
             >
               {loading ? 'Creating...' : 'Create Group'}
             </Button>

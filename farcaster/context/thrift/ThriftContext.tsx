@@ -677,7 +677,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
           contractAddress: contractAddress as `0x${string}`,
-          abi: parseAbi(["function joinPublicGroup(uint256, string, string)"]),
+          abi: parseAbi(["function joinPublicGroup(uint256)"]),
           functionName: 'joinPublicGroup',
           args: [groupId],
         });

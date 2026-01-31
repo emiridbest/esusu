@@ -15,10 +15,8 @@ import { YieldCalculator } from '@/components/thrift/YieldCalculator';
 import { Share2Icon } from 'lucide-react';
 
 export function CampaignList() {
-  const { allGroups, joinThriftGroup, generateShareLink, loading, error, refreshGroups } = useThrift();
+  const { allGroups, joinThriftGroup, generateShareLink, loading, error, refreshGroups, isConnected, account } = useThrift();
   const { toast } = useToast();
-  const [connected, setConnected] = useState(false);
-  const [address, setAddress] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [tagsFilter, setTagsFilter] = useState('');
 
@@ -32,41 +30,7 @@ export function CampaignList() {
   const [editOpen, setEditOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<ThriftGroup | null>(null);
 
-  // Check if wallet is connected
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-          setConnected(accounts && accounts.length > 0);
-          setAddress(accounts && accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
-        } catch (error) {
-          console.error("Error checking connection:", error);
-          setConnected(false);
-        }
-      } else {
-        setConnected(false);
-      }
-    };
 
-    checkConnection();
-
-    // Setup listeners for connection changes
-    if (typeof window !== 'undefined' && window.ethereum) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        setConnected(accounts.length > 0);
-        setAddress(accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
-      };
-
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-
-      return () => {
-        if (window.ethereum.removeListener) {
-          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        }
-      };
-    }
-  }, []);
 
   const handleJoinClick = (group: ThriftGroup) => {
     setSelectedGroup(group);
@@ -123,7 +87,7 @@ export function CampaignList() {
       });
   };
 
-  if (!connected) {
+  if (!isConnected) {
     return (
       <Card className="w-full border-dashed border-2">
         <CardContent className="pt-6">
@@ -250,7 +214,7 @@ export function CampaignList() {
             <ThriftGroupCard
               key={group.id}
               group={group}
-              currentUserAddress={address}
+              currentUserAddress={account}
               onJoin={handleJoinClick}
               onShare={handleShareClick}
               onEdit={handleEditClick}

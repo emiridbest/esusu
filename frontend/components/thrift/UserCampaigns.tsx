@@ -11,10 +11,8 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 
 export function UserCampaigns() {
-  const { userGroups, getThriftGroupMembers, loading, error, refreshGroups } = useThrift();
+  const { userGroups, getThriftGroupMembers, loading, error, refreshGroups, isConnected, account } = useThrift();
   const [groupMembers, setGroupMembers] = useState<{ [key: number]: ThriftMember[] }>({});
-  const [connected, setConnected] = useState(false);
-  const [address, setAddress] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<ThriftGroup | null>(null);
 
@@ -23,41 +21,10 @@ export function UserCampaigns() {
   // Loading state for members per group
   const [membersLoading, setMembersLoading] = useState<{ [key: number]: boolean }>({});
 
-  // Check if wallet is connected
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-          setConnected(accounts && accounts.length > 0);
-          setAddress(accounts && accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
-        } catch (error) {
-          console.error("Error checking connection:", error);
-          setConnected(false);
-        }
-      } else {
-        setConnected(false);
-      }
-    };
-    checkConnection();
-    if (typeof window !== 'undefined' && window.ethereum) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        setConnected(accounts.length > 0);
-        setAddress(accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
-      };
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      return () => {
-        if (window.ethereum.removeListener) {
-          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        }
-      };
-    }
-  }, []);
-
   // Load members for all user groups (Parallel fetch)
   useEffect(() => {
     const loadAllMembers = async () => {
-      if (!connected || userGroups.length === 0) return;
+      if (!isConnected || userGroups.length === 0) return;
 
       // Initialize loading state for all groups
       const initialLoadingState = userGroups.reduce((acc, group) => ({ ...acc, [group.id]: true }), {});
@@ -83,8 +50,9 @@ export function UserCampaigns() {
       setGroupMembers(membersMap);
       setMembersLoading({}); // Clear loading state
     };
+
     loadAllMembers();
-  }, [userGroups, connected, getThriftGroupMembers]);
+  }, [userGroups, isConnected, getThriftGroupMembers]);
 
   const handleEditClick = (group: ThriftGroup) => {
     setEditGroup(group);
@@ -135,7 +103,7 @@ export function UserCampaigns() {
     });
   };
 
-  if (!connected) {
+  if (!isConnected) {
     return (
       <Card className="w-full border-dashed border-2">
         <CardContent className="pt-6">
@@ -221,7 +189,7 @@ export function UserCampaigns() {
           <FlippableThriftCard
             key={group.id}
             group={group}
-            currentUserAddress={address}
+            currentUserAddress={account}
             isFlipped={viewMode === 'members'}
             onShare={handleShareClick}
             onEdit={handleEditClick}

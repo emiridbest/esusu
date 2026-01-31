@@ -36,7 +36,7 @@ export default function CampaignDetailsPage() {
   const router = useRouter();
   const campaignId = typeof id === 'string' ? parseInt(id) : -1;
 
-  const { userGroups, allGroups, joinThriftGroup, checkJoinStatus, checkGroupStatus, makeContribution, distributePayout, getThriftGroupMembers, getContributionHistory, generateShareLink, activateThriftGroup, setPayoutOrder, emergencyWithdraw, addMemberToPrivateGroup, refreshGroups, loading, error } = useThrift();
+  const { userGroups, allGroups, joinThriftGroup, checkJoinStatus, checkGroupStatus, makeContribution, distributePayout, getThriftGroupMembers, getContributionHistory, generateShareLink, activateThriftGroup, setPayoutOrder, emergencyWithdraw, addMemberToPrivateGroup, refreshGroups, getThriftGroupDetails, loading, error, contract } = useThrift();
   const account = useActiveAccount();
   const address = account?.address;
   const isConnected = !!address;
@@ -45,6 +45,7 @@ export default function CampaignDetailsPage() {
   const [campaign, setCampaign] = useState<ThriftGroup | null>(null);
   const [isUserMember, setIsUserMember] = useState(false);
   const [campaignMembers, setCampaignMembers] = useState<ThriftMember[]>([]);
+  const [loadingSpecificGroup, setLoadingSpecificGroup] = useState(false);
 
   // Helper function to get member name by address
   const getMemberName = (address: string): string => {
@@ -116,11 +117,11 @@ export default function CampaignDetailsPage() {
   }>>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
-  // Find the campaign in user campaigns or all campaigns
+  // Find the campaign in user campaigns or all campaigns, or fetch if missing
   useEffect(() => {
     if (campaignId === -1) return;
 
-    // First try to find in user campaigns
+    // First try to find in context lists
     let foundCampaign = userGroups.find((c: ThriftGroup) => c.id === campaignId);
     if (foundCampaign) {
       setCampaign(foundCampaign);
@@ -128,15 +129,43 @@ export default function CampaignDetailsPage() {
       return;
     }
 
-    // If not in user groups, check all groups
     foundCampaign = allGroups.find((c: ThriftGroup) => c.id === campaignId);
     if (foundCampaign) {
       setCampaign(foundCampaign);
-      // Don't set isUserMember here - let the status check determine it
+      // Don't set isUserMember here - let the status check determine it later
       return;
     }
 
-  }, [campaignId, userGroups, allGroups]);
+    // If not found in lists, try fetching specifically
+    // Only fetch if not already loaded and not loading via main refresh
+    const fetchSpecificGroup = async () => {
+      // Avoid fetching if we already failed or found it
+      if (campaign || loadingSpecificGroup) return;
+
+      try {
+        setLoadingSpecificGroup(true);
+        console.log(`Fetching specific group details for ID ${campaignId}...`);
+        const group = await getThriftGroupDetails(campaignId);
+        if (group) {
+          console.log('Specific group fetch successful:', group);
+          setCampaign(group);
+          if (group.isUserMember) setIsUserMember(true);
+        } else {
+          console.warn(`Specific group fetch returned null for ID ${campaignId}`);
+        }
+      } catch (err) {
+        console.error(`Failed to fetch specific group ${campaignId}:`, err);
+      } finally {
+        setLoadingSpecificGroup(false);
+      }
+    };
+
+    // If we have lists but didn't find it, or if lists are empty but we want to try direct fetch
+    if (!foundCampaign && getThriftGroupDetails) {
+      fetchSpecificGroup();
+    }
+
+  }, [campaignId, userGroups, allGroups, getThriftGroupDetails]);
 
   // Load campaign members
   useEffect(() => {
@@ -262,21 +291,26 @@ export default function CampaignDetailsPage() {
       try {
         console.log('Checking admin status for group:', campaign.id, 'address:', address);
 
-        // Import the contract to check admin status
-        const { ethers } = await import('ethers');
-        const { contractAddress, abi } = await import('@/utils/abi');
-
-        const ethereum = (window as any).ethereum;
-        if (!ethereum) {
-          console.log('Admin check: No ethereum provider');
+        if (!contract) {
+          // If contract is not yet available, we can rely on metadata fallback momentarily
+          // or wait. But let's check metadata first as a quick check
+          if (metaCreatedBy && address.toLowerCase() === metaCreatedBy.toLowerCase()) {
+            console.log('Admin check (metadata): User is creator');
+            setIsGroupAdmin(true);
+            return;
+          }
+          console.log('Admin check: Contract not ready');
           return;
         }
 
-        const provider = new ethers.BrowserProvider(ethereum);
-        const contract = new ethers.Contract(contractAddress, abi, provider);
-
+        // Use the context contract (works for both Social Login and others)
         const groupInfo = await contract.thriftGroups(campaign.id);
-        const groupAdmin = groupInfo.admin;
+
+        // ABI Index 8 is admin (based on typical struct layout, but let's assume property access works with TypeChain/Ethers wrapper)
+        // If contract is the Custom wrapper:
+        // interface ThriftGroup { ... admin: string ... }
+        // The wrapper returns array or object.
+        const groupAdmin = groupInfo.admin || groupInfo[8]; // Check index 8 if named prop fails
 
         console.log('Group admin from contract:', groupAdmin);
         console.log('Current user address:', address);
@@ -299,7 +333,7 @@ export default function CampaignDetailsPage() {
     };
 
     checkGroupAdmin();
-  }, [campaign, address, metaCreatedBy]);
+  }, [campaign, address, metaCreatedBy, contract]);
 
   const handleJoinClick = () => {
     setJoinDialogOpen(true);
