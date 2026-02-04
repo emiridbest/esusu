@@ -31,13 +31,13 @@ export function CreateCampaignDialog({ isOpen, onOpenChange, hideTrigger }: Crea
   const [isPublic, setIsPublic] = useState(true);
   const [selectedToken, setSelectedToken] = useState<string>('USDC');
   const [startDate, setStartDate] = useState<string>(() => {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const year = tomorrow.getFullYear();
-  const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
-  const day = String(tomorrow.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-});
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const year = tomorrow.getFullYear();
+    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const day = String(tomorrow.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
   const [creatorName, setCreatorName] = useState<string>(''); // Creator's name
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -213,7 +213,7 @@ export function CreateCampaignDialog({ isOpen, onOpenChange, hideTrigger }: Crea
 
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="amount" className="text-right">
-                      Deposit Amount
+                      Contribution Amount
                     </Label>
                     <Input
                       id="amount"

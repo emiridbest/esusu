@@ -10,7 +10,7 @@ import { FrameContext } from "@farcaster/frame-node";
 import sdk, { AddFrame } from "@farcaster/frame-sdk";
 import { FarcasterProvider } from "../context/farcaster/FarcasterContext";
 import { ThriftProvider } from "../context/thrift/ThriftContext";
-import { MiniSafeProvider } from "../context/miniSafe/MiniSafeContext";
+
 
 const WagmiProvider = dynamic(
   () => import("../components/providers/WagmiProvider"),
@@ -144,11 +144,9 @@ export function Providers({
       <FarcasterProvider>
         <WagmiProvider>
           <ThriftProvider>
-            <MiniSafeProvider>
-              <PostHogProvider>
-                {children}
-              </PostHogProvider>
-            </MiniSafeProvider>
+            <PostHogProvider>
+              {children}
+            </PostHogProvider>
           </ThriftProvider>
         </WagmiProvider>
       </FarcasterProvider>

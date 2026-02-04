@@ -97,10 +97,10 @@ const Thrift: React.FC = () => {
         >
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
             <ShieldIcon className="mr-3 h-8 w-8 text-primary" />
-            Groups Savings
+            Contribution Circles
           </h1>
           <p className="text-gray-600 dark:text-gray-300 max-w-3xl text-sm">
-            Join or create savings groups with friends and family. Pool your resources together and take turns receiving the collected funds.
+            Join or create contribution circles with friends and family. Pool your resources together and take turns receiving the collected funds.
           </p>
         </motion.div>
 
@@ -117,7 +117,7 @@ const Thrift: React.FC = () => {
             <ThriftQuickAction
               icon={<UsersIcon className="h-6 w-6 text-primary" />}
               title="Create Thrift Group"
-              description="Start a new savings group"
+              description="Start a new circle"
               href="#"
               variant="outline"
               onClick={() => setCreateDialogOpen(true)}
@@ -162,11 +162,11 @@ const Thrift: React.FC = () => {
                 <TabsTrigger value="my-groups">My Groups</TabsTrigger>
                 <TabsTrigger value="available-groups">Available Groups</TabsTrigger>
               </TabsList>
-                <TabsContent value="my-groups" className="mt-4">
-                  <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-neutral-800 backdrop-blur-md p-4">
-                      <UserCampaigns />
-                  </Card>
-                </TabsContent>
+              <TabsContent value="my-groups" className="mt-4">
+                <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-neutral-800 backdrop-blur-md p-4">
+                  <UserCampaigns />
+                </Card>
+              </TabsContent>
               <TabsContent value="available-groups" className="mt-4">
                 <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md">
                   <CardContent className="pt-6">
@@ -190,7 +190,7 @@ const Thrift: React.FC = () => {
               <div className="text-center mb-8 text-sm ">
                 <h3 className="font-semibold mb-2">How Thrift Groups Work</h3>
                 <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto ">
-                  Save together, grow together — Earn interest with early contributions.
+                  Pool together, grow together — Contribute with friends.
                 </p>
               </div>
 
