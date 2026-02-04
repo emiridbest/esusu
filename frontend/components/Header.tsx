@@ -122,7 +122,6 @@ export default function Header() {
   };
   // Navigation links
   const navLinks = [
-    { title: "Simple Saver", href: "/miniSafe" },
     { title: "Thrift", href: "/thrift" },
     { title: "Pay Bills", href: "/utilityBills" },
     { title: "Freebies", href: "/freebies" },

@@ -237,7 +237,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (minContribution !== undefined && isPublic) {
         if (amount < minContribution) {
-          const msg = `Deposit amount is below the minimum contribution: ${formatUnits(minContribution, 18)}.`;
+          const msg = `Contribution amount is below the minimum contribution: ${formatUnits(minContribution, 18)}.`;
           setError(msg);
           toast.error('Amount too low', { description: msg });
           setTimeout(() => setError(null), 3000);

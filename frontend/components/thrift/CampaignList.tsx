@@ -11,7 +11,6 @@ import { useToast } from '@/hooks/use-toast';
 import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
 import { contractAddress } from '@/utils/abi';
 import { ThriftGroupCard } from '@/components/thrift/ThriftGroupCard';
-import { YieldCalculator } from '@/components/thrift/YieldCalculator';
 import { Share2Icon } from 'lucide-react';
 
 export function CampaignList() {
@@ -280,7 +279,7 @@ export function CampaignList() {
                 <h3 className="text-sm font-semibold mb-2 text-muted-foreground">Group Details</h3>
                 <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Required Deposit:</span>
+                    <span className="text-muted-foreground">Contribution Amount:</span>
                     <span className="font-bold">{selectedGroup?.depositAmount} {selectedGroup?.tokenSymbol || 'cUSD'}</span>
                   </div>
                   <div className="flex justify-between">
@@ -333,15 +332,8 @@ export function CampaignList() {
               </div>
             </div>
 
-            {/* Right Column: Calculator */}
-            <div className="border-l pl-8 border-border/50">
-              <h3 className="text-sm font-semibold mb-4 text-muted-foreground">Estimated Returns</h3>
-              <YieldCalculator
-                depositToken={selectedGroup?.tokenSymbol || 'cUSD'}
-                defaultAmount={parseFloat(selectedGroup?.depositAmount || '0')}
-                APY={5 + (parseFloat(selectedGroup?.depositAmount || '0') > 100 ? 2 : 0)} // Dynamic mocked APY based on size
-              />
-            </div>
+            {/* Right Column: Calculator - REMOVED */}
+
           </div>
 
           <DialogFooter className="sm:justify-between items-center pt-4 border-t mt-4">
