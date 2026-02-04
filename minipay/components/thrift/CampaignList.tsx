@@ -344,7 +344,7 @@ export function CampaignList() {
           <div className="py-4">
             <p className="mb-4">You are joining: <strong>{selectedGroup?.name}</strong></p>
             <p className="text-sm text-gray-500 mb-2">
-              Deposit amount: {selectedGroup?.depositAmount} {selectedGroup?.tokenSymbol || 'cUSD'}
+              Contribution amount: {selectedGroup?.depositAmount} {selectedGroup?.tokenSymbol || 'cUSD'}
             </p>
             {selectedGroup?.isPublic && (
               <p className="text-sm text-amber-600 dark:text-amber-500 mb-6 font-medium">

@@ -7,7 +7,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { cn } from "../lib/utils";
 import { useRouter, usePathname } from "next/navigation";
-import { GiftIcon, PiggyBank } from "lucide-react";
+import { GiftIcon } from "lucide-react";
 
 export default function Footer() {
   const router = useRouter();
@@ -19,7 +19,6 @@ export default function Footer() {
     { name: "Home", icon: HomeIcon, path: "/", ariaLabel: "Navigate to home" },
     { name: "Freebies", icon: GiftIcon, path: "/freebies", ariaLabel: "Navigate to freebies section" },
     { name: "Utility Bills", icon: ArchiveBoxArrowDownIcon, path: "/utilityBills", ariaLabel: "Navigate to utility bills" },
-    { name: "Save", icon: PiggyBank, path: "/miniSafe", ariaLabel: "Navigate to savings" },
     { name: "Thrift", icon: UserGroupIcon, path: "/thrift", ariaLabel: "Navigate to thrift" },
     { name: "Profile", icon: UserIcon, path: "/profile", ariaLabel: "Navigate to profile" }
   ];

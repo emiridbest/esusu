@@ -299,7 +299,7 @@ const TransactionList: React.FC = () => {
       'unstake': 'Unstake',
       'claim': 'Claim Rewards',
       'withdraw': 'Withdraw',
-      'deposit': 'Deposit',
+      'deposit': 'Contribute',
       'execute': 'Execute',
       'claimRewards': 'Claim Rewards',
     };

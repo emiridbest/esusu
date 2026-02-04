@@ -210,7 +210,7 @@ export function CreateCampaignDialog({ isOpen, onOpenChange, hideTrigger }: Crea
 
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="amount" className="text-right">
-                      Deposit Amount
+                      Contribution Amount
                     </Label>
                     <Input
                       id="amount"
