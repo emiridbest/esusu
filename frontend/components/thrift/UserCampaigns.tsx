@@ -198,7 +198,7 @@ export function UserCampaigns() {
       <div className="flex bg-muted/50 dark:bg-white/5 backdrop-blur-sm p-1 rounded-xl w-fit border border-transparent dark:border-white/10 mb-6">
         <button
           onClick={() => setViewMode('overview')}
-          className={`px-6 py-2 text-xs font-semibold rounded-lg transition-all duration-300 ${viewMode === 'overview'
+          className={`px-6 py-2 text-sm font-semibold rounded-lg transition-all duration-300 ${viewMode === 'overview'
             ? 'bg-background dark:bg-primary text-foreground dark:text-black shadow-md scale-105'
             : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
             }`}
@@ -207,7 +207,7 @@ export function UserCampaigns() {
         </button>
         <button
           onClick={() => setViewMode('members')}
-          className={`px-6 py-2 text-xs font-semibold rounded-lg transition-all duration-300 ${viewMode === 'members'
+          className={`px-6 py-2 text-sm font-semibold rounded-lg transition-all duration-300 ${viewMode === 'members'
             ? 'bg-background dark:bg-primary text-foreground dark:text-black shadow-md scale-105'
             : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
             }`}

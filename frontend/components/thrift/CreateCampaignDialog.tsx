@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useThrift } from '@/context/thrift/ThriftContext';
 import { PlusIcon } from 'lucide-react';
 import { TOKENS, getSupportedThriftTokens, getTokenBySymbol, type TokenConfig } from '@/utils/tokens';
@@ -14,9 +15,10 @@ import { TOKENS, getSupportedThriftTokens, getTokenBySymbol, type TokenConfig } 
 interface CreateCampaignDialogProps {
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
-export function CreateCampaignDialog({ isOpen, onOpenChange }: CreateCampaignDialogProps) {
+export function CreateCampaignDialog({ isOpen, onOpenChange, hideTrigger }: CreateCampaignDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
 
   const isControlled = isOpen !== undefined && onOpenChange !== undefined;
@@ -29,13 +31,13 @@ export function CreateCampaignDialog({ isOpen, onOpenChange }: CreateCampaignDia
   const [isPublic, setIsPublic] = useState(true);
   const [selectedToken, setSelectedToken] = useState<string>('USDC');
   const [startDate, setStartDate] = useState<string>(() => {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const year = tomorrow.getFullYear();
-  const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
-  const day = String(tomorrow.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-});
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const year = tomorrow.getFullYear();
+    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const day = String(tomorrow.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
 
   const [creatorName, setCreatorName] = useState<string>(''); // Creator's name
   const [email, setEmail] = useState('');
@@ -128,16 +130,18 @@ export function CreateCampaignDialog({ isOpen, onOpenChange }: CreateCampaignDia
 
   return (
     <>
-      <Button
-        onClick={() => setOpen(true)}
-        className="w-full mb-6 rounded-lg bg-white text-black dark:bg-primary hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50"
-        variant="outline"
-      >
-        <PlusIcon className="mr-2 h-4 w-4" /> Create Thrift Group
-      </Button>
+      {!hideTrigger && (
+        <Button
+          onClick={() => setOpen(true)}
+          className="w-full mb-6 rounded-lg bg-white text-black dark:bg-primary hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50"
+          variant="outline"
+        >
+          <PlusIcon className="mr-2 h-4 w-4" /> Create Thrift Group
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[500px] dark:text-white rounded-lg">
+        <DialogContent className="sm:max-w-[500px] dark:text-white dark:bg-black dark:border-neutral-800 rounded-lg">
           <DialogHeader>
             <DialogTitle>Create New Thrift Group</DialogTitle>
           </DialogHeader>
@@ -151,68 +155,68 @@ export function CreateCampaignDialog({ isOpen, onOpenChange }: CreateCampaignDia
               ) : (
                 <>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">Group Name</Label>
+                    <Label htmlFor="name" className="text-right dark:text-neutral-200">Group Name</Label>
                     <Input
                       id="name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                       placeholder="My Thrift Group"
                     />
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="creatorName" className="text-right">Your Name</Label>
+                    <Label htmlFor="creatorName" className="text-right dark:text-neutral-200">Your Name</Label>
                     <Input
                       id="creatorName"
                       value={creatorName}
                       onChange={(e) => setCreatorName(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                       placeholder="John Doe"
                     />
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="email" className="text-right">Email</Label>
+                    <Label htmlFor="email" className="text-right dark:text-neutral-200">Email</Label>
                     <Input
                       id="email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                       placeholder="name@example.com"
                     />
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="phone" className="text-right">Phone</Label>
+                    <Label htmlFor="phone" className="text-right dark:text-neutral-200">Phone</Label>
                     <Input
                       id="phone"
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                       placeholder="+1234567890"
                     />
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="description" className="text-right">Description</Label>
+                    <Label htmlFor="description" className="text-right dark:text-neutral-200">Description</Label>
                     <Textarea
                       id="description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                       placeholder="A brief description of your thrift group"
                     />
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="token" className="text-right">
+                    <Label htmlFor="token" className="text-right dark:text-neutral-200">
                       Token
                     </Label>
                     <Select value={selectedToken} onValueChange={setSelectedToken}>
-                      <SelectTrigger className="col-span-3">
+                      <SelectTrigger className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white">
                         <SelectValue placeholder="Select a token" />
                       </SelectTrigger>
                       <SelectContent>
@@ -231,7 +235,7 @@ export function CreateCampaignDialog({ isOpen, onOpenChange }: CreateCampaignDia
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="amount" className="text-right">
+                    <Label htmlFor="amount" className="text-right dark:text-neutral-200">
                       Deposit Amount
                     </Label>
                     <Input
@@ -239,13 +243,13 @@ export function CreateCampaignDialog({ isOpen, onOpenChange }: CreateCampaignDia
                       type="number"
                       value={contributionAmount}
                       onChange={(e) => setContributionAmount(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                       placeholder="100"
                     />
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="startDate" className="text-right">
+                    <Label htmlFor="startDate" className="text-right dark:text-neutral-200">
                       Start Date
                     </Label>
                     <Input
@@ -253,13 +257,13 @@ export function CreateCampaignDialog({ isOpen, onOpenChange }: CreateCampaignDia
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                       min={new Date().toISOString().split('T')[0]}
                     />
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="maxMembers" className="text-right">
+                    <Label htmlFor="maxMembers" className="text-right dark:text-neutral-200">
                       Max Members
                     </Label>
                     <Input
@@ -269,36 +273,30 @@ export function CreateCampaignDialog({ isOpen, onOpenChange }: CreateCampaignDia
                       max="10"
                       value={maxMembers}
                       onChange={(e) => setMaxMembers(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                       placeholder="5"
                     />
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="isPublic" className="text-right">
+                    <Label htmlFor="isPublic" className="text-right dark:text-neutral-200">
                       Group Type
                     </Label>
-                    <div className="col-span-3 flex items-center gap-4">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="groupType"
-                          checked={isPublic}
-                          onChange={() => setIsPublic(true)}
-                          className="text-primary"
-                        />
-                        <span>Public</span>
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="groupType"
-                          checked={!isPublic}
-                          onChange={() => setIsPublic(false)}
-                          className="text-primary"
-                        />
-                        <span>Private</span>
-                      </label>
+                    <div className="col-span-3">
+                      <RadioGroup
+                        value={isPublic ? "public" : "private"}
+                        onValueChange={(value) => setIsPublic(value === "public")}
+                        className="flex items-center gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="public" id="public" />
+                          <Label htmlFor="public">Public</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="private" id="private" />
+                          <Label htmlFor="private">Private</Label>
+                        </div>
+                      </RadioGroup>
                     </div>
                   </div>
 

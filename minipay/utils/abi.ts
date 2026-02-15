@@ -98,7 +98,7 @@ export class MiniSafeAave {
     // This function doesn't exist in the ABI
     // Fetch from database via API
     try {
-      const response = await fetch(`/api/groups?user=${userAddress}`);
+      const response = await fetch(`/api/groups?user=${userAddress}&contractAddress=${this.address}`);
       if (!response.ok) {
         throw new Error('Failed to fetch user groups');
       }

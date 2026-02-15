@@ -21,7 +21,7 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { ArrowUpIcon, ArrowDownIcon, Share2Icon, UsersIcon, CalendarIcon, ArrowLeftIcon, SparklesIcon, Settings, Play, DollarSign, AlertTriangle, RotateCcw, GripVertical } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { useRouter } from 'next/navigation';
 import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
 import CountdownTimer from '@/components/thrift/CountdownTimer';
@@ -38,7 +38,7 @@ export default function CampaignDetailsPage() {
 
   const { userGroups, allGroups, joinThriftGroup, checkJoinStatus, checkGroupStatus, makeContribution, distributePayout, getThriftGroupMembers, getContributionHistory, generateShareLink, activateThriftGroup, setPayoutOrder, emergencyWithdraw, addMemberToPrivateGroup, refreshGroups, loading, error } = useThrift();
   const { address, isConnected } = useAccount();
-  const { toast } = useToast();
+
 
   const [campaign, setCampaign] = useState<ThriftGroup | null>(null);
   const [isUserMember, setIsUserMember] = useState(false);
@@ -222,10 +222,8 @@ export default function CampaignDetailsPage() {
           console.error('Failed to fetch contribution history:', error);
           // Show user-friendly message for RPC errors
           if (error instanceof Error && error.message.includes('RPC')) {
-            toast({
-              title: "Network Issue",
+            toast.error("Network Issue", {
               description: "Unable to fetch contribution history due to network connectivity. Please try again later.",
-              variant: "destructive",
             });
           }
           setContributionHistory([]);
@@ -236,7 +234,7 @@ export default function CampaignDetailsPage() {
     };
 
     fetchContributionHistory();
-  }, [campaign, groupStatus?.isStarted, getContributionHistory, toast]);
+  }, [campaign, groupStatus?.isStarted, getContributionHistory]); // Removed 'toast' from dependency array as it's not a prop/state
 
   // Open join dialog if join=true in URL and not already a member
   useEffect(() => {
@@ -329,8 +327,7 @@ export default function CampaignDetailsPage() {
       setJoinDialogOpen(false);
       setIsUserMember(true);
 
-      toast({
-        title: "Join request sent",
+      toast.success("Join request sent", {
         description: "Your request to join this thrift group has been submitted.",
       });
 
@@ -338,10 +335,8 @@ export default function CampaignDetailsPage() {
       router.replace(`/thrift/${campaignId}`);
     } catch (error) {
       console.error("Failed to join campaign:", error);
-      toast({
-        title: "Join request failed",
+      toast.error("Join request failed", {
         description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive",
       });
     }
   };
@@ -372,10 +367,8 @@ export default function CampaignDetailsPage() {
     // Check if group is active before attempting contribution
     if (!campaign.isActive) {
       console.log('Group is not active, showing error');
-      toast({
-        title: "Group not active",
+      toast.error("Group not active", {
         description: "This group is not active yet. Contributions will be available when the group starts. Please wait for the admin to activate the group.",
-        variant: "destructive",
       });
       return;
     }
@@ -388,8 +381,7 @@ export default function CampaignDetailsPage() {
       setContributeDialogOpen(false);
       setContributionAmount('');
 
-      toast({
-        title: "Contribution successful",
+      toast.success("Contribution successful", {
         description: `You've contributed to the thrift group.`,
       });
     } catch (error) {
@@ -413,10 +405,8 @@ export default function CampaignDetailsPage() {
         }
       }
 
-      toast({
-        title: "Contribution failed",
+      toast.error("Contribution failed", {
         description: errorMessage,
-        variant: "destructive",
       });
     }
   };
@@ -428,16 +418,13 @@ export default function CampaignDetailsPage() {
       await distributePayout(campaign.id);
       setWithdrawDialogOpen(false);
 
-      toast({
-        title: "Withdrawal successful",
+      toast.success("Withdrawal successful", {
         description: "You've successfully withdrawn funds from the thrift group.",
       });
     } catch (error) {
       console.error("Failed to withdraw:", error);
-      toast({
-        title: "Withdrawal failed",
+      toast.error("Withdrawal failed", {
         description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive",
       });
     }
   };
@@ -445,8 +432,7 @@ export default function CampaignDetailsPage() {
   const copyToClipboard = () => {
     navigator.clipboard.writeText(shareableLink)
       .then(() => {
-        toast({
-          title: "Link copied!",
+        toast.success("Link copied!", {
           description: "Share with your friends to join this thrift group",
         });
         setShareDialogOpen(false);
@@ -471,8 +457,7 @@ export default function CampaignDetailsPage() {
       await activateThriftGroup(campaign.id);
       console.log('Group activated successfully');
 
-      toast({
-        title: "Group activated",
+      toast.success("Group activated", {
         description: "The thrift group has been activated successfully.",
       });
     } catch (error) {
@@ -492,10 +477,8 @@ export default function CampaignDetailsPage() {
         }
       }
 
-      toast({
-        title: "Activation failed",
+      toast.error("Activation failed", {
         description: errorMessage,
-        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
@@ -504,10 +487,8 @@ export default function CampaignDetailsPage() {
 
   const handleSetPayoutOrder = async () => {
     if (!campaign || memberOrder.length === 0) {
-      toast({
-        title: "Invalid payout order",
+      toast.error("Invalid payout order", {
         description: "Please arrange the member order.",
-        variant: "destructive",
       });
       return;
     }
@@ -516,16 +497,13 @@ export default function CampaignDetailsPage() {
     try {
       await setPayoutOrder(campaign.id, memberOrder);
       setAdminDialogOpen(false);
-      toast({
-        title: "Payout order set",
+      toast.success("Payout order set", {
         description: "The payout order has been set successfully.",
       });
     } catch (error) {
       console.error("Failed to set payout order:", error);
-      toast({
-        title: "Failed to set payout order",
+      toast.error("Failed to set payout order", {
         description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
@@ -552,10 +530,8 @@ export default function CampaignDetailsPage() {
     if (!campaign) return;
 
     if (!addMemberAddress || !addMemberAddress.startsWith('0x')) {
-      toast({
-        title: "Invalid address",
+      toast.error("Invalid address", {
         description: "Please enter a valid wallet address starting with 0x",
-        variant: "destructive",
       });
       return;
     }
@@ -569,8 +545,7 @@ export default function CampaignDetailsPage() {
       setAddMemberPhone('');
       setAddMemberName('');
 
-      toast({
-        title: "Member added",
+      toast.success("Member added", {
         description: "The member has been added to the private group successfully.",
       });
 
@@ -579,10 +554,8 @@ export default function CampaignDetailsPage() {
       setCampaignMembers(members);
     } catch (error) {
       console.error("Failed to add member:", error);
-      toast({
-        title: "Failed to add member",
+      toast.error("Failed to add member", {
         description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
@@ -599,16 +572,13 @@ export default function CampaignDetailsPage() {
     setIsProcessing(true);
     try {
       await emergencyWithdraw(campaign.id);
-      toast({
-        title: "Emergency withdrawal executed",
+      toast.success("Emergency withdrawal executed", {
         description: "Emergency withdrawal has been executed successfully.",
       });
     } catch (error) {
       console.error("Failed to execute emergency withdrawal:", error);
-      toast({
-        title: "Emergency withdrawal failed",
+      toast.error("Emergency withdrawal failed", {
         description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
@@ -1046,23 +1016,18 @@ export default function CampaignDetailsPage() {
                                             console.log('Refresh result:', history);
                                             setContributionHistory(history);
                                             if (history.length === 0) {
-                                              toast({
-                                                title: "No Contributions Found",
+                                              toast.error("No Contributions Found", {
                                                 description: "No contribution events found on the blockchain for this group.",
-                                                variant: "destructive",
                                               });
                                             } else {
-                                              toast({
-                                                title: "History Refreshed",
+                                              toast.success("History Refreshed", {
                                                 description: `Found ${history.length} contribution(s).`,
                                               });
                                             }
                                           } catch (error) {
                                             console.error('Refresh failed:', error);
-                                            toast({
-                                              title: "Refresh Failed",
+                                            toast.error("Refresh Failed", {
                                               description: "Failed to fetch contribution history. Please try again.",
-                                              variant: "destructive",
                                             });
                                           }
                                         }
@@ -1240,102 +1205,74 @@ export default function CampaignDetailsPage() {
               )}
             </CardFooter>
           </Card>
-        </motion.div>
+        </motion.div >
 
         {/* Admin Controls - Only show if user is group admin */}
-        {isGroupAdmin && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 1.7 }}
-          >
-            <Card className="mt-6 border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  Group Admin Controls
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  You are the admin of this group. Admin controls are available below.
-                </p>
-              </CardHeader>
-              <CardContent>
+        {
+          isGroupAdmin && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 1.7 }}
+            >
+              <Card className="mt-6 border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Group Admin Controls
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    You are the admin of this group. Admin controls are available below.
+                  </p>
+                </CardHeader>
+                <CardContent>
 
-                <div className="grid gap-4">
-                  {/* Activate Group */}
-                  {!campaign.isActive && (
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.5, delay: 1.8 }}
-                      whileHover={{ scale: 1.02 }}
-                      className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50"
-                    >
-                      <div>
-                        <h3 className="font-medium">Activate Group</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Start the thrift group to allow contributions
-                        </p>
-                      </div>
+                  <div className="grid gap-4">
+                    {/* Activate Group */}
+                    {!campaign.isActive && (
                       <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.5, delay: 1.8 }}
+                        whileHover={{ scale: 1.02 }}
+                        className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50"
                       >
-                        <Button
-                          onClick={() => {
-                            console.log('Activate button clicked!');
-                            handleActivateGroup();
-                          }}
-                          disabled={isProcessing}
+                        <div>
+                          <h3 className="font-medium">Activate Group</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Start the thrift group to allow contributions
+                          </p>
+                        </div>
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
                         >
-                          <Play className="h-4 w-4 mr-2" />
-                          {isProcessing ? 'Activating...' : 'Activate'}
-                        </Button>
+                          <Button
+                            onClick={() => {
+                              console.log('Activate button clicked!');
+                              handleActivateGroup();
+                            }}
+                            disabled={isProcessing}
+                          >
+                            <Play className="h-4 w-4 mr-2" />
+                            {isProcessing ? 'Activating...' : 'Activate'}
+                          </Button>
+                        </motion.div>
                       </motion.div>
-                    </motion.div>
-                  )}
+                    )}
 
-                  {/* Set Payout Order */}
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 1.9 }}
-                    whileHover={{ scale: 1.02 }}
-                    className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50"
-                  >
-                    <div>
-                      <h3 className="font-medium">Set Payout Order</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Define the order members will receive payouts
-                      </p>
-                    </div>
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Button
-                        onClick={() => setAdminDialogOpen(true)}
-                        variant="outline"
-                      >
-                        <Settings className="h-4 w-4 mr-2" />
-                        Set Order
-                      </Button>
-                    </motion.div>
-                  </motion.div>
-
-                  {/* Distribute Payout */}
-                  {campaign.isActive && (
+                    {/* Set Payout Order */}
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.5, delay: 2.0 }}
+                      transition={{ duration: 0.5, delay: 1.9 }}
                       whileHover={{ scale: 1.02 }}
                       className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50"
                     >
                       <div>
-                        <h3 className="font-medium">Distribute Payout</h3>
+                        <h3 className="font-medium">Set Payout Order</h3>
                         <p className="text-sm text-muted-foreground">
-                          Distribute payout to current recipient
+                          Define the order members will receive payouts
                         </p>
                       </div>
                       <motion.div
@@ -1343,59 +1280,58 @@ export default function CampaignDetailsPage() {
                         whileTap={{ scale: 0.95 }}
                       >
                         <Button
-                          onClick={() => distributePayout(campaign.id)}
-                          disabled={isProcessing}
+                          onClick={() => setAdminDialogOpen(true)}
                           variant="outline"
                         >
-                          <DollarSign className="h-4 w-4 mr-2" />
-                          Distribute
+                          <Settings className="h-4 w-4 mr-2" />
+                          Set Order
                         </Button>
                       </motion.div>
                     </motion.div>
-                  )}
 
-                  {/* Emergency Withdraw */}
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 2.1 }}
-                    whileHover={{ scale: 1.02 }}
-                    className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50"
-                  >
-                    <div>
-                      <h3 className="font-medium">Emergency Withdraw</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Emergency withdrawal for critical situations
-                      </p>
-                    </div>
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Button
-                        onClick={handleEmergencyWithdraw}
-                        disabled={isProcessing}
-                        variant="destructive"
+                    {/* Distribute Payout */}
+                    {campaign.isActive && (
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.5, delay: 2.0 }}
+                        whileHover={{ scale: 1.02 }}
+                        className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50"
                       >
-                        <AlertTriangle className="h-4 w-4 mr-2" />
-                        Emergency
-                      </Button>
-                    </motion.div>
-                  </motion.div>
+                        <div>
+                          <h3 className="font-medium">Distribute Payout</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Distribute payout to current recipient
+                          </p>
+                        </div>
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <Button
+                            onClick={() => distributePayout(campaign.id)}
+                            disabled={isProcessing}
+                            variant="outline"
+                          >
+                            <DollarSign className="h-4 w-4 mr-2" />
+                            Distribute
+                          </Button>
+                        </motion.div>
+                      </motion.div>
+                    )}
 
-                  {/* Add Member (Private Groups) */}
-                  {!campaign.isPublic && (
+                    {/* Emergency Withdraw */}
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.5, delay: 2.2 }}
+                      transition={{ duration: 0.5, delay: 2.1 }}
                       whileHover={{ scale: 1.02 }}
                       className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50"
                     >
                       <div>
-                        <h3 className="font-medium">Add Member</h3>
+                        <h3 className="font-medium">Emergency Withdraw</h3>
                         <p className="text-sm text-muted-foreground">
-                          Add a member to this private group
+                          Emergency withdrawal for critical situations
                         </p>
                       </div>
                       <motion.div
@@ -1403,25 +1339,56 @@ export default function CampaignDetailsPage() {
                         whileTap={{ scale: 0.95 }}
                       >
                         <Button
-                          onClick={() => setAddMemberDialogOpen(true)}
-                          disabled={isProcessing || campaign.totalMembers >= campaign.maxMembers}
-                          variant="outline"
+                          onClick={handleEmergencyWithdraw}
+                          disabled={isProcessing}
+                          variant="destructive"
                         >
-                          <UsersIcon className="h-4 w-4 mr-2" />
-                          Add Member
+                          <AlertTriangle className="h-4 w-4 mr-2" />
+                          Emergency
                         </Button>
                       </motion.div>
                     </motion.div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-      </motion.div>
+
+                    {/* Add Member (Private Groups) */}
+                    {!campaign.isPublic && (
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.5, delay: 2.2 }}
+                        whileHover={{ scale: 1.02 }}
+                        className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50"
+                      >
+                        <div>
+                          <h3 className="font-medium">Add Member</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Add a member to this private group
+                          </p>
+                        </div>
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <Button
+                            onClick={() => setAddMemberDialogOpen(true)}
+                            disabled={isProcessing || campaign.totalMembers >= campaign.maxMembers}
+                            variant="outline"
+                          >
+                            <UsersIcon className="h-4 w-4 mr-2" />
+                            Add Member
+                          </Button>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )
+        }
+      </motion.div >
 
       {/* Join Dialog */}
-      <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
+      < Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen} >
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Join Thrift Group</DialogTitle>
@@ -1473,11 +1440,11 @@ export default function CampaignDetailsPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Contribute Dialog */}
-      <Dialog open={contributeDialogOpen} onOpenChange={setContributeDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      < Dialog open={contributeDialogOpen} onOpenChange={setContributeDialogOpen} >
+        <DialogContent className="sm:max-w-[425px] dark:bg-gray-900 dark:text-white dark:border-gray-800">
           <DialogHeader>
             <DialogTitle>Make Contribution</DialogTitle>
           </DialogHeader>
@@ -1518,11 +1485,11 @@ export default function CampaignDetailsPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Withdraw Dialog */}
-      <Dialog open={withdrawDialogOpen} onOpenChange={setWithdrawDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      < Dialog open={withdrawDialogOpen} onOpenChange={setWithdrawDialogOpen} >
+        <DialogContent className="sm:max-w-[425px] dark:bg-gray-900 dark:text-white dark:border-gray-800">
           <DialogHeader>
             <DialogTitle>Withdraw Funds</DialogTitle>
           </DialogHeader>
@@ -1549,11 +1516,11 @@ export default function CampaignDetailsPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Share Dialog */}
-      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      < Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen} >
+        <DialogContent className="sm:max-w-[425px] dark:bg-gray-900 dark:text-white dark:border-gray-800">
           <DialogHeader>
             <DialogTitle>Share Thrift Group</DialogTitle>
           </DialogHeader>
@@ -1584,11 +1551,11 @@ export default function CampaignDetailsPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Admin Dialog - Set Payout Order */}
-      <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+      < Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen} >
+        <DialogContent className="sm:max-w-[500px] dark:bg-gray-900 dark:text-white dark:border-gray-800">
           <DialogHeader>
             <DialogTitle>Set Payout Order</DialogTitle>
           </DialogHeader>
@@ -1664,11 +1631,11 @@ export default function CampaignDetailsPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Add Member Dialog */}
-      <Dialog open={addMemberDialogOpen} onOpenChange={setAddMemberDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      < Dialog open={addMemberDialogOpen} onOpenChange={setAddMemberDialogOpen} >
+        <DialogContent className="sm:max-w-[425px] dark:bg-gray-900 dark:text-white dark:border-gray-800">
           <DialogHeader>
             <DialogTitle>Add Member to Private Group</DialogTitle>
           </DialogHeader>
@@ -1726,10 +1693,10 @@ export default function CampaignDetailsPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Edit Metadata Dialog */}
-      <EditMetadataDialog
+      < EditMetadataDialog
         open={editOpen}
         onOpenChange={setEditOpen}
         contractAddress={contractAddress}
@@ -1742,7 +1709,8 @@ export default function CampaignDetailsPage() {
         onSaved={({ name, description }) => {
           setCampaign((prev) => prev ? { ...prev, name, description: description || prev.description } : prev);
           refreshGroups();
-        }}
+        }
+        }
       />
     </div >
   );

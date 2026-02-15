@@ -21,7 +21,7 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { ArrowUpIcon, ArrowDownIcon, Share2Icon, UsersIcon, CalendarIcon, ArrowLeftIcon, SparklesIcon, Settings, Play, DollarSign, AlertTriangle, RotateCcw, GripVertical } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
 import CountdownTimer from '@/components/thrift/CountdownTimer';
@@ -40,7 +40,7 @@ export default function CampaignDetailsPage() {
   const account = useActiveAccount();
   const address = account?.address;
   const isConnected = !!address;
-  const { toast } = useToast();
+
 
   const [campaign, setCampaign] = useState<ThriftGroup | null>(null);
   const [isUserMember, setIsUserMember] = useState(false);
@@ -224,10 +224,8 @@ export default function CampaignDetailsPage() {
           console.error('Failed to fetch contribution history:', error);
           // Show user-friendly message for RPC errors
           if (error instanceof Error && error.message.includes('RPC')) {
-            toast({
-              title: "Network Issue",
+            toast.error("Network Issue", {
               description: "Unable to fetch contribution history due to network connectivity. Please try again later.",
-              variant: "destructive",
             });
           }
           setContributionHistory([]);
@@ -238,7 +236,7 @@ export default function CampaignDetailsPage() {
     };
 
     fetchContributionHistory();
-  }, [campaign, groupStatus?.isStarted, getContributionHistory, toast]);
+  }, [campaign, groupStatus?.isStarted, getContributionHistory]);
 
   // Open join dialog if join=true in URL and not already a member
   useEffect(() => {
@@ -331,8 +329,7 @@ export default function CampaignDetailsPage() {
       setJoinDialogOpen(false);
       setIsUserMember(true);
 
-      toast({
-        title: "Join request sent",
+      toast.success("Join request sent", {
         description: "Your request to join this thrift group has been submitted.",
       });
 
@@ -340,10 +337,8 @@ export default function CampaignDetailsPage() {
       router.replace(`/thrift/${campaignId}`);
     } catch (error) {
       console.error("Failed to join campaign:", error);
-      toast({
-        title: "Join request failed",
+      toast.error("Join request failed", {
         description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive",
       });
     }
   };
@@ -373,10 +368,8 @@ export default function CampaignDetailsPage() {
     // Check if group is active before attempting contribution
     if (!campaign.isActive) {
       console.log('Group is not active, showing error');
-      toast({
-        title: "Group not active",
+      toast.error("Group not active", {
         description: "This group is not active yet. Contributions will be available when the group starts. Please wait for the admin to activate the group.",
-        variant: "destructive",
       });
       return;
     }
@@ -389,8 +382,7 @@ export default function CampaignDetailsPage() {
       setContributeDialogOpen(false);
       setContributionAmount('');
 
-      toast({
-        title: "Contribution successful",
+      toast.success("Contribution successful", {
         description: `You've contributed to the thrift group.`,
       });
     } catch (error) {
@@ -414,10 +406,8 @@ export default function CampaignDetailsPage() {
         }
       }
 
-      toast({
-        title: "Contribution failed",
+      toast.error("Contribution failed", {
         description: errorMessage,
-        variant: "destructive",
       });
     }
   };
@@ -429,16 +419,13 @@ export default function CampaignDetailsPage() {
       await distributePayout(campaign.id);
       setWithdrawDialogOpen(false);
 
-      toast({
-        title: "Withdrawal successful",
+      toast.success("Withdrawal successful", {
         description: "You've successfully withdrawn funds from the thrift group.",
       });
     } catch (error) {
       console.error("Failed to withdraw:", error);
-      toast({
-        title: "Withdrawal failed",
+      toast.error("Withdrawal failed", {
         description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive",
       });
     }
   };
@@ -446,8 +433,7 @@ export default function CampaignDetailsPage() {
   const copyToClipboard = () => {
     navigator.clipboard.writeText(shareableLink)
       .then(() => {
-        toast({
-          title: "Link copied!",
+        toast.success("Link copied!", {
           description: "Share with your friends to join this thrift group",
         });
         setShareDialogOpen(false);
@@ -472,8 +458,7 @@ export default function CampaignDetailsPage() {
       await activateThriftGroup(campaign.id);
       console.log('Group activated successfully');
 
-      toast({
-        title: "Group activated",
+      toast.success("Group activated", {
         description: "The thrift group has been activated successfully.",
       });
     } catch (error) {
@@ -493,10 +478,8 @@ export default function CampaignDetailsPage() {
         }
       }
 
-      toast({
-        title: "Activation failed",
+      toast.error("Activation failed", {
         description: errorMessage,
-        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
@@ -505,10 +488,8 @@ export default function CampaignDetailsPage() {
 
   const handleSetPayoutOrder = async () => {
     if (!campaign || memberOrder.length === 0) {
-      toast({
-        title: "Invalid payout order",
+      toast.error("Invalid payout order", {
         description: "Please arrange the member order.",
-        variant: "destructive",
       });
       return;
     }
@@ -517,16 +498,13 @@ export default function CampaignDetailsPage() {
     try {
       await setPayoutOrder(campaign.id, memberOrder);
       setAdminDialogOpen(false);
-      toast({
-        title: "Payout order set",
+      toast.success("Payout order set", {
         description: "The payout order has been set successfully.",
       });
     } catch (error) {
       console.error("Failed to set payout order:", error);
-      toast({
-        title: "Failed to set payout order",
+      toast.error("Failed to set payout order", {
         description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
@@ -553,10 +531,8 @@ export default function CampaignDetailsPage() {
     if (!campaign) return;
 
     if (!addMemberAddress || !addMemberAddress.startsWith('0x')) {
-      toast({
-        title: "Invalid address",
+      toast.error("Invalid address", {
         description: "Please enter a valid wallet address starting with 0x",
-        variant: "destructive",
       });
       return;
     }
@@ -570,8 +546,7 @@ export default function CampaignDetailsPage() {
       setAddMemberPhone('');
       setAddMemberName('');
 
-      toast({
-        title: "Member added",
+      toast.success("Member added", {
         description: "The member has been added to the private group successfully.",
       });
 
@@ -580,10 +555,8 @@ export default function CampaignDetailsPage() {
       setCampaignMembers(members);
     } catch (error) {
       console.error("Failed to add member:", error);
-      toast({
-        title: "Failed to add member",
+      toast.error("Failed to add member", {
         description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
@@ -600,16 +573,13 @@ export default function CampaignDetailsPage() {
     setIsProcessing(true);
     try {
       await emergencyWithdraw(campaign.id);
-      toast({
-        title: "Emergency withdrawal executed",
+      toast.success("Emergency withdrawal executed", {
         description: "Emergency withdrawal has been executed successfully.",
       });
     } catch (error) {
       console.error("Failed to execute emergency withdrawal:", error);
-      toast({
-        title: "Emergency withdrawal failed",
+      toast.error("Emergency withdrawal failed", {
         description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
@@ -1047,23 +1017,18 @@ export default function CampaignDetailsPage() {
                                             console.log('Refresh result:', history);
                                             setContributionHistory(history);
                                             if (history.length === 0) {
-                                              toast({
-                                                title: "No Contributions Found",
+                                              toast.error("No Contributions Found", {
                                                 description: "No contribution events found on the blockchain for this group.",
-                                                variant: "destructive",
                                               });
                                             } else {
-                                              toast({
-                                                title: "History Refreshed",
+                                              toast.success("History Refreshed", {
                                                 description: `Found ${history.length} contribution(s).`,
                                               });
                                             }
                                           } catch (error) {
                                             console.error('Refresh failed:', error);
-                                            toast({
-                                              title: "Refresh Failed",
+                                            toast.error("Refresh Failed", {
                                               description: "Failed to fetch contribution history. Please try again.",
-                                              variant: "destructive",
                                             });
                                           }
                                         }
@@ -1426,9 +1391,9 @@ export default function CampaignDetailsPage() {
 
       {/* Join Dialog */}
       <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dark:bg-black dark:border-neutral-800 dark:text-gray-100">
           <DialogHeader>
-            <DialogTitle>Join Thrift Group</DialogTitle>
+            <DialogTitle className="dark:text-white">Join Thrift Group</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="mb-4">You are requesting to join: <strong>{campaign.name}</strong></p>
@@ -1448,12 +1413,12 @@ export default function CampaignDetailsPage() {
                   <p>Your request will be reviewed by the group creator before you can join.</p>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="joinUserName" className="text-right">Your Name</Label>
+                  <Label htmlFor="joinUserName" className="text-right dark:text-neutral-200">Your Name</Label>
                   <Input
                     id="joinUserName"
                     value={joinUserName}
                     onChange={(e) => setJoinUserName(e.target.value)}
-                    className="col-span-3"
+                    className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                     placeholder="Enter your name"
                   />
                 </div>
@@ -1481,9 +1446,9 @@ export default function CampaignDetailsPage() {
 
       {/* Contribute Dialog */}
       <Dialog open={contributeDialogOpen} onOpenChange={setContributeDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dark:bg-black dark:border-neutral-800 dark:text-gray-100">
           <DialogHeader>
-            <DialogTitle className='dark:text-white/90'>Make Contribution</DialogTitle>
+            <DialogTitle className='dark:text-white'>Make Contribution</DialogTitle>
           </DialogHeader>
           <div className="py-4 dark:text-white/90">
             <p className="mb-4">Contributing to: <strong>{campaign.name}</strong></p>
@@ -1496,13 +1461,13 @@ export default function CampaignDetailsPage() {
 
             <div className="grid gap-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="amount" className="text-right">Amount</Label>
+                <Label htmlFor="amount" className="text-right dark:text-neutral-200">Amount</Label>
                 <Input
                   id="amount"
                   type="number"
                   value={contributionAmount}
                   onChange={(e) => setContributionAmount(e.target.value)}
-                  className="col-span-3"
+                  className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                   placeholder="100"
                   disabled={!campaign.isActive}
                 />
@@ -1526,9 +1491,9 @@ export default function CampaignDetailsPage() {
 
       {/* Withdraw Dialog */}
       <Dialog open={withdrawDialogOpen} onOpenChange={setWithdrawDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dark:bg-black dark:border-neutral-800 dark:text-gray-100">
           <DialogHeader>
-            <DialogTitle>Withdraw Funds</DialogTitle>
+            <DialogTitle className="dark:text-white">Withdraw Funds</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="mb-4">Withdrawing from: <strong>{campaign.name}</strong></p>
@@ -1557,20 +1522,20 @@ export default function CampaignDetailsPage() {
 
       {/* Share Dialog */}
       <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] dark:text-white/90">
+        <DialogContent className="sm:max-w-[425px] dark:bg-black dark:border-neutral-800 dark:text-gray-100">
           <DialogHeader>
-            <DialogTitle>Share Thrift Group</DialogTitle>
+            <DialogTitle className="dark:text-white">Share Thrift Group</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="mb-4">Share <strong>{campaign.name}</strong> with your friends</p>
             <div className="grid gap-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="shareLink" className="text-right">Share Link</Label>
+                <Label htmlFor="shareLink" className="text-right dark:text-neutral-200">Share Link</Label>
                 <Input
                   id="shareLink"
                   value={shareableLink}
                   readOnly
-                  className="col-span-3"
+                  className="col-span-3 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white"
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
               </div>
@@ -1592,9 +1557,9 @@ export default function CampaignDetailsPage() {
 
       {/* Admin Dialog - Set Payout Order */}
       <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] dark:bg-black dark:border-neutral-800 dark:text-gray-100">
           <DialogHeader>
-            <DialogTitle>Set Payout Order</DialogTitle>
+            <DialogTitle className="dark:text-white">Set Payout Order</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="mb-4">Arrange the payout order for <strong>{campaign?.name}</strong></p>
@@ -1608,7 +1573,7 @@ export default function CampaignDetailsPage() {
                 return (
                   <div
                     key={address}
-                    className="flex items-center justify-between p-3 border rounded-lg bg-card"
+                    className="flex items-center justify-between p-3 border rounded-lg bg-card dark:bg-neutral-900 dark:border-neutral-800"
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex flex-col gap-1">
@@ -1672,50 +1637,54 @@ export default function CampaignDetailsPage() {
 
       {/* Add Member Dialog */}
       <Dialog open={addMemberDialogOpen} onOpenChange={setAddMemberDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dark:bg-black dark:border-neutral-800 dark:text-gray-100">
           <DialogHeader>
-            <DialogTitle>Add Member to Private Group</DialogTitle>
+            <DialogTitle className="dark:text-white">Add Member to Private Group</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="mb-4">Add a new member to <strong>{campaign?.name}</strong></p>
 
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="addMemberName">Name</Label>
+                <Label htmlFor="addMemberName" className="dark:text-neutral-200">Name</Label>
                 <Input
                   id="addMemberName"
                   value={addMemberName}
                   onChange={(e) => setAddMemberName(e.target.value)}
                   placeholder="John Doe"
+                  className="dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="addMemberAddress">Wallet Address</Label>
+                <Label htmlFor="addMemberAddress" className="dark:text-neutral-200">Wallet Address</Label>
                 <Input
                   id="addMemberAddress"
                   value={addMemberAddress}
                   onChange={(e) => setAddMemberAddress(e.target.value)}
                   placeholder="0x..."
+                  className="dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="addMemberEmail">Email</Label>
+                <Label htmlFor="addMemberEmail" className="dark:text-neutral-200">Email</Label>
                 <Input
                   id="addMemberEmail"
                   type="email"
                   value={addMemberEmail}
                   onChange={(e) => setAddMemberEmail(e.target.value)}
                   placeholder="name@example.com"
+                  className="dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="addMemberPhone">Phone</Label>
+                <Label htmlFor="addMemberPhone" className="dark:text-neutral-200">Phone</Label>
                 <Input
                   id="addMemberPhone"
                   type="tel"
                   value={addMemberPhone}
                   onChange={(e) => setAddMemberPhone(e.target.value)}
                   placeholder="+1234567890"
+                  className="dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-500"
                 />
               </div>
             </div>
