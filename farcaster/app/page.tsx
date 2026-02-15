@@ -58,7 +58,7 @@ function Dashboard() {
       title: "AI Chat",
       description: "Ask AI for gas fees",
       icon: User,
-      path: "/profile",
+      path: "/chat",
       color: "text-yellow-600 dark:text-yellow-500",
       bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
     }
