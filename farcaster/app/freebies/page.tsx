@@ -25,6 +25,7 @@ import { useClaimProcessor } from "../../context/utilityProvider/ClaimContextPro
 import Engagement from '../../components/Engagement';
 import { useMiniAppDimensions } from '@/hooks/useMiniAppDimensions';
 import { ethers } from 'ethers';
+import { toast } from 'sonner';
 
 export default function Freebies() {
     const [claimMethod, setClaimMethod] = useState<'claim' | 'exchange'>('claim');
