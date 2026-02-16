@@ -1,23 +1,20 @@
 import { openai } from "@ai-sdk/openai";
-// @ts-ignore - Version conflict with viem
 import { getOnChainTools } from "@goat-sdk/adapter-vercel-ai";
-// @ts-ignore - Version conflict with viem
 import { viem } from "@goat-sdk/wallet-viem";
 import { createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { celo } from "viem/chains";
 import { LanguageModelV1, streamText } from 'ai';
 import { NextResponse } from 'next/server';
-// @ts-ignore - Optional import
 import { esusu } from "@/agent/src";
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Export the POST handler function for Next.js API route
 export async function POST(req: Request) {
     try {
         const { messages, userAddress } = await req.json();
+
 
         const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY;
         const RPC_URL = process.env.RPC_PROVIDER_URL;
@@ -29,7 +26,6 @@ export async function POST(req: Request) {
         }
 
         const account = privateKeyToAccount(PRIVATE_KEY as `0x${string}`);
-        // Use Ankr RPC endpoint (can be overridden by RPC_PROVIDER_URL env var)
         const rpcTransport = RPC_URL
             ? http(RPC_URL, { timeout: 30_000, retryCount: 3 })
             : http('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8', {
@@ -44,23 +40,75 @@ export async function POST(req: Request) {
         });
 
         const tools = await getOnChainTools({
-            // @ts-ignore
+            //@ts-ignore
             wallet: viem(walletClient),
             plugins: [esusu()],
         });
+
         const result = streamText({
             model: openai("gpt-4o-mini") as LanguageModelV1,
-            system: `You are a helpful agent that performs onchain transactions like claiming usdt for users who are on minipay or celo for users who are not on minipay via the Esusu faucet on the Celo blockchain. The connected user's address is ${userAddress}.
-            Always ensure you are sending tokens to the correct address.
-                Never send tokens to any address other than ${userAddress}.
-                Always ensure you send only claim tokens to ${userAddress}.
-                Never sent tokens to yourself.
-                Never you confuse user address which is ${userAddress} with your own address which is ${account.address}.
-                Your address is only used to sign transactions.
-                Your address is not the recipient address for claimed tokens.
-                Your address is never the destination for claimed tokens.
-                If you are unsure about any request, ask for clarification instead of making assumptions.
-                Your address is ${account.address}, and you must not send claimed tokens to this address, and you must not confuse this address with ${userAddress}.`,
+            system: `
+                You are the official onchain transaction executor for the Esusu protocol on the Celo blockchain.
+
+                NETWORK:
+                - Chain: Celo (Chain ID: 42220)
+
+                IMPORTANT ADDRESSES:
+                - Connected User Address: ${userAddress}
+                - AI Agent Signing Address: ${account.address}
+
+                --------------------------------------------------
+                AGENT-SIGNED TOOLS (AUTO EXECUTED)
+                --------------------------------------------------
+
+                1. claimUsdtForUser(recipient, usdtAddress)
+                2. claimCeloForUser(recipient, celoAddress)
+                3. whitelistUserForClaims(userAddress)
+                4. getFaucetBalance()
+                5. getTimeUntilNextClaim(userAddress)
+
+                Rules:
+                - Execute immediately when user intent matches
+                - Broadcast transaction and return real hash
+                - Use ${userAddress} as recipient
+
+                --------------------------------------------------
+                USER-SIGNED ACTION
+                --------------------------------------------------
+
+                8. depositToEsusu(tokenAddress, amount)
+
+                When user requests deposit:
+                - Call the depositToEsusu tool
+                - The tool returns JSON with type: "DEPOSIT_REQUIRED"
+                - Share this with the user: "I've prepared your deposit. Please confirm in your wallet."
+                - The frontend will detect the JSON and show the deposit form
+                - DO NOT fabricate transaction hashes
+                --------------------------------------------------
+                FEEDBACK RULES
+                --------------------------------------------------
+
+                9. diveFeedback(feedbackType, comments)
+
+                After every transaction (agent-signed or user-signed), ask the user for feedback:
+                - "Was this transaction helpful? Please reply with 'Yes' or 'No' and any comments you have."
+                - Call diveFeedback with the user's response which is signed by user's wallet to ensure authenticity
+                - The tool returns JSON with type: "FEEDBACK_REQUIRED"
+                
+                --------------------------------------------------
+                RESPONSE RULES
+                --------------------------------------------------
+
+                For agent-signed transactions:
+                - Execute and return real transaction hash
+
+                For user-signed transactions:
+                - Call the tool
+                - Tell user to confirm in wallet
+                - Frontend handles execution
+
+                Never hallucinate transaction hashes.
+            `,
             //@ts-ignore
             tools: tools,
             maxSteps: 20,
