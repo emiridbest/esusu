@@ -3,16 +3,21 @@ import { EVMWalletClient } from '@goat-sdk/wallet-evm';
 import { Tool } from '@goat-sdk/core';
 import { z } from 'zod';
 import { encodeFunctionData } from 'viem';
-import { EsusuParameters, EmptyParameters, UserAddressParameters } from './parameters';
+import { EsusuParameters, EmptyParameters, UserAddressParameters, FeedbackParameters } from './parameters';
 import { contractAddress, abi } from "../lib/utils";
+import { esusuContractAddress, esusuAbi } from '../lib/esusu';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
+import { BrowserProvider, Contract, parseEther, formatUnits } from "ethers";
+
 
 
 export class EsusuFaucetService {
 
     private readonly contractAddress: string = contractAddress;
     private readonly abi = abi;
-    
+    private readonly esusuContractAddress: string = esusuContractAddress;
+    private readonly esusuAbi = esusuAbi;
+
     // Hardcoded referral configuration
     private readonly referralUser = "0x4d4cC2E0c5cBC9737A0dEc28d7C2510E2BEF5A09" as `0x${string}`;
     private readonly referralConsumer = "0xb82896C4F251ed65186b416dbDb6f6192DFAF926";
@@ -75,11 +80,11 @@ export class EsusuFaucetService {
                         }).catch((referralError) => {
                             console.error("Referral submission failed:", referralError);
                         });
-                        
+
                         return `Successfully initiated gas fee claim for user ${params.recipient}. Transaction hash: ${tx.hash}`;
                     }
                     if (!tx) throw new Error("Transaction submission failed");
-                    
+
                     return `Claim transaction for ${params.recipient} may have failed. Transaction hash: ${tx.hash}`;
                 } catch (receiptErr) {
                     // If waiting fails, still return tx hash so user can check manually
@@ -341,4 +346,188 @@ export class EsusuFaucetService {
             return 'Failed to get the next claim time.';
         }
     }
+
+    /**
+ * Add an address to the whitelist for AI claims on the Esusu faucet.
+ * First checks GoodDollar contract to confirm user is whitelisted.
+ * If not whitelisted on GoodDollar, transaction is aborted.
+ */
+    @Tool({
+        name: "whitelistUserForClaims",
+        description:
+            "Whitelist a user address for AI claims on the Esusu faucet after verifying GoodDollar whitelist status",
+    })
+    async whitelistUserForClaims(
+        walletClient: EVMWalletClient,
+        parameters: UserAddressParameters
+    ): Promise<string> {
+        if (!parameters?.userAddress) {
+            return "❌ A valid user address must be provided.";
+        }
+
+        if (!walletClient) {
+            return "❌ Wallet client not available.";
+        }
+
+        const identityAddress = "0xC361A6E67822a0EDc17D899227dd9FC50BD62F42";
+
+        const identityABI = parseAbi([
+            "function isWhitelist(address _member) view returns (bool)",
+        ]);
+
+        // --------------------------------------------------
+        // STEP 1: Check GoodDollar whitelist
+        // --------------------------------------------------
+        try {
+            const result = await walletClient.read({
+                address: identityAddress,
+                abi: identityABI,
+                functionName: "isWhitelist",
+                args: [parameters.userAddress],
+            });
+
+            // Normalize return value safely
+            const isWhitelisted =
+                typeof result === "boolean"
+                    ? result
+                    : typeof result?.result === "boolean"
+                        ? result.result
+                        : typeof result?.value === "boolean"
+                            ? result.value
+                            : false;
+
+            if (!isWhitelisted) {
+                return ` Transaction aborted.
+
+User ${parameters.userAddress} is NOT whitelisted on GoodDollar.
+
+Cannot whitelist for Esusu claims.
+Please ensure you do face verification with GoodDollar to become eligible for Esusu faucet claims.
+`;
+            }
+        } catch (error) {
+            console.error("GoodDollar whitelist check failed:", error);
+            return ` Transaction aborted.
+
+Failed to verify GoodDollar whitelist status.`;
+        }
+
+        // --------------------------------------------------
+        // STEP 2: Execute Esusu whitelist transaction
+        // --------------------------------------------------
+        try {
+            const tx = await walletClient.sendTransaction({
+                to: this.contractAddress,
+                abi: this.abi,
+                functionName: "whitelistForClaims",
+                args: [parameters.userAddress],
+            });
+
+            return `✅ Transaction executed successfully!
+
+User ${parameters.userAddress} is now whitelisted for claims.
+
+Transaction hash: ${tx.hash}`;
+        } catch (error: any) {
+            console.error("Whitelisting transaction failed:", error);
+            return ` Failed to whitelist user.
+
+Reason: ${error?.message ?? "Unknown error"}`;
+        }
+    }
+
+    /**
+     * Deposit tokens to Esusu smart contract for Aave Yields
+     * This is handled by triggering user wallet to send a transaction to the Esusu contract address with the appropriate data payload to trigger the deposit function.
+     * @param params The parameters for the tool, including the recipient's address and an optional amount.
+     * @returns A promise that resolves with a message indicating the result of the deposit action.
+     */
+    // @ts-ignore
+    @Tool({
+        name: 'depositToEsusu',
+        description: 'Prepare deposit transaction for user wallet. User deposits tokens to Esusu for Aave yields.'
+    })
+    async depositToEsusu(
+        walletClient: EVMWalletClient,
+        parameters: EsusuParameters
+    ): Promise<string> {
+        if (!parameters.amount) {
+            return 'Error: Amount is required for deposit';
+        }
+        if (!parameters.tokenAddress) {
+            return 'Error: Token address is required for deposit';
+        }
+
+        // Return JSON that frontend will parse
+        return JSON.stringify({
+            type: 'DEPOSIT_REQUIRED',
+            action: 'depositToEsusu',
+            tokenAddress: parameters.tokenAddress,
+            amount: parameters.amount,
+            message: 'Please confirm the deposit transaction in your wallet'
+        });
+    }
+    /**
+     * Agent will ask user for feedback after transactions. This tool captures that feedback.
+     * @param params The parameters for the tool, including feedback type and comments.
+     */
+    @Tool({
+        name: 'giveFeedbackOnchain',
+        description: 'Prepare onchain feedback transaction for user to sign. User submits feedback about an AI agent to the reputation registry.'
+    })
+    async giveFeedbackOnchain(
+        walletClient: EVMWalletClient,
+        parameters: FeedbackParameters
+    ): Promise<string> {
+        if (!parameters.agentId) {
+            return 'Error: Agent ID is required for feedback';
+        }
+        if (!parameters.value) {
+            return 'Error: Feedback value is required';
+        }
+        if (!parameters.tag1) {
+            return 'Error: Primary tag is required';
+        }
+        if (!parameters.feedbackURI) {
+            return 'Error: Feedback URI is required';
+        }
+        if (!parameters.feedbackHash) {
+            return 'Error: Feedback hash is required';
+        }
+
+        // Return instructions for frontend - DO NOT EXECUTE
+        return `🔐 USER WALLET SIGNATURE REQUIRED
+
+To submit feedback onchain for Agent #${parameters.agentId}:
+
+Feedback Details:
+- Value: ${parameters.value} (with ${parameters.valueDecimals} decimals)
+- Primary Tag: ${parameters.tag1}
+- Secondary Tag: ${parameters.tag2 || 'None'}
+- Endpoint: ${parameters.endpoint}
+- Feedback URI: ${parameters.feedbackURI}
+- Content Hash: ${parameters.feedbackHash}
+
+ IMPORTANT: This transaction requires YOUR wallet signature.
+
+Transaction Data:
+${JSON.stringify({
+            type: 'FEEDBACK_REQUIRED',
+            action: 'giveFeedback',
+            contractAddress: this.reputationRegistryAddress, // Add this as a class property
+            params: {
+                agentId: parameters.agentId,
+                value: parameters.value,
+                valueDecimals: parameters.valueDecimals,
+                tag1: parameters.tag1,
+                tag2: parameters.tag2 || "",
+                endpoint: parameters.endpoint,
+                feedbackURI: parameters.feedbackURI,
+                feedbackHash: parameters.feedbackHash
+            }
+        })}
+
+The AI agent cannot sign this transaction. You must approve it in your wallet.`;
+    }
+
 }
