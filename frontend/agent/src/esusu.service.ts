@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { encodeFunctionData } from 'viem';
 import { EsusuParameters, EmptyParameters, UserAddressParameters, FeedbackParameters } from './parameters';
 import { contractAddress, abi } from "../lib/utils";
-import { esusuContractAddress, esusuAbi } from '../lib/esusu';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { BrowserProvider, Contract, parseEther, formatUnits } from "ethers";
 
@@ -16,7 +15,6 @@ export class EsusuFaucetService {
     private readonly contractAddress: string = contractAddress;
     private readonly abi = abi;
     private readonly esusuContractAddress: string = esusuContractAddress;
-    private readonly esusuAbi = esusuAbi;
 
     // Hardcoded referral configuration
     private readonly referralUser = "0x4d4cC2E0c5cBC9737A0dEc28d7C2510E2BEF5A09" as `0x${string}`;
