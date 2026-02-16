@@ -9,7 +9,6 @@ import { parseAbi, keccak256, toBytes } from "viem";
 
 interface FeedbackFormProps {
     initialData?: {
-        agentId?: number;
         value?: number;
         tag1?: string;
         tag2?: string;
@@ -23,10 +22,11 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
     const account = useActiveAccount();
     const { mutateAsync: sendTransaction } = useSendTransaction();
 
+    // Fixed agent ID
+    const AGENT_ID = 126;
+
     // Form state
-    const [agentId, setAgentId] = useState(initialData?.agentId?.toString() || "");
     const [value, setValue] = useState(initialData?.value?.toString() || "");
-    const [valueDecimals, setValueDecimals] = useState("0");
     const [tag1, setTag1] = useState(initialData?.tag1 || "");
     const [tag2, setTag2] = useState(initialData?.tag2 || "");
     const [endpoint, setEndpoint] = useState(initialData?.endpoint || "");
@@ -36,7 +36,7 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
     const [status, setStatus] = useState("");
     const [error, setError] = useState<string | null>(null);
 
-    const REPUTATION_REGISTRY = "0x..."; // ✅ YOUR CONTRACT ADDRESS
+    const REPUTATION_REGISTRY = "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"; 
 
     const reputationAbi = parseAbi([
         "function giveFeedback(uint256 agentId, int128 value, uint8 valueDecimals, string tag1, string tag2, string endpoint, string feedbackURI, bytes32 feedbackHash) external"
@@ -60,7 +60,13 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
             setStatus("Preparing feedback transaction...");
 
             // Validate inputs
-            if (!agentId || !value || !tag1 || !endpoint || !feedbackText) {
+            const numValue = parseInt(value);
+            if (!value || isNaN(numValue) || numValue < 0 || numValue > 100) {
+                setError("Rating must be between 0 and 100");
+                return;
+            }
+
+            if (!tag1 || !endpoint || !feedbackText) {
                 setError("Please fill in all required fields");
                 return;
             }
@@ -74,13 +80,13 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
                 contract,
                 method: "giveFeedback",
                 params: [
-                    BigInt(agentId),
-                    BigInt(value),
-                    parseInt(valueDecimals),
+                    BigInt(AGENT_ID),  // Fixed agent ID
+                    BigInt(numValue),   // Rating 0-100
+                    0,                  // No decimals (integer rating)
                     tag1,
                     tag2 || "",
                     endpoint,
-                    feedbackURI || `ipfs://feedback-${agentId}-${Date.now()}`,
+                    feedbackURI || `ipfs://feedback-${AGENT_ID}-${Date.now()}`,
                     feedbackHash
                 ]
             });
@@ -90,12 +96,20 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
             // Execute transaction
             const receipt = await sendTransaction(transaction);
 
-            setStatus(`✅ Feedback submitted successfully!`);
+            setStatus(`Feedback submitted successfully! Transaction: ${receipt.transactionHash}`);
             console.log("Transaction hash:", receipt.transactionHash);
+
+            // Reset form
+            setValue("");
+            setTag1("");
+            setTag2("");
+            setEndpoint("");
+            setFeedbackText("");
+            setFeedbackURI("");
 
             // Call success callback
             if (onSuccess) {
-                setTimeout(() => onSuccess(), 2000);
+                setTimeout(() => onSuccess(), 3000);
             }
         } catch (err: any) {
             console.error("Error submitting feedback:", err);
@@ -104,9 +118,7 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
         }
     }, [
         account,
-        agentId,
         value,
-        valueDecimals,
         tag1,
         tag2,
         endpoint,
@@ -118,70 +130,78 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
     ]);
 
     return (
-        <div className="flex flex-col space-y-4 p-6 bg-white rounded-lg shadow">
-            <h3 className="text-xl font-bold">Submit Onchain Feedback</h3>
+        <div className="flex flex-col space-y-4 p-6 bg-white rounded-lg shadow max-w-2xl mx-auto">
+            <h3 className="text-xl font-bold">Submit Feedback for Agent #{AGENT_ID}</h3>
 
-            {/* Agent ID */}
+            {/* Rating Slider */}
+            <div>
+                <label className="block text-sm font-medium mb-2">
+                    Rating: {value || 0}/100 <span className="text-red-500">*</span>
+                </label>
+                <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    value={value || 0}
+                    onChange={(e) => setValue(e.target.value)}
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>0 (Poor)</span>
+                    <span>50 (Average)</span>
+                    <span>100 (Excellent)</span>
+                </div>
+            </div>
+
+            {/* Rating Number Input (alternative) */}
             <div>
                 <label className="block text-sm font-medium mb-1">
-                    Agent ID <span className="text-red-500">*</span>
+                    Or enter rating directly:
                 </label>
                 <input
                     type="number"
-                    placeholder="e.g., 1"
+                    placeholder="Enter 0-100"
                     className="w-full p-2 border rounded"
-                    value={agentId}
-                    onChange={(e) => setAgentId(e.target.value)}
+                    value={value}
+                    onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (val >= 0 && val <= 100) {
+                            setValue(e.target.value);
+                        }
+                    }}
+                    min="0"
+                    max="100"
                 />
-            </div>
-
-            {/* Feedback Value */}
-            <div>
-                <label className="block text-sm font-medium mb-1">
-                    Feedback Value <span className="text-red-500">*</span>
-                    <span className="text-gray-500 text-xs ml-2">(Can be negative)</span>
-                </label>
-                <div className="flex gap-2">
-                    <input
-                        type="number"
-                        placeholder="e.g., 100 or -50"
-                        className="flex-1 p-2 border rounded"
-                        value={value}
-                        onChange={(e) => setValue(e.target.value)}
-                    />
-                    <input
-                        type="number"
-                        placeholder="Decimals"
-                        className="w-24 p-2 border rounded"
-                        value={valueDecimals}
-                        onChange={(e) => setValueDecimals(e.target.value)}
-                        min="0"
-                        max="18"
-                    />
-                </div>
             </div>
 
             {/* Tags */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium mb-1">
-                        Primary Tag <span className="text-red-500">*</span>
+                        Category <span className="text-red-500">*</span>
                     </label>
-                    <input
-                        type="text"
-                        placeholder="e.g., performance"
+                    <select
                         className="w-full p-2 border rounded"
                         value={tag1}
                         onChange={(e) => setTag1(e.target.value)}
-                    />
+                    >
+                        <option value="">Select category...</option>
+                        <option value="performance">Performance</option>
+                        <option value="accuracy">Accuracy</option>
+                        <option value="helpfulness">Helpfulness</option>
+                        <option value="reliability">Reliability</option>
+                        <option value="speed">Speed</option>
+                        <option value="quality">Quality</option>
+                    </select>
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">
-                        Secondary Tag
+                        Sub-category (optional)
                     </label>
                     <input
                         type="text"
-                        placeholder="e.g., accuracy"
+                        placeholder="e.g., response time"
                         className="w-full p-2 border rounded"
                         value={tag2}
                         onChange={(e) => setTag2(e.target.value)}
@@ -192,11 +212,11 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
             {/* Endpoint */}
             <div>
                 <label className="block text-sm font-medium mb-1">
-                    Endpoint <span className="text-red-500">*</span>
+                    Service/Endpoint <span className="text-red-500">*</span>
                 </label>
                 <input
                     type="text"
-                    placeholder="e.g., api.example.com/feedback"
+                    placeholder="e.g., esusu-faucet or api.esusu.com"
                     className="w-full p-2 border rounded"
                     value={endpoint}
                     onChange={(e) => setEndpoint(e.target.value)}
@@ -206,21 +226,25 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
             {/* Feedback Text */}
             <div>
                 <label className="block text-sm font-medium mb-1">
-                    Feedback Content <span className="text-red-500">*</span>
-                    <span className="text-gray-500 text-xs ml-2">(Will be hashed onchain)</span>
+                    Feedback Details <span className="text-red-500">*</span>
+                    <span className="text-gray-500 text-xs ml-2">(Will be hashed and stored onchain)</span>
                 </label>
                 <textarea
-                    placeholder="Write your detailed feedback here..."
-                    className="w-full p-2 border rounded h-32"
+                    placeholder="Write your detailed feedback here... This will help improve the agent."
+                    className="w-full p-3 border rounded h-32 resize-none"
                     value={feedbackText}
                     onChange={(e) => setFeedbackText(e.target.value)}
+                    maxLength={500}
                 />
+                <div className="text-xs text-gray-500 text-right">
+                    {feedbackText.length}/500 characters
+                </div>
             </div>
 
             {/* Feedback URI (optional) */}
             <div>
                 <label className="block text-sm font-medium mb-1">
-                    Feedback URI (optional)
+                    Additional Data URI (optional)
                     <span className="text-gray-500 text-xs ml-2">(IPFS or external link)</span>
                 </label>
                 <input
@@ -235,33 +259,37 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
             {/* Submit Button */}
             <button
                 onClick={handleSubmitFeedback}
-                disabled={!agentId || !value || !tag1 || !endpoint || !feedbackText}
-                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white px-6 py-3 rounded font-semibold w-full"
+                disabled={!value || !tag1 || !endpoint || !feedbackText}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold w-full transition-colors"
             >
-                Submit Feedback Onchain
+                📝 Submit Feedback Onchain
             </button>
 
             {/* Status Messages */}
             {status && (
-                <div className="bg-green-50 border border-green-200 p-3 rounded">
-                    <p className="text-green-700 text-sm">{status}</p>
+                <div className={`border p-3 rounded ${
+                    status.includes('✅') ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'
+                }`}>
+                    <p className={`text-sm ${
+                        status.includes('✅') ? 'text-green-700' : 'text-blue-700'
+                    }`}>
+                        {status}
+                    </p>
                 </div>
             )}
 
             {error && (
                 <div className="bg-red-50 border border-red-200 p-3 rounded">
-                    <p className="text-red-700 text-sm">{error}</p>
+                    <p className="text-red-700 text-sm">❌ {error}</p>
                 </div>
             )}
 
             {/* Helper Text */}
-            <div className="bg-gray-50 p-3 rounded text-xs text-gray-600">
-                <p className="font-semibold mb-1">How it works:</p>
-                <ul className="list-disc list-inside space-y-1">
-                    <li>Your feedback text will be hashed using keccak256</li>
-                    <li>The hash ensures content integrity onchain</li>
-                    <li>You can optionally provide a URI for full feedback details</li>
-                    <li>Transaction requires your wallet signature</li>
+            <div className="bg-gray-50 p-4 rounded text-xs text-gray-600 space-y-2">
+                <p className="font-semibold">ℹ️ How it works:</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Rate Agent Esusu  AI from 0 (poor) to 100 (excellent)</li>
+                    <li>Please be nice...lol</li>
                 </ul>
             </div>
         </div>
