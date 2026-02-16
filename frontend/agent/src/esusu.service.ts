@@ -14,7 +14,6 @@ export class EsusuFaucetService {
 
     private readonly contractAddress: string = contractAddress;
     private readonly abi = abi;
-    private readonly esusuContractAddress: string = esusuContractAddress;
 
     // Hardcoded referral configuration
     private readonly referralUser = "0x4d4cC2E0c5cBC9737A0dEc28d7C2510E2BEF5A09" as `0x${string}`;
