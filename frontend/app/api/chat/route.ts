@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server';
 import { esusu } from "@/agent/src";
 
 
-export const maxDuration = 300;
+export const maxDuration = 50;
 export const dynamic = 'force-dynamic';
 
 const thirdwebAI = createThirdwebAI({
