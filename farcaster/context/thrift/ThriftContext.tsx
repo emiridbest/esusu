@@ -254,7 +254,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (minContribution !== undefined && isPublic) {
         // Both are bigint in ethers v6; avoid BigInt literals by comparing directly
         if (amount < minContribution) {
-          const msg = `Deposit amount is below the minimum contribution: ${formatUnits(minContribution, 18)}.`;
+          const msg = `Contribution amount is below the minimum contribution: ${formatUnits(minContribution, 18)}.`;
           setError(msg);
           toast.error('Amount too low', { description: msg });
           setLoading(false);
@@ -677,7 +677,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
           contractAddress: contractAddress as `0x${string}`,
-          abi: parseAbi(["function joinPublicGroup(uint256, string, string)"]),
+          abi: parseAbi(["function joinPublicGroup(uint256)"]),
           functionName: 'joinPublicGroup',
           args: [groupId],
         });

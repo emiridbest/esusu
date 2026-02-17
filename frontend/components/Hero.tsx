@@ -8,24 +8,24 @@ import { ArrowRightIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 
 // Feature card component with fewer divs
-const FeatureCard = ({ 
-  image, 
-  title, 
-  description, 
-  path, 
+const FeatureCard = ({
+  image,
+  title,
+  description,
+  path,
   delay = 0
-}: { 
-  image: string; 
-  title: string; 
-  description: string; 
+}: {
+  image: string;
+  title: string;
+  description: string;
   path: string;
   delay?: number;
 }) => {
   const router = useRouter();
-  
+
   return (
-    <motion.div 
-      className="w-full sm:w-1/2 lg:w-1/4 p-4 dark:bg-black" 
+    <motion.div
+      className="w-full sm:w-1/2 lg:w-1/4 p-4 dark:bg-black"
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
@@ -33,14 +33,14 @@ const FeatureCard = ({
       onClick={() => router.push(path)}
     >
       <article className="glass-card h-full p-6 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] cursor-pointer">
-        <Image 
-          src={image} 
+        <Image
+          src={image}
           alt={title}
           width={80}
           height={80}
           className="mx-auto mb-5 object-contain dark:invert"
         />
-        
+
         <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white border-l-4 border-primary pl-3">
           {title}
         </h3>
@@ -51,14 +51,14 @@ const FeatureCard = ({
 };
 
 // Streamlined Section component
-const Section = ({ 
-  title, 
-  description, 
-  image, 
+const Section = ({
+  title,
+  description,
+  image,
   reverse = false,
   glassBg = false,
   accentColor = "from-primary/20 to-primary/5",
-  children 
+  children
 }: {
   title: string;
   description: string;
@@ -77,7 +77,7 @@ const Section = ({
       glassBg && "glass-card p-8"
     )}>
       <div className={`flex flex-col ${reverse ? 'lg:flex-row-reverse' : 'lg:flex-row'} items-center gap-8 `}>
-        <motion.figure 
+        <motion.figure
           className="lg:w-1/2 "
           initial={{ opacity: 0, x: reverse ? -30 : 30 }}
           whileInView={{ opacity: 1, x: 0 }}
@@ -86,9 +86,9 @@ const Section = ({
         >
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-200/50 dark:border-gray-700/50 group relative">
             <div className="absolute inset-0 "></div>
-            <Image 
-              src={image} 
-              alt={title} 
+            <Image
+              src={image}
+              alt={title}
               width={500}
               height={500}
               className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500 dark:invert"
@@ -96,7 +96,7 @@ const Section = ({
           </div>
         </motion.figure>
 
-        <motion.div 
+        <motion.div
           className="lg:w-1/2 space-y-4"
           initial={{ opacity: 0, x: reverse ? 30 : -30 }}
           whileInView={{ opacity: 1, x: 0 }}
@@ -119,24 +119,18 @@ const Section = ({
 const Hero: React.FC = () => {
   const router = useRouter();
   const { darkMode } = useContext(ThemeContext);
-  
+
   const features = [
-    {
-      image: "/save.png",
-      title: "Save and grow",
-      description: "Access popular stablecoins and watch your savings grow over time",
-      path: "/miniSafe"
-    },
     {
       image: "/target.png",
       title: "Set a Target",
-      description: "Create personalized savings goals and track your progress easily",
+      description: "Create personalized contribution goals and track your progress easily",
       path: "/"
     },
     {
       image: "/thrift.png",
-      title: "Save Together",
-      description: "Save with 5 friends and make 5x returns every month through group thrift",
+      title: "Contribution Circles",
+      description: "Pool funds with friends and rotate contributions every month",
       path: "/thrift"
     },
     {
@@ -159,7 +153,7 @@ const Hero: React.FC = () => {
       <section className="relative pt-10 pb-20 overflow-hidden bg-gradient-radial dark:bg-black">
         <div className="max-w-screen-xl mx-auto px-4">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
-            <motion.div 
+            <motion.div
               className="lg:w-1/2"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -168,37 +162,32 @@ const Hero: React.FC = () => {
               <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white leading-tight mb-6">
                 Harness the <span className="text-primary">power</span> of community savings
               </h1>
-              
+
               <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-                Simple, secure, and social way to save and grow your wealth in the digital economy.
+                Simple, secure, and social way to pool and access funds in the digital economy.
               </p>
-            
+
+
               <div className="flex flex-wrap gap-4 ">
-                <Button 
-                  size="lg" 
+
+                <Button
+                  size="lg"
                   className="bg-primary hover:bg-primary/90 text-white"
-                  onClick={() => router.push('/miniSafe')}
+                  onClick={() => router.push('/thrift')}
                 >
-                  Start Saving
+                  Join a Community
                   <ArrowRightIcon className="ml-2 h-5 w-5" />
                 </Button>
-                
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  onClick={() => router.push('/thrift')}
-                  className="border-primary text-primary hover:bg-primary/10"
-                >
-                  Join a Group
-                </Button>
+
+
               </div>
-              
+
               <div className="mt-10 flex items-center space-x-6">
                 {/* User avatars with simpler structure */}
                 <div className="flex">
                   {[...Array(3)].map((_, i) => (
-                    <div 
-                      key={i} 
+                    <div
+                      key={i}
                       className="w-8 h-8 rounded-full bg-white dark:black border-2 border-white dark:border-gray-800 shadow-lg overflow-hidden -ml-2 first:ml-0"
                       style={{ zIndex: 3 - i }}
                     >
@@ -207,12 +196,12 @@ const Hero: React.FC = () => {
                   ))}
                 </div>
                 <p className="text-gray-600 dark:text-gray-300">
-                  <span className="font-semibold">1,500+</span> people already saving
+                  <span className="font-semibold">1,500+</span> people already contributing
                 </p>
               </div>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="lg:w-1/2"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -222,12 +211,12 @@ const Hero: React.FC = () => {
               <figure className="relative">
                 <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-full blur-xl opacity-70 animate-pulse"></div>
                 <div className="glass-card p-2 rounded-3xl overflow-hidden">
-                  <Image 
-                    src="/ui.png" 
-                    alt="Esusu Mobile App" 
-                    width={500} 
-                    height={500} 
-                    className="rounded-2xl w-full h-auto" 
+                  <Image
+                    src="/ui.png"
+                    alt="Esusu Mobile App"
+                    width={500}
+                    height={500}
+                    className="rounded-2xl w-full h-auto"
                   />
                 </div>
               </figure>
@@ -258,7 +247,7 @@ const Hero: React.FC = () => {
           ))}
         </div>
       </section>
-      
+
       {/* Mobile Optimized Section */}
       <Section
         title="Mobile optimized. Built for you."
@@ -267,7 +256,7 @@ const Hero: React.FC = () => {
         glassBg
         accentColor="black "
       >
-        <Button 
+        <Button
           className="mt-6"
           onClick={() => router.push('/')}
         >
@@ -275,7 +264,7 @@ const Hero: React.FC = () => {
           <ArrowRightIcon className="ml-2 h-4 w-4" />
         </Button>
       </Section>
-      
+
       {/* Communities Section */}
       <Section
         title="Communities to build wealth."
@@ -283,7 +272,7 @@ const Hero: React.FC = () => {
         image="/thrift.png"
         reverse
       >
-        <Button 
+        <Button
           variant="outline"
           className="mt-6 border-primary text-primary hover:bg-primary/10"
           onClick={() => router.push('/thrift')}
@@ -292,25 +281,10 @@ const Hero: React.FC = () => {
           <ArrowRightIcon className="ml-2 h-4 w-4" />
         </Button>
       </Section>
-      
+
       {/* Save and Earn Section */}
-      <Section
-        title="Save and Earn."
-        description="Deposit your stablecoins into a time-locked vault and earn Esusu Tokens as rewards. Watch your wealth grow while contributing to a sustainable ecosystem."
-        image="/earn.png"
-        glassBg
-        accentColor="from-green-500/20 to-primary/10 dark:from-black dark:to-indigo/10"
-      >
-        <div className="flex flex-wrap gap-4 mt-6">
-          <Button onClick={() => router.push('/miniSafe')}>
-            Start Saving
-          </Button>
-          <Button variant="ghost">
-            Learn More
-          </Button>
-        </div>
-      </Section>
-      
+
+
       {/* No Debts Section */}
       <Section
         title="Say no to debts."

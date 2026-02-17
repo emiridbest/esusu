@@ -7,7 +7,6 @@ import {
   Smartphone,
   Zap,
   Gift,
-  PiggyBank,
   ShoppingBag,
   User,
   Wallet
@@ -39,16 +38,8 @@ function Dashboard() {
       bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
     },
     {
-      title: "Save",
-      description: "Save money in your MiniSafe",
-      icon: PiggyBank,
-      path: "/miniSafe",
-      color: "text-yellow-600 dark:text-yellow-500",
-      bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
-    },
-    {
       title: "Thrift",
-      description: "Join thrift groups and save together",
+      description: "Join contribution circles",
       icon: ShoppingBag,
       path: "/thrift",
       color: "text-yellow-600 dark:text-yellow-500",

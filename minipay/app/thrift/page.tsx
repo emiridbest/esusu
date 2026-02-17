@@ -118,7 +118,7 @@ const Thrift: React.FC = () => {
             transition={{ duration: 0.5, delay: 0.4 }}
             className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4"
           >
-            Community Thrift Groups
+            Contribution Circles
           </motion.h1>
 
           <motion.p
@@ -127,23 +127,8 @@ const Thrift: React.FC = () => {
             transition={{ duration: 0.5, delay: 0.5 }}
             className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-8"
           >
-            Join or create savings groups with friends and family. Pool your resources together and take turns receiving the collected funds.
+            Join or create contribution circles with friends and family. Pool your resources together and take turns receiving the collected funds.
           </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
-            className="flex flex-wrap gap-4 justify-center"
-          >
-            <Button
-              variant="outline"
-              onClick={() => router.push('/miniSafe')}
-              className="rounded-full bg-black text-white hover:bg-primary/90 transition duration-200 dark:bg-white dark:text-black dark:hover:bg-primary/90"
-            >
-              Try Simple Savings
-            </Button>
-          </motion.div>
         </motion.div>
 
         {/* Quick Actions */}
@@ -161,7 +146,7 @@ const Thrift: React.FC = () => {
             <ThriftQuickAction
               icon={<UsersIcon className="h-6 w-6 text-primary" />}
               title="Create Thrift Group"
-              description="Start a new savings group"
+              description="Start a new circle"
               href="#"
               variant="outline"
               onClick={() => setCreateDialogOpen(true)}
@@ -235,7 +220,7 @@ const Thrift: React.FC = () => {
               <div className="text-center mb-8">
                 <h3 className="text-2xl font-semibold mb-2">How Thrift Groups Work</h3>
                 <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                  Save money together with friends and family through our blockchain-powered thrift system
+                  Pool money together with friends and family through our blockchain-powered thrift system
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -16,8 +16,8 @@ import {
   Star,
   ArrowDownToLine,
 } from "lucide-react";
-import { 
-  UserGroupIcon, 
+import {
+  UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 
@@ -48,41 +48,41 @@ const QuickAction = ({
 }) => {
   const router = useRouter();
 
-return (
-  <Card
-    className={cn(
-      "cursor-pointer transition-all duration-200 hover:shadow-md border border-gray-200 dark:border-neutral-800",
-      variant === "outline"
-        ? "bg-white dark:bg-neutral-900"
-        : "bg-gray-50 dark:bg-neutral-800"
-    )}
-    onClick={() => router.push(href)}
-  >
-    <CardContent className="p-5 flex flex-row items-center gap-4">
-      <div
-        className={cn(
-          "rounded-md p-3 flex items-center justify-center",
-          variant === "outline"
-            ? "bg-gray-100 dark:bg-neutral-700"
-            : "bg-white dark:bg-neutral-900"
-        )}
-      >
-        {icon}
-      </div>
+  return (
+    <Card
+      className={cn(
+        "cursor-pointer transition-all duration-200 hover:shadow-md border border-gray-200 dark:border-neutral-800",
+        variant === "outline"
+          ? "bg-white dark:bg-neutral-900"
+          : "bg-gray-50 dark:bg-neutral-800"
+      )}
+      onClick={() => router.push(href)}
+    >
+      <CardContent className="p-5 flex flex-row items-center gap-4">
+        <div
+          className={cn(
+            "rounded-md p-3 flex items-center justify-center",
+            variant === "outline"
+              ? "bg-gray-100 dark:bg-neutral-700"
+              : "bg-white dark:bg-neutral-900"
+          )}
+        >
+          {icon}
+        </div>
 
-      <div>
-        <h3 className="font-medium text-base">{title}</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          {description}
-        </p>
-      </div>
+        <div>
+          <h3 className="font-medium text-base">{title}</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {description}
+          </p>
+        </div>
 
-      <div className="ml-auto">
-        <ArrowRight className="h-5 w-5 text-primary" />
-      </div>
-    </CardContent>
-  </Card>
-);
+        <div className="ml-auto">
+          <ArrowRight className="h-5 w-5 text-primary" />
+        </div>
+      </CardContent>
+    </Card>
+  );
 };
 
 const Esusu: React.FC = () => {
@@ -109,16 +109,8 @@ const Esusu: React.FC = () => {
           <QuickAction
             icon={<UserGroupIcon className="text-primary h-6 w-6" />}
             title="Join a Thrift"
-            description="Save with friends and family"
+            description="Pool funds with friends and family"
             href="/thrift"
-            variant="outline"
-          />
-
-          <QuickAction
-            icon={<ArrowDownToLine className="text-primary h-6 w-6" />}
-            title="Withdraw"
-            description="Transfer funds to your wallet"
-            href="/miniSafe"
             variant="outline"
           />
 
@@ -172,7 +164,7 @@ const Esusu: React.FC = () => {
             <div className="mb-6 sm:mb-0">
               <h3 className="text-xl font-semibold mb-2">Get the Esusu Mobile App</h3>
               <p className="text-gray-600 dark:text-gray-300 mb-4 max-w-md">
-                Manage your savings, join thrifts, and track your finances on the go with our mobile app
+                Manage your contributions, join thrifts, and track your finances on the go with our mobile app
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button variant="default" className="gap-2">

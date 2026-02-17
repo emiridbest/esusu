@@ -7,7 +7,7 @@ import { SessionProvider } from "next-auth/react";
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { ThriftProvider } from "../context/thrift/ThriftContext";
-import { MiniSafeProvider } from "../context/miniSafe/MiniSafeContext";
+
 
 const WagmiProvider = dynamic(
   () => import("../components/providers/WagmiProvider"),
@@ -48,11 +48,9 @@ export function Providers({
     <SessionProvider session={session}>
       <WagmiProvider>
         <ThriftProvider>
-          <MiniSafeProvider>
-            <PostHogProvider>
-              {children}
-            </PostHogProvider>
-          </MiniSafeProvider>
+          <PostHogProvider>
+            {children}
+          </PostHogProvider>
         </ThriftProvider>
       </WagmiProvider>
     </SessionProvider>

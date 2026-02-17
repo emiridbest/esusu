@@ -3,7 +3,6 @@
 import { ReactNode } from "react";
 import { ClaimProvider } from "@/context/utilityProvider/ClaimContextProvider";
 import { ThriftProvider } from "@/context/thrift/ThriftContext";
-import { MiniSafeProvider } from "@/context/miniSafe/MiniSafeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThirdwebProvider } from "thirdweb/react";
 import { WagmiProvider } from 'wagmi';
@@ -32,18 +31,43 @@ if (typeof window !== 'undefined' && typeof console !== 'undefined') {
 // EIP-6963 standard: Wallets announce via events instead of fighting over window.ethereum
 const queryClient = new QueryClient();
 
+import posthog from "posthog-js";
+import { PostHogProvider as PHProvider } from "posthog-js/react";
+import { useEffect } from "react";
+
+export function PostHogProvider({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return;
+
+    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+      api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+      persistence: "memory",
+      person_profiles: "identified_only",
+      loaded: (ph) => {
+        const sessionId = ph.get_distinct_id() || crypto.randomUUID();
+        ph.register({ session_id: sessionId });
+        if (!ph.get_distinct_id()) {
+          ph.reset(true);
+        }
+      },
+    });
+  }, []);
+
+  return <PHProvider client={posthog}>{children}</PHProvider>;
+}
+
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <ThirdwebProvider>
         <QueryClientProvider client={queryClient}>
-          <ClaimProvider>
-            <ThriftProvider>
-              <MiniSafeProvider>
+          <ThriftProvider>
+            <ClaimProvider>
+              <PostHogProvider>
                 {children}
-              </MiniSafeProvider>
-            </ThriftProvider>
-          </ClaimProvider>
+              </PostHogProvider>
+            </ClaimProvider>
+          </ThriftProvider>
         </QueryClientProvider>
       </ThirdwebProvider>
     </WagmiProvider>

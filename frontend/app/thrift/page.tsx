@@ -97,10 +97,10 @@ const Thrift: React.FC = () => {
           >
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
               <ShieldIcon className="mr-3 h-8 w-8 text-primary" />
-              Groups Savings
+              Contribution Circles
             </h1>
             <p className="text-gray-600 dark:text-gray-300 max-w-3xl">
-              Join or create savings groups with friends and family. Pool your resources together and take turns receiving the collected funds.
+              Join or create contribution circles with friends and family. Pool your resources together and take turns receiving the collected funds.
             </p>
           </motion.div>
 
@@ -111,13 +111,7 @@ const Thrift: React.FC = () => {
             className="flex flex-wrap gap-4 justify-center"
           >
 
-            <Button
-              variant="outline"
-              onClick={() => router.push('/miniSafe')}
-              className="rounded-lg bg-black text-white hover:bg-primary/90 transition duration-200 dark:bg-white dark:text-black dark:hover:bg-primary/90"
-            >
-              Try Simple Savings
-            </Button>
+
           </motion.div>
 
           {/* Quick Actions */}
@@ -135,10 +129,10 @@ const Thrift: React.FC = () => {
               <ThriftQuickAction
                 icon={<UsersIcon className="h-6 w-6 text-primary" />}
                 title="Create Thrift Group"
-                description="Start a new savings group"
+                description="Start a new circle"
                 href="#"
                 variant="outline"
-              onClick={() => setCreateDialogOpen(true)}
+                onClick={() => setCreateDialogOpen(true)}
               />
               <ThriftQuickAction
                 icon={<CalendarIcon className="h-6 w-6 text-primary" />}
@@ -183,7 +177,7 @@ const Thrift: React.FC = () => {
                 </TabsList>
                 <TabsContent value="my-groups" className="mt-4">
                   <Card className="border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-neutral-800 backdrop-blur-md p-4">
-                      <UserCampaigns />
+                    <UserCampaigns />
                   </Card>
                 </TabsContent>
                 <TabsContent value="available-groups" className="mt-4">
@@ -197,62 +191,7 @@ const Thrift: React.FC = () => {
             </div>
           </motion.div>
 
-          {/* How It Works Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="mt-10"
-          >
-          <Card className="dark:bg-neutral-800 border-none overflow-hidden">
-            <CardContent className="p-6 sm:p-8">
-              <div className="text-center mb-8">
-                <h3 className="text-sm font-semibold mb-2">How Thrift Groups Work</h3>
-                <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                  Save together, grow together — Earn interest with early contributions.
-                </p>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center">
-                  <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                    <UsersIcon className="h-8 w-8 text-primary" />
-                  </div>
-                  <h4 className="font-medium text-sm mb-2">Create or Join</h4>
-                  <p className="text-gray-600 dark:text-gray-400 text-xs">
-                    Form a group or join one with people you trust.
-                  </p>
-                </div>
-
-                <div className="text-center">
-                  <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                    <CalendarIcon className="h-8 w-8 text-primary" />
-                  </div>
-                  <h4 className="font-medium text-sm mb-2">Contribute Regularly</h4>
-                  <p className="text-gray-600 dark:text-gray-400 text-xs">
-                    Add your set amount on each cycle.
-                  </p>
-                </div>
-
-                <div className="text-center">
-                  <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                    <BellIcon className="h-8 w-8 text-primary" />
-                  </div>
-                  <h4 className="font-medium text-sm mb-2">Receive Your Turn</h4>
-                  <p className="text-gray-600 dark:text-gray-400 text-xs">
-                    Members take turns receiving the pooled funds.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="border-t border-white/20 flex justify-center">
-              <div className="flex items-center text-neutral-800 dark:text-white/80 text-xs mt-2">
-                <CalendarIcon className="h-4 w-4 mr-2" />
-                <span>Powered by Celo x Aave V3</span>
-              </div>
-            </CardFooter>
-          </Card>
-          </motion.div>
         </div>
       </ThriftWithAccountWatch>
     </ThriftProvider>
