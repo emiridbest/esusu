@@ -33,15 +33,8 @@ export async function GET(
     // Find the group
     const group = await mongoose.connection.db?.collection('groups').findOne(query);
 
-    console.log('📤 GET /api/groups/[groupId]/members - Found group:', {
-      groupId,
-      contract,
-      groupExists: !!group,
-      memberCount: group?.members?.length || 0
-    });
 
     if (!group) {
-      console.log(`⚠️ Group ${groupId} (contract: ${contract || 'all'}) not found in database`);
       return NextResponse.json(
         { members: [] }, // Return empty array instead of error for better UX
         { status: 200 }
@@ -62,14 +55,6 @@ export async function GET(
       const userProfile = userMap.get(member.user);
       const displayName = member.userName || userProfile?.name;
 
-      console.log(`👤 Member ${index + 1}:`, {
-        address: member.user,
-        rawName: member.userName,
-        profileName: userProfile?.name,
-        finalName: displayName,
-        role: member.role
-      });
-
       return {
         address: member.user, // This is the wallet address
         userName: displayName, // Use global profile name if available, fallback to group name
@@ -79,7 +64,6 @@ export async function GET(
       };
     });
 
-    console.log('📤 Returning members:', members.length);
 
     return NextResponse.json({ members });
 
@@ -102,14 +86,6 @@ export async function POST(
     const body = await request.json();
     const { userAddress, role = 'member', joinDate, userName, contractAddress } = body;
 
-    console.log('📥 POST /api/groups/[groupId]/members - Received:', {
-      groupId,
-      contractAddress,
-      userAddress,
-      role,
-      userName,
-      joinDate
-    });
 
     if (!groupId || !userAddress) {
       return NextResponse.json(
@@ -139,7 +115,6 @@ export async function POST(
           },
           { upsert: true }
         );
-        console.log(`✅ User profile updated for ${userAddress}`);
       } catch (err) {
         console.error('Failed to update user profile:', err);
       }
@@ -155,7 +130,6 @@ export async function POST(
 
     // If group doesn't exist, create it (this happens when creator creates group on blockchain)
     if (!group) {
-      console.log(`📝 Group ${groupId} doesn't exist in DB yet, creating it...`);
 
       const newGroupDoc = {
         groupId: parseInt(groupId),
@@ -180,7 +154,6 @@ export async function POST(
 
       await mongoose.connection.db?.collection('groups').insertOne(newGroupDoc);
       group = newGroupDoc as any;
-      console.log('✅ Group document created in database');
     }
 
     // Check if user is already a member
@@ -209,22 +182,13 @@ export async function POST(
       isActive: true
     };
 
-    console.log('💾 Storing member in database:', {
-      groupId,
-      contractAddress,
-      member: newMember
-    });
+
 
     // Update the group with the new member
     const updateResult = await mongoose.connection.db?.collection('groups').updateOne(
       { _id: group._id }, // Use _id to ensure we match the exact document found/created above
       { $push: { members: newMember } as any }
     );
-
-    console.log('✅ Database update result:', {
-      matchedCount: updateResult?.matchedCount,
-      modifiedCount: updateResult?.modifiedCount
-    });
 
     return NextResponse.json({
       success: true,

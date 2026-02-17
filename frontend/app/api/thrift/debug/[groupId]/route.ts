@@ -36,7 +36,6 @@ export async function GET(
         
         // Test the connection
         await provider.getNetwork();
-        console.log(`Successfully connected to RPC: ${rpcUrl}`);
         break;
       } catch (error) {
         console.warn(`Failed to connect to RPC ${rpcUrl}:`, error);
@@ -81,7 +80,6 @@ export async function GET(
         }, { status: 400 });
       }
       
-      console.log('Contract verification passed');
     } catch (verifyError) {
       console.error('Contract verification failed:', verifyError);
       return NextResponse.json({
