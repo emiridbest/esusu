@@ -97,13 +97,13 @@ export default function Chat() {
                                 {[
                                     "How do I claim free gas fees?",
                                     "I want to save money and earn yield",
-                                    "I want to give feedback on Agent #126",
+                                    "I want to give feedback on Esusu AI Agent",
                                     "What are the fees for using Esusu?",
                                 ].map((suggestion) => (
                                     <Button
                                         key={suggestion}
                                         variant="outline"
-                                        className="justify-start text-left p-4 h-auto"
+                                        className="justify-start text-left p-4 h-auto text-black/90 dark:text-white/90"
                                         onClick={() => append({ role: "user", content: suggestion })}
                                     >
                                         {suggestion}
@@ -158,7 +158,7 @@ export default function Chat() {
 
             {/* Deposit Modal */}
             {showDepositForm && (
-                <Modal title="💰 Deposit to Earn Yield" onClose={() => setShowDepositForm(false)}>
+                <Modal title="Deposit to Earn Yield" onClose={() => setShowDepositForm(false)}>
                     <EsusuDeposit
                         onSuccess={() => {
                             setShowDepositForm(false);
@@ -222,7 +222,7 @@ function MessageRenderer({
                                     className="h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
                                     onClick={onShowDeposit}
                                 >
-                                    💰 Open Deposit Form
+                                    Open Deposit Form
                                 </Button>
                             )}
                             {hasFeedback && (
