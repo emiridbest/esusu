@@ -140,7 +140,7 @@ export function EsusuDeposit({ initialToken, initialAmount, onSuccess }: EsusuDe
             <button
                 onClick={handleDeposit}
                 disabled={!amount || !tokenSymbol}
-                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white px-6 py-2 rounded w-full font-semibold"
+                className="bg-black hover:bg-gray-800 disabled:bg-gray-300 text-white px-6 py-2 rounded w-full font-semibold"
             >
                 Deposit to Esusu
             </button>
