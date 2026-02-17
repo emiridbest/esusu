@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from "ai";
-import { useChat, type UseChatHelpers } from "@ai-sdk/react";
-import type { ThirdwebAiMessage } from "@thirdweb-dev/ai-sdk-provider";
+import { useChat } from "ai/react";
 import { prepareTransaction, defineChain } from "thirdweb";
 import { TransactionButton } from "thirdweb/react";
 import { useActiveAccount } from "thirdweb/react";
@@ -17,6 +15,7 @@ import ReactMarkdown from "react-markdown";
 import { EsusuDeposit } from "@/components/Agent/AgentTrigger";
 import { FeedbackForm } from "@/components/Agent/FeedbackForm";
 import { v4 as uuidv4 } from "uuid";
+import type { Message } from "ai";
 
 // Generate a stable conversation ID
 const CHAT_ID = uuidv4();
@@ -28,47 +27,35 @@ export default function Chat() {
     const [waitingForFeedback, setWaitingForFeedback] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const { messages, sendMessage, addToolResult, status } =
-        useChat<ThirdwebAiMessage>({
-            transport: new DefaultChatTransport({
-                api: "/api/chat",
-                body: {
-                    id: CHAT_ID,
-                    userAddress: account?.address,
-                }
-            }),
-            sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
-            onFinish: (message) => {
-                // Detect feedback request
-                const text = message.messages
-                    ?.filter((p: any) => p.type === "text")
-                    ?.map((p: any) => p.text)
-                    ?.join(" ")
-                    ?.toLowerCase() || "";
+    const { messages, input, setInput, handleSubmit, isLoading, append } = useChat({
+        api: "/api/chat",
+        body: { userAddress: account?.address },
+        id: CHAT_ID,
+        onFinish: (message) => {
+            const text = message.content?.toLowerCase() || "";
 
-                const feedbackKeywords = [
-                    "was this helpful",
-                    "rate this",
-                    "give feedback",
-                    "rate your experience",
-                    "would you like to provide feedback",
-                ];
+            const feedbackKeywords = [
+                "was this helpful",
+                "rate this",
+                "give feedback",
+                "rate your experience",
+                "would you like to provide feedback",
+            ];
 
-                if (feedbackKeywords.some(k => text.includes(k))) {
-                    setWaitingForFeedback(true);
-                }
-
-                // Show deposit form if AI mentions deposit
-                const depositKeywords = [
-                    "would you like to deposit",
-                    "ready to deposit",
-                    "proceed with deposit",
-                ];
-                if (depositKeywords.some(k => text.includes(k))) {
-                    setShowDepositForm(true);
-                }
+            if (feedbackKeywords.some(k => text.includes(k))) {
+                setWaitingForFeedback(true);
             }
-        });
+
+            const depositKeywords = [
+                "would you like to deposit",
+                "ready to deposit",
+                "proceed with deposit",
+            ];
+            if (depositKeywords.some(k => text.includes(k))) {
+                setShowDepositForm(true);
+            }
+        }
+    });
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -80,12 +67,7 @@ export default function Chat() {
         const lastMessage = messages[messages.length - 1];
         if (lastMessage.role !== "user") return;
 
-        const text = lastMessage.parts
-            ?.filter((p: any) => p.type === "text")
-            ?.map((p: any) => p.text)
-            ?.join(" ")
-            ?.toLowerCase()
-            ?.trim() || "";
+        const text = lastMessage.content?.toLowerCase()?.trim() || "";
 
         if (["yes", "yeah", "yep", "sure", "ok", "y"].some(r => text === r || text.startsWith(r + " "))) {
             setShowFeedbackForm(true);
@@ -95,8 +77,6 @@ export default function Chat() {
             setWaitingForFeedback(false);
         }
     }, [messages, waitingForFeedback]);
-
-    const isLoading = status === "streaming" || status === "submitted";
 
     return (
         <div className="max-w-4xl mx-auto h-screen flex flex-col">
@@ -124,7 +104,7 @@ export default function Chat() {
                                         key={suggestion}
                                         variant="outline"
                                         className="justify-start text-left p-4 h-auto"
-                                        onClick={() => sendMessage({ text: suggestion })}
+                                        onClick={() => append({ role: "user", content: suggestion })}
                                     >
                                         {suggestion}
                                     </Button>
@@ -138,7 +118,6 @@ export default function Chat() {
                                     key={message.id}
                                     message={message}
                                     isLast={i === messages.length - 1}
-                                    addToolResult={addToolResult}
                                     onShowDeposit={() => setShowDepositForm(true)}
                                     onShowFeedback={() => setShowFeedbackForm(true)}
                                     onReload={() => {}} // reload not directly available in new API
@@ -169,7 +148,9 @@ export default function Chat() {
                 {/* Input */}
                 <div className="shrink-0 border-t dark:border-gray-800 bg-white dark:bg-gray-950 p-4">
                     <ChatInput
-                        onSend={(text) => sendMessage({ text })}
+                        input={input}
+                        setInput={setInput}
+                        handleSubmit={handleSubmit}
                         isLoading={isLoading}
                     />
                 </div>
@@ -202,19 +183,20 @@ export default function Chat() {
 function MessageRenderer({
     message,
     isLast,
-    addToolResult,
     onShowDeposit,
     onShowFeedback,
     onReload,
 }: {
-    message: ThirdwebAiMessage;
+    message: Message;
     isLast: boolean;
-    addToolResult: UseChatHelpers<ThirdwebAiMessage>["addToolResult"];
     onShowDeposit: () => void;
     onShowFeedback: () => void;
     onReload: () => void;
 }) {
     const isUser = message.role === "user";
+    const text = message.content || "";
+    const hasDeposit = text.toLowerCase().includes("deposit");
+    const hasFeedback = text.toLowerCase().includes("feedback") || text.toLowerCase().includes("rate");
 
     return (
         <div className={cn("px-4 md:px-8 max-w-3xl mx-auto", isUser ? "text-gray-900 dark:text-white" : "")}>
@@ -227,123 +209,59 @@ function MessageRenderer({
                 </div>
 
                 <div className="flex-1 space-y-2">
-                    {message.parts?.map((part: any, i: number) => {
-                        // Text part
-                        if (part.type === "text") {
-                            const text = part.text || "";
-                            const hasDeposit = text.toLowerCase().includes("deposit");
-                            const hasFeedback = text.toLowerCase().includes("feedback") || text.toLowerCase().includes("rate");
+                    <div className="prose dark:prose-invert max-w-none text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-3">
+                        <ReactMarkdown>{text}</ReactMarkdown>
+                    </div>
 
-                            return (
-                                <div key={i}>
-                                    <div className="prose dark:prose-invert max-w-none text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-3">
-                                        <ReactMarkdown>{text}</ReactMarkdown>
-                                    </div>
+                    {/* Contextual action buttons */}
+                    {!isUser && (
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                            {hasDeposit && (
+                                <Button
+                                    size="sm"
+                                    className="h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
+                                    onClick={onShowDeposit}
+                                >
+                                    💰 Open Deposit Form
+                                </Button>
+                            )}
+                            {hasFeedback && (
+                                <Button
+                                    size="sm"
+                                    className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                                    onClick={onShowFeedback}
+                                >
+                                    ⭐ Give Feedback
+                                </Button>
+                            )}
+                        </div>
+                    )}
 
-                                    {/* Contextual action buttons */}
-                                    {!isUser && (
-                                        <div className="flex gap-2 mt-2 flex-wrap">
-                                            {hasDeposit && (
-                                                <Button
-                                                    size="sm"
-                                                    className="h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
-                                                    onClick={onShowDeposit}
-                                                >
-                                                    💰 Open Deposit Form
-                                                </Button>
-                                            )}
-                                            {hasFeedback && (
-                                                <Button
-                                                    size="sm"
-                                                    className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white"
-                                                    onClick={onShowFeedback}
-                                                >
-                                                    ⭐ Give Feedback
-                                                </Button>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        }
-
-                        // Transaction signing part ← THE KEY NEW FEATURE
-                        if (part.type === "tool-sign_transaction") {
-                            const txData = part.input;
-                            return (
-                                <div key={i} className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                                    <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-3">
-                                        🔐 Transaction Signature Required
-                                    </p>
-                                    <div className="text-xs text-gray-600 dark:text-gray-400 mb-3 space-y-1">
-                                        <p><span className="font-medium">To:</span> {txData.to}</p>
-                                        <p><span className="font-medium">Chain:</span> Celo ({txData.chain_id})</p>
-                                        {txData.value && txData.value !== "0" && (
-                                            <p><span className="font-medium">Value:</span> {txData.value}</p>
-                                        )}
-                                    </div>
-                                    <TransactionButton
-                                        transaction={() =>
-                                            prepareTransaction({
-                                                client,
-                                                chain: defineChain(txData.chain_id),
-                                                to: txData.to,
-                                                data: txData.data,
-                                                value: txData.value ? BigInt(txData.value) : undefined,
-                                            })
-                                        }
-                                        onTransactionSent={(tx) => {
-                                            addToolResult({
-                                                tool: "sign_transaction",
-                                                toolCallId: part.toolCallId,
-                                                output: {
-                                                    transaction_hash: tx.transactionHash,
-                                                    chain_id: txData.chain_id,
-                                                },
-                                            });
-                                        }}
-                                        onError={(error) => {
-                                            console.error("Transaction error:", error);
-                                        }}
-                                        className="w-full bg-primary text-white rounded-lg py-2 text-sm font-semibold"
-                                    >
-                                        ✅ Sign & Execute Transaction
-                                    </TransactionButton>
-                                </div>
-                            );
-                        }
-
-                        // Transaction monitoring part
-                        if (part.type === "tool-monitor_transaction") {
-                            return (
-                                <div key={i} className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 rounded-lg p-3 flex items-center gap-3">
-                                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                                    <p className="text-sm text-blue-800 dark:text-blue-200">
-                                        Monitoring transaction...
-                                    </p>
-                                </div>
-                            );
-                        }
-
-                        return null;
-                    })}
+                    {/* Tool invocations */}
+                    {message.toolInvocations?.map((tool, i) => (
+                        <div key={i} className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 rounded-lg p-3">
+                            <p className="text-sm text-blue-800 dark:text-blue-200">
+                                🔧 {tool.toolName}: {tool.state === 'result' ? String(tool.result) : 'Processing...'}
+                            </p>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>
     );
 }
 
-function ChatInput({ onSend, isLoading }: { onSend: (text: string) => void; isLoading: boolean }) {
-    const [input, setInput] = useState("");
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (input.trim() && !isLoading) {
-            onSend(input.trim());
-            setInput("");
-        }
-    };
-
+function ChatInput({ 
+    input, 
+    setInput, 
+    handleSubmit, 
+    isLoading 
+}: { 
+    input: string;
+    setInput: (value: string) => void;
+    handleSubmit: (e: React.FormEvent) => void;
+    isLoading: boolean;
+}) {
     return (
         <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
             <div className="relative">

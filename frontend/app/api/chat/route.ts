@@ -1,81 +1,193 @@
-import { LanguageModel, streamText } from "ai";
-import { createThirdwebAI } from "@thirdweb-dev/ai-sdk-provider";
 import { openai } from "@ai-sdk/openai";
 import { getOnChainTools } from "@goat-sdk/adapter-vercel-ai";
 import { viem } from "@goat-sdk/wallet-viem";
 import { createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { celo } from "viem/chains";
+import { LanguageModelV1, streamText } from 'ai';
 import { NextResponse } from 'next/server';
 import { esusu } from "@/agent/src";
 
-
-export const maxDuration = 50;
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const thirdwebAI = createThirdwebAI({
-    secretKey: process.env.THIRDWEB_SECRET_KEY!,
-});
-
 export async function POST(req: Request) {
-    const { messages, id, userAddress } = await req.json();
+    try {
+        const { messages: rawMessages, userAddress } = await req.json();
+
+        console.log("Raw messages received:", JSON.stringify(rawMessages, null, 2));
+
+        // Aggressively filter and simplify messages to avoid AI SDK conversion errors
+        // The AI SDK requires all tool invocations to have results
+        const messages = rawMessages.map((msg: any) => {
+            // For user messages, just keep role and content
+            if (msg.role === 'user') {
+                return {
+                    role: 'user',
+                    content: msg.content || ''
+                };
+            }
+            
+            // For assistant messages, handle tool invocations carefully
+            if (msg.role === 'assistant') {
+                // Check if there are any incomplete tool invocations
+                const hasIncompleteTools = msg.toolInvocations?.some(
+                    (inv: any) => inv.state !== 'result'
+                );
+                
+                if (hasIncompleteTools) {
+                    // If there are incomplete tools, just return the text content
+                    // This loses tool info but avoids the error
+                    return {
+                        role: 'assistant',
+                        content: msg.content || ''
+                    };
+                }
+                
+                // If all tools are complete, keep the full message
+                if (msg.toolInvocations && msg.toolInvocations.length > 0) {
+                    return {
+                        role: 'assistant',
+                        content: msg.content || '',
+                        toolInvocations: msg.toolInvocations.filter(
+                            (inv: any) => inv.state === 'result'
+                        )
+                    };
+                }
+                
+                return {
+                    role: 'assistant',
+                    content: msg.content || ''
+                };
+            }
+            
+            // For tool messages
+            if (msg.role === 'tool') {
+                return msg;
+            }
+            
+            return msg;
+        }).filter((msg: any) => {
+            // Remove empty assistant messages
+            if (msg.role === 'assistant' && !msg.content && !msg.toolInvocations?.length) {
+                return false;
+            }
+            return true;
+        });
+
+        console.log("Filtered messages:", JSON.stringify(messages, null, 2));
 
 
+        const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY;
+        const RPC_URL = process.env.RPC_PROVIDER_URL;
+        if (!PRIVATE_KEY) {
+            return NextResponse.json(
+                { error: 'Server misconfigured: missing WALLET_PRIVATE_KEY' },
+                { status: 500 }
+            );
+        }
 
-    const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY;
-    const RPC_URL = process.env.RPC_PROVIDER_URL;
-    if (!PRIVATE_KEY) {
+        const account = privateKeyToAccount(PRIVATE_KEY as `0x${string}`);
+        const rpcTransport = RPC_URL
+            ? http(RPC_URL, { timeout: 30_000, retryCount: 3 })
+            : http('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8', {
+                timeout: 30_000,
+                retryCount: 3,
+            });
+
+        const walletClient = createWalletClient({
+            account,
+            transport: rpcTransport,
+            chain: celo,
+        });
+
+        const tools = await getOnChainTools({
+            //@ts-ignore
+            wallet: viem(walletClient),
+            plugins: [esusu()],
+        });
+
+        const result = streamText({
+            model: openai("gpt-4o-mini") as LanguageModelV1,
+            system: `
+                You are the official onchain transaction executor for the Esusu protocol on the Celo blockchain.
+
+                NETWORK:
+                - Chain: Celo (Chain ID: 42220)
+
+                IMPORTANT ADDRESSES:
+                - Connected User Address: ${userAddress}
+                - AI Agent Signing Address: ${account.address}
+
+                --------------------------------------------------
+                AGENT-SIGNED TOOLS (AUTO EXECUTED)
+                --------------------------------------------------
+
+                1. claimUsdtForUser(recipient, usdtAddress)
+                2. claimCeloForUser(recipient, celoAddress)
+                3. whitelistUserForClaims(userAddress) ==> you are to whitelist ${userAddress}. Never whitelist ${account.address} or any other address. Always whitelist ${userAddress}.
+                4. getFaucetBalance()
+                5. getTimeUntilNextClaim(userAddress)
+
+                Rules:
+                - Execute immediately when user intent matches
+                - Broadcast transaction and return real hash
+                - Use ${userAddress} as recipient
+
+                --------------------------------------------------
+                USER-SIGNED ACTION
+                --------------------------------------------------
+
+                8. depositToEsusu(tokenAddress, amount)
+
+                When user requests deposit:
+                - Call the depositToEsusu tool
+                - The is no tool for this. the fronend will handle it
+                - Share this with the user: "I've prepared your deposit. Please confirm in your wallet."
+                - The frontend will detect the JSON and show the deposit form
+                - DO NOT fabricate transaction hashes
+                --------------------------------------------------
+                FEEDBACK RULES
+                --------------------------------------------------
+
+                9. giveFeedback(feedbackType, comments)
+
+                After every transaction (agent-signed or user-signed), ask the user for feedback:
+                - "Was this transaction helpful? Please reply with 'Yes' or 'No' and any comments you have."
+                - Call giveFeedback with the user's response which is signed by user's wallet to ensure authenticity
+                - The tool returns JSON with type: "FEEDBACK_REQUIRED"
+                
+                --------------------------------------------------
+                RESPONSE RULES
+                --------------------------------------------------
+
+                For agent-signed transactions:
+                - Execute and return real transaction hash
+
+                For user-signed transactions:
+                - Call the tool
+                - Tell user to confirm in wallet
+                - Frontend handles execution
+
+                Never hallucinate transaction hashes.
+            `,
+            //@ts-ignore
+            tools: tools,
+            maxSteps: 20,
+            messages
+        });
+
+        return result.toDataStreamResponse();
+    } catch (error: any) {
+        console.error('Error in /api/chat:', error);
+        console.log('Error details:', {
+            message: error?.message,
+            stack: error?.stack,
+            name: error?.name,
+        });
         return NextResponse.json(
-            { error: 'Server misconfigured: missing WALLET_PRIVATE_KEY' },
+            { error: error?.message || 'Internal server error' },
             { status: 500 }
         );
     }
-
-    const account = privateKeyToAccount(PRIVATE_KEY as `0x${string}`);
-    const rpcTransport = RPC_URL
-        ? http(RPC_URL, { timeout: 30_000, retryCount: 3 })
-        : http('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8', {
-            timeout: 30_000,
-            retryCount: 3,
-        });
-
-    const walletClient = createWalletClient({
-        account,
-        transport: rpcTransport,
-        chain: celo,
-    });
-
-    const tools = await getOnChainTools({
-        //@ts-ignore
-        wallet: viem(walletClient),
-        plugins: [esusu()],
-    });
-    const result = streamText({
-        model: openai("gpt-4o-mini") as LanguageModel,
-        system: `
-      You are the official assistant for the Esusu protocol on the Celo blockchain.
-
-      Connected User: ${userAddress}
-      Chain: Celo (42220)
-
-      FAUCET CONTRACT: 0xfEc76eB3B2d7713E626388b4E71464A7357a4F80
-      USDT: 0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e
-      CELO: 0x471EcE3750Da237f93B8E339c536989b8978a438
-
-      You can help users:
-      1. Claim USDT from faucet (claimForMe with USDT address)
-      2. Claim CELO from faucet (claimForMe with CELO address)
-      3. Deposit tokens for Aave yields
-      4. Submit onchain feedback for Agent #126
-
-      When executing transactions, use sign_transaction tool.
-      After successful transactions, ask if user wants to give feedback.
-      Never fabricate transaction hashes.
-    `,
-        messages,
-        //@ts-ignore
-        tools: tools,
-    });
-
-    return result.toTextStreamResponse();
 }

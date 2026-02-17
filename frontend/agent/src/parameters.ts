@@ -1,7 +1,10 @@
 import { createToolParameters } from '@goat-sdk/core';
 import { z } from 'zod';
 
-export const EmptyParameters = createToolParameters(z.object({}));
+// Use an object with an optional dummy field to ensure proper schema generation
+export const EmptyParameters = createToolParameters(z.object({
+    _unused: z.string().optional().describe("Unused parameter"),
+}));
 
 const USDT_TOKEN_ADDRESS = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e"
 const CELO_TOKEN_ADDRESS = "0x0000000000000000000000000000000000000000"
