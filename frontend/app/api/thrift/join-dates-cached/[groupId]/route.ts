@@ -36,7 +36,6 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const forceSync = searchParams.get('force') === 'true';
 
-    console.log(`[JoinDates] Fetching for group ${groupId}, force=${forceSync}`);
 
     // Initialize RPC provider
     const provider = new ethers.JsonRpcProvider(CELO_RPC_URL);
@@ -51,7 +50,6 @@ export async function GET(
         .sort({ joinDate: 1 })
         .lean();
       
-      console.log(`[JoinDates] Found ${cachedJoinDates.length} cached join dates in MongoDB`);
     }
 
     // Step 2: Check if we need to sync from blockchain
@@ -66,15 +64,12 @@ export async function GET(
 
     // Step 3: Sync from blockchain if needed
     if (needsSync) {
-      console.log(`[JoinDates] Syncing from blockchain...`);
       
       // Get group info to find creator
       const groupInfo = await contract.thriftGroups(groupId);
       const groupCreator = groupInfo.admin;
       const startDateTimestamp = Number(groupInfo.startDate);
       
-      console.log(`[JoinDates] Group creator: ${groupCreator}`);
-      console.log(`[JoinDates] Scheduled start date: ${new Date(startDateTimestamp * 1000).toISOString()}`);
 
       // Get ACTUAL creation date from ThriftGroupCreated event
       let creationDate = new Date();
@@ -82,7 +77,6 @@ export async function GET(
       let creationTxHash = '';
       
       try {
-        console.log(`[JoinDates] Searching for ThriftGroupCreated event...`);
         const creationFilter = contract.filters.ThriftGroupCreated(groupId);
         const fromBlock = Math.max(0, currentBlock - MAX_BLOCKS_TO_SYNC);
         const creationEvents = await contract.queryFilter(creationFilter, fromBlock, currentBlock);
@@ -96,9 +90,6 @@ export async function GET(
             creationBlock = creationEvent.blockNumber;
             creationTxHash = creationEvent.transactionHash;
             
-            console.log(`[JoinDates] ✅ Found creation event at block ${creationBlock}`);
-            console.log(`[JoinDates] Actual creation date: ${creationDate.toISOString()}`);
-            console.log(`[JoinDates] Transaction: ${creationTxHash}`);
           }
         } else {
           console.warn('[JoinDates] No ThriftGroupCreated event found, using startDate as fallback');
@@ -130,7 +121,6 @@ export async function GET(
       const fromBlock = Math.max(0, currentBlock - MAX_BLOCKS_TO_SYNC);
       const toBlock = currentBlock;
       
-      console.log(`[JoinDates] Querying MemberJoined events from block ${fromBlock} to ${toBlock}`);
       
       const joinEvents = await fetchJoinEventsWithPagination(
         contract,
@@ -140,7 +130,6 @@ export async function GET(
         provider
       );
 
-      console.log(`[JoinDates] Found ${joinEvents.length} MemberJoined events`);
 
       // Store join events in MongoDB
       for (const event of joinEvents) {
@@ -225,7 +214,6 @@ async function fetchJoinEventsWithPagination(
     const end = Math.min(start + CHUNK_SIZE - 1, toBlock);
     
     try {
-      console.log(`[JoinDatesPagination] Querying blocks ${start} to ${end}`);
       const events = await contract.queryFilter(filter, start, end);
       
       // Get timestamps for each event
@@ -250,7 +238,6 @@ async function fetchJoinEventsWithPagination(
         }
       }
 
-      console.log(`[JoinDatesPagination] Found ${events.length} events in chunk`);
       
       // Small delay to avoid rate limiting
       if (end < toBlock) {
@@ -317,7 +304,6 @@ async function storeMemberJoinDate(data: {
       updateOperation,
       { upsert: true }
     );
-    console.log(`[MongoDB] Stored join date for ${data.memberAddress}`);
   } catch (error: any) {
     // Ignore duplicate key errors
     if (error.code !== 11000) {

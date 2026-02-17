@@ -35,11 +35,8 @@ export async function GET(
       const currentBlock = await provider.getBlockNumber();
       const fromBlock = Math.max(0, currentBlock - 100000); // Last ~100k blocks
       
-      console.log(`Querying from block ${fromBlock} to ${currentBlock}`);
       const events = await contract.queryFilter(filter, fromBlock, currentBlock);
       
-      console.log(`Found ${events.length} MemberJoined events for group ${groupId}`);
-      console.log(`Group creator: ${groupCreator}`);
       
       // Process events to get join dates
       const joinDates: { [address: string]: string } = {};
@@ -50,9 +47,7 @@ export async function GET(
           const groupCreationBlock = await provider.getBlock(groupInfo.createdAt);
           const groupCreationDate = new Date(groupCreationBlock.timestamp * 1000);
           joinDates[groupCreator.toLowerCase()] = groupCreationDate.toISOString();
-          console.log(`Group creator ${groupCreator} created group on ${groupCreationDate.toISOString()}`);
         } catch (error) {
-          console.log(`Error getting group creation time: ${error.message}`);
           // Fallback to current time if we can't get creation time
           joinDates[groupCreator.toLowerCase()] = new Date().toISOString();
         }
@@ -68,7 +63,6 @@ export async function GET(
           const joinDate = new Date(block.timestamp * 1000);
           
           joinDates[memberAddress.toLowerCase()] = joinDate.toISOString();
-          console.log(`Member ${memberAddress} joined on ${joinDate.toISOString()}`);
         }
       }
       

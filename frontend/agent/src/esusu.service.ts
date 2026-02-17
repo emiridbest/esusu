@@ -2,20 +2,15 @@
 import { EVMWalletClient } from '@goat-sdk/wallet-evm';
 import { Tool } from '@goat-sdk/core';
 import { z } from 'zod';
-import { encodeFunctionData } from 'viem';
-import { EsusuParameters, EmptyParameters, UserAddressParameters } from './parameters';
+import { encodeFunctionData, parseAbi } from 'viem';
+import { EsusuParameters, EmptyParameters, FaucetBalanceParameters, UserAddressParameters } from './parameters';
 import { contractAddress, abi } from "../lib/utils";
-import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
-
 
 export class EsusuFaucetService {
 
     private readonly contractAddress: string = contractAddress;
     private readonly abi = abi;
-    
-    // Hardcoded referral configuration
-    private readonly referralUser = "0x4d4cC2E0c5cBC9737A0dEc28d7C2510E2BEF5A09" as `0x${string}`;
-    private readonly referralConsumer = "0xb82896C4F251ed65186b416dbDb6f6192DFAF926";
+
 
     /**
      * Claims a gas fee from the Esusu faucet balance for a specified user.
@@ -41,11 +36,6 @@ export class EsusuFaucetService {
         }
 
         try {
-            // 1. Generate Referral Tag
-            const dataSuffix = getReferralTag({
-                user: this.referralUser,
-                consumer: this.referralConsumer,
-            });
 
             // 2. Encode the function call
             const encodedData = encodeFunctionData({
@@ -54,39 +44,14 @@ export class EsusuFaucetService {
                 args: [params.recipient, params.usdtAddress]
             });
 
-            // 3. Append suffix (remove 0x from suffix)
-            const fullData = `${encodedData}${dataSuffix.replace(/^0x/, '')}` as `0x${string}`;
 
             // 4. Send transaction with raw data
             const tx = await walletClient.sendTransaction({
                 to: this.contractAddress,
-                data: fullData
+                data: encodedData
             });
 
-            // Wait for receipt if publicClient is available
-            if (walletClient.publicClient && typeof walletClient.publicClient.waitForTransactionReceipt === 'function') {
-                try {
-                    const receipt = await walletClient.publicClient.waitForTransactionReceipt({ hash: tx.hash });
-                    if ((receipt as any).status === 'success' || (receipt as any).status === 1) {
-                        // 5. Submit referral on success
-                        await submitReferral({
-                            txHash: tx.hash as `0x${string}`,
-                            chainId: 42220,
-                        }).catch((referralError) => {
-                            console.error("Referral submission failed:", referralError);
-                        });
-                        
-                        return `Successfully initiated gas fee claim for user ${params.recipient}. Transaction hash: ${tx.hash}`;
-                    }
-                    if (!tx) throw new Error("Transaction submission failed");
-                    
-                    return `Claim transaction for ${params.recipient} may have failed. Transaction hash: ${tx.hash}`;
-                } catch (receiptErr) {
-                    // If waiting fails, still return tx hash so user can check manually
-                    console.error('Error waiting for receipt:', receiptErr);
-                    return `Transaction sent for ${params.recipient} (tx: ${tx.hash}). Waiting for confirmation failed; please check the transaction status on the explorer.`;
-                }
-            }
+            
 
             return `Transaction sent for ${params.recipient}. Transaction hash: ${tx.hash}`;
         } catch (error: any) {
@@ -124,11 +89,7 @@ export class EsusuFaucetService {
         }
 
         try {
-            // 1. Generate Referral Tag
-            const dataSuffix = getReferralTag({
-                user: this.referralUser,
-                consumer: this.referralConsumer,
-            });
+
 
             // 2. Encode the function call
             const encodedData = encodeFunctionData({
@@ -136,37 +97,11 @@ export class EsusuFaucetService {
                 functionName: 'claimForUser',
                 args: [params.recipient, params.celoAddress]
             });
-
-            // 3. Append suffix (remove 0x from suffix)
-            const fullData = `${encodedData}${dataSuffix.replace(/^0x/, '')}` as `0x${string}`;
-
             // 4. Send transaction with raw data
             const tx = await walletClient.sendTransaction({
                 to: this.contractAddress,
-                data: fullData
+                data: encodedData
             });
-
-            // Wait for receipt if publicClient is available
-            if (walletClient.publicClient && typeof walletClient.publicClient.waitForTransactionReceipt === 'function') {
-                try {
-                    const receipt = await walletClient.publicClient.waitForTransactionReceipt({ hash: tx.hash });
-                    if ((receipt as any).status === 'success' || (receipt as any).status === 1) {
-                        await submitReferral({
-                            txHash: tx.hash as `0x${string}`,
-                            chainId: 42220,
-                        }).catch((referralError) => {
-                            console.error("Referral submission failed:", referralError);
-                        });
-                        return `Successfully initiated gas fee claim for user ${params.recipient}. Transaction hash: ${tx.hash}`;
-                    }
-                    if (!tx) throw new Error("Transaction submission failed");
-                    return `Claim transaction for ${params.recipient} may have failed. Transaction hash: ${tx.hash}`;
-                } catch (receiptErr) {
-                    // If waiting fails, still return tx hash so user can check manually
-                    console.error('Error waiting for receipt:', receiptErr);
-                    return `Transaction sent for ${params.recipient} (tx: ${tx.hash}). Waiting for confirmation failed; please check the transaction status on the explorer.`;
-                }
-            }
 
             return `Transaction sent for ${params.recipient}. Transaction hash: ${tx.hash}`;
         } catch (error: any) {
@@ -179,10 +114,71 @@ export class EsusuFaucetService {
         }
     }
 
+    /**
+     * Get the faucet balance for a token. If no token is provided, return CELO and USDT balances.
+     */
+    @Tool({
+        name: 'getFaucetBalance',
+        description: 'Get the current balance of the Esusu faucet',
+        parameters: FaucetBalanceParameters,
+    })
+    public async getFaucetBalance(
+        walletClient: EVMWalletClient,
+        // @ts-ignore
+        params: FaucetBalanceParameters
+    ): Promise<string> {
+        try {
+            if (!walletClient) {
+                return 'Error: Wallet client is not initialized. Please ensure the plugin is configured.';
+            }
+
+            const readBalance = async (tokenAddress: string) => {
+                const raw = await walletClient.read({
+                    address: this.contractAddress,
+                    abi: this.abi,
+                    functionName: 'getFaucetBalance',
+                    args: [tokenAddress]
+                });
+
+                if (raw === undefined || raw === null) {
+                    return 'unknown';
+                }
+                if (typeof raw === 'bigint' || typeof raw === 'number') {
+                    return String(raw);
+                }
+                if (typeof raw === 'string') {
+                    return raw;
+                }
+                if (typeof (raw as any).value !== 'undefined') {
+                    return String((raw as any).value);
+                }
+
+                return 'unknown';
+            };
+
+            if (params?.tokenAddress) {
+                const balance = await readBalance(params.tokenAddress);
+                return `Faucet balance for ${params.tokenAddress}: ${balance}`;
+            }
+
+            const celoAddress = params?.celoAddress ?? '0x0000000000000000000000000000000000000000';
+            const usdtAddress = params?.usdtAddress ?? '0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e';
+            const [celoBalance, usdtBalance] = await Promise.all([
+                readBalance(celoAddress),
+                readBalance(usdtAddress)
+            ]);
+
+            return `Faucet balances - CELO (${celoAddress}): ${celoBalance}, USDT (${usdtAddress}): ${usdtBalance}`;
+        } catch (error: any) {
+            console.error('Error getting faucet balance:', error?.message ?? error);
+            return `Error: Could not retrieve faucet balance. ${error?.message ?? ''}`;
+        }
+    }
     // @ts-ignore
     @Tool({
         name: 'fundFaucet',
-        description: 'Fund the Esusu faucet with tokens'
+        description: 'Fund the Esusu faucet with tokens',
+        parameters: EsusuParameters,
     })
     async fundFaucet(
         walletClient: EVMWalletClient,
@@ -212,7 +208,8 @@ export class EsusuFaucetService {
     // @ts-ignore
     @Tool({
         name: 'emergencyWithdraw',
-        description: 'Emergency withdraw tokens from the faucet (owner only)'
+        description: 'Emergency withdraw tokens from the faucet (owner only)',
+        parameters: EsusuParameters,
     })
     async emergencyWithdraw(
         walletClient: EVMWalletClient,
@@ -241,40 +238,9 @@ export class EsusuFaucetService {
 
     // @ts-ignore
     @Tool({
-        name: 'getFaucetBalance',
-        description: 'Get the current balance of the Esusu faucet'
-    })
-    async getFaucetBalance(
-        walletClient: EVMWalletClient,
-        // @ts-ignore
-        params: EmptyParameters
-    ): Promise<EVMReadResult> {
-        try {
-            if (!walletClient) {
-                return 'Error: Wallet client is not initialized. Please ensure the plugin is configured.';
-            }
-
-            // Prefer read if available
-            const balance = await walletClient.read({
-                address: this.contractAddress,
-                abi: this.abi,
-                functionName: 'getFaucetBalance',
-                args: []
-            });
-
-            return ` The faucet balance is: ${String(balance.value)}`;
-
-        } catch (error: any) {
-            console.error('Error getting faucet balance:', error?.message ?? error);
-            return `Error: Could not retrieve faucet balance. ${error?.message ?? ''}`;
-        }
-    }
-
-
-    // @ts-ignore
-    @Tool({
         name: 'getTimeUntilNextClaim',
-        description: 'Get the time until the next claim for a specific user'
+        description: 'Get the time until the next claim for a specific user',
+        parameters: UserAddressParameters,
     })
     public async getTimeUntilNextClaim(
         walletClient: EVMWalletClient,
@@ -341,4 +307,96 @@ export class EsusuFaucetService {
             return 'Failed to get the next claim time.';
         }
     }
+
+    /**
+ * Add an address to the whitelist for AI claims on the Esusu faucet.
+ * First checks GoodDollar contract to confirm user is whitelisted.
+ * If not whitelisted on GoodDollar, transaction is aborted.
+ */
+    @Tool({
+        name: "whitelistUser",
+        description:
+            "Whitelist a user address for AI claims on the Esusu faucet after verifying GoodDollar whitelist status",
+        parameters: UserAddressParameters,
+    })
+    async whitelistUserForClaims(
+        walletClient: EVMWalletClient,
+        parameters: UserAddressParameters
+    ): Promise<string> {
+        if (!parameters?.userAddress) {
+            return "❌ A valid user address must be provided.";
+        }
+
+        if (!walletClient) {
+            return "❌ Wallet client not available.";
+        }
+
+        const identityAddress = "0xC361A6E67822a0EDc17D899227dd9FC50BD62F42";
+
+        const identityABI = parseAbi([
+            "function isWhitelisted(address _member) view returns (bool)",
+        ]);
+
+        // --------------------------------------------------
+        // STEP 1: Check GoodDollar whitelist
+        // --------------------------------------------------
+        try {
+            const result = await walletClient.read({
+                address: identityAddress,
+                abi: identityABI,
+                functionName: "isWhitelisted",
+                args: [parameters.userAddress],
+            });
+
+            // Normalize return value safely
+            const isWhitelisted =
+                typeof result === "boolean"
+                    ? result
+                    : typeof result?.result === "boolean"
+                        ? result.result
+                        : typeof result?.value === "boolean"
+                            ? result.value
+                            : false;
+
+            if (!isWhitelisted) {
+                return ` Transaction aborted.
+
+                User ${parameters.userAddress} is NOT whitelisted on GoodDollar.
+
+                Cannot whitelist for Esusu claims.
+                Please ensure you do face verification with GoodDollar to become eligible for Esusu faucet claims.
+                `;
+                            }
+                        } catch (error) {
+                            console.error("GoodDollar whitelist check failed:", error);
+                            return ` Transaction aborted.
+
+                Failed to verify GoodDollar whitelist status.`;
+                        }
+
+        // --------------------------------------------------
+        // STEP 2: Execute Esusu whitelist transaction
+        // --------------------------------------------------
+        try {
+            const tx = await walletClient.sendTransaction({
+                to: this.contractAddress,
+                abi: this.abi,
+                functionName: "addToWhitelist",
+                args: [parameters.userAddress],
+            });
+
+            return `✅ Transaction executed successfully!
+
+            User ${parameters.userAddress} is now whitelisted for claims.
+
+            Transaction hash: ${tx.hash}`;
+                    } catch (error: any) {
+                        console.error("Whitelisting transaction failed:", error);
+                        return ` Failed to whitelist user.
+
+            Reason: ${error?.message ?? "Unknown error"}`;
+        }
+    }
+
+
 }

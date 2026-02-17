@@ -39,8 +39,6 @@ export async function GET(
     const forceSync = searchParams.get('force') === 'true';
     const customFromBlock = searchParams.get('fromBlock');
 
-    console.log(`[ContributionHistory] Fetching for group ${groupId}, force=${forceSync}`);
-
     // Initialize RPC provider
     const provider = new ethers.JsonRpcProvider(CELO_RPC_URL);
     const contract = new ethers.Contract(contractAddress, abi, provider);
@@ -69,7 +67,6 @@ export async function GET(
         .sort({ timestamp: -1 })
         .lean();
 
-      console.log(`[ContributionHistory] Found ${cachedEvents.length} cached events in MongoDB`);
     }
 
     // Step 2: Determine if we need to sync from blockchain
@@ -83,7 +80,6 @@ export async function GET(
       startBlock = syncState.lastSyncedBlock + 1;
       // If we're up to date, return cached data
       if (startBlock >= currentBlock) {
-        console.log(`[ContributionHistory] Cache is up to date`);
         return NextResponse.json({
           success: true,
           contributions: formatContributions(cachedEvents, tokenDecimals, tokenSymbol),
@@ -100,7 +96,6 @@ export async function GET(
       const fromBlock = Math.max(startBlock, currentBlock - MAX_BLOCKS_TO_SYNC);
       const toBlock = currentBlock;
 
-      console.log(`[ContributionHistory] Syncing from block ${fromBlock} to ${toBlock}`);
 
       const newEvents = await fetchEventsWithPagination(
         contract,
@@ -110,7 +105,6 @@ export async function GET(
         provider
       );
 
-      console.log(`[ContributionHistory] Fetched ${newEvents.length} new events from blockchain`);
 
       // Step 4: Store new events in MongoDB
       if (newEvents.length > 0) {
@@ -186,7 +180,6 @@ async function fetchEventsWithPagination(
     const end = Math.min(start + CHUNK_SIZE - 1, toBlock);
 
     try {
-      console.log(`[Pagination] Querying blocks ${start} to ${end}`);
       const events = await contract.queryFilter(filter, start, end);
 
       // Get timestamps for each event
@@ -209,7 +202,6 @@ async function fetchEventsWithPagination(
       );
 
       allEvents.push(...eventsWithTimestamp);
-      console.log(`[Pagination] Found ${events.length} events in chunk`);
 
       // Small delay to avoid rate limiting
       if (end < toBlock) {
@@ -266,7 +258,6 @@ async function storeEvents(events: any[], groupId: number): Promise<void> {
     try {
       // @ts-ignore - Mongoose type conflict in Next.js API route
       const result = await ContributionEvent.bulkWrite(bulkOps, { ordered: false });
-      console.log(`[MongoDB] Inserted ${result.upsertedCount} new events, updated ${result.modifiedCount}`);
     } catch (error: any) {
       // Ignore duplicate key errors (11000)
       if (error.code !== 11000) {

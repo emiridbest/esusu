@@ -1,23 +1,82 @@
 import { openai } from "@ai-sdk/openai";
-// @ts-ignore - Version conflict with viem
 import { getOnChainTools } from "@goat-sdk/adapter-vercel-ai";
-// @ts-ignore - Version conflict with viem
 import { viem } from "@goat-sdk/wallet-viem";
 import { createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { celo } from "viem/chains";
 import { LanguageModelV1, streamText } from 'ai';
 import { NextResponse } from 'next/server';
-// @ts-ignore - Optional import
 import { esusu } from "@/agent/src";
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Export the POST handler function for Next.js API route
 export async function POST(req: Request) {
     try {
-        const { messages, userAddress } = await req.json();
+        const { messages: rawMessages, userAddress } = await req.json();
+
+        console.log("Raw messages received:", JSON.stringify(rawMessages, null, 2));
+
+        // Aggressively filter and simplify messages to avoid AI SDK conversion errors
+        // The AI SDK requires all tool invocations to have results
+        const messages = rawMessages.map((msg: any) => {
+            // For user messages, just keep role and content
+            if (msg.role === 'user') {
+                return {
+                    role: 'user',
+                    content: msg.content || ''
+                };
+            }
+            
+            // For assistant messages, handle tool invocations carefully
+            if (msg.role === 'assistant') {
+                // Check if there are any incomplete tool invocations
+                const hasIncompleteTools = msg.toolInvocations?.some(
+                    (inv: any) => inv.state !== 'result'
+                );
+                
+                if (hasIncompleteTools) {
+                    // If there are incomplete tools, just return the text content
+                    // This loses tool info but avoids the error
+                    return {
+                        role: 'assistant',
+                        content: msg.content || ''
+                    };
+                }
+                
+                // If all tools are complete, keep the full message
+                if (msg.toolInvocations && msg.toolInvocations.length > 0) {
+                    return {
+                        role: 'assistant',
+                        content: msg.content || '',
+                        toolInvocations: msg.toolInvocations.filter(
+                            (inv: any) => inv.state === 'result'
+                        )
+                    };
+                }
+                
+                return {
+                    role: 'assistant',
+                    content: msg.content || ''
+                };
+            }
+            
+            // For tool messages
+            if (msg.role === 'tool') {
+                return msg;
+            }
+            
+            return msg;
+        }).filter((msg: any) => {
+            // Remove empty assistant messages
+            if (msg.role === 'assistant' && !msg.content && !msg.toolInvocations?.length) {
+                return false;
+            }
+            return true;
+        });
+
+        console.log("Filtered messages:", JSON.stringify(messages, null, 2));
+
 
         const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY;
         const RPC_URL = process.env.RPC_PROVIDER_URL;
@@ -29,7 +88,6 @@ export async function POST(req: Request) {
         }
 
         const account = privateKeyToAccount(PRIVATE_KEY as `0x${string}`);
-        // Use Ankr RPC endpoint (can be overridden by RPC_PROVIDER_URL env var)
         const rpcTransport = RPC_URL
             ? http(RPC_URL, { timeout: 30_000, retryCount: 3 })
             : http('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8', {
@@ -44,23 +102,75 @@ export async function POST(req: Request) {
         });
 
         const tools = await getOnChainTools({
-            // @ts-ignore
+            //@ts-ignore
             wallet: viem(walletClient),
             plugins: [esusu()],
         });
+
         const result = streamText({
             model: openai("gpt-4o-mini") as LanguageModelV1,
-            system: `You are a helpful agent that performs onchain transactions like claiming usdt for users who are on minipay or celo for users who are not on minipay via the Esusu faucet on the Celo blockchain. The connected user's address is ${userAddress}.
-            Always ensure you are sending tokens to the correct address.
-                Never send tokens to any address other than ${userAddress}.
-                Always ensure you send only claim tokens to ${userAddress}.
-                Never sent tokens to yourself.
-                Never you confuse user address which is ${userAddress} with your own address which is ${account.address}.
-                Your address is only used to sign transactions.
-                Your address is not the recipient address for claimed tokens.
-                Your address is never the destination for claimed tokens.
-                If you are unsure about any request, ask for clarification instead of making assumptions.
-                Your address is ${account.address}, and you must not send claimed tokens to this address, and you must not confuse this address with ${userAddress}.`,
+            system: `
+                You are the official onchain transaction executor for the Esusu protocol on the Celo blockchain.
+
+                NETWORK:
+                - Chain: Celo (Chain ID: 42220)
+
+                IMPORTANT ADDRESSES:
+                - Connected User Address: ${userAddress}
+                - AI Agent Signing Address: ${account.address}
+
+                --------------------------------------------------
+                AGENT-SIGNED TOOLS (AUTO EXECUTED)
+                --------------------------------------------------
+
+                1. claimUsdtForUser(recipient, usdtAddress)
+                2. claimCeloForUser(recipient, celoAddress)
+                3. whitelistUserForClaims(userAddress) ==> you are to whitelist ${userAddress}. Never whitelist ${account.address} or any other address. Always whitelist ${userAddress}.
+                4. getFaucetBalance()
+                5. getTimeUntilNextClaim(userAddress)
+
+                Rules:
+                - Execute immediately when user intent matches
+                - Broadcast transaction and return real hash
+                - Use ${userAddress} as recipient
+
+                --------------------------------------------------
+                USER-SIGNED ACTION
+                --------------------------------------------------
+
+                8. depositToEsusu(tokenAddress, amount)
+
+                When user requests deposit:
+                - Call the depositToEsusu tool
+                - The is no tool for this. the fronend will handle it
+                - Share this with the user: "I've prepared your deposit. Please confirm in your wallet."
+                - The frontend will detect the JSON and show the deposit form
+                - DO NOT fabricate transaction hashes
+                --------------------------------------------------
+                FEEDBACK RULES
+                --------------------------------------------------
+
+                9. giveFeedback(feedbackType, comments)
+
+                After every transaction (agent-signed or user-signed), ask the user for feedback:
+                - "Was this transaction helpful? Please reply with 'Yes' or 'No' and any comments you have."
+                - Call giveFeedback with the user's response which is signed by user's wallet to ensure authenticity
+                - The tool returns JSON with type: "FEEDBACK_REQUIRED"
+                
+                --------------------------------------------------
+                RESPONSE RULES
+                --------------------------------------------------
+
+                For agent-signed transactions:
+                - Execute and return real transaction hash
+
+                For user-signed transactions:
+                - Call the tool
+                - Tell user to confirm in wallet
+                - Frontend handles execution
+
+                Never hallucinate transaction hashes.
+            `,
             //@ts-ignore
             tools: tools,
             maxSteps: 20,
@@ -70,6 +180,11 @@ export async function POST(req: Request) {
         return result.toDataStreamResponse();
     } catch (error: any) {
         console.error('Error in /api/chat:', error);
+        console.log('Error details:', {
+            message: error?.message,
+            stack: error?.stack,
+            name: error?.name,
+        });
         return NextResponse.json(
             { error: error?.message || 'Internal server error' },
             { status: 500 }
