@@ -136,7 +136,7 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
         } finally {
             setIsFetchingTx(false);
         }
-    }, []);
+    }, );
 
     // Fetch transaction on component mount
     useEffect(() => {
@@ -241,7 +241,7 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
             {isFetchingTx ? (
                 <div className="bg-white border border-gray-300 p-3 rounded flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>
-                    <p className="text-black text-sm">Fetching agent's last transaction...</p>
+                    <p className="text-black text-sm">Fetching the last transaction by Esusu AI Agent...</p>
                 </div>
             ) : lastTxHash ? (
                 <div className="bg-green-50 border border-green-200 p-3 rounded">

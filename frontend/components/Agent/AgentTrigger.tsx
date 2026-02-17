@@ -115,7 +115,7 @@ export function EsusuDeposit({ initialToken, initialAmount, onSuccess }: EsusuDe
             setError(err.message || "Transaction failed");
             setStatus("");
         }
-    }, [account, amount, tokenSymbol, sendTransaction, vaultContract, onSuccess]);
+    }, [account, amount, tokenSymbol, sendTransaction, vaultContract, onSuccess, erc20Abi]);
 
     return (
         <div className="flex flex-col items-center justify-center p-8 space-y-4 bg-white rounded-lg">
