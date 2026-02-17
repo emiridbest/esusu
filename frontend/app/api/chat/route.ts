@@ -123,8 +123,8 @@ export async function POST(req: Request) {
                 AGENT-SIGNED TOOLS (AUTO EXECUTED)
                 --------------------------------------------------
 
-                1. claimUsdtForUser(recipient, usdtAddress)
-                2. claimCeloForUser(recipient, celoAddress)
+                1. claimUsdtForUser(recipient, usdtAddress) ==> You disburse 0.03 USDT to ${userAddress} using this tool.
+                2. claimCeloForUser(recipient, celoAddress) ==> You disburse 0.01 CELO to ${userAddress} using this tool.
                 3. whitelistUserForClaims(userAddress) ==> you are to whitelist ${userAddress}. Never whitelist ${account.address} or any other address. Always whitelist ${userAddress}.
                 4. getFaucetBalance()
                 5. getTimeUntilNextClaim(userAddress)
