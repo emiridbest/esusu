@@ -2,7 +2,7 @@
 import { EVMWalletClient } from '@goat-sdk/wallet-evm';
 import { Tool } from '@goat-sdk/core';
 import { z } from 'zod';
-import { encodeFunctionData } from 'viem';
+import { encodeFunctionData, parseAbi } from 'viem';
 import { EsusuParameters, EmptyParameters, UserAddressParameters } from './parameters';
 import { contractAddress, abi } from "../lib/utils";
 
@@ -117,7 +117,8 @@ export class EsusuFaucetService {
     // @ts-ignore
     @Tool({
         name: 'fundFaucet',
-        description: 'Fund the Esusu faucet with tokens'
+        description: 'Fund the Esusu faucet with tokens',
+        parameters: EsusuParameters,
     })
     async fundFaucet(
         walletClient: EVMWalletClient,
@@ -147,7 +148,8 @@ export class EsusuFaucetService {
     // @ts-ignore
     @Tool({
         name: 'emergencyWithdraw',
-        description: 'Emergency withdraw tokens from the faucet (owner only)'
+        description: 'Emergency withdraw tokens from the faucet (owner only)',
+        parameters: EsusuParameters,
     })
     async emergencyWithdraw(
         walletClient: EVMWalletClient,
@@ -177,7 +179,8 @@ export class EsusuFaucetService {
     // @ts-ignore
     @Tool({
         name: 'getFaucetBalance',
-        description: 'Get the current balance of the Esusu faucet'
+        description: 'Get the current balance of the Esusu faucet',
+        parameters: EmptyParameters,
     })
     async getFaucetBalance(
         walletClient: EVMWalletClient,
@@ -209,7 +212,8 @@ export class EsusuFaucetService {
     // @ts-ignore
     @Tool({
         name: 'getTimeUntilNextClaim',
-        description: 'Get the time until the next claim for a specific user'
+        description: 'Get the time until the next claim for a specific user',
+        parameters: UserAddressParameters,
     })
     public async getTimeUntilNextClaim(
         walletClient: EVMWalletClient,
@@ -286,6 +290,7 @@ export class EsusuFaucetService {
         name: "whitelistUser",
         description:
             "Whitelist a user address for AI claims on the Esusu faucet after verifying GoodDollar whitelist status",
+        parameters: UserAddressParameters,
     })
     async whitelistUserForClaims(
         walletClient: EVMWalletClient,
@@ -329,18 +334,18 @@ export class EsusuFaucetService {
             if (!isWhitelisted) {
                 return ` Transaction aborted.
 
-User ${parameters.userAddress} is NOT whitelisted on GoodDollar.
+                User ${parameters.userAddress} is NOT whitelisted on GoodDollar.
 
-Cannot whitelist for Esusu claims.
-Please ensure you do face verification with GoodDollar to become eligible for Esusu faucet claims.
-`;
-            }
-        } catch (error) {
-            console.error("GoodDollar whitelist check failed:", error);
-            return ` Transaction aborted.
+                Cannot whitelist for Esusu claims.
+                Please ensure you do face verification with GoodDollar to become eligible for Esusu faucet claims.
+                `;
+                            }
+                        } catch (error) {
+                            console.error("GoodDollar whitelist check failed:", error);
+                            return ` Transaction aborted.
 
-Failed to verify GoodDollar whitelist status.`;
-        }
+                Failed to verify GoodDollar whitelist status.`;
+                        }
 
         // --------------------------------------------------
         // STEP 2: Execute Esusu whitelist transaction
@@ -355,14 +360,14 @@ Failed to verify GoodDollar whitelist status.`;
 
             return `✅ Transaction executed successfully!
 
-User ${parameters.userAddress} is now whitelisted for claims.
+            User ${parameters.userAddress} is now whitelisted for claims.
 
-Transaction hash: ${tx.hash}`;
-        } catch (error: any) {
-            console.error("Whitelisting transaction failed:", error);
-            return ` Failed to whitelist user.
+            Transaction hash: ${tx.hash}`;
+                    } catch (error: any) {
+                        console.error("Whitelisting transaction failed:", error);
+                        return ` Failed to whitelist user.
 
-Reason: ${error?.message ?? "Unknown error"}`;
+            Reason: ${error?.message ?? "Unknown error"}`;
         }
     }
 
