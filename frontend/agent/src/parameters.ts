@@ -26,6 +26,16 @@ export class EsusuParameters extends createToolParameters(
     })
 ) {}
 
+export const FaucetBalanceParameters = createToolParameters(
+    z.object({
+        tokenAddress: addressSchema
+            .optional()
+            .describe("Token address to check. Omit to get both CELO and USDT balances"),
+        usdtAddress: z.string().default(USDT_TOKEN_ADDRESS).describe("USDT token address on Celo"),
+        celoAddress: z.string().default(CELO_TOKEN_ADDRESS).describe("CELO token address on Celo"),
+    })
+);
+
 export const UserAddressParameters = createToolParameters(
     z.object({
         userAddress: z.string().describe("The user's wallet address"),

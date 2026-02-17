@@ -3,7 +3,7 @@ import { EVMWalletClient } from '@goat-sdk/wallet-evm';
 import { Tool } from '@goat-sdk/core';
 import { z } from 'zod';
 import { encodeFunctionData, parseAbi } from 'viem';
-import { EsusuParameters, EmptyParameters, UserAddressParameters } from './parameters';
+import { EsusuParameters, EmptyParameters, FaucetBalanceParameters, UserAddressParameters } from './parameters';
 import { contractAddress, abi } from "../lib/utils";
 
 export class EsusuFaucetService {
@@ -114,6 +114,66 @@ export class EsusuFaucetService {
         }
     }
 
+    /**
+     * Get the faucet balance for a token. If no token is provided, return CELO and USDT balances.
+     */
+    @Tool({
+        name: 'getFaucetBalance',
+        description: 'Get the current balance of the Esusu faucet',
+        parameters: FaucetBalanceParameters,
+    })
+    public async getFaucetBalance(
+        walletClient: EVMWalletClient,
+        // @ts-ignore
+        params: FaucetBalanceParameters
+    ): Promise<string> {
+        try {
+            if (!walletClient) {
+                return 'Error: Wallet client is not initialized. Please ensure the plugin is configured.';
+            }
+
+            const readBalance = async (tokenAddress: string) => {
+                const raw = await walletClient.read({
+                    address: this.contractAddress,
+                    abi: this.abi,
+                    functionName: 'getFaucetBalance',
+                    args: [tokenAddress]
+                });
+
+                if (raw === undefined || raw === null) {
+                    return 'unknown';
+                }
+                if (typeof raw === 'bigint' || typeof raw === 'number') {
+                    return String(raw);
+                }
+                if (typeof raw === 'string') {
+                    return raw;
+                }
+                if (typeof (raw as any).value !== 'undefined') {
+                    return String((raw as any).value);
+                }
+
+                return 'unknown';
+            };
+
+            if (params?.tokenAddress) {
+                const balance = await readBalance(params.tokenAddress);
+                return `Faucet balance for ${params.tokenAddress}: ${balance}`;
+            }
+
+            const celoAddress = params?.celoAddress ?? '0x0000000000000000000000000000000000000000';
+            const usdtAddress = params?.usdtAddress ?? '0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e';
+            const [celoBalance, usdtBalance] = await Promise.all([
+                readBalance(celoAddress),
+                readBalance(usdtAddress)
+            ]);
+
+            return `Faucet balances - CELO (${celoAddress}): ${celoBalance}, USDT (${usdtAddress}): ${usdtBalance}`;
+        } catch (error: any) {
+            console.error('Error getting faucet balance:', error?.message ?? error);
+            return `Error: Could not retrieve faucet balance. ${error?.message ?? ''}`;
+        }
+    }
     // @ts-ignore
     @Tool({
         name: 'fundFaucet',
@@ -175,39 +235,6 @@ export class EsusuFaucetService {
             return `Emergency withdraw failed: ${err?.message ?? 'Unknown error'}`;
         }
     }
-
-    // @ts-ignore
-    @Tool({
-        name: 'getFaucetBalance',
-        description: 'Get the current balance of the Esusu faucet',
-        parameters: EmptyParameters,
-    })
-    async getFaucetBalance(
-        walletClient: EVMWalletClient,
-        // @ts-ignore
-        params: EmptyParameters
-    ): Promise<EVMReadResult> {
-        try {
-            if (!walletClient) {
-                return 'Error: Wallet client is not initialized. Please ensure the plugin is configured.';
-            }
-
-            // Prefer read if available
-            const balance = await walletClient.read({
-                address: this.contractAddress,
-                abi: this.abi,
-                functionName: 'getFaucetBalance',
-                args: []
-            });
-
-            return ` The faucet balance is: ${String(balance.value)}`;
-
-        } catch (error: any) {
-            console.error('Error getting faucet balance:', error?.message ?? error);
-            return `Error: Could not retrieve faucet balance. ${error?.message ?? ''}`;
-        }
-    }
-
 
     // @ts-ignore
     @Tool({
