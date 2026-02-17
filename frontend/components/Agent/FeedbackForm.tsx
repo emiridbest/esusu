@@ -136,7 +136,7 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
         } finally {
             setIsFetchingTx(false);
         }
-    }, );
+    }, [publicClient, AGENT_ADDRESS]);
 
     // Fetch transaction on component mount
     useEffect(() => {
