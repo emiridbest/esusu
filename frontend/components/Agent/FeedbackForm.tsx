@@ -8,6 +8,12 @@ import { client } from "@/lib/thirdweb";
 import { parseAbi, keccak256, toBytes } from "viem";
 import { createPublicClient, http } from 'viem';
 import { celo as celoChain } from 'viem/chains';
+import { PinataSDK } from "pinata";
+
+const pinata = new PinataSDK({
+    pinataJwt: process.env.NEXT_PUBLIC_PINATA_JWT!,
+    pinataGateway: process.env.NEXT_PUBLIC_PINATA_GATEWAY || "gateway.pinata.cloud",
+});
 
 interface FeedbackFormProps {
     initialData?: {
@@ -54,11 +60,12 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
         abi: reputationAbi,
     });
 
-    // Create viem public client for reading blockchain data
-    const publicClient = createPublicClient({
+
+    // Memoize publicClient to prevent recreation
+    const publicClient = useCallback(() => createPublicClient({
         chain: celoChain,
         transport: http('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8'),
-    });
+    }), [])();
 
     // Fetch last transaction from agent address
     const fetchLastTransaction = useCallback(async () => {
@@ -108,11 +115,6 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
 
                         console.log(`Found transaction: ${txHash} in block ${i}`);
                         setLastTxHash(txHash);
-                        setFeedbackText(
-                            `Agent transaction from block ${i} - ${new Date(
-                                Number(block.timestamp) * 1000
-                            ).toLocaleString()}`
-                        );
                         return txHash;
                     }
                 }
@@ -125,18 +127,15 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
             console.log(
                 `No transactions found in the last 2 hours (scanned up to ${MAX_LOOKBACK_BLOCKS} blocks). Total tx count: ${txCount}`
             );
-            setError(
-                `No recent transactions found in the last 2 hours. Agent has ${txCount} total transactions.`
-            );
+
             return null;
         } catch (err: any) {
             console.error("Error fetching last transaction:", err);
-            setError(`Failed to fetch transaction: ${err.message}`);
             return null;
         } finally {
             setIsFetchingTx(false);
         }
-    }, [publicClient, AGENT_ADDRESS]);
+    }, []);
 
     // Fetch transaction on component mount
     useEffect(() => {
@@ -160,7 +159,7 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
                 return;
             }
 
-            if (!tag1 || !endpoint || !feedbackText) {
+            if (!tag1 || !feedbackText) {
                 setError("Please fill in all required fields");
                 return;
             }
@@ -178,6 +177,28 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
                 console.log("Using hashed feedback text as feedback hash:", feedbackHash);
             }
 
+            // Upload feedback text to Pinata (fire-and-forget style, but we need CID for the tx)
+            let finalFeedbackURI = feedbackURI || `ipfs://feedback-${AGENT_ID}-${Date.now()}`;
+            try {
+                const feedbackContent = JSON.stringify({
+                    agentId: AGENT_ID,
+                    rating: numValue,
+                    category: tag1,
+                    subCategory: tag2 || "",
+                    feedback: feedbackText,
+                    txHash: lastTxHash || "",
+                    timestamp: new Date().toISOString(),
+                    user: account.address,
+                });
+                const file = new File([feedbackContent], `feedback-${AGENT_ID}-${Date.now()}.json`, { type: "application/json" });
+                const upload = await pinata.upload.public.file(file);
+                finalFeedbackURI = `ipfs://${upload.cid}`;
+                setFeedbackURI(finalFeedbackURI);
+                console.log("Feedback uploaded to Pinata:", finalFeedbackURI);
+            } catch (pinataErr) {
+                console.error("Pinata upload failed, using fallback URI:", pinataErr);
+            }
+
             // Prepare transaction
             const transaction = prepareContractCall({
                 contract,
@@ -189,7 +210,7 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
                     tag1,
                     tag2 || "",
                     endpoint,
-                    feedbackURI || `ipfs://feedback-${AGENT_ID}-${Date.now()}`,
+                    finalFeedbackURI,
                     feedbackHash
                 ]
             });
@@ -206,7 +227,7 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
             setValue("");
             setTag1("");
             setTag2("");
-            setEndpoint("");
+            setEndpoint("https://esusuafrica.com/chat/api");
             setFeedbackText("");
             setFeedbackURI("https://ipfs.io/ipfs/bafkreidu2varspzsdamdmtrddtwidz5myyr42i2l3jbxiw7r4zbk3ttese");
 
@@ -337,10 +358,10 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
                 </label>
                 <input
                     type="text"
-                    placeholder="e.g., esusu-faucet or api.esusu.com"
+                    placeholder="https://esusuafrica.com/chat/api"
                     className="w-full p-2 border rounded"
-                    value={endpoint}
-                    onChange={(e) => setEndpoint(e.target.value)}
+                    value={"https://esusuafrica.com/chat/api"}
+                    readOnly
                 />
             </div>
 
@@ -357,10 +378,10 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
                     className="w-full p-3 border rounded h-32 resize-none"
                     value={feedbackText}
                     onChange={(e) => setFeedbackText(e.target.value)}
-                    maxLength={25}
+                    maxLength={100}
                 />
                 <div className="text-xs text-gray-500 text-right">
-                    {feedbackText.length}/500 characters
+                    {feedbackText.length}/100 characters
                 </div>
             </div>
 
@@ -375,13 +396,14 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
                     placeholder="https://ipfs.io/ipfs/bafkreidu2varspzsdamdmtrddtwidz5myyr42i2l3jbxiw7r4zbk3ttese"
                     className="w-full p-2 border rounded"
                     readOnly
+                    value={feedbackURI}
                 />
             </div>
 
             {/* Submit Button */}
             <button
                 onClick={handleSubmitFeedback}
-                disabled={!value || !tag1 || !endpoint || !feedbackText || isFetchingTx}
+                disabled={!value || !tag1 || !feedbackText || isFetchingTx}
                 className="bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold w-full transition-colors"
             >
                 📝 Submit Feedback Onchain
