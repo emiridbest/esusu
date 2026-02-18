@@ -2,6 +2,21 @@
 
 ![Esusu Logo](https://github.com/user-attachments/assets/c1e4d15e-d400-477f-a302-98ba9e40135d)
 
+# Build Agents for the Real World Hackathon
+- Developed and deployed the EsusuFaucet smart contract on Celo Mainnet with AI-authorized token distribution
+- Built an autonomous onchain AI agent using GOAT SDK and Vercel AI for natural language transaction execution
+- Agent whitelists users, disburses 0.03 USDT (MiniPay) or 0.1 CELO (non-MiniPay), checks balances and cooldowns
+- Integrated Reputation Registry for on-chain user feedback (Agent ID: 126)
+- Added IPFS-backed feedback storage via Pinata with server-side upload API route
+- Smart contract includes cooldown enforcement, emergency withdrawals, and owner-only access control
+- Full Foundry test suite for the EsusuFaucet contract
+- Supports MiniPay wallet and Farcaster Frames integration
+- Contract: [0x800ab0e9b190af8308c66a8e600a2b3b043ffb69](https://celoscan.io/address/0x800ab0e9b190af8308c66a8e600a2b3b043ffb69)
+- Esusu Faucet Smart Contract Repo: https://github.com/emiridbest/esusu-faucet
+- Esusu Smart Contract Repo: https://github.com/emiridbest/esusu-contracts
+- Esusu AI URL: https://www.8004scan.io/agents/celo/126
+- Esusu AI Endpoint: 
+
 # Proof of Ship 10
 - Esusu deploys the Thirdweb SDK live
 - Extend the entire features on Esusu to Farcaster
