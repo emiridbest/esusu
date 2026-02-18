@@ -8,12 +8,6 @@ import { client } from "@/lib/thirdweb";
 import { parseAbi, keccak256, toBytes } from "viem";
 import { createPublicClient, http } from 'viem';
 import { celo as celoChain } from 'viem/chains';
-import { PinataSDK } from "pinata";
-
-const pinata = new PinataSDK({
-    pinataJwt: process.env.NEXT_PUBLIC_PINATA_JWT!,
-    pinataGateway: process.env.NEXT_PUBLIC_PINATA_GATEWAY || "gateway.pinata.cloud",
-});
 
 interface FeedbackFormProps {
     initialData?: {
@@ -177,24 +171,30 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
                 console.log("Using hashed feedback text as feedback hash:", feedbackHash);
             }
 
-            // Upload feedback text to Pinata (fire-and-forget style, but we need CID for the tx)
+            // Upload feedback text to Pinata via server API route
             let finalFeedbackURI = feedbackURI || `ipfs://feedback-${AGENT_ID}-${Date.now()}`;
             try {
-                const feedbackContent = JSON.stringify({
+                const feedbackData = {
                     agentId: AGENT_ID,
                     rating: numValue,
-                    category: tag1,
-                    subCategory: tag2 || "",
+                    tag1: tag1,
+                    tag2: tag2 || "",
                     feedback: feedbackText,
                     txHash: lastTxHash || "",
                     timestamp: new Date().toISOString(),
                     user: account.address,
+                };
+                const res = await fetch("/api/pinata-upload", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ feedbackData }),
                 });
-                const file = new File([feedbackContent], `feedback-${AGENT_ID}-${Date.now()}.json`, { type: "application/json" });
-                const upload = await pinata.upload.public.file(file);
-                finalFeedbackURI = `ipfs://${upload.cid}`;
-                setFeedbackURI(finalFeedbackURI);
-                console.log("Feedback uploaded to Pinata:", finalFeedbackURI);
+                if (res.ok) {
+                    const { cid } = await res.json();
+                    finalFeedbackURI = `ipfs://${cid}`;
+                    setFeedbackURI(finalFeedbackURI);
+                    console.log("Feedback uploaded to Pinata:", finalFeedbackURI);
+                }
             } catch (pinataErr) {
                 console.error("Pinata upload failed, using fallback URI:", pinataErr);
             }
