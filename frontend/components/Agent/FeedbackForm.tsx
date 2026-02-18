@@ -32,7 +32,7 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
     const [value, setValue] = useState(initialData?.value?.toString() || "");
     const [tag1, setTag1] = useState(initialData?.tag1 || "");
     const [tag2, setTag2] = useState(initialData?.tag2 || "");
-    const [endpoint, setEndpoint] = useState(initialData?.endpoint || "https://esusuafrica.com/chat/api");
+    const [endpoint, setEndpoint] = useState(initialData?.endpoint || "https://esusuafrica.com/api/chat");
     const [feedbackText, setFeedbackText] = useState("");
     const [feedbackURI, setFeedbackURI] = useState(initialData?.feedbackURI || "");
     const [lastTxHash, setLastTxHash] = useState<`0x${string}` | null>(null);
@@ -227,7 +227,7 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
             setValue("");
             setTag1("");
             setTag2("");
-            setEndpoint("https://esusuafrica.com/chat/api");
+            setEndpoint("https://esusuafrica.com/api/chat");
             setFeedbackText("");
             setFeedbackURI("https://ipfs.io/ipfs/bafkreidu2varspzsdamdmtrddtwidz5myyr42i2l3jbxiw7r4zbk3ttese");
 
