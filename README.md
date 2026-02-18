@@ -1,4 +1,6 @@
 # Esusu: Decentralised Community Savings on Celo
+## Self verification not suppported by country's passport
+
 
 ![Esusu Logo](https://github.com/user-attachments/assets/c1e4d15e-d400-477f-a302-98ba9e40135d)
 
@@ -14,8 +16,8 @@
 - Contract: [0x800ab0e9b190af8308c66a8e600a2b3b043ffb69](https://celoscan.io/address/0x800ab0e9b190af8308c66a8e600a2b3b043ffb69)
 - Esusu Faucet Smart Contract Repo: https://github.com/emiridbest/esusu-faucet
 - Esusu Smart Contract Repo: https://github.com/emiridbest/esusu-contracts
-- Esusu AI URL: https://www.8004scan.io/agents/celo/126
-- Esusu AI Endpoint: 
+- Esusu ERC8004 URL: https://www.8004scan.io/agents/celo/126
+- Esusu AI Endpoint: https://www.esusuafrica.com/api/chat
 
 # Proof of Ship 10
 - Esusu deploys the Thirdweb SDK live
