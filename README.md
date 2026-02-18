@@ -16,7 +16,7 @@
 - Contract: [0x800ab0e9b190af8308c66a8e600a2b3b043ffb69](https://celoscan.io/address/0x800ab0e9b190af8308c66a8e600a2b3b043ffb69)
 - Esusu Faucet Smart Contract Repo: https://github.com/emiridbest/esusu-faucet
 - Esusu Smart Contract Repo: https://github.com/emiridbest/esusu-contracts
-- Esusu AI URL: https://www.8004scan.io/agents/celo/126
+- Esusu ERC8004 URL: https://www.8004scan.io/agents/celo/126
 - Esusu AI Endpoint: https://www.esusuafrica.com/api/chat
 
 # Proof of Ship 10
