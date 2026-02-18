@@ -11,6 +11,16 @@ import { esusu } from "@/agent/src";
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+export async function GET() {
+    return NextResponse.json({
+        status: 'ok',
+        message: 'Esusu AI Chat API is running',
+        version: '1.0.0',
+        usage: 'Send a POST request with { "messages": [...] } to interact with the AI agent',
+        timestamp: new Date().toISOString(),
+    });
+}
+
 export async function POST(req: Request) {
     try {
         const { messages: rawMessages, userAddress } = await req.json();

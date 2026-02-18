@@ -32,7 +32,7 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
     const [value, setValue] = useState(initialData?.value?.toString() || "");
     const [tag1, setTag1] = useState(initialData?.tag1 || "");
     const [tag2, setTag2] = useState(initialData?.tag2 || "");
-    const [endpoint, setEndpoint] = useState(initialData?.endpoint || "");
+    const [endpoint, setEndpoint] = useState(initialData?.endpoint || "https://esusuafrica.com/chat/api");
     const [feedbackText, setFeedbackText] = useState("");
     const [feedbackURI, setFeedbackURI] = useState(initialData?.feedbackURI || "");
     const [lastTxHash, setLastTxHash] = useState<`0x${string}` | null>(null);
@@ -191,7 +191,7 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
                 });
                 if (res.ok) {
                     const { cid } = await res.json();
-                    finalFeedbackURI = `ipfs://${cid}`;
+                    finalFeedbackURI = `http://ipfs.io/ipfs/${cid}`;
                     setFeedbackURI(finalFeedbackURI);
                     console.log("Feedback uploaded to Pinata:", finalFeedbackURI);
                 }
@@ -351,20 +351,6 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
                 </div>
             </div>
 
-            {/* Endpoint */}
-            <div>
-                <label className="block text-sm font-medium mb-1">
-                    Service/Endpoint <span className="text-red-500">*</span>
-                </label>
-                <input
-                    type="text"
-                    placeholder="https://esusuafrica.com/chat/api"
-                    className="w-full p-2 border rounded"
-                    value={"https://esusuafrica.com/chat/api"}
-                    readOnly
-                />
-            </div>
-
             {/* Feedback Text */}
             <div>
                 <label className="block text-sm font-medium mb-1">
@@ -383,21 +369,6 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
                 <div className="text-xs text-gray-500 text-right">
                     {feedbackText.length}/100 characters
                 </div>
-            </div>
-
-            {/* Feedback URI (optional) */}
-            <div>
-                <label className="block text-sm font-medium mb-1">
-                    Additional Data URI (optional)
-                    <span className="text-gray-500 text-xs ml-2">(IPFS or external link)</span>
-                </label>
-                <input
-                    type="text"
-                    placeholder="https://ipfs.io/ipfs/bafkreidu2varspzsdamdmtrddtwidz5myyr42i2l3jbxiw7r4zbk3ttese"
-                    className="w-full p-2 border rounded"
-                    readOnly
-                    value={feedbackURI}
-                />
             </div>
 
             {/* Submit Button */}
