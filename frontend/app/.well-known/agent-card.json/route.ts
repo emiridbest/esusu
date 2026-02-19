@@ -9,7 +9,7 @@ const agentCard = {
     organization: "Esusu Africa",
     url: "https://esusuafrica.com",
   },
-  version: "1.0.0",
+  version: "0.3.0",
   capabilities: {
     streaming: false,
     pushNotifications: false,
