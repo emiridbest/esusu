@@ -35,13 +35,13 @@ export class BackendWallet {
     
     this.publicClient = createPublicClient({
       chain: celo,
-      transport: http(process.env.CELO_RPC_URL || 'https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8'),
+      transport: http(process.env.CELO_RPC_URL || 'https://forno.celo.org'),
     });
 
     this.walletClient = createWalletClient({
       account: this.account,
       chain: celo,
-      transport: http(process.env.CELO_RPC_URL || 'https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8'),
+      transport: http(process.env.CELO_RPC_URL || 'https://forno.celo.org'),
     });
   }
 

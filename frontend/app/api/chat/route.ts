@@ -100,7 +100,7 @@ export async function POST(req: Request) {
         const account = privateKeyToAccount(PRIVATE_KEY as `0x${string}`);
         const rpcTransport = RPC_URL
             ? http(RPC_URL, { timeout: 30_000, retryCount: 3 })
-            : http('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8', {
+            : http('https://forno.celo.org', {
                 timeout: 30_000,
                 retryCount: 3,
             });

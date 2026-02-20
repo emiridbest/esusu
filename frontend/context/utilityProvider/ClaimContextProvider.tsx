@@ -100,6 +100,8 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const [altClaimAvailable, setAltClaimAvailable] = useState(false);
   const [altChainId, setAltChainId] = useState<SupportedChains | null>(null);
   const initializationAttempted = useRef(false);
+  const retryCount = useRef(0);
+  const MAX_RETRIES = 3;
   const closeDialogTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chainId = celo.id;
   const { sdk: identitySDK } = useIdentitySDK("production");
@@ -110,7 +112,8 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   useEffect(() => {
     setClaimSDK(null);
     initializationAttempted.current = false;
-  }, [chainId, claimSDKLoading]);
+    retryCount.current = 0;
+  }, [chainId]);
 
   // Consolidated whitelist check
   useEffect(() => {
@@ -201,7 +204,16 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
       } catch (error) {
         console.error("Error initializing ClaimSDK:", error);
-        initializationAttempted.current = false; // Allow retry on error
+        retryCount.current += 1;
+        if (retryCount.current < MAX_RETRIES) {
+          // Allow retry with exponential backoff
+          initializationAttempted.current = false;
+          const delay = Math.pow(2, retryCount.current) * 1000;
+          setTimeout(() => setIsInitializing(false), delay);
+          return; // Don't setIsInitializing(false) immediately
+        }
+        // Max retries reached — stop retrying
+        console.warn(`ClaimSDK initialization failed after ${MAX_RETRIES} attempts`);
         setClaimAmount(null);
         setCanClaim(false);
       } finally {
@@ -222,8 +234,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     ClaimSDK,
     claimSDKLoading,
     claimSDKError,
-    claimSDK,
-    isInitializing
+    claimSDK
   ]);
 
   // Cleanup timeout on unmount

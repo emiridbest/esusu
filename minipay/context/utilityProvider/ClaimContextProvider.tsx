@@ -100,7 +100,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   useEffect(() => {
     setClaimSDK(null);
     initializationAttempted.current = false;
-  }, [chainId, claimSDKLoading]);
+  }, [chainId]);
 
   // Consolidated whitelist check
   useEffect(() => {

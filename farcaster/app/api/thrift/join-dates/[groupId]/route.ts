@@ -20,7 +20,7 @@ export async function GET(
     }
 
     // Initialize provider and contract
-    const provider = new ethers.JsonRpcProvider('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8');
+    const provider = new ethers.JsonRpcProvider('https://forno.celo.org');
     const contract = new ethers.Contract(contractAddress, abi, provider);
     
     try {

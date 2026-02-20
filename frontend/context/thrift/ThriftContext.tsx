@@ -118,7 +118,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const isRefreshingRef = useRef(false);
 
   // Custom RPC provider for event querying (fallback when wallet RPC is down)
-  const customRpcProvider = new JsonRpcProvider('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8');
+  const customRpcProvider = new JsonRpcProvider('https://forno.celo.org');
 
   // Initialize provider, account, and contract
   const initialize = useCallback(async () => {
