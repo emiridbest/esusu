@@ -295,7 +295,7 @@ Create `.env.local` files in `frontend/` and `backend/` (and optionally `farcast
     - `PAYMENT_API_KEY` or `API_KEY` – Optional API key required by `/api/topup` and `/api/utilities/electricity/pay`.
     - `TOPUP_RATE_LIMIT_PER_MINUTE` – Per-IP and per-wallet rate limit for topups (default 10/min).
     - `ELECTRICITY_RATE_LIMIT_PER_MINUTE` – Rate limit for electricity endpoint (default 10/min).
-    - `CELO_RPC_URL` – Celo RPC for on-chain payment validation (default `https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8`).
+    - `CELO_RPC_URL` – Celo RPC for on-chain payment validation (default `https://forno.celo.org`).
     - `RECIPIENT_WALLET` – Treasury wallet expected as the ERC20 `transfer(to, amount)` recipient.
     - Reloadly (airtime/data) auth and endpoints:
       - `NEXT_CLIENT_ID`, `NEXT_CLIENT_SECRET`

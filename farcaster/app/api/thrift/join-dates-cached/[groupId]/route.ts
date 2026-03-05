@@ -4,7 +4,7 @@ import dbConnect from '@esusu/backend/lib/database/connection';
 import { MemberJoinDate, BlockchainSyncState } from '@esusu/backend/lib/database/schemas';
 import { contractAddress, abi } from '@/utils/abi';
 
-const CELO_RPC_URL = process.env.CELO_RPC_URL || 'https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8';
+const CELO_RPC_URL = process.env.CELO_RPC_URL || 'https://forno.celo.org';
 const CHUNK_SIZE = 5000; // Blocks per RPC query
 const MAX_BLOCKS_TO_SYNC = 2000000; // ~4 months on Celo (expanded to find older groups)
 

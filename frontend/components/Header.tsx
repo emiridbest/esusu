@@ -149,8 +149,8 @@ export default function Header() {
               className="cursor-pointer transition-all duration-300 hover:scale-105"
               src="/esusu.png"
               priority
-              width="120"
-              height="120"
+              width="40"
+              height="40"
               alt="EsusuLogo"
               onClick={() => router.push('/')}
             />

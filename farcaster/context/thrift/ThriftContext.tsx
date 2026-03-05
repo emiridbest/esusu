@@ -35,6 +35,7 @@ export interface ThriftGroup {
   userLastPayment?: Date;
   userNextPayment?: Date;
   pastRecipient?: string;
+  admin?: string;
   meta?: {
     createdBy?: string;
     coverImageUrl?: string;
@@ -451,10 +452,12 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             role: 'creator',
             joinDate: new Date().toISOString(), // Group creation time
             userName: finalCreatorName, // Use provided name or default to 'Creator'
+            email, // Pass email
+            phone, // Pass phone
             contractAddress: contractAddress.toLowerCase()
           };
 
-          console.log('📤 Sending creator data to API:', creatorData);
+
 
           const creatorResponse = await fetch(`/api/groups/${newGroupId}/members`, {
             method: 'POST',
@@ -732,8 +735,12 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           role: 'member',
           joinDate: actualJoinDate.toISOString(), // Send the actual blockchain timestamp
           userName: finalUserName, // Send the user name
+          email, // Pass email
+          phone, // Pass phone
           contractAddress: contractAddress.toLowerCase()
         };
+
+
 
         console.log('💾 Storing member data in database:', {
           ...memberData,
@@ -1011,14 +1018,17 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Check if user is a member of the group
     try {
-      const isMember = await contract.isGroupMember(groupId, account);
+      if (!readOnlyContract) throw new Error("Contract not initialized");
+      const isMember = await readOnlyContract.isGroupMember(groupId, account);
       console.log('User is member of group:', isMember);
       if (!isMember) {
         throw new Error("You are not a member of this group. Please join the group before contributing.");
       }
     } catch (memberCheckError) {
       console.error('Failed to check membership:', memberCheckError);
-      // Don't throw here, let the contract call handle it
+      if (memberCheckError instanceof Error && memberCheckError.message.includes("You are not a member")) {
+        throw memberCheckError;
+      }
     }
 
     try {
@@ -1030,9 +1040,9 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const detailedStatus = await checkGroupStatus(groupId);
       console.log('makeContribution: Detailed group status:', detailedStatus);
 
-      // Also check the raw contract data
-      const groupInfo = await contract.getGroupInfo(groupId);
-      const thriftGroup = await contract.getThriftGroup(groupId);
+      // Also check the raw contract data using read-only provider
+      const groupInfo = await readOnlyContract.getGroupInfo(groupId);
+      const thriftGroup = await readOnlyContract.getThriftGroup(groupId);
       console.log('makeContribution: Raw contract data:', {
         groupInfo: {
           isActive: groupInfo.isActive,
@@ -1098,17 +1108,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               decimals: tokenDecimals
             });
 
-            try {
-              toast.error("Insufficient Token Balance", {
-                description: `You have ${userBalanceFormatted} tokens but need ${requiredAmountFormatted} tokens to make this contribution.`,
-              });
-              console.log('Toast notification sent successfully');
-            } catch (toastError) {
-              console.error('Failed to show toast:', toastError);
-            }
-
-            // Return early instead of throwing error to prevent console error
-            return;
+            throw new Error(`Insufficient Token Balance: You have ${userBalanceFormatted} tokens but need ${requiredAmountFormatted} tokens to make this contribution.`);
           }
 
           // If allowance is insufficient, request approval
@@ -1678,6 +1678,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             userLastPayment,
             userNextPayment,
             pastRecipient,
+            admin: info.admin,
           };
 
           fetchedGroups.push(group);

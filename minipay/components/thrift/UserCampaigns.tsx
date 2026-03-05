@@ -106,7 +106,6 @@ export function UserCampaigns() {
           <TabsList className="mb-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="members">Members</TabsTrigger>
-            <TabsTrigger value="contributions">Contributions</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -225,48 +224,8 @@ export function UserCampaigns() {
             </div>
           </TabsContent>
 
-          <TabsContent value="contributions">
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Group</TableHead>
-                    <TableHead>Your Contribution</TableHead>
-                    <TableHead>Last Payment</TableHead>
-                    <TableHead>Next Payment</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {userGroups.map((group) => (
-                    <TableRow key={group.id}>
-                      <TableCell className="font-medium">
-                        <a
-                          href={`/thrift/${group.id}`}
-                          className="hover:underline text-primary"
-                        >
-                          {group.name}
-                        </a>
-                      </TableCell>
-                      <TableCell>
-                        {group.userContribution ? `${parseFloat(group.userContribution)} ${group.tokenSymbol || 'cUSD'}` : `${parseFloat(group.depositAmount)} ${group.tokenSymbol || 'cUSD'}`}
-                      </TableCell>
-                      <TableCell>
-                        {group.userLastPayment ? group.userLastPayment.toLocaleDateString() : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {group.userNextPayment
-                          ? group.userNextPayment.toLocaleDateString()
-                          : group.isActive
-                            ? (group.currentRound === 0 ? "Round 1" : `Round ${group.currentRound + 1}`)
-                            : "Not Started"
-                        }
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
+
+
         </Tabs>
       </CardContent>
       {/* Edit Metadata Dialog */}

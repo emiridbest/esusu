@@ -7,7 +7,7 @@ import { NotificationService } from './notificationService';
 
 // Aave V3 Pool contract address on Celo
 const AAVE_POOL_ADDRESS = '0x48424f2779be0f03cdf6bf0c5b1b66b1b7eabbf7'; // Celo Aave V3 Pool
-const CELO_RPC_URL = process.env.CELO_RPC_URL || 'https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8';
+const CELO_RPC_URL = process.env.CELO_RPC_URL || 'https://forno.celo.org';
 
 // Supported assets for Aave on Celo
 const SUPPORTED_ASSETS = {

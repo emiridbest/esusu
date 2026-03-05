@@ -12,7 +12,7 @@ export const config = createConfig({
     metaMask(),
   ],
   transports: {
-    [celo.id]: http('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8', {
+    [celo.id]: http('https://forno.celo.org', {
       timeout: 30_000,
       retryCount: 3,
     }),

@@ -145,8 +145,7 @@ export default function Freebies() {
                                                 borderColor: claimMethod === 'exchange' ? '#facc15' : '#e5e7eb',
                                                 backgroundColor: claimMethod === 'exchange' ? '#fffbeb' : 'transparent'
                                             }}
-                                            onClick={() => toast.info("Exchanging G$ for services is currently disabled. Please select the 'Claim G$' option for now.")}
-                                                //setClaimMethod('exchange')}
+                                            onClick={() => setClaimMethod('exchange')}
                                         >
                                             <input
                                                 type="radio"
@@ -154,8 +153,7 @@ export default function Freebies() {
                                                 name="claimMethod"
                                                 value="exchange"
                                                 checked={claimMethod === 'exchange'}
-                                                onChange={() => null //setClaimMethod('exchange')
-                                                    }
+                                                onChange={() => setClaimMethod('exchange')}
                                                 className="w-4 h-4 cursor-pointer"
                                             />
                                             <label htmlFor="exchange" className="flex-1 cursor-pointer">

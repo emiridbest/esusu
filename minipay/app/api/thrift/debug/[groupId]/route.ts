@@ -19,7 +19,7 @@ export async function GET(
 
     // Initialize provider with Ankr endpoint
     const rpcUrls = [
-      'https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8',
+      'https://forno.celo.org',
     ];
     
     let provider;

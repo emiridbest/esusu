@@ -22,9 +22,9 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
 
 // SMS configuration (initialize only if creds exist and are valid)
 let twilioClient: ReturnType<typeof twilio> | null = null;
-if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && 
-    process.env.TWILIO_ACCOUNT_SID.startsWith('AC') && 
-    process.env.TWILIO_AUTH_TOKEN !== 'your_twilio_auth_token') {
+if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN &&
+  process.env.TWILIO_ACCOUNT_SID.startsWith('AC') &&
+  process.env.TWILIO_AUTH_TOKEN !== 'your_twilio_auth_token') {
   twilioClient = twilio(
     process.env.TWILIO_ACCOUNT_SID,
     process.env.TWILIO_AUTH_TOKEN
@@ -43,6 +43,9 @@ export class NotificationService {
     data?: any;
     sendEmail?: boolean;
     sendSMS?: boolean;
+    appName?: string;
+    appUrl?: string;
+    appLogo?: string;
   }): Promise<INotification> {
     await dbConnect();
 
@@ -65,22 +68,25 @@ export class NotificationService {
 
     const savedNotification = await notification.save();
 
-      // Send email notification if requested and user has email
-      if (data.sendEmail !== false && user.email) {
-        const emailSent = await this.sendEmailNotification(
-          user.email, 
-          data.title, 
-          data.message, 
-          savedNotification._id.toString()
-        );
-        if (!emailSent) {
-          console.warn(`Failed to send email to ${user.email}`);
-        }
+    // Send email notification if requested and user has email
+    if (data.sendEmail !== false && user.email) {
+      const emailSent = await this.sendEmailNotification(
+        user.email,
+        data.title,
+        data.message,
+        savedNotification._id.toString(),
+        data.appName,
+        data.appUrl,
+        data.appLogo
+      );
+      if (!emailSent) {
+        console.warn(`Failed to send email to ${user.email}`);
       }
+    }
 
     // Send SMS notification if requested and user has phone
     if (data.sendSMS !== false && user.phone) {
-      const smsSent = await this.sendSMSNotification(user.phone, data.message, savedNotification._id.toString());
+      const smsSent = await this.sendSMSNotification(user.phone, data.message, savedNotification._id.toString(), data.appName, data.appUrl);
       if (!smsSent) {
         console.warn(`Failed to send SMS to ${user.phone}`);
       }
@@ -96,7 +102,10 @@ export class NotificationService {
     email: string,
     title: string,
     message: string,
-    notificationId: string
+    notificationId: string,
+    appName?: string,
+    appUrl?: string,
+    appLogo?: string
   ): Promise<boolean> {
     try {
       if (!emailTransporter) {
@@ -127,8 +136,8 @@ export class NotificationService {
                         <table role="presentation" style="width: 100%; border-collapse: collapse;">
                           <tr>
                             <td align="center" style="padding-bottom: 16px;">
-                              <img src="https://www.esusuafrica.com/_next/image?url=%2Fesusu.png&w=256&q=75" 
-                                   alt="Esusu" 
+                              <img src="${appLogo || process.env.FRONTEND_URL || 'https://www.esusuafrica.com'}/esusu.png" 
+                                   alt="${appName || 'Esusu'}" 
                                    style="width: 72px; height: 72px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); background: rgba(255, 255, 255, 0.1); padding: 8px;"
                                    onerror="this.src='${process.env.FRONTEND_URL || 'https://www.esusuafrica.com'}/esusu.png'">
                             </td>
@@ -165,12 +174,12 @@ export class NotificationService {
                       </td>
                     </tr>
                     
-                    <!-- CTA Button -->
+                        <!-- CTA Button -->
                     <tr>
                       <td style="padding: 0 32px 32px; background-color: #191d26; text-align: center;">
-                        <a href="${process.env.FRONTEND_URL || 'https://www.esusuafrica.com'}" 
+                        <a href="${appUrl || process.env.FRONTEND_URL || 'https://www.esusuafrica.com'}" 
                            style="display: inline-block; background: linear-gradient(135deg, #FFD100 0%, #FFE066 100%); color: #030303; padding: 16px 48px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; letter-spacing: -0.3px; box-shadow: 0 8px 24px rgba(255, 209, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset; transition: all 0.2s;">
-                          Open Esusu App →
+                          Open ${appName || 'Esusu App'} →
                         </a>
                       </td>
                     </tr>
@@ -245,7 +254,9 @@ export class NotificationService {
   static async sendSMSNotification(
     phone: string,
     message: string,
-    notificationId: string
+    notificationId: string,
+    appName?: string,
+    appUrl?: string
   ): Promise<boolean> {
     try {
       if (!twilioClient) {
@@ -253,7 +264,7 @@ export class NotificationService {
         return false;
       }
 
-      const smsMessage = `Esusu: ${message}\n\nOpen app: ${process.env.FRONTEND_URL || 'https://www.esusuafrica.com'}`;
+      const smsMessage = `${appName || 'Esusu'}: ${message}\n\nOpen app: ${appUrl || process.env.FRONTEND_URL || 'https://www.esusuafrica.com'}`;
 
       await twilioClient.messages.create({
         body: smsMessage,
@@ -303,7 +314,7 @@ export class NotificationService {
 
   static async markNotificationAsRead(notificationId: string): Promise<INotification | null> {
     await dbConnect();
-    
+
     // @ts-ignore - Mongoose union type compatibility issue
     return Notification.findByIdAndUpdate(
       notificationId,
@@ -340,7 +351,7 @@ export class NotificationService {
 
   static async deleteNotification(notificationId: string): Promise<boolean> {
     await dbConnect();
-    
+
     // @ts-ignore - Mongoose union type compatibility issue
     const result = await Notification.findByIdAndDelete(notificationId);
     return !!result;
@@ -350,11 +361,11 @@ export class NotificationService {
   static async sendContributionReminder(groupId: string): Promise<void> {
     // This would be called by a cron job
     await dbConnect();
-    
+
     const Group = require('../database/schemas').Group;
     // @ts-ignore - Mongoose union type compatibility issue
     const group = await Group.findById(groupId).populate('members.user');
-    
+
     if (!group || group.status !== 'active') return;
 
     for (const member of group.members) {
@@ -397,13 +408,13 @@ export class NotificationService {
       const amountStr = token === 'G$' || token === 'CELO' || token === 'cUSD' || token === 'USDC' || token === 'USDT'
         ? `${details.amount.toFixed(2)} ${token}`
         : `$${details.amount.toFixed(2)}`;
-      
+
       return await this.createNotification({
         userWallet: walletAddress,
         type: 'bill_payment_success',
         title: 'Bill Payment Successful ✅',
         message: `Your ${details.type} payment of ${amountStr} to ${details.recipient} was successful. Transaction: ${details.transactionHash?.substring(0, 10)}...`,
-        data: { 
+        data: {
           transactionHash: details.transactionHash,
           type: details.type,
           amount: details.amount,
@@ -419,7 +430,7 @@ export class NotificationService {
         type: 'bill_payment_failed',
         title: 'Bill Payment Failed ❌',
         message: `Your ${details.type} payment to ${details.recipient} failed. Please try again.`,
-        data: { 
+        data: {
           type: details.type,
           amount: details.amount,
           recipient: details.recipient
@@ -440,7 +451,7 @@ export class NotificationService {
       data?: any;
     }
   ): Promise<void> {
-    const promises = userWallets.map(wallet => 
+    const promises = userWallets.map(wallet =>
       this.createNotification({
         userWallet: wallet,
         ...notification

@@ -58,7 +58,7 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
     // Memoize publicClient to prevent recreation
     const publicClient = useCallback(() => createPublicClient({
         chain: celoChain,
-        transport: http('https://rpc.ankr.com/celo/e1b2a5b5b759bc650084fe69d99500e25299a5a994fed30fa313ae62b5306ee8'),
+        transport: http('https://forno.celo.org'),
     }), [])();
 
     // Fetch last transaction from agent address
