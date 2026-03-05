@@ -14,7 +14,6 @@ function makeKey(wallet: string, type?: string, status?: string, limit?: number,
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
-  console.log('🔍 Transactions API request started');
   
   try {
     const { searchParams } = new URL(request.url);
@@ -24,7 +23,6 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    console.log('📋 Request params:', { walletAddress, typeParam, statusParam, limit, offset });
 
     if (!walletAddress) {
       console.log('❌ Missing wallet address');
@@ -38,32 +36,25 @@ export async function GET(request: NextRequest) {
     const now = Date.now();
     const existing = cache.get(cacheKey);
     if (existing && existing.expiresAt > now && !existing.inFlight) {
-      console.log('⚡ Serving transactions from cache');
       return NextResponse.json({ success: true, transactions: existing.data, total: existing.data.length });
     }
 
     // De-dupe concurrent identical requests
     if (existing?.inFlight) {
-      console.log('⏳ Awaiting in-flight transactions request');
       const data = await existing.inFlight;
       return NextResponse.json({ success: true, transactions: data, total: data.length });
     }
 
-    console.log('🔌 Connecting to database...');
     await dbConnect();
     console.log('✅ Database connected successfully');
 
-    console.log('👤 Looking up user for wallet:', walletAddress.substring(0, 10) + '...');
     const user = await UserService.getUserByWallet(walletAddress);
     
     if (!user) {
-      console.log('👤 User not found, returning empty results');
       return NextResponse.json({ success: true, transactions: [], total: 0 });
     }
     
-    console.log('👤 User found:', (user as any)._id);
 
-    console.log('📊 Fetching transactions...');
     const inFlight = TransactionService.getUserTransactions(
       walletAddress,
       { type: typeParam, status: statusParam, limit, offset }
