@@ -62,21 +62,7 @@ async function dbConnect() {
   const config = envConfig.getConfig();
   const MONGODB_URI = config.database.uri;
 
-  // Helpful diagnostics to detect duplicate mongoose instances and runtime
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const resolvedPath = require.resolve('mongoose');
-    console.log('🧩 Mongoose module:', {
-      version: (mongoose as any).version,
-      resolvedPath,
-      readyState: mongoose.connection.readyState,
-    });
-  } catch (_) {
-    // noop
-  }
-
   if (cached.conn) {
-    console.log('🔁 Cached mongoose instance present. ReadyState:', mongoose.connection.readyState);
     if (mongoose.connection.readyState === 1) {
       return cached.conn;
     }
@@ -93,7 +79,6 @@ async function dbConnect() {
     mongoose.connection.readyState !== 1 &&
     mongoose.connection.readyState !== 2
   ) {
-    console.warn('🔄 Mongoose has a stale promise with readyState', mongoose.connection.readyState, '- resetting to reconnect');
     cached.promise = null;
   }
 
@@ -116,17 +101,10 @@ async function dbConnect() {
       ...(isSrvUri ? {} : { directConnection: true }),
     } as const;
 
-    console.log('🔌 Connecting to MongoDB...', {
-      uri: MONGODB_URI ? `${MONGODB_URI.substring(0, 20)}...` : 'NOT SET',
-      env: config.app.nodeEnv,
-      pool: `${config.database.minPoolSize}-${config.database.maxPoolSize}`,
-      isSrvUri
-    });
 
     cached.promise = mongoose
       .connect(MONGODB_URI, opts)
       .then(async (mongooseInstance) => {
-        console.log('✅ MongoDB connected successfully. ReadyState:', mongoose.connection.readyState);
 
         // Initialize database (collections, indexes, migrations, seed data)
         const { DatabaseInitializer } = await import('./initializer');
