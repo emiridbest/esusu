@@ -288,19 +288,6 @@ const RewardsClaimCard = () => {
         });
       } catch { }
     } catch (err) {
-      // Track failed attempt
-      try {
-        await fetch('/api/verification/track', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            address: userAddress,
-            timestamp: new Date().toISOString(),
-            success: false,
-            error: err instanceof Error ? err.message : String(err),
-          })
-        });
-      } catch { }
       console.error("Error generating verification link:", err)
       toast.error("Failed to generate verification link")
     }
