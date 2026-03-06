@@ -223,6 +223,9 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           setAltClaimAvailable(altClaimAvailable);
           setAltChainId(altClaimAvailable ? (altChain ?? null) : null);
 
+          // Set the SDK instance for later use in handleClaim
+          setClaimSDK(ClaimSDK);
+
           // Determine if user can claim
           setCanClaim(amount > BigInt(0));
 
