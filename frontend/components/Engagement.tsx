@@ -449,7 +449,7 @@ const RewardsClaimCard = () => {
                   <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">2.</span> Go to <a href="https://flowstate.network/flow-councils/42220/0xfabef1abae4998146e8a8422813eb787caa26ec2" target="_blank" rel="noopener noreferrer" className="text-purple-600 dark:text-purple-400 font-semibold hover:underline"> Flow State Voting</a> </li>
                   <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">3.</span> Click Connect Wallet on the top right corner</li>
                   <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">4.</span> Click Check Voter Eligibility</li>
-                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">5.</span> Look for Esusu  and click "Add to Ballot"</li>
+                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">5.</span> Look for Esusu  and click Add to Ballot</li>
                   <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">6.</span> Give MAXIMUM VOTES to Esusu</li>
                   <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">7.</span> After voting, send your wallet address to claim your 5000 G$ via our telegram group</li>
                 </ol>
@@ -457,7 +457,7 @@ const RewardsClaimCard = () => {
 
               <div className="bg-gradient-to-r from-purple-100 to-purple-50 dark:from-purple-900/30 dark:to-purple-800/30 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
                 <p className="text-xs font-semibold text-purple-900 dark:text-purple-100 mb-2"> Refer Friends & Earn More:</p>
-                <p className="text-xs text-slate-700 dark:text-slate-300 mb-3">Share with your friends, and once they vote, share their wallet addresses too—you'll both benefit!</p>
+                <p className="text-xs text-slate-700 dark:text-slate-300 mb-3">Share with your friends, and once they vote, share their wallet addresses too. You both earn!</p>
                 <a 
                   href="https://t.me/+kYeSswiKgB9lMjZk" 
                   target="_blank" 
