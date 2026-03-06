@@ -4,7 +4,7 @@ import { FaceVerificationLog } from '@esusu/backend/lib/database/faceVerificatio
 
 export async function POST(req: NextRequest) {
   try {
-    const { address, timestamp, success, error, extra } = await req.json();
+    const { address, timestamp, success, status, error, extra } = await req.json();
 
     await dbConnect();
 
@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
       address,
       timestamp: timestamp ? new Date(timestamp) : new Date(),
       success,
+      status,
       error,
       extra,
     });
