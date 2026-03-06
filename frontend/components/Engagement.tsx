@@ -274,115 +274,128 @@ const RewardsClaimCard = () => {
       const currentUrl = window.location.href
       const fvLink = await identitySDK.generateFVLink(false, currentUrl)
       window.location.href = fvLink
+      // Track successful attempt
+      try {
+        await fetch('/api/verification/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            address: userAddress,
+            timestamp: new Date().toISOString(),
+            success: true,
+            extra: { redirectedTo: fvLink }
+          })
+        });
+      } catch { }
     } catch (err) {
       console.error("Error generating verification link:", err)
       toast.error("Failed to generate verification link")
     }
   }
- const handleClaim = async () => {
-  if (!validateUserEligibility(userAddress) || !isConnected) {
-    setStatus("Please connect your wallet to continue");
-    setClaimStep("error");
-    return;
-  }
-
-  if (!isWhitelisted) {
-    setStatus("Verify your account to claim rewards");
-    setClaimStep("error");
-    return;
-  }
-
-  if (!isClaimable) {
-    setStatus("No rewards available yet. Share your invite link to start earning!");
-    setClaimStep("error");
-    return;
-  }
-
-  setLastTransactionHash(null);
-  setIsLoading(true);
-  setClaimStep("checking");
-  setStatus("Verifying eligibility...");
-
-  try {
-    setClaimStep("signing");
-    setStatus("Preparing transaction...");
-
-    const currentBlock = await engagementRewards.getCurrentBlockNumber();
-    const validUntilBlock = currentBlock + ENGAGEMENT_CONFIG.SIGNATURE_VALIDITY_BLOCKS;
-
-    let userSignature: `0x${string}` = "0x";
-    try {
-      setStatus("Please sign the transaction in your wallet...");
-      userSignature = await engagementRewards.signClaim(
-        APP_ADDRESS,
-        (inviterAddress as `0x${string}`) || INVITER_ADDRESS,
-        validUntilBlock
-      );
-    } catch (signError) {
-      console.warn("User signature skipped:", signError);
+  const handleClaim = async () => {
+    if (!validateUserEligibility(userAddress) || !isConnected) {
+      setStatus("Please connect your wallet to continue");
+      setClaimStep("error");
+      return;
     }
 
-    setStatus("Processing your claim...");
+    if (!isWhitelisted) {
+      setStatus("Verify your account to claim rewards");
+      setClaimStep("error");
+      return;
+    }
 
-    const appSignature = await getAppSignature({
-      user: userAddress!,
-      validUntilBlock: validUntilBlock.toString(),
-      inviter: inviterAddress || INVITER_ADDRESS,
-    });
+    if (!isClaimable) {
+      setStatus("No rewards available yet. Share your invite link to start earning!");
+      setClaimStep("error");
+      return;
+    }
 
-    setClaimStep("submitting");
-    setStatus("Submitting to blockchain...");
+    setLastTransactionHash(null);
+    setIsLoading(true);
+    setClaimStep("checking");
+    setStatus("Verifying eligibility...");
 
-    const dataSuffix = getReferralTag({
-      user: userWallet as `0x${string}`,
-      consumer: "0xb82896C4F251ed65186b416dbDb6f6192DFAF926",
-    });
+    try {
+      setClaimStep("signing");
+      setStatus("Preparing transaction...");
 
-    const claimInterface = new Interface(EngagementRewardsAbi);
-    const claimData = claimInterface.encodeFunctionData("nonContractAppClaim", [
-      APP_ADDRESS,
-      (inviterAddress as `0x${string}`) || INVITER_ADDRESS,
-      validUntilBlock,
-      userSignature,
-      appSignature as `0x${string}`,
-    ]);
+      const currentBlock = await engagementRewards.getCurrentBlockNumber();
+      const validUntilBlock = currentBlock + ENGAGEMENT_CONFIG.SIGNATURE_VALIDITY_BLOCKS;
 
-    const dataWithSuffix = `${claimData}${dataSuffix.replace(/^0x/, "")}`;
+      let userSignature: `0x${string}` = "0x";
+      try {
+        setStatus("Please sign the transaction in your wallet...");
+        userSignature = await engagementRewards.signClaim(
+          APP_ADDRESS,
+          (inviterAddress as `0x${string}`) || INVITER_ADDRESS,
+          validUntilBlock
+        );
+      } catch (signError) {
+        console.warn("User signature skipped:", signError);
+      }
 
-    const tx = await sendTransactionAsync({
-      to: EngagementAddress as `0x${string}`,
-      data: dataWithSuffix as `0x${string}`,
-    });
+      setStatus("Processing your claim...");
 
-    setStatus("Waiting for confirmation...");
-    if (!tx) throw new Error("Transaction submission failed");
-    await submitReferral({
-      txHash: tx as `0x${string}`,
-      chainId: 42220,
-    }).catch((referralError) => {
-      console.error("Referral submission failed:", referralError);
-    });
+      const appSignature = await getAppSignature({
+        user: userAddress!,
+        validUntilBlock: validUntilBlock.toString(),
+        inviter: inviterAddress || INVITER_ADDRESS,
+      });
 
-    const shortHash = formatTransactionHash(tx);
-    const txUrl = getTransactionUrl(tx);
+      setClaimStep("submitting");
+      setStatus("Submitting to blockchain...");
 
-    setLastTransactionHash(tx);
-    setStatus(`Transaction completed: ${shortHash}`);
-    setClaimStep("success");
+      const dataSuffix = getReferralTag({
+        user: userWallet as `0x${string}`,
+        consumer: "0xb82896C4F251ed65186b416dbDb6f6192DFAF926",
+      });
 
-    setTimeout(() => {
-      window.open(txUrl, "_blank");
-    }, 2000);
-  } catch (error) {
-    console.error("Claim failed:", error);
-    const friendlyError = formatErrorMessage(error);
-    setStatus(friendlyError);
-    setClaimStep("error");
-    toast.error(friendlyError);
-  } finally {
-    setIsLoading(false);
-  }
-};
+      const claimInterface = new Interface(EngagementRewardsAbi);
+      const claimData = claimInterface.encodeFunctionData("nonContractAppClaim", [
+        APP_ADDRESS,
+        (inviterAddress as `0x${string}`) || INVITER_ADDRESS,
+        validUntilBlock,
+        userSignature,
+        appSignature as `0x${string}`,
+      ]);
+
+      const dataWithSuffix = `${claimData}${dataSuffix.replace(/^0x/, "")}`;
+
+      const tx = await sendTransactionAsync({
+        to: EngagementAddress as `0x${string}`,
+        data: dataWithSuffix as `0x${string}`,
+      });
+
+      setStatus("Waiting for confirmation...");
+      if (!tx) throw new Error("Transaction submission failed");
+      await submitReferral({
+        txHash: tx as `0x${string}`,
+        chainId: 42220,
+      }).catch((referralError) => {
+        console.error("Referral submission failed:", referralError);
+      });
+
+      const shortHash = formatTransactionHash(tx);
+      const txUrl = getTransactionUrl(tx);
+
+      setLastTransactionHash(tx);
+      setStatus(`Transaction completed: ${shortHash}`);
+      setClaimStep("success");
+
+      setTimeout(() => {
+        window.open(txUrl, "_blank");
+      }, 2000);
+    } catch (error) {
+      console.error("Claim failed:", error);
+      const friendlyError = formatErrorMessage(error);
+      setStatus(friendlyError);
+      setClaimStep("error");
+      toast.error(friendlyError);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const getStepIcon = () => {
     if (claimStep === 'success') {
       return <CheckCircle2 className="w-5 h-5 text-yellow-500" />
@@ -420,6 +433,43 @@ const RewardsClaimCard = () => {
     <div className="container py-8 bg-gradient-to-br min-h-screen">
       <div className="max-w-md mx-auto">
         <div className="space-y-6">
+          {/* Voting Promotion Block */}
+          <Card className="border-2 border-purple-400 shadow-lg bg-gradient-to-br from-purple-50 to-purple-50 dark:from-purple-950/50 dark:to-purple-900/50">
+            <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-t-lg">
+              <div className="flex flex-col space-y-2 text-white">
+                <CardTitle className="text-2xl font-bold"> 💸 Round 2 Voting Live!</CardTitle>
+                <CardDescription className="text-black/90">Vote for Esusu & Earn 5000 G$</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-6">
+              <div className="bg-white dark:bg-purple-950 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
+                <p className="text-sm font-semibold text-purple-900 dark:text-purple-100 mb-3"> How to Vote:</p>
+                <ol className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
+                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">1.</span> Complete Face Verification by clicking Get Verified above</li>
+                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">2.</span> Go to <a href="https://flowstate.network/flow-councils/42220/0xfabef1abae4998146e8a8422813eb787caa26ec2" target="_blank" rel="noopener noreferrer" className="text-purple-600 dark:text-purple-400 font-semibold hover:underline"> Flow State Voting</a> </li>
+                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">3.</span> Click Connect Wallet on the top right corner</li>
+                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">4.</span> Click Check Voter Eligibility</li>
+                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">5.</span> Look for Esusu  and click "Add to Ballot"</li>
+                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">6.</span> Give MAXIMUM VOTES to Esusu</li>
+                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">7.</span> After voting, send your wallet address to claim your 5000 G$ via our telegram group</li>
+                </ol>
+              </div>
+
+              <div className="bg-gradient-to-r from-purple-100 to-purple-50 dark:from-purple-900/30 dark:to-purple-800/30 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
+                <p className="text-xs font-semibold text-purple-900 dark:text-purple-100 mb-2"> Refer Friends & Earn More:</p>
+                <p className="text-xs text-slate-700 dark:text-slate-300 mb-3">Share with your friends, and once they vote, share their wallet addresses too—you'll both benefit!</p>
+                <a 
+                  href="https://t.me/+kYeSswiKgB9lMjZk" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-all duration-200 text-sm"
+                >
+                  Join Our Telegram 
+                </a>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="border shadow-lg dark:bg-black">
             <CardHeader className="bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-t-lg">
               <div className="flex flex-col space-y-1 text-black/90">
@@ -463,14 +513,6 @@ const RewardsClaimCard = () => {
                   <li className="flex items-center">
                     <CheckCircle2 className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
                     Complete face verification
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle2 className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
-                    Start saving or paying for utilities on Esusu
-                  </li>
-                  <li className="flex items-center">
-                    <Clock className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
-                    Claim rewards once every 180 days
                   </li>
                   <li className="flex items-center">
                     <Clock className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
@@ -548,9 +590,6 @@ const RewardsClaimCard = () => {
               <Card className="border dark:bg-black">
                 <CardHeader>
                   <CardTitle className="text-lg">Verification Status</CardTitle>
-                  <CardDescription>
-                    Keep your account verified to unlock invite earnings and reward claims.
-                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {checkingWhitelist ? (

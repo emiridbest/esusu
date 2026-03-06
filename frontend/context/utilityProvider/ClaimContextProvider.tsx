@@ -278,23 +278,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   }, []);
 
   const handleVerification = useCallback(async () => {
-    if (!identitySDK) {
-      // Track failed attempt
-      try {
-        await fetch('/api/verification/track', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            address,
-            timestamp: new Date().toISOString(),
-            success: false,
-            error: 'identitySDK not available',
-          })
-        });
-      } catch {}
-      return;
-    }
-
     try {
       const currentUrl = window.location.href;
       const fvLink = await identitySDK.generateFVLink(false, currentUrl);
@@ -313,19 +296,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       } catch {}
       window.location.href = fvLink;
     } catch (err) {
-      // Track failed attempt
-      try {
-        await fetch('/api/verification/track', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            address,
-            timestamp: new Date().toISOString(),
-            success: false,
-            error: err instanceof Error ? err.message : String(err),
-          })
-        });
-      } catch {}
       console.error("Error generating verification link:", err);
       toast.error("Failed to generate verification link");
     }
