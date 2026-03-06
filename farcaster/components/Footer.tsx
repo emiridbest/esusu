@@ -19,9 +19,8 @@ export default function Footer() {
     { name: "Home", icon: HomeIcon, path: "/", ariaLabel: "Navigate to home" },
     { name: "Save", icon: PiggyBank, path: "/miniSafe", ariaLabel: "Navigate to savings" },
     { name: "Thrift", icon: UserGroupIcon, path: "/thrift", ariaLabel: "Navigate to thrift" },
-    { name: "Pay Bills", icon: ArchiveBoxArrowDownIcon, path: "/utilityBills", ariaLabel: "Navigate to utility bills" },
+    { name: "Data & Airtime", icon: ArchiveBoxArrowDownIcon, path: "/utilityBills", ariaLabel: "Navigate to data and airtime" },
     { name: "Freebies", icon: GiftIcon, path: "/freebies", ariaLabel: "Navigate to freebies section" }
-    // { name: "Profile", icon: UserIcon, path: "/profile", ariaLabel: "Navigate to profile" }
   ];
 
   return (

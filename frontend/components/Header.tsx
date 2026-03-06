@@ -124,7 +124,7 @@ export default function Header() {
   const navLinks = [
     { title: "Simple Saver", href: "/miniSafe" },
     { title: "Thrift", href: "/thrift" },
-    { title: "Pay Bills", href: "/utilityBills" },
+    { title: "Data & Airtime", href: "/utilityBills" },
     { title: "Freebies", href: "/freebies" },
     { title: "Chat", href: "/chat" },
   ];

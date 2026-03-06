@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       buttons: [
         { label: '📱 Buy Airtime', action: 'post', target: `${baseUrl}/api/frame/utilities/airtime` },
         { label: '📶 Buy Data', action: 'post', target: `${baseUrl}/api/frame/utilities/data` },
-        { label: '⚡ Pay Bills', action: 'post', target: `${baseUrl}/api/frame/utilities/bills` },
+        { label: '⚡ Data & Airtime', action: 'post', target: `${baseUrl}/api/frame/utilities/bills` },
         { label: '🏠 Home', action: 'post', target: `${baseUrl}/api/frame` },
       ],
     });
