@@ -10,6 +10,7 @@ import {
   IUser,
   ITransaction 
 } from './schemas';
+import { FaceVerificationLog } from './faceVerificationLog';
 
 /**
  * Database Initialization Service
@@ -52,6 +53,7 @@ export class DatabaseInitializer {
         this._ensureCollectionExists('analytics'),
         this._ensureCollectionExists('paymenthashes'),
         this._ensureCollectionExists('thriftgroupmetadatas'),
+        this._ensureCollectionExists('faceverificationlogs'),
       ]);
 
       // Step 3: Create indexes (parallel for performance)
@@ -63,6 +65,7 @@ export class DatabaseInitializer {
         this._createAnalyticsIndexes(),
         this._createPaymentHashIndexes(),
         this._createThriftMetadataIndexes(),
+        this._createFaceVerificationLogIndexes(),
       ]);
 
       // Step 4: Run database migrations
@@ -212,6 +215,19 @@ export class DatabaseInitializer {
       console.log('🔍 ThriftGroupMetadata indexes created');
     } catch (error) {
       console.warn('⚠️ ThriftGroupMetadata indexes may already exist:', (error as Error).message);
+    }
+  }
+
+  private static async _createFaceVerificationLogIndexes(): Promise<void> {
+    try {
+      await FaceVerificationLog.collection.createIndexes([
+        { key: { address: 1, timestamp: -1 }, background: true },
+        { key: { success: 1 }, background: true },
+        { key: { timestamp: -1 }, background: true }
+      ]);
+      console.log('🔍 FaceVerificationLog indexes created');
+    } catch (error) {
+      console.warn('⚠️ FaceVerificationLog indexes may already exist:', (error as Error).message);
     }
   }
 

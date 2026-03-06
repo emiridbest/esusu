@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// In-memory store for demonstration. Replace with DB in production.
-const verificationLogs: any[] = [];
+import dbConnect from '@esusu/backend/lib/database/connection';
+import { FaceVerificationLog } from '@esusu/backend/lib/database/faceVerificationLog';
 
 export async function POST(req: NextRequest) {
   try {
     const { address, timestamp, success, error, extra } = await req.json();
-    verificationLogs.push({ address, timestamp, success, error, extra });
-    // TODO: Persist to database or analytics service
+
+    await dbConnect();
+
+    const log = new FaceVerificationLog({
+      address,
+      timestamp: timestamp ? new Date(timestamp) : new Date(),
+      success,
+      error,
+      extra,
+    });
+
+    await log.save();
+
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 400 });

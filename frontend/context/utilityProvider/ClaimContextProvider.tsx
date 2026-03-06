@@ -103,6 +103,10 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const retryCount = useRef(0);
   const MAX_RETRIES = 3;
   const closeDialogTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Deduplication refs to prevent duplicate pending requests
+  const pendingWhitelistCheckRef = useRef<Promise<boolean> | null>(null);
+  const pendingEntitlementCheckRef = useRef<Promise<any> | null>(null);
+  const lastCheckedAddressRef = useRef<string | null>(null);
   const chainId = celo.id;
   const { sdk: identitySDK } = useIdentitySDK("production");
   const { sdk: ClaimSDK, loading: claimSDKLoading, error: claimSDKError } = useClaimSDK("production");
@@ -115,7 +119,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     retryCount.current = 0;
   }, [chainId]);
 
-  // Consolidated whitelist check
+  // Consolidated whitelist check with deduplication
   useEffect(() => {
     const checkWhitelistStatus = async () => {
       if (!identitySDK || !address) {
@@ -123,19 +127,35 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         return;
       }
 
-      try {
-        const result = await identitySDK.getWhitelistedRoot(address as `0x${string}`);
-        if (result && typeof result.isWhitelisted === 'boolean') {
-          setIsWhitelisted(result.isWhitelisted);
-        } else {
-          setIsWhitelisted(false);
-        }
-      } catch (error) {
-        console.error("Error checking whitelist status:", error);
-        setIsWhitelisted(false);
-      } finally {
+      // Return cached pending request if one exists for this address
+      if (lastCheckedAddressRef.current === address && pendingWhitelistCheckRef.current) {
+        const result = await pendingWhitelistCheckRef.current;
+        setIsWhitelisted(result);
         setCheckingWhitelist(false);
+        return;
       }
+
+      lastCheckedAddressRef.current = address;
+      setCheckingWhitelist(true);
+
+      const promise = (async () => {
+        try {
+          const result = await identitySDK.getWhitelistedRoot(address as `0x${string}`);
+          const isWhitelisted = result && typeof result.isWhitelisted === 'boolean' ? result.isWhitelisted : false;
+          setIsWhitelisted(isWhitelisted);
+          return isWhitelisted;
+        } catch (error) {
+          console.error("Error checking whitelist status:", error);
+          setIsWhitelisted(false);
+          return false;
+        } finally {
+          setCheckingWhitelist(false);
+          pendingWhitelistCheckRef.current = null;
+        }
+      })();
+
+      pendingWhitelistCheckRef.current = promise;
+      await promise;
     };
 
     checkWhitelistStatus();
@@ -154,7 +174,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     }
   }, [isConnected]);
 
-  // Initialize ClaimSDK - following the documentation pattern
+  // Initialize ClaimSDK - following the documentation pattern with deduplication
   useEffect(() => {
     const initializeSDK = async () => {
       // Skip if prerequisites not met
@@ -170,61 +190,70 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         return;
       }
 
+      // Return cached pending request if one exists
+      if (pendingEntitlementCheckRef.current) {
+        await pendingEntitlementCheckRef.current;
+        return;
+      }
+
       setIsInitializing(true);
       initializationAttempted.current = true;
 
-      try {
-        // Validate chain is supported
-        if (!isSupportedChain(chainId)) {
-          throw new Error(`Unsupported chain id: ${chainId}`);
+      const promise = (async () => {
+        try {
+          // Validate chain is supported
+          if (!isSupportedChain(chainId)) {
+            throw new Error(`Unsupported chain id: ${chainId}`);
+          }
+
+          // Check entitlement - this is the correct way per documentation
+          const { amount, altClaimAvailable, altChainId: altChain } =
+            await ClaimSDK.checkEntitlement();
+
+          setEntitlement(amount);
+
+          // Get decimals for the current chain
+          const decimals = CHAIN_DECIMALS[chainId as SupportedChains];
+
+          // Format the amount for display
+          const formattedAmount = formatUnits(amount, decimals);
+          const rounded = Math.round((Number(formattedAmount) + Number.EPSILON) * 100) / 100;
+
+          setClaimAmount(rounded);
+          setAltClaimAvailable(altClaimAvailable);
+          setAltChainId(altClaimAvailable ? (altChain ?? null) : null);
+
+          // Determine if user can claim
+          setCanClaim(amount > BigInt(0));
+
+        } catch (error) {
+          console.error("Error initializing ClaimSDK:", error);
+          retryCount.current += 1;
+          if (retryCount.current < MAX_RETRIES) {
+            // Allow retry with exponential backoff
+            initializationAttempted.current = false;
+            const delay = Math.pow(2, retryCount.current) * 1000;
+            setTimeout(() => setIsInitializing(false), delay);
+            return; // Don't setIsInitializing(false) immediately
+          }
+          // Max retries reached — stop retrying
+          console.warn(`ClaimSDK initialization failed after ${MAX_RETRIES} attempts`);
+          setClaimAmount(null);
+          setCanClaim(false);
+        } finally {
+          setIsInitializing(false);
+          pendingEntitlementCheckRef.current = null;
         }
+      })();
 
-        // Check entitlement - this is the correct way per documentation
-        const { amount, altClaimAvailable, altChainId: altChain } =
-          await ClaimSDK.checkEntitlement();
-
-        setEntitlement(amount);
-
-        // Get decimals for the current chain
-        const decimals = CHAIN_DECIMALS[chainId as SupportedChains];
-
-        // Format the amount for display
-        const formattedAmount = formatUnits(amount, decimals);
-        const rounded = Math.round((Number(formattedAmount) + Number.EPSILON) * 100) / 100;
-
-        setClaimAmount(rounded);
-        setAltClaimAvailable(altClaimAvailable);
-        setAltChainId(altClaimAvailable ? (altChain ?? null) : null);
-
-        // Determine if user can claim
-        setCanClaim(amount > BigInt(0));
-
-        // Set the initialized SDK
-        setClaimSDK(ClaimSDK);
-
-      } catch (error) {
-        console.error("Error initializing ClaimSDK:", error);
-        retryCount.current += 1;
-        if (retryCount.current < MAX_RETRIES) {
-          // Allow retry with exponential backoff
-          initializationAttempted.current = false;
-          const delay = Math.pow(2, retryCount.current) * 1000;
-          setTimeout(() => setIsInitializing(false), delay);
-          return; // Don't setIsInitializing(false) immediately
-        }
-        // Max retries reached — stop retrying
-        console.warn(`ClaimSDK initialization failed after ${MAX_RETRIES} attempts`);
-        setClaimAmount(null);
-        setCanClaim(false);
-      } finally {
-        setIsInitializing(false);
-      }
+      pendingEntitlementCheckRef.current = promise;
+      await promise;
     };
 
     if (claimSDKError) {
       console.error("ClaimSDK error:", claimSDKError);
       setIsInitializing(false);
-    } else if (!claimSDK && !claimSDKLoading) {
+    } else if (!claimSDKLoading && ClaimSDK) {
       initializeSDK();
     }
   }, [
@@ -233,8 +262,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     chainId,
     ClaimSDK,
     claimSDKLoading,
-    claimSDKError,
-    claimSDK
+    claimSDKError
   ]);
 
   // Cleanup timeout on unmount
@@ -301,11 +329,18 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   }, [identitySDK, address]);
 
   const updateStepStatus = useCallback((stepId: string, status: StepStatus, errorMessage?: string) => {
-    setTransactionSteps(prevSteps => prevSteps.map(step =>
-      step.id === stepId
-        ? { ...step, status, ...(errorMessage ? { errorMessage } : {}) }
-        : step
-    ));
+    setTransactionSteps(prevSteps => {
+      // Only update if the status actually changed
+      const step = prevSteps.find(s => s.id === stepId);
+      if (step && step.status === status && step.errorMessage === errorMessage) {
+        return prevSteps; // Return same reference to prevent unnecessary re-renders
+      }
+      return prevSteps.map(s =>
+        s.id === stepId
+          ? { ...s, status, ...(errorMessage ? { errorMessage } : {}) }
+          : s
+      );
+    });
   }, []);
 
   const handleClaim = useCallback(async () => {
