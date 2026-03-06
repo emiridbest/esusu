@@ -173,7 +173,7 @@ export default function Header() {
 
   // Navigation links
   const navLinks = [
-    { title: "Pay Bills", href: "/utilityBills" },
+    { title: "Data & Airtime", href: "/utilityBills" },
     { title: "MiniSafe", href: "/miniSafe" },
     { title: "Thrift Groups", href: "/thrift" },
     { title: "Freebies", href: "/freebies" },

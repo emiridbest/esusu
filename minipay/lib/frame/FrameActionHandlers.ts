@@ -149,7 +149,7 @@ export class FrameActionHandlers {
       version: 'next',
       imageUrl: `${process.env.NEXT_PUBLIC_URL}/api/og/utilities?fid=${state.fid}`,
       buttons: [
-        { title: 'Pay Bills', action: 'post', target: '/api/frame/action?action=pay_bill' },
+        { title: 'Data & Airtime', action: 'post', target: '/api/frame/action?action=pay_bill' },
         { title: 'Buy Airtime', action: 'post', target: '/api/frame/action?action=buy_airtime' },
         { title: 'Buy Data', action: 'post', target: '/api/frame/action?action=buy_data' },
         { title: 'Back', action: 'post', target: '/api/frame/action?action=home' }
