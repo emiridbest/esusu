@@ -3,7 +3,6 @@ import { Suspense, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import {
   Wallet,
   ArrowRight,
@@ -346,10 +345,6 @@ const RewardsClaimCard = () => {
       setClaimStep("submitting");
       setStatus("Submitting to blockchain...");
 
-      const dataSuffix = getReferralTag({
-        user: userWallet as `0x${string}`,
-        consumer: "0xb82896C4F251ed65186b416dbDb6f6192DFAF926",
-      });
 
       const claimInterface = new Interface(EngagementRewardsAbi);
       const claimData = claimInterface.encodeFunctionData("nonContractAppClaim", [
@@ -360,21 +355,13 @@ const RewardsClaimCard = () => {
         appSignature as `0x${string}`,
       ]);
 
-      const dataWithSuffix = `${claimData}${dataSuffix.replace(/^0x/, "")}`;
-
       const tx = await sendTransactionAsync({
         to: EngagementAddress as `0x${string}`,
-        data: dataWithSuffix as `0x${string}`,
+        data: claimData as `0x${string}`,
       });
 
       setStatus("Waiting for confirmation...");
       if (!tx) throw new Error("Transaction submission failed");
-      await submitReferral({
-        txHash: tx as `0x${string}`,
-        chainId: 42220,
-      }).catch((referralError) => {
-        console.error("Referral submission failed:", referralError);
-      });
 
       const shortHash = formatTransactionHash(tx);
       const txUrl = getTransactionUrl(tx);

@@ -4,7 +4,6 @@ import React, { useState, useContext, createContext, ReactNode, useEffect, useRe
 import { encodeFunctionData, parseAbi, formatUnits } from 'viem';
 import { useActiveAccount, useActiveWallet } from "thirdweb/react";
 import { toast } from 'sonner';
-import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { celo } from 'viem/chains';
 import { useIdentitySDK, useClaimSDK } from "@goodsdks/react-hooks"
 import { isSupportedChain, CHAIN_DECIMALS, SupportedChains } from "@goodsdks/citizen-sdk"
@@ -342,17 +341,11 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       const { sendTransaction, prepareTransaction, waitForReceipt } = await import('thirdweb');
       const { client, activeChain } = await import('@/lib/thirdweb');
 
-      // Add Divvi referral tag to the claim transaction
-      const dataSuffix = getReferralTag({
-        user: address as `0x${string}`,
-        consumer: RECIPIENT_WALLET as `0x${string}`,
-      });
 
-      const dataWithSuffix = claimData + dataSuffix;
 
       const claimTransaction = await prepareTransaction({
         to: ubiSchemeV2Address as `0x${string}`,
-        data: dataWithSuffix as `0x${string}`,
+        data: claimData as `0x${string}`,
         client,
         chain: activeChain,
       });
@@ -390,18 +383,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         throw new Error("Transaction failed");
       }
 
-      // Submit claim transaction to Divvi referral system
-      try {
-        await submitReferral({
-          txHash: tx.transactionHash,
-          chainId: activeChain.id,
-        });
-        console.log("Claim transaction referral submitted to Divvi.");
-      } catch (referralError) {
-        console.error("Referral submission error for claim:", referralError);
-        // Don't fail the whole operation if referral submission fails
-      }
-
       // Reset claim amount after successful claim
       setClaimAmount(null);
       setEntitlement(BigInt(0));
@@ -418,16 +399,10 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           args: []
         });
 
-        const countDataSuffix = getReferralTag({
-          user: address as `0x${string}`,
-          consumer: RECIPIENT_WALLET as `0x${string}`,
-        });
-
-        const countDataWithSuffix = txCountData + countDataSuffix;
 
         const txCountTransaction = await prepareTransaction({
           to: txCountAddress as `0x${string}`,
-          data: countDataWithSuffix as `0x${string}`,
+          data: txCountData as `0x${string}`,
           client,
           chain: activeChain,
         });
@@ -436,16 +411,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           account,
           transaction: txCountTransaction,
         });
-
-        try {
-          await submitReferral({
-            txHash: txCount.transactionHash,
-            chainId: activeChain.id,
-          });
-          console.log("Transaction count referral submitted to Divvi.");
-        } catch (referralError) {
-          console.error("Referral submission error for count:", referralError);
-        }
 
         return { success: true, transactionHash: tx.transactionHash };
       } catch (error) {
@@ -574,10 +539,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       throw new Error("No entitlement available");
     }
 
-    const dataSuffix = getReferralTag({
-      user: address as `0x${string}`,
-      consumer: RECIPIENT_WALLET as `0x${string}`,
-    });
+
 
     const selectedToken = "G$";
     const tokenAddress = getTokenAddress(selectedToken, TOKENS);
@@ -590,7 +552,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     });
     console.log("Processing payment for address:", address);
 
-    const dataWithSuffix = transferData + dataSuffix;
 
     toast.info("Processing payment for data bundle...");
     try {
@@ -602,7 +563,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
       const transaction = await prepareTransaction({
         to: tokenAddress as `0x${string}`,
-        data: dataWithSuffix as `0x${string}`,
+        data: transferData as `0x${string}`,
         client,
         chain: activeChain,
       });
@@ -635,14 +596,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         chain: activeChain,
         transactionHash: tx.transactionHash,
       });
-      try {
-        await submitReferral({
-          txHash: tx.transactionHash,
-          chainId: celo.id,
-        });
-      } catch (referralError) {
-        console.error("Referral submission error:", referralError);
-      }
 
       toast.success("Payment confirmed on-chain. Processing data top-up...");
 

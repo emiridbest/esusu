@@ -10,7 +10,6 @@ import {
   useActiveWalletChain,
 } from "thirdweb/react";
 import { client, activeChain } from "@/lib/thirdweb";
-import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { CountryData } from '@/utils/countryData';
 import { celo } from 'wagmi/chains';
 import { useGasSponsorship } from '@/hooks/useGasSponsorship';
@@ -291,12 +290,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           RECIPIENT_WALLET,
           paymentAmount
         ]);
-        const dataSuffix = getReferralTag({
-          user: address as `0x${string}`,
-          consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-        })
-        // Append the Divvi data suffix
-        const dataWithSuffix = transferData + dataSuffix;
+
 
         // Sponsor gas before sending the transfer
         try {
@@ -329,7 +323,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         try {
           const transaction= await prepareTransaction({
             to: tokenAddress as `0x${string}`,
-            data: dataWithSuffix as `0x${string}`,
+            data: transferData as `0x${string}`,
           client,
           chain: activeChain,
           });
@@ -345,15 +339,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         }
         const tx = { hash: txResult.transactionHash };
 
-        // Submit the referral to Divvi
-        try {
-          await submitReferral({
-            txHash: tx.hash as unknown as `0x${string}`,
-            chainId: celo.id
-          });
-        } catch {
-          // Do nothing
-        }
+
         // Determine success message based on utility type
         let successMessage = '';
         switch (type) {

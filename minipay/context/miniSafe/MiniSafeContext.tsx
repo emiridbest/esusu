@@ -3,7 +3,6 @@ import React, { createContext, useState, useCallback, useContext, useEffect, use
 import { toast } from 'sonner';
 import { contractAddress, abi } from '@/utils/abi';
 import { encodeFunctionData, parseAbi, parseUnits, formatUnits, parseEther } from "viem";
-import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { useAccount, usePublicClient, useWalletClient, useSendTransaction } from 'wagmi';
 import { celo } from 'wagmi/chains';
 import { createPublicClient, http } from 'viem';
@@ -117,11 +116,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [transactionSteps, setTransactionSteps] = useState<Step[]>([]);
   const [currentOperation, setCurrentOperation] = useState<'deposit' | 'withdraw' | 'break' | 'approve' | null>(null);
 
-  // Only get referral tag when address is available
-  const dataSuffix = address ? getReferralTag({
-    user: address as `0x${string}`,
-    consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-  }) : '';
+
 
   const getBalance = useCallback(async () => {
     if (!address || !publicClient) return;
@@ -130,7 +125,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIsLoading(true);
 
       // Read CUSD balance using wagmi readContract
-      const cusdData = await readContract(config, {
+      const cusdData = await readContract({
         address: contractAddress as `0x${string}`,
         abi,
         functionName: "getBalance",
@@ -141,7 +136,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setcusdBalance(cusdData ? cusdData.toString() : '0');
 
       // Read USDC balance
-      const usdcData = await readContract(config, {
+      const usdcData = await readContract({
         address: contractAddress as `0x${string}`,
         abi,
         functionName: "getBalance",
@@ -152,7 +147,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setUsdcBalance(usdcData ? usdcData.toString() : '0');
 
       // Read USDT balance
-      const usdtData = await readContract(config, {
+      const usdtData = await readContract({
         address: contractAddress as `0x${string}`,
         abi,
         functionName: "getBalance",
@@ -183,7 +178,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       let decimals = rewardTokenDecimalsDefault;
       try {
         const tokenAbi = parseAbi(["function decimals() view returns (uint8)"]);
-        const d = await readContract(config, {
+        const d = await readContract({
           address: rewardTokenAddress as `0x${string}`,
           abi: tokenAbi,
           functionName: "decimals",
@@ -195,7 +190,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       const tokenBalanceAbi = parseAbi(["function balanceOf(address) view returns (uint256)"]);
-      const data = await readContract(config, {
+      const data = await readContract({
         address: rewardTokenAddress as `0x${string}`,
         abi: tokenBalanceAbi,
         functionName: "balanceOf",
@@ -281,7 +276,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (!tokenAddress) throw new Error('Token contract not available');
 
       const tokenAbi = parseAbi(["function allowance(address owner, address spender) view returns (uint256)"]);
-      const allowanceData = await readContract(config, {
+      const allowanceData = await readContract({
         address: tokenAddress as `0x${string}`,
         abi: tokenAbi,
         functionName: "allowance",
@@ -306,7 +301,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         functionName: "approve",
         args: [contractAddress as `0x${string}`, depositValue],
       });
-      const dataWithSuffix = approveData + dataSuffix;
 
       // Sponsor gas
       try {
@@ -330,22 +324,15 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       const txHash = await sendTransactionAsync({
         to: tokenAddress as `0x${string}`,
-        data: dataWithSuffix as `0x${string}`,
+        data: approveData as `0x${string}`,
       });
       updateStepStatus('approve', 'success');
       updateStepStatus('confirm', 'loading');
       try {
-        await submitReferral({
-          txHash: txHash,
-          chainId: 42220
-        });
-
-
         setIsApproved(true);
         toast.success('Approval successful!');
         updateStepStatus('confirm', 'success');
-      } catch (referralError) {
-        console.error("Error submitting referral:", referralError);
+      } catch  {
         setIsApproved(true);
         toast.success('Approval successful, but referral tracking failed');
         // Even if referral fails, finalize the confirm step so UI doesn't hang
@@ -405,7 +392,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (!tokenAddress) throw new Error('Token contract not available');
 
       const allowanceAbi = parseAbi(["function allowance(address owner, address spender) view returns (uint256)"]);
-      const allowanceData = await readContract(config, {
+      const allowanceData = await readContract({
         address: tokenAddress as `0x${string}`,
         abi: allowanceAbi,
         functionName: "allowance",
@@ -422,7 +409,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           functionName: "approve",
           args: [contractAddress as `0x${string}`, depositValue],
         });
-        const approveDataWithSuffix = approveData + dataSuffix;
 
         // Sponsor gas for approval
         try {
@@ -445,7 +431,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         const approveTxHash = await sendTransactionAsync({
           to: tokenAddress as `0x${string}`,
-          data: approveDataWithSuffix as `0x${string}`,
+          data: approveData as `0x${string}`,
         });
 
         if (approveTxHash) {
@@ -465,7 +451,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         functionName: "deposit",
         args: [tokenAddress as `0x${string}`, depositValue],
       });
-      const dataWithSuffix = depositData + dataSuffix;
 
       // Sponsor gas for deposit
       try {
@@ -488,7 +473,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       const txHash = await sendTransactionAsync({
         to: contractAddress as `0x${string}`,
-        data: dataWithSuffix as `0x${string}`,
+        data: depositData as `0x${string}`,
       });
       updateStepStatus('deposit', 'success');
 
@@ -574,7 +559,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         functionName: "withdraw",
         args: [tokenAddress as `0x${string}`, withdrawalValue],
       });
-      const dataWithSuffix = withdrawData + dataSuffix;
 
       // Sponsor gas for withdrawal
       try {
@@ -597,7 +581,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       const txHash = await sendTransactionAsync({
         to: contractAddress as `0x${string}`,
-        data: dataWithSuffix as `0x${string}`,
+        data: withdrawData as `0x${string}`,
       });
 
       // Start confirmation step
@@ -665,7 +649,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         functionName: "breakTimelock",
         args: [tokenAddress as `0x${string}`],
       });
-      const breakData = breakTimelockData + dataSuffix;
 
       // Sponsor gas for break timelock
       try {
@@ -690,7 +673,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         breakTxHash = await sendTransactionAsync({
           to: contractAddress as `0x${string}`,
-          data: breakData as `0x${string}`,
+          data: breakTimelockData as `0x${string}`,
         }) as `0x${string}`;
       } catch (txError) {
         console.error('Break transaction failed:', txError);
@@ -709,14 +692,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           updateStepStatus('break', 'success');
           updateStepStatus('confirm', 'loading');
           // Optional referral submit
-          try {
-            await submitReferral({
-              txHash: breakTxHash,
-              chainId: 42220
-            });
-          } catch (referralError) {
-            console.error('Error submitting referral:', referralError);
-          }
+
           updateStepStatus('confirm', 'success');
           await getBalance();
         } else {
