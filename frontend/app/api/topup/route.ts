@@ -225,10 +225,20 @@ async function validatePayment(validation: PaymentValidation): Promise<{ isValid
   try {
     const provider = new ethers.JsonRpcProvider(CELO_RPC_URL);
 
-    // Get transaction details
-    const tx = await provider.getTransaction(validation.transactionHash);
+    // Get transaction details with retry (RPC nodes may take a few seconds to index a new tx)
+    let tx = await provider.getTransaction(validation.transactionHash);
     if (!tx) {
-      return { isValid: false, error: 'Transaction not found' };
+      const TX_RETRY_ATTEMPTS = 4;      // 4 retries × 5 s = 20 s max wait
+      const TX_RETRY_INTERVAL = 5000;
+      for (let attempt = 0; attempt < TX_RETRY_ATTEMPTS; attempt++) {
+        console.log(`Transaction not found yet, retrying in ${TX_RETRY_INTERVAL / 1000}s (attempt ${attempt + 1}/${TX_RETRY_ATTEMPTS})...`);
+        await new Promise(resolve => setTimeout(resolve, TX_RETRY_INTERVAL));
+        tx = await provider.getTransaction(validation.transactionHash);
+        if (tx) break;
+      }
+      if (!tx) {
+        return { isValid: false, error: 'Transaction not found after retries' };
+      }
     }
 
     // Wait for transaction confirmation with polling (max 60 seconds)

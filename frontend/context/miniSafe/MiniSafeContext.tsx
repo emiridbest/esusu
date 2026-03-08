@@ -3,7 +3,6 @@ import React, { createContext, useState, useCallback, useContext, useEffect, use
 import { toast } from 'sonner';
 import { contractAddress, abi } from '@/utils/abi';
 import { encodeFunctionData, parseAbi, parseUnits, formatUnits, parseEther } from "viem";
-import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import {
   useActiveAccount,
   useActiveWallet,
@@ -121,11 +120,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [transactionSteps, setTransactionSteps] = useState<Step[]>([]);
   const [currentOperation, setCurrentOperation] = useState<'deposit' | 'withdraw' | 'break' | 'approve' | null>(null);
 
-  // Only get referral tag when address is available
-  const dataSuffix = address ? getReferralTag({
-    user: address as `0x${string}`,
-    consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-  }) : '';
 
   const { checkAndSponsor } = useGasSponsorship();
 
@@ -282,7 +276,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         functionName: "approve",
         args: [contractAddress as `0x${string}`, depositValue],
       });
-      const dataWithSuffix = approveData + dataSuffix;
 
       // Send the transaction with the properly encoded data
       if (!wallet || !account) throw new Error('Wallet not connected');
@@ -290,7 +283,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const { sendTransaction, prepareTransaction } = await import('thirdweb');
       const transaction = await prepareTransaction({
         to: tokenAddress as `0x${string}`,
-        data: dataWithSuffix as `0x${string}`,
+        data: approveData as `0x${string}`,
         client,
         chain: activeChain,
       });
@@ -319,20 +312,13 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       updateStepStatus('approve', 'success');
       updateStepStatus('confirm', 'loading');
       try {
-        await submitReferral({
-          txHash: tx.transactionHash,
-          chainId: 42220
-        });
-
 
         setIsApproved(true);
         toast.success('Approval successful!');
         updateStepStatus('confirm', 'success');
-      } catch (referralError) {
-        console.error("Error submitting referral:", referralError);
+      } catch  {
         setIsApproved(true);
-        toast.success('Approval successful, but referral tracking failed');
-        // Even if referral fails, finalize the confirm step so UI doesn't hang
+        toast.success('Approval successful');
         updateStepStatus('confirm', 'success');
       }
     } catch (error) {
@@ -408,14 +394,13 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           functionName: "approve",
           args: [contractAddress as `0x${string}`, depositValue],
         });
-        const approveDataWithSuffix = approveData + dataSuffix;
 
         if (!wallet || !account) throw new Error('Wallet not connected');
 
         const { sendTransaction, prepareTransaction } = await import('thirdweb');
         const approveTransaction = await prepareTransaction({
           to: tokenAddress as `0x${string}`,
-          data: approveDataWithSuffix as `0x${string}`,
+          data: approveData as `0x${string}`,
           client,
           chain: activeChain,
         });
@@ -462,14 +447,13 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         functionName: "deposit",
         args: [tokenAddress as `0x${string}`, depositValue],
       });
-      const dataWithSuffix = depositData + dataSuffix;
 
       if (!wallet || !account) throw new Error('Wallet not connected');
 
       const { sendTransaction, prepareTransaction } = await import('thirdweb');
       const depositTransaction = await prepareTransaction({
         to: contractAddress as `0x${string}`,
-        data: dataWithSuffix as `0x${string}`,
+        data: depositData as `0x${string}`,
         client,
         chain: activeChain,
       });
@@ -580,14 +564,13 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         functionName: "withdraw",
         args: [tokenAddress as `0x${string}`, withdrawalValue],
       });
-      const dataWithSuffix = withdrawData + dataSuffix;
 
       if (!wallet || !account) throw new Error('Wallet not connected');
 
       const { sendTransaction, prepareTransaction } = await import('thirdweb');
       const withdrawTransaction = await prepareTransaction({
         to: contractAddress as `0x${string}`,
-        data: dataWithSuffix as `0x${string}`,
+        data: withdrawData as `0x${string}`,
         client,
         chain: activeChain,
       });
@@ -681,7 +664,6 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         functionName: "breakTimelock",
         args: [tokenAddress as `0x${string}`],
       });
-      const breakData = breakTimelockData + dataSuffix;
 
       let breakTx: any;
       try {
@@ -690,7 +672,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const { sendTransaction, prepareTransaction } = await import('thirdweb');
         const breakTransaction = await prepareTransaction({
           to: contractAddress as `0x${string}`,
-          data: breakData as `0x${string}`,
+          data: breakTimelockData as `0x${string}`,
           client,
           chain: activeChain,
         });
@@ -735,15 +717,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           toast.success('Timelock broken successfully!');
           updateStepStatus('break', 'success');
           updateStepStatus('confirm', 'loading');
-          // Optional referral submit
-          try {
-            await submitReferral({
-              txHash: breakTx.transactionHash,
-              chainId: 42220
-            });
-          } catch (referralError) {
-            console.error('Error submitting referral:', referralError);
-          }
+
           updateStepStatus('confirm', 'success');
           await getBalance();
         } else {

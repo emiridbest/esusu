@@ -15,7 +15,6 @@ import {
   type Config,
 } from "wagmi";
 import  { config } from '../../components/providers/WagmiProvider';
-import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { useGasSponsorship } from '../../hooks/useGasSponsorship';
 import { CountryData } from '../../utils/countryData';
 import {
@@ -298,13 +297,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           RECIPIENT_WALLET,
           paymentAmount
         ]);
-        const dataSuffix = getReferralTag({
-          user: address,
-          consumer: '0xb82896C4F251ed65186b416dbDb6f6192DFAF926',
-        })
-        // Append the Divvi data suffix
-        const dataWithSuffix = transferData + dataSuffix;
-        3
+
 
         // Sponsor gas before sending the transfer
         try {
@@ -328,18 +321,9 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         // Send the transaction
         const tx = await sendTransactionAsync({
           to: tokenAddress as `0x${string}`,
-          data: dataWithSuffix as `0x${string}`,
+          data: transferData as `0x${string}`,
         });
 
-        // Submit the referral to Divvi
-        try {
-          await submitReferral({
-            txHash: tx as unknown as `0x${string}`,
-            chainId: celo.id
-          });
-        } catch {
-          // Do nothing
-        }
         // Determine success message based on utility type
         let successMessage = '';
         switch (type) {

@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { encodeFunctionData } from 'viem';
 import { EsusuParameters, EmptyParameters, UserAddressParameters } from './parameters';
 import { contractAddress, abi } from "../lib/utils";
-import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 
 
 export class EsusuFaucetService {
@@ -41,26 +40,21 @@ export class EsusuFaucetService {
         }
 
         try {
-            // 1. Generate Referral Tag
-            const dataSuffix = getReferralTag({
-                user: this.referralUser,
-                consumer: this.referralConsumer,
-            });
 
-            // 2. Encode the function call
+
+            // 1. Encode the function call
             const encodedData = encodeFunctionData({
                 abi: this.abi,
                 functionName: 'claimForUser',
                 args: [params.recipient, params.usdtAddress]
             });
 
-            // 3. Append suffix (remove 0x from suffix)
-            const fullData = `${encodedData}${dataSuffix.replace(/^0x/, '')}` as `0x${string}`;
+            // 2. Append suffix (remove 0x from suffix)
 
-            // 4. Send transaction with raw data
+            // 3. Send transaction with raw data
             const tx = await walletClient.sendTransaction({
                 to: this.contractAddress,
-                data: fullData
+                data: encodedData
             });
 
             // Wait for receipt if publicClient is available
@@ -68,13 +62,7 @@ export class EsusuFaucetService {
                 try {
                     const receipt = await walletClient.publicClient.waitForTransactionReceipt({ hash: tx.hash });
                     if ((receipt as any).status === 'success' || (receipt as any).status === 1) {
-                        // 5. Submit referral on success
-                        await submitReferral({
-                            txHash: tx.hash as `0x${string}`,
-                            chainId: 42220,
-                        }).catch((referralError) => {
-                            console.error("Referral submission failed:", referralError);
-                        });
+                        
                         
                         return `Successfully initiated gas fee claim for user ${params.recipient}. Transaction hash: ${tx.hash}`;
                     }
@@ -124,11 +112,6 @@ export class EsusuFaucetService {
         }
 
         try {
-            // 1. Generate Referral Tag
-            const dataSuffix = getReferralTag({
-                user: this.referralUser,
-                consumer: this.referralConsumer,
-            });
 
             // 2. Encode the function call
             const encodedData = encodeFunctionData({
@@ -137,13 +120,10 @@ export class EsusuFaucetService {
                 args: [params.recipient, params.celoAddress]
             });
 
-            // 3. Append suffix (remove 0x from suffix)
-            const fullData = `${encodedData}${dataSuffix.replace(/^0x/, '')}` as `0x${string}`;
-
             // 4. Send transaction with raw data
             const tx = await walletClient.sendTransaction({
                 to: this.contractAddress,
-                data: fullData
+                data: encodedData
             });
 
             // Wait for receipt if publicClient is available
@@ -151,12 +131,7 @@ export class EsusuFaucetService {
                 try {
                     const receipt = await walletClient.publicClient.waitForTransactionReceipt({ hash: tx.hash });
                     if ((receipt as any).status === 'success' || (receipt as any).status === 1) {
-                        await submitReferral({
-                            txHash: tx.hash as `0x${string}`,
-                            chainId: 42220,
-                        }).catch((referralError) => {
-                            console.error("Referral submission failed:", referralError);
-                        });
+
                         return `Successfully initiated gas fee claim for user ${params.recipient}. Transaction hash: ${tx.hash}`;
                     }
                     if (!tx) throw new Error("Transaction submission failed");
