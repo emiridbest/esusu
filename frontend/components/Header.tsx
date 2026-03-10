@@ -125,6 +125,7 @@ export default function Header() {
     { title: "Simple Saver", href: "/miniSafe" },
     { title: "Thrift", href: "/thrift" },
     { title: "Data & Airtime", href: "/utilityBills" },
+    { title: "Swap", href: "/swap" },
     { title: "Freebies", href: "/freebies" },
     { title: "Chat", href: "/chat" },
   ];
