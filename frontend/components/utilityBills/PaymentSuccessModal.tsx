@@ -70,13 +70,12 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
           className="relative"
         >
           {/* Background Gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-purple-500/10 to-green-500/20 rounded-2xl blur-3xl"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-yellow-200/30 via-yellow-100/10 to-yellow-200/20 dark:from-yellow-900/20 dark:via-yellow-800/10 dark:to-yellow-900/20 rounded-2xl blur-3xl"></div>
 
-          <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-gray-700/50 shadow-xl">
+          <div className="relative bg-white dark:bg-black backdrop-blur-xl rounded-2xl border border-yellow-200/50 dark:border-yellow-700/50 shadow-xl">
             {/* Success Header */}
             <div className="relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-yellow-500/10"></div>
-              <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-primary/5"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-yellow-100/30 to-yellow-50/30 dark:from-yellow-900/20 dark:to-yellow-800/20"></div>
 
               <DialogHeader className="relative px-8 py-8 text-center">
                 <motion.div
@@ -86,12 +85,12 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                   className="flex justify-center mb-6"
                 >
                   <div className="relative">
-                    <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse blur-xl"></div>
-                    <div className="relative rounded-full bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/50 dark:to-emerald-900/50 p-6 shadow-lg">
+                    <div className="absolute inset-0 rounded-full bg-yellow-300/30 dark:bg-yellow-600/30 animate-pulse blur-xl"></div>
+                    <div className="relative rounded-full bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/40 dark:to-emerald-900/40 p-6 shadow-lg">
                       <CheckCircle2 className="h-16 w-16 text-green-600 dark:text-green-400 drop-shadow-sm" />
                     </div>
                     <div className="absolute -top-1 -right-1">
-                      <SparklesIcon className="h-6 w-6 text-primary animate-pulse" />
+                      <SparklesIcon className="h-6 w-6 text-yellow-500 dark:text-yellow-400 animate-pulse" />
                     </div>
                   </div>
                 </motion.div>
@@ -101,10 +100,10 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.3, duration: 0.4 }}
                 >
-                  <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-yellow-600 bg-clip-text text-transparent mb-2">
+                  <DialogTitle className="text-3xl font-bold text-black dark:text-white mb-2">
                     Payment Successful!
                   </DialogTitle>
-                  <DialogDescription className="text-gray-600 dark:text-gray-300 text-lg">
+                  <DialogDescription className="text-gray-700 dark:text-gray-300 text-lg">
                     Your {getPaymentTypeLabel().toLowerCase()} has been processed successfully
                   </DialogDescription>
                 </motion.div>
@@ -118,26 +117,26 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
               transition={{ delay: 0.4, duration: 0.4 }}
               className="px-8 pb-6"
             >
-              <div className="bg-gradient-to-br from-gray-50/80 to-white/80 dark:from-gray-800/80 dark:to-gray-900/80 backdrop-blur-sm rounded-xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-inner">
+              <div className="bg-gray-50 dark:bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 border border-yellow-200/40 dark:border-yellow-700/40 shadow-inner">
                 <div className="space-y-4">
                   <motion.div
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: 0.5, duration: 0.3 }}
-                    className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700"
+                    className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700"
                   >
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Type</span>
-                    <span className="font-semibold text-primary">{getPaymentTypeLabel()}</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Type</span>
+                    <span className="font-semibold text-yellow-600 dark:text-yellow-400">{getPaymentTypeLabel()}</span>
                   </motion.div>
 
                   <motion.div
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: 0.55, duration: 0.3 }}
-                    className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700"
+                    className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700"
                   >
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Amount</span>
-                    <span className="font-bold text-2xl bg-gradient-to-r from-primary to-yellow-600 bg-clip-text text-transparent">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Amount</span>
+                    <span className="font-bold text-2xl text-yellow-600 dark:text-yellow-400">
                       {paymentDetails.amount} {paymentDetails.currency}
                     </span>
                   </motion.div>
@@ -146,12 +145,12 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: 0.6, duration: 0.3 }}
-                    className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700"
+                    className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700"
                   >
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       {paymentDetails.type === 'electricity' ? 'Meter Number' : 'Phone Number'}
                     </span>
-                    <span className="font-semibold text-gray-900 dark:text-white">{paymentDetails.recipient}</span>
+                    <span className="font-semibold text-black dark:text-white">{paymentDetails.recipient}</span>
                   </motion.div>
 
                   {paymentDetails.provider && (
@@ -159,10 +158,10 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                       initial={{ x: -20, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
                       transition={{ delay: 0.65, duration: 0.3 }}
-                      className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700"
+                      className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700"
                     >
-                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Provider</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">{paymentDetails.provider}</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Provider</span>
+                      <span className="font-semibold text-black dark:text-white">{paymentDetails.provider}</span>
                     </motion.div>
                   )}
 
@@ -172,24 +171,24 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                       initial={{ x: -20, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
                       transition={{ delay: 0.68, duration: 0.3 }}
-                      className="py-4 my-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border-2 border-green-200 dark:border-green-700"
+                      className="py-4 my-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border-2 border-yellow-300 dark:border-yellow-600"
                     >
                       <div className="text-center">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-green-600 dark:text-green-400">Your Top-up PIN</span>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-yellow-700 dark:text-yellow-300">Your Top-up PIN</span>
                         <div className="flex items-center justify-center gap-2 mt-2">
-                          <span className="font-mono text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent tracking-widest">
+                          <span className="font-mono text-2xl font-bold text-yellow-600 dark:text-yellow-400 tracking-widest">
                             {paymentDetails.pinCode}
                           </span>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => copyToClipboard(paymentDetails.pinCode!, 'PIN Code')}
-                            className="h-8 w-8 hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-green-600"
+                            className="h-8 w-8 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 hover:text-yellow-600 dark:hover:text-yellow-400"
                           >
                             <Copy className="h-5 w-5" />
                           </Button>
                         </div>
-                        <p className="text-xs text-green-600/80 dark:text-green-400/80 mt-2">Dial *126*PIN# to redeem</p>
+                        <p className="text-xs text-yellow-700/80 dark:text-yellow-300/80 mt-2">Dial *126*PIN# to redeem</p>
                       </div>
                     </motion.div>
                   )}
@@ -199,18 +198,18 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                       initial={{ x: -20, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
                       transition={{ delay: 0.7, duration: 0.3 }}
-                      className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700"
+                      className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700"
                     >
-                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Token</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Token</span>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm bg-primary/10 dark:bg-primary/20 px-3 py-1 rounded-lg border border-primary/20">
+                        <span className="font-mono text-sm bg-yellow-100 dark:bg-yellow-900/30 px-3 py-1 rounded-lg border border-yellow-300 dark:border-yellow-600 text-black dark:text-white">
                           {paymentDetails.token}
                         </span>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => copyToClipboard(paymentDetails.token!, 'Token')}
-                          className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+                          className="h-8 w-8 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 hover:text-yellow-600 dark:hover:text-yellow-400"
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
@@ -223,10 +222,10 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                       initial={{ x: -20, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
                       transition={{ delay: 0.75, duration: 0.3 }}
-                      className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700"
+                      className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700"
                     >
-                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Units</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">{paymentDetails.units}</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Units</span>
+                      <span className="font-semibold text-black dark:text-white">{paymentDetails.units}</span>
                     </motion.div>
                   )}
 
@@ -236,16 +235,16 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                     transition={{ delay: 0.8, duration: 0.3 }}
                     className="flex justify-between items-center py-2"
                   >
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Transaction Hash</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Transaction Hash</span>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-gray-600 dark:text-gray-400">
+                      <span className="font-mono text-xs bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded text-gray-700 dark:text-gray-300">
                         {paymentDetails.transactionHash.substring(0, 10)}...
                       </span>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => copyToClipboard(paymentDetails.transactionHash, 'Transaction hash')}
-                        className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+                        className="h-8 w-8 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 hover:text-yellow-600 dark:hover:text-yellow-400"
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
@@ -253,7 +252,7 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                         variant="ghost"
                         size="sm"
                         onClick={viewTransaction}
-                        className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+                        className="h-8 w-8 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 hover:text-yellow-600 dark:hover:text-yellow-400"
                       >
                         <ExternalLink className="h-4 w-4" />
                       </Button>
@@ -267,7 +266,7 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.9, duration: 0.4 }}
-                className="mt-6 p-4 bg-gradient-to-r from-primary/5 to-yellow-500/5 rounded-xl border border-primary/10"
+                className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-xl border border-yellow-300 dark:border-yellow-700"
               >
                 <div className="flex items-center justify-center gap-8 text-sm mb-3">
                   <motion.div
@@ -276,8 +275,8 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                     transition={{ delay: 1.0, duration: 0.3 }}
                     className="flex items-center gap-2"
                   >
-                    <div className="p-2 bg-primary/10 rounded-full">
-                      <Receipt className="h-4 w-4 text-primary" />
+                    <div className="p-2 bg-yellow-200 dark:bg-yellow-800 rounded-full">
+                      <Receipt className="h-4 w-4 text-yellow-700 dark:text-yellow-300" />
                     </div>
                     <span className="font-medium text-gray-700 dark:text-gray-300">Receipt</span>
                   </motion.div>
@@ -291,16 +290,16 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                     >
                       <div className={cn(
                         "p-2 rounded-full",
-                        paymentDetails.emailSent ? "bg-green-100 dark:bg-green-900/30" : "bg-gray-100 dark:bg-gray-800"
+                        paymentDetails.emailSent ? "bg-green-100 dark:bg-green-900/30" : "bg-gray-200 dark:bg-gray-800"
                       )}>
                         <Mail className={cn(
                           "h-4 w-4",
-                          paymentDetails.emailSent ? "text-green-600 dark:text-green-400" : "text-gray-400"
+                          paymentDetails.emailSent ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"
                         )} />
                       </div>
                       <span className={cn(
                         "font-medium",
-                        paymentDetails.emailSent ? "text-green-600 dark:text-green-400" : "text-gray-400"
+                        paymentDetails.emailSent ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"
                       )}>
                         {paymentDetails.emailSent ? 'Email Sent ✓' : 'Email Pending'}
                       </span>
@@ -316,16 +315,16 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                     >
                       <div className={cn(
                         "p-2 rounded-full",
-                        paymentDetails.smsSent ? "bg-green-100 dark:bg-green-900/30" : "bg-gray-100 dark:bg-gray-800"
+                        paymentDetails.smsSent ? "bg-green-100 dark:bg-green-900/30" : "bg-gray-200 dark:bg-gray-800"
                       )}>
                         <MessageSquare className={cn(
                           "h-4 w-4",
-                          paymentDetails.smsSent ? "text-green-600 dark:text-green-400" : "text-gray-400"
+                          paymentDetails.smsSent ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"
                         )} />
                       </div>
                       <span className={cn(
                         "font-medium",
-                        paymentDetails.smsSent ? "text-green-600 dark:text-green-400" : "text-gray-400"
+                        paymentDetails.smsSent ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"
                       )}>
                         {paymentDetails.smsSent ? 'SMS Sent ✓' : 'SMS Pending'}
                       </span>
@@ -337,7 +336,7 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 1.3, duration: 0.4 }}
-                  className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2"
+                  className="text-xs text-center text-gray-600 dark:text-gray-400 mt-2"
                 >
                   A detailed receipt has been sent to your email and phone
                 </motion.p>
@@ -352,14 +351,14 @@ export function PaymentSuccessModal({ open, onClose, paymentDetails }: PaymentSu
               >
                 <Button
                   variant="outline"
-                  className="flex-1 h-12 bg-primary/20 border-primary/60 text-primary font-semibold hover:bg-primary/30 hover:border-primary/80 transition-all duration-300"
+                  className="flex-1 h-12 bg-yellow-100 dark:bg-yellow-900/30 border-yellow-400 dark:border-yellow-600 text-yellow-700 dark:text-yellow-300 font-semibold hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-all duration-300"
                   onClick={viewTransaction}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   View on Explorer
                 </Button>
                 <Button
-                  className="flex-1 h-12 bg-gradient-to-r from-primary to-yellow-600 hover:from-primary/90 hover:to-yellow-600/90 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+                  className="flex-1 h-12 bg-yellow-500 dark:bg-yellow-600 text-black dark:text-white hover:bg-yellow-600 dark:hover:bg-yellow-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] font-semibold"
                   onClick={onClose}
                 >
                   <motion.span
