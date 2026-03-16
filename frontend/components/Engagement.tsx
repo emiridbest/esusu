@@ -82,8 +82,6 @@ export default function Engagement() {
   );
 }
 
-const INVITE_STORAGE_KEY = "invite_inviter"
-
 const formatAmount = (amount: bigint) => {
   return (Number(amount) / 1e18).toFixed(2)
 }
@@ -101,12 +99,18 @@ const RewardsClaimCard = () => {
   const [inviterShare, setInviterShare] = useState<number>(0)
   const [isClaimable, setIsClaimable] = useState(false)
   const searchParams = useSearchParams()
-  const inviterAddress = searchParams.get('inviterAddress')
+  const inviterFromUrl = searchParams.get('inviterAddress')
+  const [storedInviterAddress, setStoredInviterAddress] = useState<string | null>(null)
+  const [hasEnoughTransactions, setHasEnoughTransactions] = useState<boolean>(false)
+  const [checkingTxCount, setCheckingTxCount] = useState<boolean>(true)
   const [isWhitelisted, setIsWhitelisted] = useState<boolean>(false)
   const [checkingWhitelist, setCheckingWhitelist] = useState<boolean>(true)
   const [lastTransactionHash, setLastTransactionHash] = useState<string | null>(null)
   const userWallet = userAddress
   const { sendTransactionAsync } = useSendTransaction();
+
+  // Resolved inviter: URL param > DB-stored > default
+  const inviterAddress = inviterFromUrl || storedInviterAddress;
   const formatAddress = (addr: string | null) => {
     if (!addr) return '';
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -175,21 +179,65 @@ const RewardsClaimCard = () => {
     fetchRewardDetails()
   }, [engagementRewards, userAddress])
 
-  // Handle invite link and inviter storage
+  // Store inviter in DB from URL param & load stored inviter from DB
   useEffect(() => {
-    // Store inviter if in URL params
-    if (inviterAddress) {
-      localStorage.setItem(INVITE_STORAGE_KEY, inviterAddress)
+    if (!userAddress) {
+      setInviteLink("")
+      return
     }
 
-    // Update invite link when wallet is connected
-    if (userAddress) {
-      const baseUrl = window.location.origin
-      setInviteLink(`${baseUrl}/freebies?inviterAddress=${userAddress}`)
+    const baseUrl = window.location.origin
+    setInviteLink(`${baseUrl}/freebies?inviterAddress=${userAddress}`)
+
+    // If URL has an inviter, persist it to DB (first inviter wins on backend)
+    if (inviterFromUrl) {
+      fetch('/api/invites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: userAddress,
+          inviterAddress: inviterFromUrl,
+        }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success && data.invite) {
+            setStoredInviterAddress(data.invite.inviterAddress)
+          }
+        })
+        .catch((err) => console.error('Failed to store invite:', err))
     } else {
-      setInviteLink("")
+      // Load existing inviter from DB
+      fetch(`/api/invites?wallet=${encodeURIComponent(userAddress)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success && data.invite) {
+            setStoredInviterAddress(data.invite.inviterAddress)
+          }
+        })
+        .catch((err) => console.error('Failed to load invite:', err))
     }
-  }, [inviterAddress, userAddress])
+  }, [inviterFromUrl, userAddress])
+
+  // Check transaction count eligibility (need 3+ confirmed transactions)
+  useEffect(() => {
+    if (!userAddress) {
+      setCheckingTxCount(false)
+      setHasEnoughTransactions(false)
+      return
+    }
+
+    setCheckingTxCount(true)
+    fetch(`/api/transactions/count?wallet=${encodeURIComponent(userAddress)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) {
+          setHasEnoughTransactions(data.eligible)
+        }
+      })
+      .catch((err) => console.error('Failed to check tx count:', err))
+      .finally(() => setCheckingTxCount(false))
+  }, [userAddress])
 
   // Add whitelist check effect
   useEffect(() => {
@@ -304,6 +352,12 @@ const RewardsClaimCard = () => {
       return;
     }
 
+    if (!hasEnoughTransactions) {
+      setStatus("You need at least 3 confirmed transactions before you can claim rewards.");
+      setClaimStep("error");
+      return;
+    }
+
     if (!isClaimable) {
       setStatus("No rewards available yet. Share your invite link to start earning!");
       setClaimStep("error");
@@ -346,27 +400,21 @@ const RewardsClaimCard = () => {
       setStatus("Submitting to blockchain...");
 
 
-      const claimInterface = new Interface(EngagementRewardsAbi);
-      const claimData = claimInterface.encodeFunctionData("nonContractAppClaim", [
+          // Submit claim
+      const receipt = await engagementRewards.nonContractAppClaim(
         APP_ADDRESS,
         (inviterAddress as `0x${string}`) || INVITER_ADDRESS,
         validUntilBlock,
         userSignature,
-        appSignature as `0x${string}`,
-      ]);
+        appSignature as `0x${string}`
+      )
 
-      const tx = await sendTransactionAsync({
-        to: EngagementAddress as `0x${string}`,
-        data: claimData as `0x${string}`,
-      });
+      const shortHash = formatTransactionHash(receipt.transactionHash)
+      const txUrl = getTransactionUrl(receipt.transactionHash)
 
-      setStatus("Waiting for confirmation...");
-      if (!tx) throw new Error("Transaction submission failed");
-
-      const shortHash = formatTransactionHash(tx);
-      const txUrl = getTransactionUrl(tx);
-
-      setLastTransactionHash(tx);
+      setStatus(`Transaction completed: ${shortHash}`)
+      setClaimStep('success')
+      setLastTransactionHash(receipt.transactionHash);
       setStatus(`Transaction completed: ${shortHash}`);
       setClaimStep("success");
 
@@ -383,6 +431,8 @@ const RewardsClaimCard = () => {
       setIsLoading(false);
     }
   };
+
+  
   const getStepIcon = () => {
     if (claimStep === 'success') {
       return <CheckCircle2 className="w-5 h-5 text-yellow-500" />
@@ -399,6 +449,7 @@ const RewardsClaimCard = () => {
   const getButtonText = () => {
     if (!isConnected) return 'Connect Wallet'
     if (!isWhitelisted) return 'Verify to Claim'
+    if (!hasEnoughTransactions && claimStep !== 'success') return 'Need 3+ Transactions'
     if (!isClaimable && claimStep !== 'success') return 'No Claim Available'
     if (claimStep === 'success') return 'Claim Successful!'
     if (isLoading) {
@@ -481,13 +532,15 @@ const RewardsClaimCard = () => {
                   </div>
                 </div>
                 <p className="text-sm text-black dark:text-white/90">
-                  {checkingWhitelist
-                    ? 'Checking your verification status...'
-                    : isWhitelisted
-                      ? isClaimable
-                        ? 'You are eligible to claim rewards right now.'
-                        : 'No rewards are ready yet. Share your invite link to earn more.'
-                      : 'Verify your account to unlock reward claiming.'}
+                  {checkingWhitelist || checkingTxCount
+                    ? 'Checking your eligibility...'
+                    : !isWhitelisted
+                      ? 'Verify your account to unlock reward claiming.'
+                      : !hasEnoughTransactions
+                        ? 'You need at least 3 confirmed transactions to claim rewards.'
+                        : isClaimable
+                          ? 'You are eligible to claim rewards right now.'
+                          : 'No rewards are ready yet. Share your invite link to earn more.'}
                 </p>
               </div>
 
@@ -500,6 +553,10 @@ const RewardsClaimCard = () => {
                   <li className="flex items-center">
                     <CheckCircle2 className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
                     Complete face verification
+                  </li>
+                  <li className="flex items-center">
+                    <Clock className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
+                    Complete at least 3 transactions on the platform
                   </li>
                   <li className="flex items-center">
                     <Clock className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
@@ -540,11 +597,11 @@ const RewardsClaimCard = () => {
               <div className="pt-2">
                 <Button
                   onClick={handleClaim}
-                  disabled={!isConnected || isLoading || claimStep === 'success' || !isWhitelisted || !isClaimable || checkingWhitelist}
+                  disabled={!isConnected || isLoading || claimStep === 'success' || !isWhitelisted || !isClaimable || !hasEnoughTransactions || checkingWhitelist || checkingTxCount}
                   className="w-full h-12 text-lg font-semibold bg-yellow-500 dark:bg-yellow-500 text-black/90 hover:bg-yellow-600 transition-all duration-200"
                 >
                   {getButtonText()}
-                  {!isLoading && claimStep !== 'success' && isWhitelisted && isConnected && isClaimable && (
+                  {!isLoading && claimStep !== 'success' && isWhitelisted && isConnected && isClaimable && hasEnoughTransactions && (
                     <ArrowRight className="w-5 h-5 ml-2" />
                   )}
                 </Button>
