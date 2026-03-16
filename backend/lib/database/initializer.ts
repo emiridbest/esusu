@@ -9,7 +9,8 @@ import {
   ThriftGroupMetadata,
   IUser,
   ITransaction,
-  Invite 
+  Invite,
+  UBIClaim 
 } from './schemas';
 import { FaceVerificationLog } from './faceVerificationLog';
 
@@ -55,7 +56,8 @@ export class DatabaseInitializer {
         this._ensureCollectionExists('paymenthashes'),
         this._ensureCollectionExists('thriftgroupmetadatas'),
         this._ensureCollectionExists('faceverificationlogs'),
-        this._ensureCollectionExists('invites')
+        this._ensureCollectionExists('invites'),
+        this._ensureCollectionExists('ubiclaims')
       ]);
 
       // Step 3: Create indexes (parallel for performance)
@@ -69,6 +71,7 @@ export class DatabaseInitializer {
         this._createThriftMetadataIndexes(),
         this._createFaceVerificationLogIndexes(),
         this._createInviteIndexes(),
+        this._createUBIClaimIndexes(),
       ]);
 
       // Step 4: Run database migrations
@@ -108,6 +111,19 @@ export class DatabaseInitializer {
       console.log('🔍 Invite indexes created');
     } catch (error) {
       console.warn('⚠️ Invite indexes may already exist:', (error as Error).message);
+    }
+  }
+
+  private static async _createUBIClaimIndexes(): Promise<void> {
+    try {
+      await UBIClaim.collection.createIndexes([
+        { key: { walletAddress: 1, claimDate: 1 }, background: true },
+        { key: { walletAddress: 1 }, background: true },
+        { key: { claimDate: -1 }, background: true }
+      ]);
+      console.log('🔍 UBIClaim indexes created');
+    } catch (error) {
+      console.warn('⚠️ UBIClaim indexes may already exist:', (error as Error).message);
     }
   }
 
