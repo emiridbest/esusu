@@ -8,7 +8,8 @@ import {
   PaymentHash,
   ThriftGroupMetadata,
   IUser,
-  ITransaction 
+  ITransaction,
+  Invite 
 } from './schemas';
 import { FaceVerificationLog } from './faceVerificationLog';
 
@@ -54,6 +55,7 @@ export class DatabaseInitializer {
         this._ensureCollectionExists('paymenthashes'),
         this._ensureCollectionExists('thriftgroupmetadatas'),
         this._ensureCollectionExists('faceverificationlogs'),
+        this._ensureCollectionExists('invites')
       ]);
 
       // Step 3: Create indexes (parallel for performance)
@@ -66,6 +68,7 @@ export class DatabaseInitializer {
         this._createPaymentHashIndexes(),
         this._createThriftMetadataIndexes(),
         this._createFaceVerificationLogIndexes(),
+        this._createInviteIndexes(),
       ]);
 
       // Step 4: Run database migrations
@@ -95,7 +98,19 @@ export class DatabaseInitializer {
     }
   }
 
-  
+  private static async _createInviteIndexes(): Promise<void> {
+    try {
+      await Invite.collection.createIndexes([
+        { key: { walletAddress: 1 }, unique: true, background: true },
+        { key: { inviterAddress: 1 }, background: true },
+        { key: { createdAt: -1 }, background: true }
+      ]);
+      console.log('🔍 Invite indexes created');
+    } catch (error) {
+      console.warn('⚠️ Invite indexes may already exist:', (error as Error).message);
+    }
+  }
+
   private static async _verifyConnection(): Promise<void> {
     if (mongoose.connection.readyState !== 1) {
       throw new Error('Database connection not established');
