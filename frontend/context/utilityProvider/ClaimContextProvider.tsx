@@ -292,7 +292,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
             extra: { redirectedTo: fvLink }
           })
         });
-      } catch {}
+      } catch { }
       window.location.href = fvLink;
     } catch (err) {
       console.error("Error generating verification link:", err);
@@ -366,11 +366,11 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       } catch (gasError) {
         console.error("Gas sponsorship failed:", gasError);
       }
-     /* const tx = await sendTransactionAsync({
-        to: ubiSchemeV2Address as `0x${string}`,
-        data: dataWithSuffix as `0x${string}`,
-      });
-*/
+      /* const tx = await sendTransactionAsync({
+         to: ubiSchemeV2Address as `0x${string}`,
+         data: dataWithSuffix as `0x${string}`,
+       });
+ */
       const tx = await claimSDK.claim();
       // Wait for confirmation
       const receipt = await waitForReceipt({
@@ -383,6 +383,19 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         throw new Error("Transaction failed");
       }
 
+      // Track UBI claim in database and ensure user record exists
+      try {
+        await fetch('/api/ubi-claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            walletAddress: address,
+            token: 'G$',
+          }),
+        });
+      } catch (trackErr) {
+        console.error('Failed to track UBI claim:', trackErr);
+      }
       // Reset claim amount after successful claim
       setClaimAmount(null);
       setEntitlement(BigInt(0));
