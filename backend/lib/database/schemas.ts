@@ -313,6 +313,22 @@ const PaymentHashSchema = new Schema<IPaymentHash>({
   bufferCommands: false
 });
 
+const InviteSchema = new Schema<IInvite>({
+  walletAddress: { type: String, required: true, index: true },
+  inviterAddress: { type: String, required: true, index: true },
+  source: { type: String, enum: ['url', 'manual'], default: 'url' },
+  claimed: { type: Boolean, default: false }
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+  bufferCommands: false
+});
+
+// One invite record per wallet — only first inviter counts
+InviteSchema.index({ walletAddress: 1 }, { unique: true });
+
+
 // Export models
 export const User = models.User || model<IUser>('User', UserSchema);
 export const Transaction = models.Transaction || model<ITransaction>('Transaction', TransactionSchema);
@@ -320,6 +336,7 @@ export const Group = models.Group || model<IGroup>('Group', GroupSchema);
 export const Notification = models.Notification || model<INotification>('Notification', NotificationSchema);
 export const Analytics = models.Analytics || model<IAnalytics>('Analytics', AnalyticsSchema);
 export const PaymentHash = models.PaymentHash || model<IPaymentHash>('PaymentHash', PaymentHashSchema);
+export const Invite = models.Invite || model<IInvite>('Invite', InviteSchema);
 
 // Thrift Group Metadata Schema - off-chain metadata for on-chain groups
 export interface IThriftGroupMetadata extends Document {
@@ -553,20 +570,3 @@ export interface IInvite extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
-
-const InviteSchema = new Schema<IInvite>({
-  walletAddress: { type: String, required: true, index: true },
-  inviterAddress: { type: String, required: true, index: true },
-  source: { type: String, enum: ['url', 'manual'], default: 'url' },
-  claimed: { type: Boolean, default: false }
-}, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-  bufferCommands: false
-});
-
-// One invite record per wallet — only first inviter counts
-InviteSchema.index({ walletAddress: 1 }, { unique: true });
-
-export const Invite = models.Invite || model<IInvite>('Invite', InviteSchema);
