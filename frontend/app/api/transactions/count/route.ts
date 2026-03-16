@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@esusu/backend/lib/database/connection';
-import { Transaction, User } from '@esusu/backend/lib/database/schemas';
+import { Transaction, User, UBIClaim } from '@esusu/backend/lib/database/schemas';
 
 // GET /api/transactions/count?wallet=0x...  — count confirmed transactions for a wallet
 export async function GET(request: NextRequest) {
@@ -29,14 +29,23 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const count = await Transaction.countDocuments({
-      user: user._id,
-      status: { $in: ['confirmed', 'completed'] },
-    });
+    const [txCount, ubiCount] = await Promise.all([
+      Transaction.countDocuments({
+        user: user._id,
+        status: { $in: ['confirmed', 'completed'] },
+      }),
+      UBIClaim.countDocuments({
+        walletAddress: walletAddress.toLowerCase(),
+      }),
+    ]);
+
+    const count = txCount + ubiCount;
 
     return NextResponse.json({
       success: true,
       count,
+      transactions: txCount,
+      ubiClaims: ubiCount,
       eligible: count >= 3,
     });
   } catch (error: any) {
