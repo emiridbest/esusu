@@ -543,3 +543,30 @@ GasSponsorshipSchema.index({ status: 1, createdAt: -1 });
 
 export const GasSponsorship = models.GasSponsorship
   || model<IGasSponsorship>('GasSponsorship', GasSponsorshipSchema);
+
+// Invite Schema - Track referral/invite relationships between wallets
+export interface IInvite extends Document {
+  walletAddress: string;       // The invited user's wallet
+  inviterAddress: string;      // The wallet that invited them
+  source: 'url' | 'manual';   // How the invite was recorded
+  claimed: boolean;            // Whether the invited user has claimed rewards
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const InviteSchema = new Schema<IInvite>({
+  walletAddress: { type: String, required: true, index: true },
+  inviterAddress: { type: String, required: true, index: true },
+  source: { type: String, enum: ['url', 'manual'], default: 'url' },
+  claimed: { type: Boolean, default: false }
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+  bufferCommands: false
+});
+
+// One invite record per wallet — only first inviter counts
+InviteSchema.index({ walletAddress: 1 }, { unique: true });
+
+export const Invite = models.Invite || model<IInvite>('Invite', InviteSchema);
