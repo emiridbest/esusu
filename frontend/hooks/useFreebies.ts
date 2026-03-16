@@ -423,6 +423,7 @@ export const useFreebiesLogic = () => {
                 hasClaimedSuccessfully = true;
                 updateStepStatus('claim-ubi', 'success');
                 toast.success("Claim successful! Your data bundle will be activated shortly.");
+
             } catch (claimError) {
                 console.error("Claim failed:", claimError);
                 toast.error("Failed to claim your free data bundle. Please try again.");
