@@ -338,6 +338,36 @@ export const Analytics = models.Analytics || model<IAnalytics>('Analytics', Anal
 export const PaymentHash = models.PaymentHash || model<IPaymentHash>('PaymentHash', PaymentHashSchema);
 export const Invite = models.Invite || model<IInvite>('Invite', InviteSchema);
 
+// UBIClaim Schema - Track daily G$ UBI claims per wallet
+export interface IUBIClaim extends Document {
+  walletAddress: string;
+  claimDate: Date;
+  txHash?: string;
+  amount?: number;
+  token?: string;
+  metadata?: any;
+  createdAt: Date;
+}
+
+const UBIClaimSchema = new Schema<IUBIClaim>({
+  walletAddress: { type: String, required: true, index: true },
+  claimDate: { type: Date, required: true, index: true },
+  txHash: { type: String },
+  amount: { type: Number },
+  token: { type: String },
+  metadata: { type: Schema.Types.Mixed },
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+  bufferCommands: false
+});
+
+// One claim per wallet per day
+UBIClaimSchema.index({ walletAddress: 1, claimDate: 1 });
+
+export const UBIClaim = models.UBIClaim || model<IUBIClaim>('UBIClaim', UBIClaimSchema);
+
 // Thrift Group Metadata Schema - off-chain metadata for on-chain groups
 export interface IThriftGroupMetadata extends Document {
   contractAddress: string;
