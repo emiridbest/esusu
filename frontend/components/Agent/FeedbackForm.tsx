@@ -191,7 +191,7 @@ export function FeedbackForm({ initialData, onSuccess }: FeedbackFormProps) {
                 });
                 if (res.ok) {
                     const { cid } = await res.json();
-                    finalFeedbackURI = `http://ipfs.io/ipfs/${cid}`;
+                    finalFeedbackURI = `ipfs.io/ipfs/${cid}`;
                     setFeedbackURI(finalFeedbackURI);
                     console.log("Feedback uploaded to Pinata:", finalFeedbackURI);
                 }
