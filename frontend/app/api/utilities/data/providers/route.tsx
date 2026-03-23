@@ -155,8 +155,6 @@ async function getOperatorsByCountry(countryCode: string, dataOnly: boolean, bun
     throw error;
   }
 }
-import { isDingConnectCountry } from '@/utils/countryData';
-
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const country = searchParams.get('country');
@@ -167,28 +165,23 @@ export async function GET(request: NextRequest) {
     // Ensure country code is properly formatted
     const sanitizedCountry = country.trim().toLowerCase();
 
-    // Check if this is a DingConnect-only country (Tier 2)
-    const isDingOnly = isDingConnectCountry(country);
-
     let reloadlyOperators: { id: string; name: string; logoUrls: string[]; supportsData: boolean; supportsBundles: boolean }[] = [];
 
-    // Try Reloadly first (unless it's a DingConnect-only country)
-    if (!isDingOnly) {
-      try {
-        const reloadlyOperatorsRaw = await getOperatorsByCountry(sanitizedCountry, true, true, true);
+    // Try Reloadly first for all countries
+    try {
+      const reloadlyOperatorsRaw = await getOperatorsByCountry(sanitizedCountry, true, true, true);
 
-        if (Array.isArray(reloadlyOperatorsRaw)) {
-          reloadlyOperators = reloadlyOperatorsRaw.map((op: any) => ({
-            id: op.operatorId?.toString() || (op.id || '').toString(),
-            name: op.name || 'Unknown Provider',
-            logoUrls: op.logoUrls || [],
-            supportsData: op.data || false,
-            supportsBundles: op.bundle || false
-          }));
-        }
-      } catch (err: any) {
-        console.warn('Reloadly fetch failed:', err.message);
+      if (Array.isArray(reloadlyOperatorsRaw)) {
+        reloadlyOperators = reloadlyOperatorsRaw.map((op: any) => ({
+          id: op.operatorId?.toString() || (op.id || '').toString(),
+          name: op.name || 'Unknown Provider',
+          logoUrls: op.logoUrls || [],
+          supportsData: op.data || false,
+          supportsBundles: op.bundle || false
+        }));
       }
+    } catch (err: any) {
+      console.warn('Reloadly fetch failed:', err.message);
     }
 
     // If Reloadly returned results, use them
