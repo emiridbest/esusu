@@ -156,7 +156,6 @@ async function getOperatorsByCountry(countryCode: string, dataOnly: boolean, bun
   }
 }
 import { getDingProviders, formatDingProvidersToOperators } from '@/lib/dingConnect';
-import { isDingConnectCountry } from '@/utils/countryData';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -167,32 +166,27 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Check if this is a DingConnect-only country (Tier 2)
-    const isDingOnly = isDingConnectCountry(country);
-
     let reloadlyOperators: { id: string; name: string; logoUrls: string[] }[] = [];
 
-    // Try Reloadly first (unless it's a DingConnect-only country)
-    if (!isDingOnly) {
-      try {
-        const reloadlyOperatorsRaw = await getOperatorsByCountry(country, false, false, false);
+    // Try Reloadly first for all countries
+    try {
+      const reloadlyOperatorsRaw = await getOperatorsByCountry(country, false, false, false);
 
-        if (Array.isArray(reloadlyOperatorsRaw)) {
-          const filteredOperators = reloadlyOperatorsRaw.filter((op: any) => {
-            const operatorName = (op.name || '').toLowerCase();
-            return !operatorName.includes('data') &&
-              !operatorName.includes('bundle') &&
-              !operatorName.includes('internet');
-          });
-          reloadlyOperators = filteredOperators.map((op: any) => ({
-            id: op.operatorId?.toString() || (op.id || '').toString(),
-            name: op.name || 'Unknown Provider',
-            logoUrls: op.logoUrls || [],
-          }));
-        }
-      } catch (err: any) {
-        console.warn('Reloadly fetch failed:', err.message);
+      if (Array.isArray(reloadlyOperatorsRaw)) {
+        const filteredOperators = reloadlyOperatorsRaw.filter((op: any) => {
+          const operatorName = (op.name || '').toLowerCase();
+          return !operatorName.includes('data') &&
+            !operatorName.includes('bundle') &&
+            !operatorName.includes('internet');
+        });
+        reloadlyOperators = filteredOperators.map((op: any) => ({
+          id: op.operatorId?.toString() || (op.id || '').toString(),
+          name: op.name || 'Unknown Provider',
+          logoUrls: op.logoUrls || [],
+        }));
       }
+    } catch (err: any) {
+      console.warn('Reloadly fetch failed:', err.message);
     }
 
     // If Reloadly returned results, use them
