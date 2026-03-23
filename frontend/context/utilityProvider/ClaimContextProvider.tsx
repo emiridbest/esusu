@@ -403,34 +403,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
       toast.success("Successfully claimed G$ tokens!");
 
-      // Update transaction count with referral tracking
-      try {
-        const txCountAbi = parseAbi(["function increment()"]);
-        const txCountData = encodeFunctionData({
-          abi: txCountAbi,
-          functionName: 'increment',
-          args: []
-        });
-
-
-        const txCountTransaction = await prepareTransaction({
-          to: txCountAddress as `0x${string}`,
-          data: txCountData as `0x${string}`,
-          client,
-          chain: activeChain,
-        });
-
-        const txCount = await sendTransaction({
-          account,
-          transaction: txCountTransaction,
-        });
-
-        return { success: true, transactionHash: tx.transactionHash };
-      } catch (error) {
-        console.error("Error during transaction count update:", error);
-        toast.error("There was an error updating the transaction count.");
-        return { success: false, error };
-      }
+      return { success: true, transactionHash: tx.transactionHash };
     } catch (error) {
       console.error("Error during claim:", error);
       toast.error(error instanceof Error ? error.message : "There was an error processing your claim.");
