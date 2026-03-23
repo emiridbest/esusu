@@ -195,8 +195,10 @@ async function getExchangeRate(base_currency: string, targetCurrency: string): P
 
   // If no Reloadly operator available, use fxratesapi fallback
   if (operator === null) {
-    console.log(`No Reloadly operator for ${currencyForOperator}, using fxratesapi fallback`);
-    const fallbackRate = await getFxRatesApiRate(targetCurrency);
+    // Always get the rate for the non-USD currency (fxratesapi base is always USD)
+    const localCurrency = base_currency.toUpperCase() === 'USD' ? targetCurrency : base_currency;
+    console.log(`No Reloadly operator for ${currencyForOperator}, using fxratesapi fallback (local: ${localCurrency})`);
+    const fallbackRate = await getFxRatesApiRate(localCurrency);
     rateCache.set(cacheKey, { rate: fallbackRate, timestamp: Date.now() });
     return fallbackRate;
   }
@@ -351,6 +353,34 @@ async function convertToUSD(
 }
 
 
+// Map country codes (ISO 3166-1 alpha-2) to currency codes (ISO 4217)
+// Handles cases where the frontend sends a country code instead of a currency code
+const COUNTRY_TO_CURRENCY: Record<string, string> = {
+  NG: 'NGN', GH: 'GHS', KE: 'KES', UG: 'UGX', ZA: 'ZAR', TZ: 'TZS',
+  RW: 'RWF', ET: 'ETB', EG: 'EGP', MA: 'MAD', SN: 'XOF', CM: 'XAF',
+  JM: 'JMD', HT: 'HTG', DO: 'DOP', TT: 'TTD', BB: 'BBD',
+  MX: 'MXN', GT: 'GTQ', HN: 'HNL', SV: 'USD', NI: 'NIO', CO: 'COP',
+  PE: 'PEN', BR: 'BRL',
+  PH: 'PHP', IN: 'INR', PK: 'PKR', BD: 'BDT', NP: 'NPR', LK: 'LKR',
+  VN: 'VND', ID: 'IDR',
+  SA: 'SAR', AE: 'AED',
+  US: 'USD', CA: 'CAD', GB: 'GBP', DE: 'EUR', FR: 'EUR', ES: 'EUR', IT: 'EUR',
+};
+
+/**
+ * Resolves the input to a valid ISO 4217 currency code.
+ * Accepts either a currency code (e.g., "BDT") or a country code (e.g., "bd").
+ */
+function resolveCurrencyCode(input: string): string {
+  const upper = input.toUpperCase();
+  // If it's already a known fiat currency, return it
+  if (FIAT_CURRENCIES.has(upper)) return upper;
+  // Try to map from country code
+  if (COUNTRY_TO_CURRENCY[upper]) return COUNTRY_TO_CURRENCY[upper];
+  // Return as-is (will fail validation downstream if truly invalid)
+  return upper;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { amount, base_currency } = await request.json();
@@ -361,18 +391,22 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Resolve country codes (e.g., "bd") to currency codes (e.g., "BDT")
+    const resolvedCurrency = resolveCurrencyCode(base_currency);
+
     // Determine the correct conversion function based on currencies
     try {
       let convertedAmount: number;
       let rate: number;
 
-      if (base_currency === 'USD') {
+      if (resolvedCurrency === 'USD') {
         // Convert from USD to local currency
-        convertedAmount = await convertFromUSD(amount, base_currency);
+        convertedAmount = await convertFromUSD(amount, resolvedCurrency);
         rate = convertedAmount / parseFloat(amount);
       } else {
         // Convert from local currency to USD
-        convertedAmount = await convertToUSD(amount, base_currency);
+        convertedAmount = await convertToUSD(amount, resolvedCurrency);
         rate = convertedAmount / parseFloat(amount);
       }
 
