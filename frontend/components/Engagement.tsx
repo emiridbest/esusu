@@ -186,7 +186,7 @@ const RewardsClaimCard = () => {
       return
     }
 
-    const baseUrl = window.location.origin
+    const baseUrl = "https://esusuafrica.com"
     setInviteLink(`${baseUrl}/freebies?inviterAddress=${userAddress}`)
 
     // If URL has an inviter, persist it to DB (first inviter wins on backend)
