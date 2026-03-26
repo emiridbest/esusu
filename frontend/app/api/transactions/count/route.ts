@@ -39,14 +39,14 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    const count = txCount + ubiCount;
+    const count = txCount;
 
     return NextResponse.json({
       success: true,
       count,
       transactions: txCount,
       ubiClaims: ubiCount,
-      eligible: count >= 3,
+      eligible: count >= 10,
     });
   } catch (error: any) {
     console.error('Error counting transactions:', error);
