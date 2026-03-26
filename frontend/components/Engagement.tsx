@@ -17,8 +17,6 @@ import {
 } from "lucide-react";
 import { toast } from 'sonner';
 import { useAccount, useSendTransaction } from "wagmi";
-import { waitForTransactionReceipt } from "wagmi/actions";
-import { EngagementAddress, EngagementRewardsAbi } from "@/utils/engagement";
 //@ts-ignore
 import { useEngagementRewards, DEV_REWARDS_CONTRACT, REWARDS_CONTRACT } from '@goodsdks/engagement-sdk'
 import {
@@ -31,8 +29,7 @@ import {
 } from '@/lib/engagementHelpers'
 import { useSearchParams } from 'next/navigation'
 import { useIdentitySDK } from "@goodsdks/react-hooks"
-import { Interface } from "ethers";
-import { config } from "zod/v4/core";
+
 interface InviteReward {
   invitedWallet: string
   rewardAmount: string
@@ -219,7 +216,7 @@ const RewardsClaimCard = () => {
     }
   }, [inviterFromUrl, userAddress])
 
-  // Check transaction count eligibility (need 3+ confirmed transactions)
+  // Check transaction count eligibility (need 10+ confirmed transactions)
   useEffect(() => {
     if (!userAddress) {
       setCheckingTxCount(false)
@@ -353,7 +350,7 @@ const RewardsClaimCard = () => {
     }
 
     if (!hasEnoughTransactions) {
-      setStatus("You need at least 3 confirmed transactions before you can claim rewards.");
+      setStatus("You need at least 10 confirmed transactions before you can claim rewards.");
       setClaimStep("error");
       return;
     }
@@ -449,7 +446,7 @@ const RewardsClaimCard = () => {
   const getButtonText = () => {
     if (!isConnected) return 'Connect Wallet'
     if (!isWhitelisted) return 'Verify to Claim'
-    if (!hasEnoughTransactions && claimStep !== 'success') return 'Need 3+ Transactions'
+    if (!hasEnoughTransactions && claimStep !== 'success') return 'Need 10+ Transactions'
     if (!isClaimable && claimStep !== 'success') return 'No Claim Available'
     if (claimStep === 'success') return 'Claim Successful!'
     if (isLoading) {
@@ -537,7 +534,7 @@ const RewardsClaimCard = () => {
                     : !isWhitelisted
                       ? 'Verify your account to unlock reward claiming.'
                       : !hasEnoughTransactions
-                        ? 'You need at least 3 confirmed transactions to claim rewards.'
+                        ? 'You need at least 10 confirmed transactions to claim rewards.'
                         : isClaimable
                           ? 'You are eligible to claim rewards right now.'
                           : 'No rewards are ready yet. Share your invite link to earn more.'}
@@ -556,7 +553,7 @@ const RewardsClaimCard = () => {
                   </li>
                   <li className="flex items-center">
                     <Clock className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
-                    Complete at least 3 transactions on the platform
+                    Complete at least 10 transactions on the platform
                   </li>
                   <li className="flex items-center">
                     <Clock className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
