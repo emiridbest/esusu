@@ -2,11 +2,8 @@ import { createPublicClient, http, parseAbi, type Abi, type Address } from 'viem
 import { celo } from 'viem/chains';
 
 // USDT on Celo — whitelisted as a gas fee currency
-// The token address is used for balance checks; the adapter address is what
-// must be passed as `feeCurrency` in a transaction (required for non-18-decimal tokens).
 const USDT_FEE_CURRENCY = {
-    address: '0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e' as Address,        // token (for balanceOf)
-    adapterAddress: '0x0B2f9835eCF98A7e3c709fded49052b259110E04' as Address,  // fee currency adapter (for feeCurrency field)
+    address: '0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e' as Address,
     decimals: 6,
     token: 'USDT',
 };
@@ -158,7 +155,7 @@ export class GasEstimationService {
             if (usdtBalance >= minUsdtForGas) {
                 return {
                     token: USDT_FEE_CURRENCY.token,
-                    address: USDT_FEE_CURRENCY.adapterAddress,
+                    address: USDT_FEE_CURRENCY.address,
                     decimals: USDT_FEE_CURRENCY.decimals,
                 };
             }
