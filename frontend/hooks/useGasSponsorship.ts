@@ -1,5 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { Abi, Address } from 'viem';
+
+/** Detect MiniPay wallet at runtime */
+function detectMiniPay(): boolean {
+    if (typeof window === 'undefined') return false;
+    return !!(window as any).ethereum?.isMiniPay;
+}
 
 export interface GasSponsorParams {
     contractAddress: Address;
@@ -134,7 +140,7 @@ export function useGasSponsorship() {
                         functionName: params.functionName,
                         args: serializedArgs,
                         value: params.value?.toString(),
-                        isMiniPay: params.isMiniPay || false,
+                        isMiniPay: params.isMiniPay ?? detectMiniPay(),
                     }),
                 });
 
