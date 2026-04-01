@@ -302,13 +302,16 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
 
       // Sponsor gas
+      let feeCurrencyAddr: string | undefined;
       try {
         const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
           contractAddress: tokenAddress as `0x${string}`,
           abi: approveAbi,
           functionName: 'approve',
           args: [contractAddress, depositValue],
+          isMiniPay: true,
         });
+        feeCurrencyAddr = sponsorshipResult.feeCurrency;
 
         if (sponsorshipResult.gasSponsored) {
           toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
@@ -324,6 +327,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const txHash = await sendTransactionAsync({
         to: tokenAddress as `0x${string}`,
         data: approveData as `0x${string}`,
+        ...(feeCurrencyAddr && { feeCurrency: feeCurrencyAddr as `0x${string}` }),
       });
       updateStepStatus('approve', 'success');
       updateStepStatus('confirm', 'loading');
@@ -411,13 +415,16 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         });
 
         // Sponsor gas for approval
+        let feeCurrencyApprove: string | undefined;
         try {
           const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
             contractAddress: tokenAddress as `0x${string}`,
             abi: tokenAbi,
             functionName: 'approve',
             args: [contractAddress, depositValue],
+            isMiniPay: true,
           });
+          feeCurrencyApprove = sponsorshipResult.feeCurrency;
 
           if (sponsorshipResult.gasSponsored) {
             toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
@@ -432,6 +439,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const approveTxHash = await sendTransactionAsync({
           to: tokenAddress as `0x${string}`,
           data: approveData as `0x${string}`,
+          ...(feeCurrencyApprove && { feeCurrency: feeCurrencyApprove as `0x${string}` }),
         });
 
         if (approveTxHash) {
@@ -453,13 +461,16 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
 
       // Sponsor gas for deposit
+      let feeCurrencyDeposit: string | undefined;
       try {
         const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
           contractAddress: contractAddress as `0x${string}`,
           abi: parseAbi(["function deposit(address, uint256)"]),
           functionName: 'deposit',
           args: [tokenAddress, depositValue],
+          isMiniPay: true,
         });
+        feeCurrencyDeposit = sponsorshipResult.feeCurrency;
 
         if (sponsorshipResult.gasSponsored) {
           toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
@@ -474,6 +485,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const txHash = await sendTransactionAsync({
         to: contractAddress as `0x${string}`,
         data: depositData as `0x${string}`,
+        ...(feeCurrencyDeposit && { feeCurrency: feeCurrencyDeposit as `0x${string}` }),
       });
       updateStepStatus('deposit', 'success');
 
@@ -561,13 +573,16 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
 
       // Sponsor gas for withdrawal
+      let feeCurrencyWithdraw: string | undefined;
       try {
         const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
           contractAddress: contractAddress as `0x${string}`,
           abi: parseAbi(["function withdraw(address, uint256)"]),
           functionName: 'withdraw',
           args: [tokenAddress, withdrawalValue],
+          isMiniPay: true,
         });
+        feeCurrencyWithdraw = sponsorshipResult.feeCurrency;
 
         if (sponsorshipResult.gasSponsored) {
           toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
@@ -582,6 +597,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const txHash = await sendTransactionAsync({
         to: contractAddress as `0x${string}`,
         data: withdrawData as `0x${string}`,
+        ...(feeCurrencyWithdraw && { feeCurrency: feeCurrencyWithdraw as `0x${string}` }),
       });
 
       // Start confirmation step
@@ -651,13 +667,16 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
 
       // Sponsor gas for break timelock
+      let feeCurrencyBreak: string | undefined;
       try {
         const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
           contractAddress: contractAddress as `0x${string}`,
           abi: parseAbi(["function breakTimelock(address)"]),
           functionName: 'breakTimelock',
           args: [tokenAddress],
+          isMiniPay: true,
         });
+        feeCurrencyBreak = sponsorshipResult.feeCurrency;
 
         if (sponsorshipResult.gasSponsored) {
           toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
@@ -674,6 +693,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         breakTxHash = await sendTransactionAsync({
           to: contractAddress as `0x${string}`,
           data: breakTimelockData as `0x${string}`,
+          ...(feeCurrencyBreak && { feeCurrency: feeCurrencyBreak as `0x${string}` }),
         }) as `0x${string}`;
       } catch (txError) {
         console.error('Break transaction failed:', txError);

@@ -1,5 +1,12 @@
-import { createPublicClient, http, type Abi, type Address } from 'viem';
+import { createPublicClient, http, parseAbi, type Abi, type Address } from 'viem';
 import { celo } from 'viem/chains';
+
+// USDT on Celo — whitelisted as a gas fee currency
+const USDT_FEE_CURRENCY = {
+    address: '0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e' as Address,
+    decimals: 6,
+    token: 'USDT',
+};
 
 // Environment configuration with defaults
 const config = {
@@ -108,19 +115,87 @@ export class GasEstimationService {
     }
 
     /**
+     * Get user's ERC-20 token balance
+     */
+    async getERC20Balance(userAddress: Address, tokenAddress: Address, decimals: number): Promise<bigint> {
+        try {
+            const erc20Abi = parseAbi(['function balanceOf(address) view returns (uint256)']);
+            const balance = await this.publicClient.readContract({
+                address: tokenAddress,
+                abi: erc20Abi,
+                functionName: 'balanceOf',
+                args: [userAddress],
+            });
+            return balance as bigint;
+        } catch (error) {
+            console.error(`Error getting ERC-20 balance for ${tokenAddress}:`, error);
+            return BigInt(0);
+        }
+    }
+
+    /**
+     * Check if user has a usable fee currency token (USDT) to pay for gas
+     * On Celo, whitelisted tokens can be used to pay gas via the feeCurrency field.
+     */
+    async findUsableFeeCurrency(
+        userAddress: Address,
+        requiredGasWei: bigint
+    ): Promise<{ token: string; address: Address; decimals: number } | null> {
+        try {
+            const usdtBalance = await this.getERC20Balance(
+                userAddress,
+                USDT_FEE_CURRENCY.address,
+                USDT_FEE_CURRENCY.decimals
+            );
+            // Convert requiredGasWei (18 decimals, CELO-denominated) to a rough USDT equivalent.
+            // Use a conservative fixed rate: 1 CELO ≈ $0.50, USDT ≈ $1. So gasInUSDT ≈ gasCELO * 0.5.
+            // For safety we just compare raw balance to a generous threshold — gas costs on Celo
+            // are tiny ($0.001), so even a small USDT balance (>= 0.01 USDT) is more than enough.
+            const minUsdtForGas = BigInt(10_000); // 0.01 USDT (6 decimals)
+            if (usdtBalance >= minUsdtForGas) {
+                return {
+                    token: USDT_FEE_CURRENCY.token,
+                    address: USDT_FEE_CURRENCY.address,
+                    decimals: USDT_FEE_CURRENCY.decimals,
+                };
+            }
+            return null;
+        } catch (error) {
+            console.error('Error finding usable fee currency:', error);
+            return null;
+        }
+    }
+
+    /**
      * Check if user has sufficient balance for gas
+     * When checkFeeCurrency is true, also checks if USDT can be used as an alternative.
      */
     async checkSufficientGas(
         userAddress: Address,
-        requiredGasWei: bigint
+        requiredGasWei: bigint,
+        checkFeeCurrency: boolean = false
     ): Promise<{
         hasSufficient: boolean;
         currentBalance: bigint;
         shortfall: bigint;
+        feeCurrency?: { token: string; address: Address; decimals: number };
     }> {
         const { balanceWei } = await this.getUserBalance(userAddress);
         const hasSufficient = balanceWei >= requiredGasWei;
         const shortfall = hasSufficient ? BigInt(0) : requiredGasWei - balanceWei;
+
+        // If user doesn't have enough CELO and we should check for fee currency alternatives
+        if (!hasSufficient && checkFeeCurrency) {
+            const feeCurrency = await this.findUsableFeeCurrency(userAddress, requiredGasWei);
+            if (feeCurrency) {
+                return {
+                    hasSufficient: true,
+                    currentBalance: balanceWei,
+                    shortfall: BigInt(0),
+                    feeCurrency,
+                };
+            }
+        }
 
         return {
             hasSufficient,

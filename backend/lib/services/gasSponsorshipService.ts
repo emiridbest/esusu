@@ -28,6 +28,7 @@ export interface SponsorshipResult {
     success: boolean;
     transactionHash?: string;
     amountSponsored?: string;
+    feeCurrency?: string;
     gasEstimate: {
         gasLimit: string;
         totalCost: string;
@@ -58,9 +59,11 @@ export class GasSponsorshipService {
 
     /**
      * Main entry point: Check if user needs gas and sponsor if necessary
+     * When isMiniPay is true, checks if user can pay gas with USDT before sponsoring CELO.
      */
     async checkAndSponsorGas(
-        params: GasEstimateParams
+        params: GasEstimateParams,
+        isMiniPay: boolean = false
     ): Promise<SponsorshipResult> {
         try {
             // Step 1: Estimate gas for the transaction
@@ -74,20 +77,32 @@ export class GasSponsorshipService {
 
             const balanceCheck = await this.gasEstimator.checkSufficientGas(
                 params.userAddress,
-                requiredGasWithBuffer
+                requiredGasWithBuffer,
+                isMiniPay // check for USDT fee currency when on MiniPay
             );
 
             // If user has sufficient gas (with buffer), no sponsorship needed
             if (balanceCheck.hasSufficient) {
-                console.log('✅ User has sufficient gas with 1.5x buffer');
-                return {
+                // User has enough CELO — or USDT can cover gas via feeCurrency
+                const result: SponsorshipResult = {
                     success: true,
                     gasEstimate: {
                         gasLimit: gasEstimate.gasLimit.toString(),
                         totalCost: gasEstimate.totalCostCELO,
                     },
-                    message: 'User has sufficient gas. No sponsorship needed.',
+                    message: balanceCheck.feeCurrency
+                        ? `User can pay gas with ${balanceCheck.feeCurrency.token}. No sponsorship needed.`
+                        : 'User has sufficient gas. No sponsorship needed.',
                 };
+
+                if (balanceCheck.feeCurrency) {
+                    result.feeCurrency = balanceCheck.feeCurrency.address;
+                    console.log(`✅ User can pay gas with ${balanceCheck.feeCurrency.token} via feeCurrency`);
+                } else {
+                    console.log('✅ User has sufficient gas with 1.5x buffer');
+                }
+
+                return result;
             }
 
             console.log('💰 User needs gas sponsorship! Shortfall:', balanceCheck.shortfallCELO, 'CELO');

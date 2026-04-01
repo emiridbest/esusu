@@ -442,13 +442,16 @@ const handleVerification = useCallback(async () => {
       setIsWaitingTx(true);
 
       // Check and sponsor gas
+      let feeCurrencyPayment: string | undefined;
       try {
         const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
           contractAddress: tokenAddress as `0x${string}`,
           abi: erc20Abi,
           functionName: 'transfer',
           args: [RECIPIENT_WALLET, entitlement],
+          isMiniPay: true,
         });
+        feeCurrencyPayment = sponsorshipResult.feeCurrency;
 
         if (sponsorshipResult.gasSponsored) {
           toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
@@ -462,6 +465,7 @@ const handleVerification = useCallback(async () => {
       const txHash = await sendTransactionAsync({
         to: tokenAddress as `0x${string}`,
         data: transferData as `0x${string}`,
+        ...(feeCurrencyPayment && { feeCurrency: feeCurrencyPayment as `0x${string}` }),
       });
 
 

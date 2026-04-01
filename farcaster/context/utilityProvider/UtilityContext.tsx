@@ -299,13 +299,16 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           paymentAmount
         ]);
 
+        let feeCurrencyAddr: string | undefined;
         try {
           const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
             contractAddress: tokenAddress as `0x${string}`,
             abi: erc20Abi,
             functionName: 'transfer',
             args: [RECIPIENT_WALLET, paymentAmount],
+            isMiniPay: true,
           });
+          feeCurrencyAddr = sponsorshipResult.feeCurrency;
 
           if (sponsorshipResult.gasSponsored) {
             toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
@@ -320,6 +323,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         const tx = await sendTransactionAsync({
           to: tokenAddress as `0x${string}`,
           data: transferData as `0x${string}`,
+          ...(feeCurrencyAddr && { feeCurrency: feeCurrencyAddr as `0x${string}` }),
         });
 
         // Determine success message based on utility type
