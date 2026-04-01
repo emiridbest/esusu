@@ -7,6 +7,7 @@ export interface GasSponsorParams {
     functionName: string;
     args?: any[];
     value?: bigint;
+    isMiniPay?: boolean;
 }
 
 export interface GasEstimateResponse {
@@ -28,6 +29,7 @@ export interface SponsorshipResponse {
     gasSponsored: boolean;
     amountSponsored?: string;
     sponsorshipTxHash?: string;
+    feeCurrency?: string;
     gasEstimate: {
         gasLimit: string;
         totalCost: string;
@@ -132,6 +134,7 @@ export function useGasSponsorship() {
                         functionName: params.functionName,
                         args: serializedArgs,
                         value: params.value?.toString(),
+                        isMiniPay: params.isMiniPay || false,
                     }),
                 });
 
