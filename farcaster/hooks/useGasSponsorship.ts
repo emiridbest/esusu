@@ -7,7 +7,6 @@ export interface GasSponsorParams {
     functionName: string;
     args?: any[];
     value?: bigint;
-    isMiniPay?: boolean;
 }
 
 export interface GasEstimateResponse {
@@ -25,11 +24,10 @@ export interface GasEstimateResponse {
 
 export interface SponsorshipResponse {
     success: boolean;
-    userHadSufficientGas: boolean;
     gasSponsored: boolean;
     amountSponsored?: string;
     sponsorshipTxHash?: string;
-    feeCurrency?: string;
+    sponsoredToken?: string;
     gasEstimate: {
         gasLimit: string;
         totalCost: string;
@@ -134,7 +132,6 @@ export function useGasSponsorship() {
                         functionName: params.functionName,
                         args: serializedArgs,
                         value: params.value?.toString(),
-                        isMiniPay: params.isMiniPay || false,
                     }),
                 });
 
@@ -162,7 +159,6 @@ export function useGasSponsorship() {
                 setError(error);
                 return {
                     success: false,
-                    userHadSufficientGas: false,
                     gasSponsored: false,
                     gasEstimate: {
                         gasLimit: '0',

@@ -1,19 +1,12 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { Abi, Address } from 'viem';
 
-/** Detect MiniPay wallet at runtime */
-function detectMiniPay(): boolean {
-    if (typeof window === 'undefined') return false;
-    return !!(window as any).ethereum?.isMiniPay;
-}
-
 export interface GasSponsorParams {
     contractAddress: Address;
     abi: Abi;
     functionName: string;
     args?: any[];
     value?: bigint;
-    isMiniPay?: boolean;
 }
 
 export interface GasEstimateResponse {
@@ -31,10 +24,10 @@ export interface GasEstimateResponse {
 
 export interface SponsorshipResponse {
     success: boolean;
-    userHadSufficientGas: boolean;
     gasSponsored: boolean;
     amountSponsored?: string;
     sponsorshipTxHash?: string;
+    sponsoredToken?: string;
     feeCurrency?: string;
     gasEstimate: {
         gasLimit: string;
@@ -123,6 +116,10 @@ export function useGasSponsorship() {
             setError(null);
 
             try {
+                // Detect if user is on MiniPay
+                const isMiniPay = typeof window !== 'undefined' &&
+                    !!(window as any).ethereum?.isMiniPay;
+
                 // Convert BigInt values in args to strings for JSON serialization
                 const serializedArgs = (params.args || []).map(arg =>
                     typeof arg === 'bigint' ? arg.toString() : arg
@@ -140,7 +137,7 @@ export function useGasSponsorship() {
                         functionName: params.functionName,
                         args: serializedArgs,
                         value: params.value?.toString(),
-                        isMiniPay: params.isMiniPay ?? detectMiniPay(),
+                        isMiniPay,
                     }),
                 });
 
@@ -168,7 +165,6 @@ export function useGasSponsorship() {
                 setError(error);
                 return {
                     success: false,
-                    userHadSufficientGas: false,
                     gasSponsored: false,
                     gasEstimate: {
                         gasLimit: '0',

@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
             functionName,
             args: args || [],
             value: value ? BigInt(value) : undefined,
-        }, !!isMiniPay);
+        });
 
         // If sponsorship failed due to rate limiting, return 429
         if (!result.success && result.error?.includes('limit')) {
@@ -76,7 +76,6 @@ export async function POST(req: NextRequest) {
             gasSponsored: !!result.amountSponsored,
             amountSponsored: result.amountSponsored,
             sponsorshipTxHash: result.transactionHash,
-            feeCurrency: result.feeCurrency || null,
             gasEstimate: result.gasEstimate,
             message: result.message,
         };

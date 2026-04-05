@@ -287,7 +287,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
 
         if (sponsorshipResult.gasSponsored) {
-          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} ${sponsorshipResult.sponsoredToken || 'CELO'}`);
           await new Promise(resolve => setTimeout(resolve, 3000));
         }
       } catch (gasError) {
@@ -606,7 +606,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
 
         if (sponsorshipResult.gasSponsored) {
-          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} ${sponsorshipResult.sponsoredToken || 'CELO'}`);
           await new Promise(resolve => setTimeout(resolve, 3000));
         }
       } catch (gasError) {
@@ -863,7 +863,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
 
         if (sponsorshipResult.gasSponsored) {
-          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} ${sponsorshipResult.sponsoredToken || 'CELO'}`);
           await new Promise(resolve => setTimeout(resolve, 3000));
         }
       } catch (gasError) {
@@ -1066,7 +1066,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               });
 
               if (sponsorshipResult.gasSponsored) {
-                toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+                toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} ${sponsorshipResult.sponsoredToken || 'CELO'}`);
                 await new Promise(resolve => setTimeout(resolve, 3000));
               }
             } catch (gasError) {
@@ -1115,7 +1115,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
 
         if (sponsorshipResult.gasSponsored) {
-          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} ${sponsorshipResult.sponsoredToken || 'CELO'}`);
           await new Promise(resolve => setTimeout(resolve, 3000));
         }
       } catch (gasError) {
@@ -1303,7 +1303,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
 
         if (sponsorshipResult.gasSponsored) {
-          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} ${sponsorshipResult.sponsoredToken || 'CELO'}`);
           await new Promise(resolve => setTimeout(resolve, 3000));
         }
       } catch (gasError) {

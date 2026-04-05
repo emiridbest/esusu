@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
         // Get gas sponsorship service
         const sponsorshipService = getGasSponsorshipService();
 
-        // Check and sponsor gas if needed
+        // Check and sponsor gas
         const result = await sponsorshipService.checkAndSponsorGas({
             userAddress: userAddress as Address,
             contractAddress: contractAddress as Address,
@@ -72,10 +72,10 @@ export async function POST(req: NextRequest) {
         // Return result
         const responseData = {
             success: result.success,
-            userHadSufficientGas: !result.amountSponsored,
             gasSponsored: !!result.amountSponsored,
             amountSponsored: result.amountSponsored,
             sponsorshipTxHash: result.transactionHash,
+            sponsoredToken: result.sponsoredToken,
             feeCurrency: result.feeCurrency || null,
             gasEstimate: result.gasEstimate,
             message: result.message,
@@ -117,8 +117,8 @@ export async function POST(req: NextRequest) {
                 success: false,
                 error: error.message || 'Failed to check and sponsor gas',
                 details: error.stack || error.toString(),
-                userHadSufficientGas: false,
                 gasSponsored: false,
+                sponsoredToken: 'CELO',
                 gasEstimate: {
                     gasLimit: '0',
                     totalCost: '0'

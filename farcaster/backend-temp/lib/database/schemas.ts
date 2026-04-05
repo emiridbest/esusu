@@ -313,6 +313,22 @@ const PaymentHashSchema = new Schema<IPaymentHash>({
   bufferCommands: false
 });
 
+const InviteSchema = new Schema<IInvite>({
+  walletAddress: { type: String, required: true, index: true },
+  inviterAddress: { type: String, required: true, index: true },
+  source: { type: String, enum: ['url', 'manual'], default: 'url' },
+  claimed: { type: Boolean, default: false }
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+  bufferCommands: false
+});
+
+// One invite record per wallet — only first inviter counts
+InviteSchema.index({ walletAddress: 1 }, { unique: true });
+
+
 // Export models
 export const User = models.User || model<IUser>('User', UserSchema);
 export const Transaction = models.Transaction || model<ITransaction>('Transaction', TransactionSchema);
@@ -320,6 +336,37 @@ export const Group = models.Group || model<IGroup>('Group', GroupSchema);
 export const Notification = models.Notification || model<INotification>('Notification', NotificationSchema);
 export const Analytics = models.Analytics || model<IAnalytics>('Analytics', AnalyticsSchema);
 export const PaymentHash = models.PaymentHash || model<IPaymentHash>('PaymentHash', PaymentHashSchema);
+export const Invite = models.Invite || model<IInvite>('Invite', InviteSchema);
+
+// UBIClaim Schema - Track daily G$ UBI claims per wallet
+export interface IUBIClaim extends Document {
+  walletAddress: string;
+  claimDate: Date;
+  txHash?: string;
+  amount?: number;
+  token?: string;
+  metadata?: any;
+  createdAt: Date;
+}
+
+const UBIClaimSchema = new Schema<IUBIClaim>({
+  walletAddress: { type: String, required: true, index: true },
+  claimDate: { type: Date, required: true, index: true },
+  txHash: { type: String },
+  amount: { type: Number },
+  token: { type: String },
+  metadata: { type: Schema.Types.Mixed },
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+  bufferCommands: false
+});
+
+// One claim per wallet per day
+UBIClaimSchema.index({ walletAddress: 1, claimDate: 1 });
+
+export const UBIClaim = models.UBIClaim || model<IUBIClaim>('UBIClaim', UBIClaimSchema);
 
 // Thrift Group Metadata Schema - off-chain metadata for on-chain groups
 export interface IThriftGroupMetadata extends Document {
@@ -490,6 +537,7 @@ export interface IGasSponsorship extends Document {
   transactionHash: string; // On-chain tx hash of the gas transfer
   status: 'pending' | 'completed' | 'failed';
   sponsoredTxHash?: string; // Hash of the transaction that was sponsored (optional)
+  sponsoredToken: string; // Token used for sponsoring (e.g. 'CELO')
   gasEstimate: {
     gasLimit: string;
     maxFeePerGas: string;
@@ -518,6 +566,7 @@ const GasSponsorshipSchema = new Schema<IGasSponsorship>({
     index: true
   },
   sponsoredTxHash: { type: String },
+  sponsoredToken: { type: String, required: true, default: 'CELO' },
   gasEstimate: {
     gasLimit: { type: String, required: true },
     maxFeePerGas: { type: String, required: true },
@@ -543,3 +592,13 @@ GasSponsorshipSchema.index({ status: 1, createdAt: -1 });
 
 export const GasSponsorship = models.GasSponsorship
   || model<IGasSponsorship>('GasSponsorship', GasSponsorshipSchema);
+
+// Invite Schema - Track referral/invite relationships between wallets
+export interface IInvite extends Document {
+  walletAddress: string;       // The invited user's wallet
+  inviterAddress: string;      // The wallet that invited them
+  source: 'url' | 'manual';   // How the invite was recorded
+  claimed: boolean;            // Whether the invited user has claimed rewards
+  createdAt: Date;
+  updatedAt: Date;
+}

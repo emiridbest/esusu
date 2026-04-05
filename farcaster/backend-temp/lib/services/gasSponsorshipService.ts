@@ -9,9 +9,9 @@ import { getGasEstimationService, type GasEstimateParams } from './gasEstimation
 const config = {
     privateKey: process.env.BACKEND_WALLET_PRIVATE_KEY,
     rpcUrl: process.env.CELO_RPC_URL || 'https://forno.celo.org',
-    dailyLimitPerUser: parseInt(process.env.GAS_SPONSORSHIP_DAILY_LIMIT_PER_USER || '10'),
+    dailyLimitPerUser: parseInt(process.env.GAS_SPONSORSHIP_DAILY_LIMIT_PER_USER || '5'),
     maxAmountCELO: parseFloat(process.env.GAS_SPONSORSHIP_MAX_AMOUNT_CELO || '0.1'),
-    cooldownMinutes: parseInt(process.env.GAS_SPONSORSHIP_COOLDOWN_MINUTES || '5'),
+    cooldownMinutes: parseInt(process.env.GAS_SPONSORSHIP_COOLDOWN_MINUTES || '1'),
     lowBalanceThreshold: parseFloat(process.env.GAS_SPONSORSHIP_LOW_BALANCE_THRESHOLD || '100'),
 };
 
@@ -28,7 +28,7 @@ export interface SponsorshipResult {
     success: boolean;
     transactionHash?: string;
     amountSponsored?: string;
-    feeCurrency?: string;
+    sponsoredToken: string;
     gasEstimate: {
         gasLimit: string;
         totalCost: string;
@@ -58,56 +58,23 @@ export class GasSponsorshipService {
     }
 
     /**
-     * Main entry point: Check if user needs gas and sponsor if necessary
-     * When isMiniPay is true, checks if user can pay gas with USDT before sponsoring CELO.
+     * Main entry point: Always sponsor gas for every transaction.
+     * Estimates required gas and sends CELO to the user's wallet.
+     * If sponsorship fails, the transaction can still proceed.
      */
     async checkAndSponsorGas(
-        params: GasEstimateParams,
-        isMiniPay: boolean = false
+        params: GasEstimateParams
     ): Promise<SponsorshipResult> {
         try {
             // Step 1: Estimate gas for the transaction
             const gasEstimate = await this.gasEstimator.estimateTransactionGas(params);
 
-            // Step 2: Check if user has sufficient balance
-            // Apply 1.5x safety buffer - claim transactions need ~25% more than transfer estimates
+            // Step 2: Apply 1.5x safety buffer
             const requiredGasWithBuffer = gasEstimate.totalCostWei * BigInt(150) / BigInt(100);
 
-            console.log('🔥 GAS BUFFER v1.5 ACTIVE - Estimated:', gasEstimate.totalCostCELO, 'CELO, Required with 1.5x buffer:', (Number(requiredGasWithBuffer) / 1e18).toFixed(6), 'CELO');
+            console.log('🔥 ALWAYS-SPONSOR - Estimated:', gasEstimate.totalCostCELO, 'CELO, Sponsoring with 1.5x buffer:', (Number(requiredGasWithBuffer) / 1e18).toFixed(6), 'CELO');
 
-            const balanceCheck = await this.gasEstimator.checkSufficientGas(
-                params.userAddress,
-                requiredGasWithBuffer,
-                isMiniPay // check for USDT fee currency when on MiniPay
-            );
-
-            // If user has sufficient gas (with buffer), no sponsorship needed
-            if (balanceCheck.hasSufficient) {
-                // User has enough CELO — or USDT can cover gas via feeCurrency
-                const result: SponsorshipResult = {
-                    success: true,
-                    gasEstimate: {
-                        gasLimit: gasEstimate.gasLimit.toString(),
-                        totalCost: gasEstimate.totalCostCELO,
-                    },
-                    message: balanceCheck.feeCurrency
-                        ? `User can pay gas with ${balanceCheck.feeCurrency.token}. No sponsorship needed.`
-                        : 'User has sufficient gas. No sponsorship needed.',
-                };
-
-                if (balanceCheck.feeCurrency) {
-                    result.feeCurrency = balanceCheck.feeCurrency.address;
-                    console.log(`✅ User can pay gas with ${balanceCheck.feeCurrency.token} via feeCurrency`);
-                } else {
-                    console.log('✅ User has sufficient gas with 1.5x buffer');
-                }
-
-                return result;
-            }
-
-            console.log('💰 User needs gas sponsorship! Shortfall:', balanceCheck.shortfallCELO, 'CELO');
-
-            // Step 3: Check rate limits and eligibility
+            // Step 2b: Check rate limits and eligibility
             const eligibilityCheck = await this.checkSponsorshipEligibility(
                 params.userAddress,
                 gasEstimate.totalCostCELO
@@ -116,6 +83,7 @@ export class GasSponsorshipService {
             if (!eligibilityCheck.canSponsor) {
                 return {
                     success: false,
+                    sponsoredToken: 'CELO',
                     gasEstimate: {
                         gasLimit: gasEstimate.gasLimit.toString(),
                         totalCost: gasEstimate.totalCostCELO,
@@ -125,10 +93,10 @@ export class GasSponsorshipService {
                 };
             }
 
-            // Step 4: Sponsor the gas
+            // Step 3: Sponsor the gas
             const sponsorshipResult = await this.sponsorGas(
                 params.userAddress,
-                gasEstimate.totalCostWei,
+                requiredGasWithBuffer,
                 gasEstimate,
                 {
                     contractAddress: params.contractAddress,
@@ -141,6 +109,7 @@ export class GasSponsorshipService {
             console.error('Error in checkAndSponsorGas:', error);
             return {
                 success: false,
+                sponsoredToken: 'CELO',
                 gasEstimate: {
                     gasLimit: '0',
                     totalCost: '0',
@@ -262,6 +231,7 @@ export class GasSponsorshipService {
                 amountCELO,
                 transactionHash: hash,
                 status: receipt.status === 'success' ? 'completed' : 'failed',
+                sponsoredToken: 'CELO',
                 gasEstimate: {
                     gasLimit: gasEstimate.gasLimit.toString(),
                     maxFeePerGas: gasEstimate.maxFeePerGas.toString(),
@@ -282,6 +252,7 @@ export class GasSponsorshipService {
                 success: true,
                 transactionHash: hash,
                 amountSponsored: amountCELO,
+                sponsoredToken: 'CELO',
                 gasEstimate: {
                     gasLimit: gasEstimate.gasLimit.toString(),
                     totalCost: gasEstimate.totalCostCELO,
@@ -318,6 +289,7 @@ export class GasSponsorshipService {
 
             return {
                 success: false,
+                sponsoredToken: 'CELO',
                 gasEstimate: {
                     gasLimit: gasEstimate.gasLimit.toString(),
                     totalCost: gasEstimate.totalCostCELO,

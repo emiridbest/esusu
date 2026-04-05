@@ -302,7 +302,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           });
 
           if (sponsorshipResult.gasSponsored) {
-            toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+            toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} ${sponsorshipResult.sponsoredToken || 'CELO'}`);
             await new Promise(resolve => setTimeout(resolve, 3000));
           }
         } catch (gasError) {
