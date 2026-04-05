@@ -5,7 +5,7 @@ import type { Address, Abi } from 'viem';
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { userAddress, contractAddress, abi, functionName, args, value } = body;
+        const { userAddress, contractAddress, abi, functionName, args, value, isMiniPay } = body;
 
         // Validate required fields
         if (!userAddress || !contractAddress || !abi || !functionName) {
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
             functionName,
             args: args || [],
             value: value ? BigInt(value) : undefined,
-        });
+        }, !!isMiniPay);
 
         // If sponsorship failed due to rate limiting, return 429
         if (!result.success && result.error?.includes('limit')) {
@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
             amountSponsored: result.amountSponsored,
             sponsorshipTxHash: result.transactionHash,
             sponsoredToken: result.sponsoredToken,
+            feeCurrency: result.feeCurrency || null,
             gasEstimate: result.gasEstimate,
             message: result.message,
         };
