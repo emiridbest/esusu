@@ -15,6 +15,15 @@ const config = {
     lowBalanceThreshold: parseFloat(process.env.GAS_SPONSORSHIP_LOW_BALANCE_THRESHOLD || '100'),
 };
 
+export interface SponsorshipCheckResult {
+    needsSponsorship: boolean;
+    userBalance: string;
+    requiredGas: string;
+    shortfall: string;
+    canSponsor: boolean;
+    reason?: string;
+}
+
 export interface SponsorshipResult {
     success: boolean;
     transactionHash?: string;
