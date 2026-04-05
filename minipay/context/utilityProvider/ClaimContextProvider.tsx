@@ -230,16 +230,13 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
 
       // Check and sponsor gas for claim transaction
-      let feeCurrencyClaim: string | undefined;
       try {
         const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
           contractAddress: ubiSchemeV2Address as `0x${string}`,
           abi: ubiSchemeV2ABI,
           functionName: 'claim',
           args: [],
-          isMiniPay: true,
         });
-        feeCurrencyClaim = sponsorshipResult.feeCurrency;
 
         if (sponsorshipResult.gasSponsored) {
           toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
@@ -253,7 +250,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       const tx = await sendTransactionAsync({
         to: ubiSchemeV2Address as `0x${string}`,
         data: claimData as `0x${string}`,
-        ...(feeCurrencyClaim && { feeCurrency: feeCurrencyClaim as `0x${string}` }),
       });
 
       if (!tx) {
@@ -429,16 +425,13 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       setIsWaitingTx(true);
 
       // Check and sponsor gas
-      let feeCurrencyPayment: string | undefined;
       try {
         const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
           contractAddress: tokenAddress as `0x${string}`,
           abi: erc20Abi,
           functionName: 'transfer',
           args: [RECIPIENT_WALLET, entitlement],
-          isMiniPay: true,
         });
-        feeCurrencyPayment = sponsorshipResult.feeCurrency;
 
         if (sponsorshipResult.gasSponsored) {
           toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
@@ -452,7 +445,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       const txHash = await sendTransactionAsync({
         to: tokenAddress as `0x${string}`,
         data: transferData as `0x${string}`,
-        ...(feeCurrencyPayment && { feeCurrency: feeCurrencyPayment as `0x${string}` }),
       });
 
       toast.success("Payment confirmed on-chain. Processing data top-up...");

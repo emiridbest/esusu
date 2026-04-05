@@ -310,16 +310,13 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       // Sponsor gas
-      let feeCurrencyCreate: string | undefined;
       try {
         const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
           contractAddress: contractAddress as `0x${string}`,
           abi: parseAbi(["function createThriftGroup(uint256, uint256, bool, address) returns (uint256)"]),
           functionName: 'createThriftGroup',
           args: [amount, startTimestamp, isPublic, finalTokenAddress],
-          isMiniPay: true,
         });
-        feeCurrencyCreate = sponsorshipResult.feeCurrency;
 
         if (sponsorshipResult.gasSponsored) {
           toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
@@ -342,7 +339,6 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         txHash = await sendTransactionAsync({
           to: contractAddress as `0x${string}`,
           data: data as `0x${string}`,
-          ...(feeCurrencyCreate && { feeCurrency: feeCurrencyCreate as `0x${string}` }),
         });
         console.log('✅ Transaction signed and sent:', txHash);
       } catch (signError: any) {
@@ -648,16 +644,13 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 description: "Public groups require locking 5x contribution as collateral. Please approve."
               });
               // Sponsor gas for approval
-              let feeCurrencyApproval: string | undefined;
               try {
                 const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
                   contractAddress: tokenAddress as `0x${string}`,
                   abi: parseAbi(["function approve(address, uint256) returns (bool)"]),
                   functionName: 'approve',
                   args: [contractAddress, collateralAmount],
-                  isMiniPay: true,
                 });
-                feeCurrencyApproval = sponsorshipResult.feeCurrency;
                 if (sponsorshipResult.gasSponsored) {
                   toast.success(`Gas sponsored for approval`);
                   await new Promise(resolve => setTimeout(resolve, 3000));
@@ -670,7 +663,6 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               const approveTx = await sendTransactionAsync({
                 to: tokenAddress as `0x${string}`,
                 data: approvalData as `0x${string}`,
-                ...(feeCurrencyApproval && { feeCurrency: feeCurrencyApproval as `0x${string}` }),
               });
 
               toast.info("Approval sent, waiting for confirmation...");
@@ -1135,16 +1127,13 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             ]);
 
             // Sponsor gas for approval
-            let feeCurrencyContribApproval: string | undefined;
             try {
               const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
                 contractAddress: tokenAddress as `0x${string}`,
                 abi: parseAbi(["function approve(address, uint256) returns (bool)"]),
                 functionName: 'approve',
                 args: [contract.address, contributionAmount],
-                isMiniPay: true,
               });
-              feeCurrencyContribApproval = sponsorshipResult.feeCurrency;
 
               if (sponsorshipResult.gasSponsored) {
                 toast.success(`Gas sponsored for approval: ${sponsorshipResult.amountSponsored} CELO`);
@@ -1158,7 +1147,6 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const approvalTxHash = await sendTransactionAsync({
               to: tokenAddress as `0x${string}`,
               data: approvalData as `0x${string}`,
-              ...(feeCurrencyContribApproval && { feeCurrency: feeCurrencyContribApproval as `0x${string}` }),
             });
             console.log('Approval transaction sent:', approvalTxHash);
 
@@ -1198,16 +1186,13 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
 
       // Sponsor gas for contribution
-      let feeCurrencyContrib: string | undefined;
       try {
         const sponsorshipResult = await checkAndSponsor(account as `0x${string}`, {
           contractAddress: contractAddress as `0x${string}`,
           abi: parseAbi(["function makeContribution(uint256)"]),
           functionName: 'makeContribution',
           args: [groupId],
-          isMiniPay: true,
         });
-        feeCurrencyContrib = sponsorshipResult.feeCurrency;
 
         if (sponsorshipResult.gasSponsored) {
           toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
@@ -1220,7 +1205,6 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const txHash = await sendTransactionAsync({
         to: contractAddress as `0x${string}`,
         data: contributionData as `0x${string}`,
-        ...(feeCurrencyContrib && { feeCurrency: feeCurrencyContrib as `0x${string}` }),
       });
       console.log('makeContribution: Transaction sent:', txHash);
 

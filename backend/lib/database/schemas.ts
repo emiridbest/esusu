@@ -537,6 +537,7 @@ export interface IGasSponsorship extends Document {
   transactionHash: string; // On-chain tx hash of the gas transfer
   status: 'pending' | 'completed' | 'failed';
   sponsoredTxHash?: string; // Hash of the transaction that was sponsored (optional)
+  sponsoredToken: string; // Token used for sponsoring (e.g. 'CELO')
   gasEstimate: {
     gasLimit: string;
     maxFeePerGas: string;
@@ -565,6 +566,7 @@ const GasSponsorshipSchema = new Schema<IGasSponsorship>({
     index: true
   },
   sponsoredTxHash: { type: String },
+  sponsoredToken: { type: String, required: true, default: 'CELO' },
   gasEstimate: {
     gasLimit: { type: String, required: true },
     maxFeePerGas: { type: String, required: true },
