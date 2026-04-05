@@ -360,7 +360,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         });
 
         if (sponsorshipResult.gasSponsored) {
-          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} ${sponsorshipResult.sponsoredToken || 'CELO'}`);
           await new Promise(resolve => setTimeout(resolve, 3000));
         }
       } catch (gasError) {
@@ -564,7 +564,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         });
 
         if (sponsorshipResult.gasSponsored) {
-          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} ${sponsorshipResult.sponsoredToken || 'CELO'}`);
           await new Promise(resolve => setTimeout(resolve, 3000));
         }
       } catch (gasError) {
