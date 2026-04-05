@@ -28,6 +28,7 @@ export interface SponsorshipResponse {
     amountSponsored?: string;
     sponsorshipTxHash?: string;
     sponsoredToken?: string;
+    feeCurrency?: string;
     gasEstimate: {
         gasLimit: string;
         totalCost: string;
@@ -115,6 +116,10 @@ export function useGasSponsorship() {
             setError(null);
 
             try {
+                // Detect if user is on MiniPay
+                const isMiniPay = typeof window !== 'undefined' &&
+                    !!(window as any).ethereum?.isMiniPay;
+
                 // Convert BigInt values in args to strings for JSON serialization
                 const serializedArgs = (params.args || []).map(arg =>
                     typeof arg === 'bigint' ? arg.toString() : arg
@@ -132,6 +137,7 @@ export function useGasSponsorship() {
                         functionName: params.functionName,
                         args: serializedArgs,
                         value: params.value?.toString(),
+                        isMiniPay,
                     }),
                 });
 
