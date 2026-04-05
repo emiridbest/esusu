@@ -5,12 +5,6 @@ import { toast } from 'sonner';
 import { parseUnits, encodeFunctionData, parseAbi } from "viem";
 import { ethers } from 'ethers';
 import {
-  PAYMENT_ROUTER_ADDRESS,
-  PAYMENT_ROUTER_ABI,
-  ERC20_APPROVE_ABI,
-  PaymentType,
-} from '@/contracts/paymentRouter';
-import {
   useActiveAccount,
   useActiveWallet,
   useActiveWalletChain,
@@ -287,31 +281,28 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           console.log('[handleTransaction] CELO conversion applied:', paymentAmount);
         }
 
-        // Map utility type to contract PaymentType enum
-        const paymentTypeMap: Record<string, number> = {
-          data: PaymentType.Data,
-          airtime: PaymentType.Airtime,
-          electricity: PaymentType.Electricity,
-        };
-        const contractPaymentType = paymentTypeMap[type] ?? PaymentType.Other;
-        const paymentReference = `${type}:${recipient}:${metadata?.phone || metadata?.meterNumber || ''}`;
+        // Prepare token transfer
+        const erc20Abi = parseAbi(["function transfer(address to, uint256 value) returns (bool)"]);
 
-        const isNativePayment = token === 'CELO';
+        // Encode the transfer function
+        const transferInterface = new ethers.Interface(erc20Abi);
+        const transferData = transferInterface.encodeFunctionData("transfer", [
+          RECIPIENT_WALLET,
+          paymentAmount
+        ]);
 
-        // Sponsor gas before sending the transaction
+
+        // Sponsor gas before sending the transfer
         try {
           const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
-            contractAddress: PAYMENT_ROUTER_ADDRESS,
-            abi: PAYMENT_ROUTER_ABI as any,
-            functionName: isNativePayment ? 'payWithNative' : 'payWithToken',
-            args: isNativePayment
-              ? [contractPaymentType, paymentReference]
-              : [tokenAddress, paymentAmount, contractPaymentType, paymentReference],
-            ...(isNativePayment ? { value: paymentAmount } : {}),
+            contractAddress: tokenAddress as `0x${string}`,
+            abi: erc20Abi,
+            functionName: 'transfer',
+            args: [RECIPIENT_WALLET, paymentAmount],
           });
 
           if (sponsorshipResult.gasSponsored) {
-            toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
+            toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} ${sponsorshipResult.sponsoredToken || 'CELO'}`);
             await new Promise(resolve => setTimeout(resolve, 3000));
           }
         } catch (gasError) {
@@ -321,65 +312,31 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
         // Send the transaction
         setIsWaitingTx(true);
-
+        
         if (!wallet || !account) {
           console.error('[handleTransaction] Wallet or account not connected:', { wallet, account });
           throw new Error('Wallet not connected');
         }
-
+        // Send transaction using Thirdweb v5 pattern
         const { sendTransaction, prepareTransaction } = await import('thirdweb');
-        let txResult;
-
-        if (isNativePayment) {
-          // Native CELO: call payWithNative directly
-          const payNativeData = encodeFunctionData({
-            abi: PAYMENT_ROUTER_ABI,
-            functionName: 'payWithNative',
-            args: [contractPaymentType, paymentReference],
-          });
-
-          const transaction = await prepareTransaction({
-            to: PAYMENT_ROUTER_ADDRESS,
-            data: payNativeData,
-            value: paymentAmount,
-            client,
-            chain: activeChain,
-          });
-          txResult = await sendTransaction({ account, transaction });
-        } else {
-          // ERC-20: approve first, then payWithToken
-          const approveData = encodeFunctionData({
-            abi: ERC20_APPROVE_ABI,
-            functionName: 'approve',
-            args: [PAYMENT_ROUTER_ADDRESS, paymentAmount],
-          });
-
-          const approveTx = await prepareTransaction({
+        let transaction, txResult;
+        try {
+          const transaction= await prepareTransaction({
             to: tokenAddress as `0x${string}`,
-            data: approveData,
-            client,
-            chain: activeChain,
+            data: transferData as `0x${string}`,
+          client,
+          chain: activeChain,
           });
-          console.log('[handleTransaction] Approving PaymentRouter...');
-          await sendTransaction({ account, transaction: approveTx });
-
-          // Now call payWithToken
-          const payData = encodeFunctionData({
-            abi: PAYMENT_ROUTER_ABI,
-            functionName: 'payWithToken',
-            args: [tokenAddress as `0x${string}`, paymentAmount, contractPaymentType, paymentReference],
+          console.log('[handleTransaction] Transaction prepared:', transaction);
+          txResult = await sendTransaction({
+            account,
+            transaction,
           });
-
-          const payTx = await prepareTransaction({
-            to: PAYMENT_ROUTER_ADDRESS,
-            data: payData,
-            client,
-            chain: activeChain,
-          });
-          console.log('[handleTransaction] Calling payWithToken...');
-          txResult = await sendTransaction({ account, transaction: payTx });
+          console.log('[handleTransaction] Transaction sent:', txResult);
+        } catch (txError) {
+          console.error('[handleTransaction] Transaction preparation/sending failed:', txError);
+          throw txError;
         }
-
         const tx = { hash: txResult.transactionHash };
 
 
