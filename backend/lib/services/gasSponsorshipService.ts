@@ -13,7 +13,7 @@ const config = {
     maxAmountCELO: parseFloat(process.env.GAS_SPONSORSHIP_MAX_AMOUNT_CELO || '0.1'),
     cooldownMinutes: parseInt(process.env.GAS_SPONSORSHIP_COOLDOWN_MINUTES || '1'),
     lowBalanceThreshold: parseFloat(process.env.GAS_SPONSORSHIP_LOW_BALANCE_THRESHOLD || '100'),
-    celoUsdPrice: parseFloat(process.env.CELO_USD_PRICE || '0.1'),
+    celoUsdPrice: parseFloat(process.env.CELO_USD_PRICE || '0.4'),
 };
 
 // USDT on Celo — whitelisted as a gas fee currency
