@@ -334,21 +334,27 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
             console.error('[UtilityContext] Approval gas sponsorship failed', gasError);
           }
 
-          const { sendTransaction: sendTx, prepareTransaction: prepareTx } = await import('thirdweb');
+          const { sendTransaction: sendTx, prepareTransaction: prepareTx, waitForReceipt: waitForApprovalReceipt } = await import('thirdweb');
           const approveTx = await prepareTx({
             to: tokenAddress as `0x${string}`,
             data: approveData as `0x${string}`,
             client,
             chain: activeChain,
           });
-          await sendTx({ account: account!, transaction: approveTx });
+          const approveResult = await sendTx({ account: account!, transaction: approveTx });
+          // Wait for approval to be confirmed on-chain before proceeding
+          await waitForApprovalReceipt({
+            client,
+            chain: activeChain,
+            transactionHash: approveResult.transactionHash,
+          });
           console.log('[handleTransaction] Approval confirmed');
           toast.success('Token approval confirmed');
         }
 
         // Encode the pay function on PaymentVault
         const payData = encodeFunctionData({
-          abi: parseAbi(["function pay(address token, uint256 amount)"]),
+          abi: payABI,
           functionName: 'pay',
           args: [tokenAddress as `0x${string}`, paymentAmount],
         });
@@ -358,7 +364,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         try {
           const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
             contractAddress: payAddress as `0x${string}`,
-            abi: parseAbi(["function pay(address token, uint256 amount)"]),
+            abi: payABI,
             functionName: 'pay',
             args: [tokenAddress as `0x${string}`, paymentAmount],
           });

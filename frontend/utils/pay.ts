@@ -1,5 +1,6 @@
+import { Abi } from "viem";
 export const payAddress = '0x593fb76F8ce669360D1D3662548277D7B7AdF373';
-export const payABI = [
+export const payABI: Abi = [
 	{
 		"inputs": [
 			{

@@ -338,17 +338,9 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         throw new Error('Wallet not connected');
       }
 
-      const { sendTransaction, prepareTransaction, waitForReceipt } = await import('thirdweb');
+      const {  waitForReceipt } = await import('thirdweb');
       const { client, activeChain } = await import('@/lib/thirdweb');
 
-
-
-      const claimTransaction = await prepareTransaction({
-        to: ubiSchemeV2Address as `0x${string}`,
-        data: claimData as `0x${string}`,
-        client,
-        chain: activeChain,
-      });
 
       // Sponsor gas for claim
       try {
@@ -525,8 +517,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       throw new Error("No entitlement available");
     }
 
-
-
     const selectedToken = "G$";
     const tokenAddress = getTokenAddress(selectedToken, TOKENS);
 
@@ -593,14 +583,21 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           client,
           chain: activeChain,
         });
-        await sendTransaction({ account, transaction: approveTx });
+        const approveResult = await sendTransaction({ account, transaction: approveTx });
+        // Wait for approval to be confirmed on-chain before proceeding
+        const { waitForReceipt: waitForApprovalReceipt } = await import('thirdweb');
+        await waitForApprovalReceipt({
+          client,
+          chain: activeChain,
+          transactionHash: approveResult.transactionHash,
+        });
         console.log('[processPayment] Approval confirmed');
         toast.success('Token approval confirmed');
       }
 
       // Encode the pay function on PaymentVault
       const payData = encodeFunctionData({
-        abi: parseAbi(["function pay(address token, uint256 amount)"]),
+        abi: payABI,
         functionName: 'pay',
         args: [tokenAddress as `0x${string}`, entitlement as bigint],
       });
@@ -609,7 +606,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       try {
         const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
           contractAddress: payAddress as `0x${string}`,
-          abi: parseAbi(["function pay(address token, uint256 amount)"]),
+          abi: payABI,
           functionName: 'pay',
           args: [tokenAddress as `0x${string}`, entitlement],
         });
