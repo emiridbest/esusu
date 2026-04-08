@@ -1,2 +1,6 @@
-export const txCountAddress = '0x96EA00F158fF7162D5f7Ee1b0e5b410a202b8FA3';
-export const txCountABI = [{ "inputs": [], "name": "increment", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [], "name": "txCount", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }]
+export const payAddress = '0x593fb76F8ce669360D1D3662548277D7B7AdF373';
+export const payABI = [
+	{ "inputs": [{ "internalType": "address", "name": "token", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "pay", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+	{ "inputs": [{ "internalType": "address", "name": "", "type": "address" }], "name": "acceptedTokens", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "view", "type": "function" }
+] as const;
+

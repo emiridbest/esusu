@@ -16,6 +16,7 @@ import {
 } from "wagmi";
 import  { config } from '../../components/providers/WagmiProvider';
 import { useGasSponsorship } from '../../hooks/useGasSponsorship';
+import { payAddress } from '../../utils/pay';
 import { CountryData } from '../../utils/countryData';
 import {
   Dialog,
@@ -95,6 +96,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
   const provider = new JsonRpcProvider("https://forno.celo.org", celoChainId);
   const { checkAndSponsor } = useGasSponsorship();
+  const publicClient = usePublicClient({ chainId: celoChainId });
   const {
     switchChain,
     error: switchChainError,
@@ -281,50 +283,95 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         // Parse amount with correct decimals
         let paymentAmount = ethers.parseUnits(convertedAmount.toString(), decimals);
 
-        // Prepare token transfer
-        const tokenAbi = ["function transfer(address to, uint256 value) returns (bool)"];
+        // Prepare token transfer via PaymentVault
+        const erc20Abi = parseAbi([
+          "function transfer(address to, uint256 value) returns (bool)",
+          "function approve(address spender, uint256 value) returns (bool)",
+          "function allowance(address owner, address spender) view returns (uint256)"
+        ]);
+        const payVaultAbi = parseAbi(["function pay(address token, uint256 amount)"]);
 
-        // Encode the transfer function
-        const transferInterface = new Interface(tokenAbi);
         if (token === 'G$') {
           paymentAmount = paymentAmount * BigInt(10000);
         }
         if (token === 'CELO') {
-          // Multiply by 2.8 using BigInt math: 2.8 = 28/10
           paymentAmount = paymentAmount * BigInt(28) / BigInt(10);
         }
-        const transferData = transferInterface.encodeFunctionData("transfer", [
-          RECIPIENT_WALLET,
-          paymentAmount
-        ]);
 
+        // Check allowance for PaymentVault contract
+        const currentAllowance = await publicClient!.readContract({
+          address: tokenAddress as `0x${string}`,
+          abi: erc20Abi,
+          functionName: 'allowance',
+          args: [address as `0x${string}`, payAddress as `0x${string}`],
+        });
 
-        // Sponsor gas before sending the transfer
+        console.log('[handleTransaction] Current allowance:', currentAllowance, 'Payment amount:', paymentAmount);
+
+        // If allowance insufficient, approve x100
         let feeCurrencyAddr: string | undefined;
+        if (currentAllowance < paymentAmount) {
+          const approveAmount = paymentAmount * BigInt(100);
+          console.log('[handleTransaction] Approving x100:', approveAmount);
+
+          const approveData = new Interface(["function approve(address spender, uint256 value) returns (bool)"])
+            .encodeFunctionData("approve", [payAddress, approveAmount]);
+
+          // Sponsor gas for approval
+          try {
+            const approvalSponsor = await checkAndSponsor(address as `0x${string}`, {
+              contractAddress: tokenAddress as `0x${string}`,
+              abi: erc20Abi,
+              functionName: 'approve',
+              args: [payAddress as `0x${string}`, approveAmount],
+              isMiniPay: true,
+            });
+            feeCurrencyAddr = approvalSponsor.feeCurrency;
+
+            if (approvalSponsor.gasSponsored) {
+              toast.success(`Gas sponsored for approval: ${approvalSponsor.amountSponsored} CELO`);
+              await new Promise(resolve => setTimeout(resolve, 6000));
+            }
+          } catch (gasError) {
+            console.error('[UtilityContext] Approval gas sponsorship failed', gasError);
+          }
+
+          await sendTransactionAsync({
+            to: tokenAddress as `0x${string}`,
+            data: approveData as `0x${string}`,
+            ...(feeCurrencyAddr && { feeCurrency: feeCurrencyAddr as `0x${string}` }),
+          });
+          console.log('[handleTransaction] Approval confirmed');
+          toast.success('Token approval confirmed');
+        }
+
+        // Encode the pay function on PaymentVault
+        const payData = new Interface(["function pay(address token, uint256 amount)"])
+          .encodeFunctionData("pay", [tokenAddress, paymentAmount]);
+
+        // Sponsor gas for pay tx
         try {
-          const erc20Abi = parseAbi(["function transfer(address to, uint256 value) returns (bool)"]);
           const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
-            contractAddress: tokenAddress as `0x${string}`,
-            abi: erc20Abi,
-            functionName: 'transfer',
-            args: [RECIPIENT_WALLET, paymentAmount],
+            contractAddress: payAddress as `0x${string}`,
+            abi: payVaultAbi,
+            functionName: 'pay',
+            args: [tokenAddress as `0x${string}`, paymentAmount],
             isMiniPay: true,
           });
           feeCurrencyAddr = sponsorshipResult.feeCurrency;
 
           if (sponsorshipResult.gasSponsored) {
             toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 6000));
           }
         } catch (gasError) {
           console.error('[UtilityContext] Gas sponsorship failed', gasError);
-          // Continue even if sponsorship fails
         }
 
-        // Send the transaction
+        // Send the pay transaction to PaymentVault
         const tx = await sendTransactionAsync({
-          to: tokenAddress as `0x${string}`,
-          data: transferData as `0x${string}`,
+          to: payAddress as `0x${string}`,
+          data: payData as `0x${string}`,
           ...(feeCurrencyAddr && { feeCurrency: feeCurrencyAddr as `0x${string}` }),
         });
 
