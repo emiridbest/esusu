@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '@/components/TransactionSteps';
-import { txCountABI, txCountAddress } from '@/utils/pay';
+import { payAddress, payABI } from '@/utils/pay';
 import useGasSponsorship from '@/hooks/useGasSponsorship';
 // Constants
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
@@ -530,46 +530,104 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     const selectedToken = "G$";
     const tokenAddress = getTokenAddress(selectedToken, TOKENS);
 
-    const erc20Abi = parseAbi(["function transfer(address to, uint256 value) returns (bool)"]);
-    const transferData = encodeFunctionData({
-      abi: erc20Abi,
-      functionName: 'transfer',
-      args: [RECIPIENT_WALLET as `0x${string}`, entitlement as bigint]
-    });
+    const erc20Abi = parseAbi([
+      "function transfer(address to, uint256 value) returns (bool)",
+      "function approve(address spender, uint256 value) returns (bool)",
+      "function allowance(address owner, address spender) view returns (uint256)"
+    ]);
     console.log("Processing payment for address:", address);
-
 
     toast.info("Processing payment for data bundle...");
     try {
       setIsWaitingTx(true);
       if (!wallet || !account) throw new Error('Wallet not connected');
 
-      const { sendTransaction, prepareTransaction } = await import('thirdweb');
+      const { sendTransaction, prepareTransaction, readContract, getContract } = await import('thirdweb');
       const { client, activeChain } = await import('@/lib/thirdweb');
 
-      const transaction = await prepareTransaction({
-        to: tokenAddress as `0x${string}`,
-        data: transferData as `0x${string}`,
+      // Check allowance for PaymentVault
+      const tokenContract = getContract({
         client,
         chain: activeChain,
+        address: tokenAddress as `0x${string}`,
+      });
+
+      const currentAllowance = await readContract({
+        contract: tokenContract,
+        method: "function allowance(address owner, address spender) view returns (uint256)",
+        params: [address as `0x${string}`, payAddress as `0x${string}`],
+      });
+
+      console.log('[processPayment] Current allowance:', currentAllowance, 'Entitlement:', entitlement);
+
+      // If allowance insufficient, approve x100
+      if (currentAllowance < (entitlement as bigint)) {
+        const approveAmount = (entitlement as bigint) * BigInt(100);
+
+        const approveData = encodeFunctionData({
+          abi: erc20Abi,
+          functionName: 'approve',
+          args: [payAddress as `0x${string}`, approveAmount],
+        });
+
+        // Sponsor gas for approval
+        try {
+          const approvalSponsor = await checkAndSponsor(address as `0x${string}`, {
+            contractAddress: tokenAddress as `0x${string}`,
+            abi: erc20Abi,
+            functionName: 'approve',
+            args: [payAddress as `0x${string}`, approveAmount],
+          });
+
+          if (approvalSponsor.gasSponsored) {
+            toast.success(`Gas sponsored for approval: ${approvalSponsor.amountSponsored} ${approvalSponsor.sponsoredToken || 'CELO'}`);
+            await new Promise(resolve => setTimeout(resolve, 6000));
+          }
+        } catch (gasError) {
+          console.error('[ClaimProvider] Approval gas sponsorship failed', gasError);
+        }
+
+        const approveTx = await prepareTransaction({
+          to: tokenAddress as `0x${string}`,
+          data: approveData as `0x${string}`,
+          client,
+          chain: activeChain,
+        });
+        await sendTransaction({ account, transaction: approveTx });
+        console.log('[processPayment] Approval confirmed');
+        toast.success('Token approval confirmed');
+      }
+
+      // Encode the pay function on PaymentVault
+      const payData = encodeFunctionData({
+        abi: parseAbi(["function pay(address token, uint256 amount)"]),
+        functionName: 'pay',
+        args: [tokenAddress as `0x${string}`, entitlement as bigint],
       });
 
       // Sponsor gas for payment
       try {
         const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
-          contractAddress: tokenAddress as `0x${string}`,
-          abi: erc20Abi,
-          functionName: 'transfer',
-          args: [RECIPIENT_WALLET, entitlement],
+          contractAddress: payAddress as `0x${string}`,
+          abi: parseAbi(["function pay(address token, uint256 amount)"]),
+          functionName: 'pay',
+          args: [tokenAddress as `0x${string}`, entitlement],
         });
 
         if (sponsorshipResult.gasSponsored) {
           toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} ${sponsorshipResult.sponsoredToken || 'CELO'}`);
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          await new Promise(resolve => setTimeout(resolve, 6000));
         }
       } catch (gasError) {
         console.error("Gas sponsorship failed:", gasError);
       }
+
+      const transaction = await prepareTransaction({
+        to: payAddress as `0x${string}`,
+        data: payData as `0x${string}`,
+        client,
+        chain: activeChain,
+      });
 
       const tx = await sendTransaction({
         account,
