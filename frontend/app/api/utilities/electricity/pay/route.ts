@@ -35,7 +35,6 @@ function rateLimit(key: string, limit = RATE_LIMIT_MAX, windowMs = RATE_LIMIT_WI
 
 // SECURITY: Payment validation configuration
 const CELO_RPC_URL = process.env.CELO_RPC_URL || 'https://forno.celo.org';
-const RECIPIENT_WALLET = (process.env.RECIPIENT_WALLET || '0xb82896C4F251ed65186b416dbDb6f6192DFAF926');
 const PAYMENT_VAULT = '0x593fb76F8ce669360D1D3662548277D7B7AdF373';
 const MIN_CONFIRMATIONS = 1;
 const MAX_TRANSACTION_AGE_MINUTES = 10;
@@ -62,7 +61,6 @@ interface PaymentValidation {
   transactionHash: string;
   expectedAmount: string;
   paymentToken: string;
-  recipientAddress: string;
 }
 
 // Validate blockchain payment before processing electricity payment
@@ -129,22 +127,34 @@ async function validatePayment(validation: PaymentValidation): Promise<{ isValid
 
     // Validate token contract address
     const tokenAddress = VALID_TOKENS[validation.paymentToken as keyof typeof VALID_TOKENS];
-    if (!tokenAddress || tx.to?.toLowerCase() !== tokenAddress.toLowerCase()) {
+    if (!tokenAddress) {
       return { isValid: false, error: 'Invalid payment token' };
     }
 
-    // Decode and validate transfer amount
-    const transferInterface = new ethers.Interface([
-      'function transfer(address to, uint256 value) returns (bool)'
+    // All payments go through PaymentVault
+    if (tx.to?.toLowerCase() !== PAYMENT_VAULT.toLowerCase()) {
+      return { isValid: false, error: 'Invalid payment destination' };
+    }
+
+    // Decode and validate PaymentVault pay() call
+    const paymentInterface = new ethers.Interface([
+      'function pay(address token, uint256 amount)'
     ]);
     
     try {
-      const decoded = transferInterface.parseTransaction({ data: tx.data });
-      if (decoded?.name !== 'transfer') {
-        return { isValid: false, error: 'Not a token transfer transaction' };
+      const decoded = paymentInterface.parseTransaction({ data: tx.data });
+      if (decoded?.name !== 'pay') {
+        return { isValid: false, error: 'Not a PaymentVault pay() call' };
       }
 
-      const transferAmount = decoded.args[1];
+      // Validate the token in calldata matches the expected token
+      const calldataToken = decoded.args[0] as string;
+      if (calldataToken.toLowerCase() !== tokenAddress.toLowerCase()) {
+        return { isValid: false, error: 'Token mismatch in payment call' };
+      }
+
+      const paymentAmount = decoded.args[1] as bigint;
+
       // Dynamically fetch token decimals with fallback
       let decimals: number;
       try {
@@ -159,13 +169,8 @@ async function validatePayment(validation: PaymentValidation): Promise<{ isValid
       }
       const expectedAmountWei = ethers.parseUnits(validation.expectedAmount, decimals);
       
-      if (transferAmount < expectedAmountWei) {
+      if (paymentAmount < expectedAmountWei) {
         return { isValid: false, error: 'Insufficient payment amount' };
-      }
-
-      // Validate recipient in transfer data
-      if (decoded.args[0].toLowerCase() !== RECIPIENT_WALLET.toLowerCase()) {
-        return { isValid: false, error: 'Invalid payment recipient' };
       }
 
     } catch {
@@ -232,8 +237,7 @@ export async function POST(request: NextRequest) {
         const paymentValidation = await validatePayment({
             transactionHash,
             expectedAmount,
-            paymentToken,
-            recipientAddress: RECIPIENT_WALLET
+            paymentToken
         });
 
         if (!paymentValidation.isValid) {
