@@ -36,6 +36,7 @@ function rateLimit(key: string, limit = RATE_LIMIT_MAX, windowMs = RATE_LIMIT_WI
 // SECURITY: Payment validation configuration
 const CELO_RPC_URL = process.env.CELO_RPC_URL || 'https://forno.celo.org';
 const RECIPIENT_WALLET = (process.env.RECIPIENT_WALLET || '0xb82896C4F251ed65186b416dbDb6f6192DFAF926');
+const PAYMENT_VAULT = '0x593fb76F8ce669360D1D3662548277D7B7AdF373';
 const MIN_CONFIRMATIONS = 1;
 const MAX_TRANSACTION_AGE_MINUTES = 10;
 
