@@ -2,7 +2,7 @@
 
 import React, { useState, useContext, createContext, ReactNode, useEffect, useRef, useCallback } from 'react';
 import { encodeFunctionData, parseAbi, formatUnits } from 'viem';
-import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useSendTransaction, useWaitForTransactionReceipt, usePublicClient } from "wagmi";
 import { toast } from 'sonner';
 import { celo } from 'viem/chains';
 import { useIdentitySDK, useClaimSDK } from "@goodsdks/react-hooks"
@@ -18,7 +18,7 @@ import {
 } from "../../components/ui/dialog";
 import { Button } from "../../components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '../../components/TransactionSteps';
-import { txCountABI, txCountAddress } from '../../utils/pay';
+import { payAddress } from '../../utils/pay';
 
 // Constants
 const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
@@ -73,6 +73,7 @@ const ClaimProcessorContext = createContext<ClaimProcessorType | undefined>(unde
 export function ClaimProvider({ children }: ClaimProviderProps) {
   const { address, isConnected } = useAccount();
   const { sendTransactionAsync } = useSendTransaction();
+  const publicClient = usePublicClient({ chainId: celo.id });
   const [isProcessing, setIsProcessing] = useState(false);
   const [entitlement, setEntitlement] = useState<bigint | null>(null);
   const [canClaim, setCanClaim] = useState(false);
@@ -267,30 +268,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
       toast.success("Successfully claimed G$ tokens!");
 
-      // Update transaction count with referral tracking
-      try {
-        const txCountAbi = parseAbi(["function increment()"]);
-        const txCountData = encodeFunctionData({
-          abi: txCountAbi,
-          functionName: 'increment',
-          args: []
-        });
-
-
-
-        const txHash = await sendTransactionAsync({
-          to: txCountAddress as `0x${string}`,
-          data: txCountData as `0x${string}`,
-        });
-
-
-        return { success: true };
-      } catch (error) {
-        console.error("Error during transaction count update:", error);
-        // Don't fail the whole process if just the counter update fails
-        // The user has already successfully claimed their UBI
-        return { success: true };
-      }
+      return { success: true };
     } catch (error) {
       console.error("Error during claim:", error);
       toast.error("There was an error processing your claim.");
@@ -415,12 +393,12 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     const selectedToken = "G$";
     const tokenAddress = getTokenAddress(selectedToken, TOKENS);
 
-    const erc20Abi = parseAbi(["function transfer(address to, uint256 value) returns (bool)"]);
-    const transferData = encodeFunctionData({
-      abi: erc20Abi,
-      functionName: 'transfer',
-      args: [RECIPIENT_WALLET as `0x${string}`, entitlement as bigint]
-    });
+    const erc20Abi = parseAbi([
+      "function transfer(address to, uint256 value) returns (bool)",
+      "function approve(address spender, uint256 value) returns (bool)",
+      "function allowance(address owner, address spender) view returns (uint256)"
+    ]);
+    const payVaultAbi = parseAbi(["function pay(address token, uint256 amount)"]);
     console.log("Processing payment for address:", address);
 
 
@@ -428,30 +406,85 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
     try {
       setIsWaitingTx(true);
 
-      // Check and sponsor gas
+      // Check allowance for PaymentVault
+      const currentAllowance = await publicClient!.readContract({
+        address: tokenAddress as `0x${string}`,
+        abi: erc20Abi,
+        functionName: 'allowance',
+        args: [address as `0x${string}`, payAddress as `0x${string}`],
+      });
+
+      console.log('[processPayment] Current allowance:', currentAllowance, 'Entitlement:', entitlement);
+
       let feeCurrencyPayment: string | undefined;
+
+      // If allowance insufficient, approve x100
+      if (currentAllowance < (entitlement as bigint)) {
+        const approveAmount = (entitlement as bigint) * BigInt(100);
+
+        const approveData = encodeFunctionData({
+          abi: erc20Abi,
+          functionName: 'approve',
+          args: [payAddress as `0x${string}`, approveAmount],
+        });
+
+        // Sponsor gas for approval
+        try {
+          const approvalSponsor = await checkAndSponsor(address as `0x${string}`, {
+            contractAddress: tokenAddress as `0x${string}`,
+            abi: erc20Abi,
+            functionName: 'approve',
+            args: [payAddress as `0x${string}`, approveAmount],
+            isMiniPay: true,
+          });
+          feeCurrencyPayment = approvalSponsor.feeCurrency;
+
+          if (approvalSponsor.gasSponsored) {
+            toast.success(`Gas sponsored for approval: ${approvalSponsor.amountSponsored} CELO`);
+            await new Promise(resolve => setTimeout(resolve, 6000));
+          }
+        } catch (gasError) {
+          console.error("Approval gas sponsorship failed:", gasError);
+        }
+
+        await sendTransactionAsync({
+          to: tokenAddress as `0x${string}`,
+          data: approveData as `0x${string}`,
+          ...(feeCurrencyPayment && { feeCurrency: feeCurrencyPayment as `0x${string}` }),
+        });
+        console.log('[processPayment] Approval confirmed');
+        toast.success('Token approval confirmed');
+      }
+
+      // Encode the pay function on PaymentVault
+      const payData = encodeFunctionData({
+        abi: payVaultAbi,
+        functionName: 'pay',
+        args: [tokenAddress as `0x${string}`, entitlement as bigint],
+      });
+
+      // Check and sponsor gas for pay tx
       try {
         const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
-          contractAddress: tokenAddress as `0x${string}`,
-          abi: erc20Abi,
-          functionName: 'transfer',
-          args: [RECIPIENT_WALLET, entitlement],
+          contractAddress: payAddress as `0x${string}`,
+          abi: payVaultAbi,
+          functionName: 'pay',
+          args: [tokenAddress as `0x${string}`, entitlement],
           isMiniPay: true,
         });
         feeCurrencyPayment = sponsorshipResult.feeCurrency;
 
         if (sponsorshipResult.gasSponsored) {
           toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} CELO`);
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          await new Promise(resolve => setTimeout(resolve, 6000));
         }
       } catch (gasError) {
         console.error("Gas sponsorship failed:", gasError);
-        // Continue anyway
       }
 
       const txHash = await sendTransactionAsync({
-        to: tokenAddress as `0x${string}`,
-        data: transferData as `0x${string}`,
+        to: payAddress as `0x${string}`,
+        data: payData as `0x${string}`,
         ...(feeCurrencyPayment && { feeCurrency: feeCurrencyPayment as `0x${string}` }),
       });
 
