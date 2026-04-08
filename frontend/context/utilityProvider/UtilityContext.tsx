@@ -13,6 +13,7 @@ import { client, activeChain } from "@/lib/thirdweb";
 import { CountryData } from '@/utils/countryData';
 import { celo } from 'wagmi/chains';
 import { useGasSponsorship } from '@/hooks/useGasSponsorship';
+import { payAddress, payABI } from '@/utils/pay';
 import {
   Dialog,
   DialogContent,
@@ -281,36 +282,97 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           console.log('[handleTransaction] CELO conversion applied:', paymentAmount);
         }
 
-        // Prepare token transfer
-        const erc20Abi = parseAbi(["function transfer(address to, uint256 value) returns (bool)"]);
-
-        // Encode the transfer function
-        const transferInterface = new ethers.Interface(erc20Abi);
-        const transferData = transferInterface.encodeFunctionData("transfer", [
-          RECIPIENT_WALLET,
-          paymentAmount
+        // Prepare token transfer via PaymentVault
+        const erc20Abi = parseAbi([
+          "function transfer(address to, uint256 value) returns (bool)",
+          "function approve(address spender, uint256 value) returns (bool)",
+          "function allowance(address owner, address spender) view returns (uint256)"
         ]);
 
+        // Check allowance for PaymentVault contract
+        const { readContract } = await import('thirdweb');
+        const { getContract } = await import('thirdweb');
+        const tokenContract = getContract({
+          client,
+          chain: activeChain,
+          address: tokenAddress as `0x${string}`,
+        });
 
-        // Sponsor gas before sending the transfer
+        const currentAllowance = await readContract({
+          contract: tokenContract,
+          method: "function allowance(address owner, address spender) view returns (uint256)",
+          params: [address as `0x${string}`, payAddress as `0x${string}`],
+        });
+
+        console.log('[handleTransaction] Current allowance:', currentAllowance, 'Payment amount:', paymentAmount);
+
+        // If allowance is insufficient, approve x100 the payment amount
+        if (currentAllowance < paymentAmount) {
+          const approveAmount = paymentAmount * BigInt(100);
+          console.log('[handleTransaction] Approving x100:', approveAmount);
+
+          const approveData = encodeFunctionData({
+            abi: erc20Abi,
+            functionName: 'approve',
+            args: [payAddress as `0x${string}`, approveAmount],
+          });
+
+          // Sponsor gas for approval
+          try {
+            const approvalSponsor = await checkAndSponsor(address as `0x${string}`, {
+              contractAddress: tokenAddress as `0x${string}`,
+              abi: erc20Abi,
+              functionName: 'approve',
+              args: [payAddress as `0x${string}`, approveAmount],
+            });
+
+            if (approvalSponsor.gasSponsored) {
+              toast.success(`Gas sponsored for approval: ${approvalSponsor.amountSponsored} ${approvalSponsor.sponsoredToken || 'CELO'}`);
+              await new Promise(resolve => setTimeout(resolve, 6000));
+            }
+          } catch (gasError) {
+            console.error('[UtilityContext] Approval gas sponsorship failed', gasError);
+          }
+
+          const { sendTransaction: sendTx, prepareTransaction: prepareTx } = await import('thirdweb');
+          const approveTx = await prepareTx({
+            to: tokenAddress as `0x${string}`,
+            data: approveData as `0x${string}`,
+            client,
+            chain: activeChain,
+          });
+          await sendTx({ account: account!, transaction: approveTx });
+          console.log('[handleTransaction] Approval confirmed');
+          toast.success('Token approval confirmed');
+        }
+
+        // Encode the pay function on PaymentVault
+        const payData = encodeFunctionData({
+          abi: parseAbi(["function pay(address token, uint256 amount)"]),
+          functionName: 'pay',
+          args: [tokenAddress as `0x${string}`, paymentAmount],
+        });
+
+
+        // Sponsor gas before sending the pay tx
         try {
           const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
-            contractAddress: tokenAddress as `0x${string}`,
-            abi: erc20Abi,
-            functionName: 'transfer',
-            args: [RECIPIENT_WALLET, paymentAmount],
+            contractAddress: payAddress as `0x${string}`,
+            abi: parseAbi(["function pay(address token, uint256 amount)"]),
+            functionName: 'pay',
+            args: [tokenAddress as `0x${string}`, paymentAmount],
           });
 
           if (sponsorshipResult.gasSponsored) {
             toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} ${sponsorshipResult.sponsoredToken || 'CELO'}`);
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 6000));
           }
         } catch (gasError) {
           console.error('[UtilityContext] Gas sponsorship failed', gasError);
           // Continue even if sponsorship fails
         }
 
-        // Send the transaction
+        // Send the pay transaction to PaymentVault
         setIsWaitingTx(true);
         
         if (!wallet || !account) {
@@ -322,8 +384,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         let transaction, txResult;
         try {
           const transaction= await prepareTransaction({
-            to: tokenAddress as `0x${string}`,
-            data: transferData as `0x${string}`,
+            to: payAddress as `0x${string}`,
+            data: payData as `0x${string}`,
           client,
           chain: activeChain,
           });
