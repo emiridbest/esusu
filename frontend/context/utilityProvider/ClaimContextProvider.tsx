@@ -582,8 +582,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           data: approveData as `0x${string}`,
           client,
           chain: activeChain,
-          gasPrice: 2000000000n, // 2 GWei
-        });
+          });
         const approveResult = await sendTransaction({ account, transaction: approveTx });
         // Wait for approval to be confirmed on-chain before proceeding
         const { waitForReceipt: waitForApprovalReceipt } = await import('thirdweb');
@@ -625,7 +624,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         data: payData as `0x${string}`,
         client,
         chain: activeChain,
-        gasPrice: 2000000000n, // 2 GWei
       });
 
       const tx = await sendTransaction({
