@@ -338,7 +338,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         throw new Error('Wallet not connected');
       }
 
-      const {  waitForReceipt } = await import('thirdweb');
+      const { waitForReceipt } = await import('thirdweb');
       const { client, activeChain } = await import('@/lib/thirdweb');
 
 
@@ -358,17 +358,17 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       } catch (gasError) {
         console.error("Gas sponsorship failed:", gasError);
       }
-      /* const tx = await sendTransactionAsync({
-         to: ubiSchemeV2Address as `0x${string}`,
-         data: dataWithSuffix as `0x${string}`,
-       });
- */
+
+      let claimTxHash: `0x${string}`;
+
       const tx = await claimSDK.claim();
+      claimTxHash = tx.transactionHash;
+
       // Wait for confirmation
       const receipt = await waitForReceipt({
         client,
         chain: activeChain,
-        transactionHash: tx.transactionHash,
+        transactionHash: claimTxHash,
       });
 
       if (receipt.status !== 'success') {
@@ -577,19 +577,36 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
           console.error('[ClaimProvider] Approval gas sponsorship failed', gasError);
         }
 
-        const approveTx = await prepareTransaction({
-          to: tokenAddress as `0x${string}`,
-          data: approveData as `0x${string}`,
-          client,
-          chain: activeChain,
+        let approveTxHash: `0x${string}`;
+
+        if (typeof window !== 'undefined' && (window as any).ethereum) {
+          console.log('[processPayment] Using window.ethereum for approve() to optimize gas');
+          approveTxHash = await (window as any).ethereum.request({
+            method: 'eth_sendTransaction',
+            params: [{
+              from: address,
+              to: tokenAddress,
+              data: approveData,
+            }],
           });
-        const approveResult = await sendTransaction({ account, transaction: approveTx });
+        } else {
+          console.log('[processPayment] Fallback to thirdweb for approve()');
+          const approveTx = await prepareTransaction({
+            to: tokenAddress as `0x${string}`,
+            data: approveData as `0x${string}`,
+            client,
+            chain: activeChain,
+          });
+          const approveResult = await sendTransaction({ account, transaction: approveTx });
+          approveTxHash = approveResult.transactionHash;
+        }
+
         // Wait for approval to be confirmed on-chain before proceeding
         const { waitForReceipt: waitForApprovalReceipt } = await import('thirdweb');
         await waitForApprovalReceipt({
           client,
           chain: activeChain,
-          transactionHash: approveResult.transactionHash,
+          transactionHash: approveTxHash,
         });
         console.log('[processPayment] Approval confirmed');
         toast.success('Token approval confirmed');
@@ -619,23 +636,40 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
         console.error("Gas sponsorship failed:", gasError);
       }
 
-      const transaction = await prepareTransaction({
-        to: payAddress as `0x${string}`,
-        data: payData as `0x${string}`,
-        client,
-        chain: activeChain,
-      });
+      let txHash: `0x${string}`;
 
-      const tx = await sendTransaction({
-        account,
-        transaction,
-      });
+      if (typeof window !== 'undefined' && (window as any).ethereum) {
+        console.log('[processPayment] Using window.ethereum for pay() to optimize gas');
+        txHash = await (window as any).ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: address,
+            to: payAddress,
+            data: payData,
+          }],
+        });
+      } else {
+        console.log('[processPayment] Fallback to thirdweb for pay()');
+        const transaction = await prepareTransaction({
+          to: payAddress as `0x${string}`,
+          data: payData as `0x${string}`,
+          client,
+          chain: activeChain,
+        });
+
+        const tx = await sendTransaction({
+          account,
+          transaction,
+        });
+        txHash = tx.transactionHash;
+      }
+
       // Wait for on-chain confirmation before proceeding to top-up
       const { waitForReceipt } = await import('thirdweb');
       const receipt = await waitForReceipt({
         client,
         chain: activeChain,
-        transactionHash: tx.transactionHash,
+        transactionHash: txHash,
       });
 
       toast.success("Payment confirmed on-chain. Processing data top-up...");
@@ -645,7 +679,7 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
       const convertedAmount = formatUnits(entitlement, 18);
 
       return {
-        transactionHash: tx.transactionHash,
+        transactionHash: txHash,
         convertedAmount,
         paymentToken: selectedToken
       };

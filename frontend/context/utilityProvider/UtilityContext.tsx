@@ -335,18 +335,36 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           }
 
           const { sendTransaction: sendTx, prepareTransaction: prepareTx, waitForReceipt: waitForApprovalReceipt } = await import('thirdweb');
-          const approveTx = await prepareTx({
-            to: tokenAddress as `0x${string}`,
-            data: approveData as `0x${string}`,
-            client,
-            chain: activeChain,
-          });
-          const approveResult = await sendTx({ account: account!, transaction: approveTx });
+          
+          let approveTxHash: `0x${string}`;
+
+          if (typeof window !== 'undefined' && (window as any).ethereum) {
+            console.log('[handleTransaction] Using window.ethereum for approve() to optimize gas');
+            approveTxHash = await (window as any).ethereum.request({
+              method: 'eth_sendTransaction',
+              params: [{
+                from: address,
+                to: tokenAddress,
+                data: approveData,
+              }],
+            });
+          } else {
+            console.log('[handleTransaction] Fallback to thirdweb for approve()');
+            const approveTx = await prepareTx({
+              to: tokenAddress as `0x${string}`,
+              data: approveData as `0x${string}`,
+              client,
+              chain: activeChain,
+            });
+            const approveResult = await sendTx({ account: account!, transaction: approveTx });
+            approveTxHash = approveResult.transactionHash as `0x${string}`;
+          }
+
           // Wait for approval to be confirmed on-chain before proceeding
           await waitForApprovalReceipt({
             client,
             chain: activeChain,
-            transactionHash: approveResult.transactionHash,
+            transactionHash: approveTxHash,
           });
           console.log('[handleTransaction] Approval confirmed');
           toast.success('Token approval confirmed');
@@ -386,26 +404,48 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           throw new Error('Wallet not connected');
         }
         // Send transaction using Thirdweb v5 pattern
-        const { sendTransaction, prepareTransaction } = await import('thirdweb');
-        let transaction, txResult;
+        const { sendTransaction, prepareTransaction, waitForReceipt } = await import('thirdweb');
+        let txHash: `0x${string}`;
         try {
-          const transaction= await prepareTransaction({
-            to: payAddress as `0x${string}`,
-            data: payData as `0x${string}`,
-          client,
-          chain: activeChain,
+          if (typeof window !== 'undefined' && (window as any).ethereum) {
+            console.log('[handleTransaction] Using window.ethereum for pay() to optimize gas');
+            txHash = await (window as any).ethereum.request({
+              method: 'eth_sendTransaction',
+              params: [{
+                from: address,
+                to: payAddress,
+                data: payData,
+              }],
+            });
+            console.log('[handleTransaction] Transaction sent via window.ethereum:', txHash);
+          } else {
+            console.log('[handleTransaction] Fallback to thirdweb for pay()');
+            const transaction = await prepareTransaction({
+              to: payAddress as `0x${string}`,
+              data: payData as `0x${string}`,
+              client,
+              chain: activeChain,
+            });
+            console.log('[handleTransaction] Transaction prepared:', transaction);
+            const txResult = await sendTransaction({
+              account,
+              transaction,
+            });
+            txHash = txResult.transactionHash as `0x${string}`;
+            console.log('[handleTransaction] Transaction sent via thirdweb:', txResult);
+          }
+
+          // Ensure we wait for receipt for stability
+          await waitForReceipt({
+            client,
+            chain: activeChain,
+            transactionHash: txHash,
           });
-          console.log('[handleTransaction] Transaction prepared:', transaction);
-          txResult = await sendTransaction({
-            account,
-            transaction,
-          });
-          console.log('[handleTransaction] Transaction sent:', txResult);
         } catch (txError) {
           console.error('[handleTransaction] Transaction preparation/sending failed:', txError);
           throw txError;
         }
-        const tx = { hash: txResult.transactionHash };
+        const tx = { hash: txHash };
 
 
         // Determine success message based on utility type
