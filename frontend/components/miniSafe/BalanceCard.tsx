@@ -139,7 +139,7 @@ const BalanceCard: React.FC = () => {
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {['CUSD', 'USDC', 'USDT'].map((tokenSymbol) => (
+              {['CUSD', 'USDC', /*'USDT'*/].map((tokenSymbol) => (
                 <SelectItem key={tokenSymbol} value={tokenSymbol}>
                   <div className="flex items-center gap-2">
                     {TOKENS[tokenSymbol]?.logoUrl && (
