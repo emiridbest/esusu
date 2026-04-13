@@ -17,6 +17,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="talentapp:project_verification" content="c66c108f066fb8413760754adedec90ca0ae569bd577be75d8baa9077736345e77526ed3a3779ff76e60c413a72ca87213cf702649eb29762202f11390b410ed" />
+      </head>
       <body className="font-mono">
         <ThemeProvider>
           <Providers>
