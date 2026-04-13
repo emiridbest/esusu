@@ -304,13 +304,13 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           abi: erc20Abi,
           functionName: 'allowance',
           args: [address as `0x${string}`, payAddress as `0x${string}`],
-        });
+        } as any);
 
         console.log('[handleTransaction] Current allowance:', currentAllowance, 'Payment amount:', paymentAmount);
 
         // If allowance insufficient, approve x100
         let feeCurrencyAddr: string | undefined;
-        if (currentAllowance < paymentAmount) {
+        if ((currentAllowance as bigint) < paymentAmount) {
           const approveAmount = paymentAmount * BigInt(100);
           console.log('[handleTransaction] Approving x100:', approveAmount);
 
