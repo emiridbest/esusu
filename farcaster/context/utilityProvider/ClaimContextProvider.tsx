@@ -428,14 +428,14 @@ const handleVerification = useCallback(async () => {
         abi: erc20Abi,
         functionName: 'allowance',
         args: [address as `0x${string}`, payAddress as `0x${string}`],
-      });
+      } as any);
 
       console.log('[processPayment] Current allowance:', currentAllowance, 'Entitlement:', entitlement);
 
       let feeCurrencyPayment: string | undefined;
 
       // If allowance insufficient, approve x100
-      if (currentAllowance < (entitlement as bigint)) {
+      if ((currentAllowance as bigint) < (entitlement as bigint)) {
         const approveAmount = (entitlement as bigint) * BigInt(100);
 
         const approveData = encodeFunctionData({
