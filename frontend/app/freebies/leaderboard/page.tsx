@@ -13,7 +13,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trophy, Copy, Check } from 'lucide-react';
 import { useActiveAccount } from "thirdweb/react";
 
 interface LeaderboardEntry {
@@ -57,6 +57,13 @@ export default function LeaderboardPage() {
     const [currentUser, setCurrentUser] = useState<LeaderboardEntry | null>(null);
     const [period, setPeriod] = useState<PeriodInfo | null>(null);
     const [loading, setLoading] = useState(true);
+    const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+
+    const handleCopy = (address: string) => {
+        navigator.clipboard.writeText(address);
+        setCopiedAddress(address);
+        setTimeout(() => setCopiedAddress(null), 2000);
+    };
 
     const fetchLeaderboard = useCallback(async (offset: number) => {
         setLoading(true);
@@ -201,10 +208,21 @@ export default function LeaderboardPage() {
                                                 <RankDisplay rank={entry.rank} />
                                             </TableCell>
                                             <TableCell className="py-3">
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 group">
                                                     <span className="font-mono text-sm text-neutral-700 dark:text-neutral-300">
                                                         {formatAddress(entry.walletAddress)}
                                                     </span>
+                                                    <button
+                                                        onClick={() => handleCopy(entry.walletAddress)}
+                                                        className="opacity-0 group-hover:opacity-100 transition-opacity focus:outline-none"
+                                                        title="Copy address"
+                                                    >
+                                                        {copiedAddress === entry.walletAddress ? (
+                                                            <Check className="h-3 w-3 text-green-500" />
+                                                        ) : (
+                                                            <Copy className="h-3 w-3 text-neutral-300 hover:text-neutral-500 transition-colors" />
+                                                        )}
+                                                    </button>
                                                     {isMe && (
                                                         <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                                                             You
