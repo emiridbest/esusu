@@ -58,6 +58,22 @@ export default function LeaderboardPage() {
     const [period, setPeriod] = useState<PeriodInfo | null>(null);
     const [loading, setLoading] = useState(true);
     const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+    const [copiedMulti, setCopiedMulti] = useState(false);
+
+    // Compose multisend string: first 3 get 5000, rest get 3000
+    const getMultiSendString = () => {
+        if (!leaderboard.length) return '';
+        return leaderboard
+            .map((entry, idx) => `${entry.walletAddress},${idx < 3 ? 5000 : 3000}`)
+            .join('\n');
+    };
+
+    const handleCopyMulti = () => {
+        const str = getMultiSendString();
+        navigator.clipboard.writeText(str);
+        setCopiedMulti(true);
+        setTimeout(() => setCopiedMulti(false), 2000);
+    };
 
     const handleCopy = (address: string) => {
         navigator.clipboard.writeText(address);
@@ -99,6 +115,23 @@ export default function LeaderboardPage() {
 
     return (
         <div className="max-w-2xl mx-auto space-y-4 mb-8">
+            {/* Multisend Copy Icon */}
+            {leaderboard.length > 0 && (
+                <div className="flex justify-end mb-2">
+                    <button
+                        onClick={handleCopyMulti}
+                        className="flex items-center gap-1 text-xs text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 opacity-70 hover:opacity-100 transition-opacity"
+                        title="Copy multisend addresses and amounts"
+                    >
+                        {copiedMulti ? (
+                            <Check className="h-4 w-4 text-green-500" />
+                        ) : (
+                            <Copy className="h-4 w-4" />
+                        )}
+                        <span>Copy for multisend</span>
+                    </button>
+                </div>
+            )}
             {/* Period navigator */}
             <div className="flex items-center justify-between">
                 <Button
