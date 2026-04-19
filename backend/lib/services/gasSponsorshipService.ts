@@ -13,7 +13,7 @@ const config = {
     maxAmountCELO: parseFloat(process.env.GAS_SPONSORSHIP_MAX_AMOUNT_CELO || '0.1'),
     cooldownMinutes: parseInt(process.env.GAS_SPONSORSHIP_COOLDOWN_MINUTES || '0'),
     lowBalanceThreshold: parseFloat(process.env.GAS_SPONSORSHIP_LOW_BALANCE_THRESHOLD || '100'),
-    celoUsdPrice: parseFloat(process.env.CELO_USD_PRICE || '0.1'),
+    celoUsdPrice: parseFloat(process.env.CELO_USD_PRICE || '0.08'),
 };
 
 // USDT on Celo — whitelisted as a gas fee currency
@@ -79,7 +79,7 @@ export class GasSponsorshipService {
             const gasEstimate = await this.gasEstimator.estimateTransactionGas(params);
 
             // Step 2: Apply 1.5x safety buffer
-            const requiredGasWithBuffer = gasEstimate.totalCostWei * BigInt(150) / BigInt(100);
+            const requiredGasWithBuffer = gasEstimate.totalCostWei //* BigInt(150) / BigInt(100);
 
             console.log(`🔥 ALWAYS-SPONSOR (${token}) - Estimated:`, gasEstimate.totalCostCELO, 'CELO, Sponsoring with 1.5x buffer:', (Number(requiredGasWithBuffer) / 1e18).toFixed(6), 'CELO');
 
