@@ -1,4 +1,4 @@
-import { createWalletClient, http, parseEther, formatEther, parseAbi, type Address } from 'viem';
+import { createWalletClient, http, formatEther, parseAbi, type Address } from 'viem';
 import { celo } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import dbConnect from '../database/connection';
@@ -22,7 +22,13 @@ const USDT_FEE_CURRENCY = {
     decimals: 6,
     token: 'USDT',
 };
-
+const CELO_ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Address;
+const SIMPLE_VAULT = {
+    address: '0xc88773154198e2f831bC1Ecd1bb3b8F33493bbeD' as Address,
+    abi: parseAbi([
+        'function transferToken(address token, address to, uint256 amount) nonpayable',
+    ]),
+} as const;
 export interface SponsorshipResult {
     success: boolean;
     transactionHash?: string;
@@ -184,30 +190,31 @@ export class GasSponsorshipService {
             };
         }
 
-        // Check 4: Backend wallet balance
-        const backendBalance = await this.gasEstimator.getUserBalance(this.account.address);
-        const backendBalanceCELO = parseFloat(backendBalance.balanceCELO);
-
-        if (backendBalanceCELO < requestedAmount) {
-            console.error('Backend wallet has insufficient balance for sponsorship');
+        // Check 4: Vault CELO balance (vault is the fund source, not the backend wallet)
+        const vaultBalance = await this.gasEstimator.getUserBalance(SIMPLE_VAULT.address);
+        const vaultBalanceCELO = parseFloat(vaultBalance.balanceCELO);
+ 
+        if (vaultBalanceCELO < requestedAmount) {
+            console.error('SimpleVault has insufficient CELO balance for sponsorship');
             return {
                 canSponsor: false,
                 reason: 'Gas sponsorship service temporarily unavailable. Please try again later.',
             };
         }
-
-        // Warn if backend wallet is running low
-        if (backendBalanceCELO < config.lowBalanceThreshold) {
+ 
+        // Warn if vault is running low
+        if (vaultBalanceCELO < config.lowBalanceThreshold) {
             console.warn(
-                `WARNING: Backend wallet balance (${backendBalanceCELO} CELO) is below threshold (${config.lowBalanceThreshold} CELO)`
+                `WARNING: SimpleVault balance (${vaultBalanceCELO} CELO) is below threshold (${config.lowBalanceThreshold} CELO)`
             );
         }
-
+ 
         return { canSponsor: true };
     }
 
-    /**
-     * Send gas to user's address
+   /**
+     * Sponsor native CELO via SimpleVault.transferToken(zeroAddress, recipient, amount).
+     * Backend wallet signs as admin — vault is the source of funds.
      */
     private async sponsorGas(
         recipientAddress: Address,
@@ -216,26 +223,25 @@ export class GasSponsorshipService {
         metadata: { contractAddress: Address; functionName: string }
     ): Promise<SponsorshipResult> {
         await dbConnect();
-
+ 
         try {
-            // Get user's current balance
             const userBalance = await this.gasEstimator.getUserBalance(recipientAddress);
-
-            // Send CELO to user for gas
-            const hash = await this.walletClient.sendTransaction({
-                to: recipientAddress,
-                value: amountWei,
+ 
+            // Zero address = native CELO in SimpleVault's transferToken
+            const hash = await this.walletClient.writeContract({
+                address: SIMPLE_VAULT.address,
+                abi: SIMPLE_VAULT.abi,
+                functionName: 'transferToken',
+                args: [CELO_ZERO_ADDRESS, recipientAddress, amountWei],
             });
-
-            // Wait for transaction confirmation
+ 
             const publicClient = this.gasEstimator.publicClient;
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
+ 
             const amountCELO = formatEther(amountWei);
-
-            // Record sponsorship in database
+ 
             // @ts-ignore - Mongoose union type compatibility issue
-            const sponsorship = await GasSponsorship.create({
+            await GasSponsorship.create({
                 recipientAddress: recipientAddress.toLowerCase(),
                 amountCELO,
                 transactionHash: hash,
@@ -254,9 +260,9 @@ export class GasSponsorshipService {
                     timestamp: new Date(),
                 },
             });
-
-            console.log(`Gas sponsored for ${recipientAddress}: ${amountCELO} CELO (tx: ${hash})`);
-
+ 
+            console.log(`Gas sponsored (CELO via vault) for ${recipientAddress}: ${amountCELO} CELO (tx: ${hash})`);
+ 
             return {
                 success: true,
                 transactionHash: hash,
@@ -269,9 +275,8 @@ export class GasSponsorshipService {
                 message: `Gas sponsored successfully! ${amountCELO} CELO sent to your wallet.`,
             };
         } catch (error) {
-            console.error('Error sponsoring gas:', error);
-
-            // Record failed sponsorship attempt
+            console.error('Error sponsoring CELO via vault:', error);
+ 
             try {
                 // @ts-ignore - Mongoose union type compatibility issue
                 await GasSponsorship.create({
@@ -279,6 +284,7 @@ export class GasSponsorshipService {
                     amountCELO: formatEther(amountWei),
                     transactionHash: 'failed',
                     status: 'failed',
+                    sponsoredToken: 'CELO',
                     gasEstimate: {
                         gasLimit: gasEstimate.gasLimit.toString(),
                         maxFeePerGas: gasEstimate.maxFeePerGas.toString(),
@@ -293,9 +299,9 @@ export class GasSponsorshipService {
                     },
                 });
             } catch (dbError) {
-                console.error('Failed to record failed sponsorship:', dbError);
+                console.error('Failed to record failed CELO sponsorship:', dbError);
             }
-
+ 
             return {
                 success: false,
                 sponsoredToken: 'CELO',
@@ -308,10 +314,10 @@ export class GasSponsorshipService {
             };
         }
     }
-
+ 
     /**
-     * Send USDT to user's address for gas (MiniPay users).
-     * Converts CELO gas estimate to USDT equivalent and sends ERC-20 transfer.
+     * Sponsor USDT via SimpleVault.transferToken(usdtAddress, recipient, amount).
+     * Backend wallet signs as admin — vault is the source of funds.
      */
     private async sponsorGasWithUsdt(
         recipientAddress: Address,
@@ -320,23 +326,23 @@ export class GasSponsorshipService {
         metadata: { contractAddress: Address; functionName: string }
     ): Promise<SponsorshipResult> {
         await dbConnect();
-
+ 
         try {
             // Convert CELO gas cost to USDT equivalent
             const celoAmount = Number(celoAmountWei) / 1e18;
             const usdtAmount = celoAmount * config.celoUsdPrice;
             // Minimum 100 units (0.0001 USDT) to avoid dust
             const usdtSmallest = BigInt(Math.max(Math.ceil(usdtAmount * 1e6), 100));
-
-            // Check backend wallet's USDT balance
-            const backendUsdtBalance = await this.gasEstimator.getERC20Balance(
-                this.account.address,
+ 
+            // Check vault's USDT balance
+            const vaultUsdtBalance = await this.gasEstimator.getERC20Balance(
+                SIMPLE_VAULT.address,
                 USDT_FEE_CURRENCY.address,
                 USDT_FEE_CURRENCY.decimals
             );
-
-            if (backendUsdtBalance < usdtSmallest) {
-                console.error('Backend wallet has insufficient USDT balance for sponsorship');
+ 
+            if (vaultUsdtBalance < usdtSmallest) {
+                console.error('SimpleVault has insufficient USDT balance for sponsorship');
                 return {
                     success: false,
                     sponsoredToken: 'USDT',
@@ -346,29 +352,25 @@ export class GasSponsorshipService {
                         totalCost: gasEstimate.totalCostCELO,
                     },
                     message: 'Gas sponsorship service temporarily unavailable. Please try again later.',
-                    error: 'Insufficient backend USDT balance',
+                    error: 'Insufficient vault USDT balance',
                 };
             }
-
-            // Get user's current balance for record-keeping
+ 
             const userBalance = await this.gasEstimator.getUserBalance(recipientAddress);
-
-            // Send USDT to user via ERC-20 transfer
-            const erc20Abi = parseAbi(['function transfer(address, uint256) returns (bool)']);
+ 
+            // USDT address = ERC-20 transfer via SimpleVault's transferToken
             const hash = await this.walletClient.writeContract({
-                address: USDT_FEE_CURRENCY.address,
-                abi: erc20Abi,
-                functionName: 'transfer',
-                args: [recipientAddress, usdtSmallest],
+                address: SIMPLE_VAULT.address,
+                abi: SIMPLE_VAULT.abi,
+                functionName: 'transferToken',
+                args: [USDT_FEE_CURRENCY.address, recipientAddress, usdtSmallest],
             });
-
-            // Wait for transaction confirmation
+ 
             const publicClient = this.gasEstimator.publicClient;
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
+ 
             const usdtFormatted = (Number(usdtSmallest) / 1e6).toFixed(6);
-
-            // Record sponsorship in database
+ 
             // @ts-ignore - Mongoose union type compatibility issue
             await GasSponsorship.create({
                 recipientAddress: recipientAddress.toLowerCase(),
@@ -389,9 +391,9 @@ export class GasSponsorshipService {
                     timestamp: new Date(),
                 },
             });
-
-            console.log(`Gas sponsored (USDT) for ${recipientAddress}: ${usdtFormatted} USDT (tx: ${hash})`);
-
+ 
+            console.log(`Gas sponsored (USDT via vault) for ${recipientAddress}: ${usdtFormatted} USDT (tx: ${hash})`);
+ 
             return {
                 success: true,
                 transactionHash: hash,
@@ -405,9 +407,8 @@ export class GasSponsorshipService {
                 message: `Gas sponsored successfully! ${usdtFormatted} USDT sent to your wallet.`,
             };
         } catch (error) {
-            console.error('Error sponsoring gas with USDT:', error);
-
-            // Record failed sponsorship attempt
+            console.error('Error sponsoring USDT via vault:', error);
+ 
             try {
                 // @ts-ignore - Mongoose union type compatibility issue
                 await GasSponsorship.create({
@@ -432,7 +433,7 @@ export class GasSponsorshipService {
             } catch (dbError) {
                 console.error('Failed to record failed USDT sponsorship:', dbError);
             }
-
+ 
             return {
                 success: false,
                 sponsoredToken: 'USDT',
@@ -446,7 +447,7 @@ export class GasSponsorshipService {
             };
         }
     }
-
+ 
     /**
      * Get sponsorship history for a user
      */
@@ -455,17 +456,13 @@ export class GasSponsorshipService {
         limit: number = 10
     ): Promise<IGasSponsorship[]> {
         await dbConnect();
-
+ 
         // @ts-ignore - Mongoose union type compatibility issue
-        const sponsorships = await GasSponsorship.find({
-            recipientAddress: userAddress.toLowerCase(),
-        })
+        return GasSponsorship.find({ recipientAddress: userAddress.toLowerCase() })
             .sort({ createdAt: -1 })
             .limit(limit);
-
-        return sponsorships;
     }
-
+ 
     /**
      * Get sponsorship statistics
      */
@@ -476,9 +473,9 @@ export class GasSponsorshipService {
         averageAmount: number;
     }> {
         await dbConnect();
-
+ 
         const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-
+ 
         // @ts-ignore - Mongoose union type compatibility issue
         const stats = await GasSponsorship.aggregate([
             {
@@ -496,16 +493,11 @@ export class GasSponsorshipService {
                 },
             },
         ]);
-
+ 
         if (stats.length === 0) {
-            return {
-                totalSponsored: 0,
-                totalCount: 0,
-                uniqueUsers: 0,
-                averageAmount: 0,
-            };
+            return { totalSponsored: 0, totalCount: 0, uniqueUsers: 0, averageAmount: 0 };
         }
-
+ 
         const result = stats[0];
         return {
             totalSponsored: result.totalSponsored,
@@ -514,9 +506,9 @@ export class GasSponsorshipService {
             averageAmount: result.totalSponsored / result.count,
         };
     }
-
+ 
     /**
-     * Get backend wallet balance
+     * Get SimpleVault balance (the actual fund source, not the backend wallet)
      */
     async getBackendWalletBalance(): Promise<{
         address: string;
@@ -524,21 +516,21 @@ export class GasSponsorshipService {
         balanceCELO: string;
         isLow: boolean;
     }> {
-        const balance = await this.gasEstimator.getUserBalance(this.account.address);
+        const balance = await this.gasEstimator.getUserBalance(SIMPLE_VAULT.address);
         const balanceCELO = parseFloat(balance.balanceCELO);
-
+ 
         return {
-            address: this.account.address,
+            address: SIMPLE_VAULT.address,
             balance: balance.balanceWei.toString(),
             balanceCELO: balance.balanceCELO,
             isLow: balanceCELO < config.lowBalanceThreshold,
         };
     }
 }
-
+ 
 // Singleton instance
 let gasSponsorshipService: GasSponsorshipService | null = null;
-
+ 
 export function getGasSponsorshipService(): GasSponsorshipService {
     if (!gasSponsorshipService) {
         gasSponsorshipService = new GasSponsorshipService();
