@@ -473,7 +473,7 @@ const RewardsClaimCard = () => {
             <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-t-lg">
               <div className="flex flex-col space-y-2 text-white">
                 <CardTitle className="text-2xl font-bold"> 💸 Round 2 Voting Live!</CardTitle>
-                <CardDescription className="text-black/90">Vote for Esusu & Earn 5000 G$</CardDescription>
+                <CardDescription className="text-black/90">Vote for Esusu & Earn 3000 G$</CardDescription>
               </div>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
@@ -486,7 +486,7 @@ const RewardsClaimCard = () => {
                   <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">4.</span> Click Check Voter Eligibility</li>
                   <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">5.</span> Look for Esusu  and click Add to Ballot</li>
                   <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">6.</span> Give MAXIMUM VOTES to Esusu</li>
-                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">7.</span> After voting, send your wallet address to claim your 5000 G$ via our telegram group</li>
+                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">7.</span> After voting, send your wallet address to claim your 3000 G$ via our telegram group</li>
                 </ol>
               </div>
 
@@ -524,7 +524,7 @@ const RewardsClaimCard = () => {
                       Available to claim
                     </p>
                     <p className="text-3xl font-bold text-black dark:text-white/90">
-                      {isClaimable ? '4000 ' : 0} G$
+                      {isClaimable ? '3000 ' : 0} G$
                     </p>
                   </div>
                 </div>
