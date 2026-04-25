@@ -12,7 +12,7 @@ const config = {
     dailyLimitPerUser: parseInt(process.env.GAS_SPONSORSHIP_DAILY_LIMIT_PER_USER || '5'),
     maxAmountCELO: parseFloat(process.env.GAS_SPONSORSHIP_MAX_AMOUNT_CELO || '0.1'),
     cooldownMinutes: parseInt(process.env.GAS_SPONSORSHIP_COOLDOWN_MINUTES || '0'),
-    lowBalanceThreshold: parseFloat(process.env.GAS_SPONSORSHIP_LOW_BALANCE_THRESHOLD || '100'),
+    lowBalanceThreshold: parseFloat(process.env.GAS_SPONSORSHIP_LOW_BALANCE_THRESHOLD || '0'),
 };
 
 export interface SponsorshipCheckResult {
