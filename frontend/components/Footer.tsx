@@ -1,67 +1,73 @@
 "use client";
-import { 
-  HomeIcon, 
-  ArchiveBoxArrowDownIcon, 
-  UserGroupIcon, 
-  UserIcon 
-} from "@heroicons/react/24/outline";
+import { HomeIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import { useRouter, usePathname } from "next/navigation";
-import { GiftIcon, StoreIcon } from "lucide-react";
+import { GiftIcon, StoreIcon, FlaskConicalIcon } from "lucide-react";
+
+const navItems = [
+  { name: "Home", icon: HomeIcon, path: "/", ariaLabel: "Navigate to home" },
+  { name: "Data & Airtime", icon: StoreIcon, path: "/utilityBills", ariaLabel: "Navigate to data and airtime" },
+  { name: "Freebies", icon: GiftIcon, path: "/freebies", ariaLabel: "Navigate to freebies" },
+  { name: "Beta", icon: FlaskConicalIcon, path: "/betaFeatures", ariaLabel: "Navigate to beta features" },
+];
 
 export default function Footer() {
   const router = useRouter();
   const pathname = usePathname();
-  
   const isActive = (path: string) => pathname === path;
-  
-  const navItems = [
-    { name: "Home", icon: HomeIcon, path: "/", ariaLabel: "Navigate to home" },
-    { name: "Data & Airtime", icon: StoreIcon, path: "/utilityBills", ariaLabel: "Navigate to data and airtime" },
-    { name: "Freebies", icon: GiftIcon, path: "/freebies", ariaLabel: "Navigate to freebies" },
-   { name: "Beta", icon: UserIcon, path: "/betaFeatures", ariaLabel: "Navigate to profile" }
-  ];
 
   return (
-    <footer className="sm:hidden fixed bottom-0 w-full backdrop-blur-md bg-white/70 dark:bg-black/70 border-t border-gray-200 dark:border-gray-800 shadow-lg z-40">
-      <div className="flex justify-around py-3 text">
+    <footer className="sm:hidden fixed bottom-0 w-full z-40 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md border-t border-gray-100 dark:border-neutral-800">
+      <div className="flex items-stretch justify-around px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
-          
+
           return (
             <button
               key={item.name}
               onClick={() => router.push(item.path)}
-              className={cn(
-                "flex flex-col items-center space-y-1 transition-all duration-200 hover:scale-110",
-                "text-xs focus:outline-none",
-                active 
-                  ? "text-black dark:text-primary font-semibold" 
-                  : "text-gray-600 dark:text-gray-400 hover:text-black/90 dark:hover:text-white/90"
-              )}
               aria-label={item.ariaLabel}
+              className="relative flex flex-col items-center gap-1 flex-1 focus:outline-none group"
             >
-              <div className={cn(
-                "p-1.5 rounded-full transition-all duration-300",
-                active 
-                  ? "bg-primary/10 ring-2 ring-primary/30" 
-                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
-              )}>
-                <Icon className={cn(
-                  "h-5 w-5",
-                  active ? "stroke-[2.5px]" : "stroke-[1.5px]"
-                )} />
+              {/* Active pill indicator at top */}
+              <span
+                className={cn(
+                  "absolute -top-2 h-0.5 rounded-full transition-all duration-300",
+                  active ? "w-6 bg-primary" : "w-0 bg-transparent"
+                )}
+              />
+
+              {/* Icon container */}
+              <div
+                className={cn(
+                  "flex items-center justify-center w-10 h-9 rounded-2xl transition-all duration-200",
+                  active
+                    ? "bg-primary/10 dark:bg-primary/15"
+                    : "group-hover:bg-gray-100 dark:group-hover:bg-neutral-800"
+                )}
+              >
+                <Icon
+                  className={cn(
+                    "h-5 w-5 transition-all duration-200",
+                    active
+                      ? "text-primary stroke-[2px]"
+                      : "text-gray-400 dark:text-gray-500 stroke-[1.5px] group-hover:text-gray-600 dark:group-hover:text-gray-300"
+                  )}
+                />
               </div>
-              <span className={cn(
-                active ? "font-medium font-poppins" : "font-inter",
-                "text-xs"
-              )}>
+
+              {/* Label */}
+              <span
+                className={cn(
+                  "text-[10px] leading-none transition-colors duration-200 whitespace-nowrap",
+                  active
+                    ? "text-primary font-semibold"
+                    : "text-gray-400 dark:text-gray-500 font-normal group-hover:text-gray-600 dark:group-hover:text-gray-300"
+                )}
+              >
                 {item.name}
               </span>
-              {active && (
-                <span className="absolute bottom-0 w-1 h-1 bg-white/90 dark:bg-neutral-800 rounded-full"/>
-              )}
             </button>
           );
         })}
