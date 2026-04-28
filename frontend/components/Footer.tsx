@@ -17,11 +17,9 @@ export default function Footer() {
   
   const navItems = [
     { name: "Home", icon: HomeIcon, path: "/", ariaLabel: "Navigate to home" },
-    { name: "Save", icon: ArchiveBoxArrowDownIcon, path: "/miniSafe", ariaLabel: "Navigate to savings" },
-    { name: "Thrift", icon: UserGroupIcon, path: "/thrift", ariaLabel: "Navigate to thrift" },
     { name: "Data & Airtime", icon: StoreIcon, path: "/utilityBills", ariaLabel: "Navigate to data and airtime" },
-    { name: "Freebies", icon: GiftIcon, path: "/freebies", ariaLabel: "Navigate to freebies" }
-   // { name: "Profile", icon: UserIcon, path: "/profile", ariaLabel: "Navigate to profile" }
+    { name: "Freebies", icon: GiftIcon, path: "/freebies", ariaLabel: "Navigate to freebies" },
+   { name: "Beta", icon: UserIcon, path: "/betaFeatures", ariaLabel: "Navigate to profile" }
   ];
 
   return (
