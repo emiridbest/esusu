@@ -9,6 +9,7 @@ import { ThirdwebProvider } from "thirdweb/react";
 import { WagmiProvider } from 'wagmi';
 import { config } from "@/lib/wagmi";
 import { client, activeChain } from "@/lib/thirdweb";
+import { BetaFeaturesProvider } from "@/context/BetaFeaturesContext";
 
 // Suppress MetaMask/extension injection errors that occur with multiple wallets
 // These are harmless extension conflicts, not app bugs
@@ -34,18 +35,20 @@ const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <WagmiProvider config={config}>
-      <ThirdwebProvider>
-        <QueryClientProvider client={queryClient}>
-          <ClaimProvider>
-            <ThriftProvider>
-              <MiniSafeProvider>
-                {children}
-              </MiniSafeProvider>
-            </ThriftProvider>
-          </ClaimProvider>
-        </QueryClientProvider>
-      </ThirdwebProvider>
-    </WagmiProvider>
+    <BetaFeaturesProvider>
+      <WagmiProvider config={config}>
+        <ThirdwebProvider>
+          <QueryClientProvider client={queryClient}>
+            <ClaimProvider>
+              <ThriftProvider>
+                <MiniSafeProvider>
+                  {children}
+                </MiniSafeProvider>
+              </ThriftProvider>
+            </ClaimProvider>
+          </QueryClientProvider>
+        </ThirdwebProvider>
+      </WagmiProvider>
+    </BetaFeaturesProvider>
   );
 }
