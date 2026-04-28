@@ -41,7 +41,7 @@ const FeatureCard = ({
           className="mx-auto mb-5 object-contain dark:invert"
         />
         
-        <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white border-l-4 border-primary pl-3">
+        <h3 className="text-sm font-semibold mb-3 text-gray-900 dark:text-white border-l-4 border-primary pl-3">
           {title}
         </h3>
         <p className="text-gray-600 dark:text-gray-300">{description}</p>
@@ -103,10 +103,10 @@ const Section = ({
           transition={{ duration: 0.7 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
             <span className="inline-block border-b-4 border-primary pb-2">{title}</span>
           </h2>
-          <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
+          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
             {description}
           </p>
           {children}
@@ -165,11 +165,11 @@ const Hero: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white leading-tight mb-6">
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white leading-tight mb-6">
                 Harness the <span className="text-primary">power</span> of community savings
               </h1>
               
-              <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-8">
                 Simple, secure, and social way to save and grow your wealth in the digital economy.
               </p>
             
@@ -247,7 +247,7 @@ const Hero: React.FC = () => {
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
             Everything you need to <span className="text-primary">manage your finances</span>
           </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+          <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
             Simple tools that help you save, invest and grow your wealth together
           </p>
         </motion.header>
@@ -299,7 +299,7 @@ const Hero: React.FC = () => {
         description="Deposit your stablecoins into a time-locked vault and earn Esusu Tokens as rewards. Watch your wealth grow while contributing to a sustainable ecosystem."
         image="/earn.png"
         glassBg
-        accentColor="from-green-500/20 to-primary/10 dark:from-black dark:to-indigo/10"
+        accentColor="from-white/20 to-primary/10 dark:from-black dark:to-indigo/10"
       >
         <div className="flex flex-wrap gap-4 mt-6">
           <Button onClick={() => router.push('/miniSafe')}>
