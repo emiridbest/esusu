@@ -1,0 +1,253 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { ThriftGroup, ThriftMember, useThrift } from '@/context/thrift/ThriftContext';
+import { toast } from 'sonner';
+import EditMetadataDialog from '@/components/thrift/EditMetadataDialog';
+import { contractAddress } from '@/utils/abi';
+import { FlippableThriftCard } from '@/components/thrift/FlippableThriftCard';
+import { Button } from '@/components/ui/button';
+import { PlusCircle } from 'lucide-react';
+
+export function UserCampaigns() {
+  const { userGroups, getThriftGroupMembers, loading, error, refreshGroups } = useThrift();
+  const [groupMembers, setGroupMembers] = useState<{ [key: number]: ThriftMember[] }>({});
+  const [connected, setConnected] = useState(false);
+  const [address, setAddress] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editGroup, setEditGroup] = useState<ThriftGroup | null>(null);
+
+  // View state for flipping cards
+  const [viewMode, setViewMode] = useState<'overview' | 'members'>('overview');
+  // Loading state for members per group
+  const [membersLoading, setMembersLoading] = useState<{ [key: number]: boolean }>({});
+
+  // Check if wallet is connected
+  useEffect(() => {
+    const checkConnection = async () => {
+      if (typeof window !== 'undefined' && window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          setConnected(accounts && accounts.length > 0);
+          setAddress(accounts && accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
+        } catch (error) {
+          console.error("Error checking connection:", error);
+          setConnected(false);
+        }
+      } else {
+        setConnected(false);
+      }
+    };
+    checkConnection();
+    if (typeof window !== 'undefined' && window.ethereum) {
+      const handleAccountsChanged = (accounts: string[]) => {
+        setConnected(accounts.length > 0);
+        setAddress(accounts.length > 0 ? String(accounts[0]).toLowerCase() : null);
+      };
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      return () => {
+        if (window.ethereum.removeListener) {
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        }
+      };
+    }
+  }, []);
+
+  // Load members for all user groups (Parallel fetch)
+  useEffect(() => {
+    const loadAllMembers = async () => {
+      if (!connected || userGroups.length === 0) return;
+
+      // Initialize loading state for all groups
+      const initialLoadingState = userGroups.reduce((acc, group) => ({ ...acc, [group.id]: true }), {});
+      setMembersLoading(initialLoadingState);
+
+      const fetchGroupMembers = async (group: ThriftGroup) => {
+        try {
+          const members = await getThriftGroupMembers(group.id);
+          return { id: group.id, members };
+        } catch (error) {
+          console.error(`Failed to fetch members for group ${group.id}:`, error);
+          return { id: group.id, members: [] };
+        }
+      };
+
+      const results = await Promise.all(userGroups.map(fetchGroupMembers));
+
+      const membersMap: { [key: number]: ThriftMember[] } = {};
+      results.forEach(result => {
+        membersMap[result.id] = result.members;
+      });
+
+      setGroupMembers(membersMap);
+      setMembersLoading({}); // Clear loading state
+    };
+    loadAllMembers();
+  }, [userGroups, connected, getThriftGroupMembers]);
+
+  const handleEditClick = (group: ThriftGroup) => {
+    setEditGroup(group);
+    setEditOpen(true);
+  };
+
+  const handleShareClick = async (group: ThriftGroup) => {
+    console.log('[handleShareClick] Clicked for group:', group.id);
+    const shareUrl = `${window.location.origin}/thrift/${group.id}`;
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        console.log('[handleShareClick] Copied via navigator.clipboard');
+      } else {
+        throw new Error('navigator.clipboard not available');
+      }
+    } catch (err) {
+      console.warn('[handleShareClick] navigator.clipboard failed, trying fallback:', err);
+      // Fallback method
+      const textArea = document.createElement("textarea");
+      textArea.value = shareUrl;
+
+      // Ensure it's not visible but part of DOM
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      try {
+        document.execCommand('copy');
+        console.log('[handleShareClick] Copied via execCommand');
+      } catch (fallbackErr) {
+        console.error('[handleShareClick] Fallback failed:', fallbackErr);
+        toast.error("Failed to Copy", {
+          description: "Could not copy link to clipboard.",
+        });
+        document.body.removeChild(textArea);
+        return;
+      }
+      document.body.removeChild(textArea);
+    }
+
+    toast.success("Link Copied", {
+      description: "Thrift group link copied to clipboard.",
+    });
+  };
+
+  if (!connected) {
+    return (
+      <Card className="w-full border-dashed border-2">
+        <CardContent className="pt-6">
+          <div className="text-center p-8">
+            <p className="text-muted-foreground">Please connect your wallet to view your thrift groups.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Card className="w-full border-none shadow-none bg-transparent">
+        <CardContent className="pt-6">
+          <div className="text-center p-8">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading your thrift groups...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="w-full border-red-500/20 bg-red-500/5">
+        <CardContent className="pt-6">
+          <div className="text-center p-8 text-red-500">
+            <p>Error: {error}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (userGroups.length === 0) {
+    return (
+      <Card className="w-full border-dashed">
+        <CardContent className="pt-12 pb-12 flex flex-col items-center justify-center">
+          <div className="bg-primary/10 p-4 rounded-full mb-4">
+            <PlusCircle className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">No Groups Joined</h3>
+          <p className="text-white/60max-w-sm text-center mb-6">
+            You haven&apos;t joined any thrift groups yet. Browse available groups to start saving with your community.
+          </p>
+          <Button onClick={() => document.getElementById('available-groups-trigger')?.click()}>
+            Browse Groups
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Toggle Controls */}
+      {/* Toggle Controls */}
+      <div className="flex bg-muted/50 dark:bg-white/5 backdrop-blur-sm p-1 rounded-xl w-fit border border-transparent dark:border-white/10 mb-6">
+        <button
+          onClick={() => setViewMode('overview')}
+          className={`px-6 py-2 text-sm font-semibold rounded-lg transition-all duration-300 ${viewMode === 'overview'
+            ? 'bg-background dark:bg-primary text-foreground dark:text-black shadow-md scale-105'
+            : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+            }`}
+        >
+          Overview
+        </button>
+        <button
+          onClick={() => setViewMode('members')}
+          className={`px-6 py-2 text-sm font-semibold rounded-lg transition-all duration-300 ${viewMode === 'members'
+            ? 'bg-background dark:bg-primary text-foreground dark:text-black shadow-md scale-105'
+            : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+            }`}
+        >
+          Members
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+        {userGroups.map((group) => (
+          <FlippableThriftCard
+            key={group.id}
+            group={group}
+            currentUserAddress={address}
+            isFlipped={viewMode === 'members'}
+            onShare={handleShareClick}
+            onEdit={handleEditClick}
+            members={groupMembers[group.id] || []}
+            isLoading={!!membersLoading[group.id]}
+          />
+        ))}
+      </div>
+      {/* Edit Metadata Dialog */}
+      {editGroup ? (
+        <EditMetadataDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          contractAddress={contractAddress}
+          groupId={editGroup.id}
+          initialName={editGroup.name}
+          initialDescription={editGroup.description}
+          initialCoverImageUrl={editGroup.meta?.coverImageUrl}
+          initialCategory={editGroup.meta?.category}
+          initialTags={editGroup.meta?.tags}
+          onSaved={() => {
+            setEditOpen(false);
+            refreshGroups();
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
