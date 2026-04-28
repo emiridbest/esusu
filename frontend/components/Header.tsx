@@ -122,11 +122,10 @@ export default function Header() {
   };
   // Navigation links
   const navLinks = [
-    { title: "Simple Saver", href: "/miniSafe" },
-    { title: "Thrift", href: "/thrift" },
     { title: "Data & Airtime", href: "/utilityBills" },
     { title: "Swap", href: "/swap" },
     { title: "Freebies", href: "/freebies" },
+    { title: "Beta", href: "/betaFeatures" },
     { title: "Chat", href: "/chat" },
   ];
 
