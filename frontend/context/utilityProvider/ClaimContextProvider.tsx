@@ -2,41 +2,40 @@
 
 import React, { useState, useContext, createContext, ReactNode, useEffect, useRef, useCallback } from 'react';
 import { encodeFunctionData, parseAbi, formatUnits } from 'viem';
-import { useActiveAccount, useActiveWallet } from "thirdweb/react";
-import { toast } from 'sonner';
+import { useAccount, usePublicClient, useWalletClient, useChainId } from 'wagmi';
 import { celo } from 'viem/chains';
-import { useIdentitySDK, useClaimSDK } from "@goodsdks/react-hooks"
-import { isSupportedChain, CHAIN_DECIMALS, SupportedChains } from "@goodsdks/citizen-sdk"
+import { toast } from 'sonner';
+import { useIdentitySDK, useClaimSDK } from "@goodsdks/react-hooks";
+import { isSupportedChain, CHAIN_DECIMALS, SupportedChains } from "@goodsdks/citizen-sdk";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-  DialogDescription,
+  Dialog, DialogContent, DialogHeader, DialogFooter,
+  DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { TransactionSteps, Step, StepStatus } from '@/components/TransactionSteps';
 import { payAddress, payABI } from '@/utils/pay';
 import useGasSponsorship from '@/hooks/useGasSponsorship';
-// Constants
-const RECIPIENT_WALLET = '0xb82896C4F251ed65186b416dbDb6f6192DFAF926';
 
-// Token definitions
 const TOKENS = {
-  'G$': {
-    address: '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A',
-    decimals: 18
-  }
+  'G$': { address: '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A', decimals: 18 }
 };
 
-const getTokenAddress = (token: string, tokens: any): string => {
-  return tokens[token]?.address || '';
-};
+const getTokenAddress = (token: string, tokens: typeof TOKENS): string =>
+  (tokens as any)[token]?.address || '';
+
+const ubiSchemeV2Address = '0x43d72Ff17701B2DA814620735C39C620Ce0ea4A1';
+const ubiSchemeV2ABI = parseAbi([
+  "function claim() returns (bool)",
+  "function checkEntitlement(address _member) view returns (uint256)",
+  "function getDailyStats() view returns (uint256 claimers, uint256 amount)",
+  "function periodStart() view returns (uint256)",
+  "function currentDay() view returns (uint256)",
+  "event UBIClaimed(address indexed account, uint256 amount)",
+]);
 
 type ClaimProcessorType = {
   isProcessing: boolean;
-  setIsProcessing: (isProcessing: boolean) => void;
+  setIsProcessing: (v: boolean) => void;
   entitlement: bigint | null;
   canClaim: boolean;
   handleClaim: () => Promise<{ success: boolean; error?: any }>;
@@ -63,26 +62,15 @@ type ClaimProcessorType = {
   altChainId: SupportedChains | null;
 };
 
-type ClaimProviderProps = {
-  children: ReactNode;
-};
-const ubiSchemeV2Address = '0x43d72Ff17701B2DA814620735C39C620Ce0ea4A1';
-const ubiSchemeV2ABI = parseAbi([
-  "function claim() returns (bool)",
-  "function checkEntitlement(address _member) view returns (uint256)",
-  "function getDailyStats() view returns (uint256 claimers, uint256 amount)",
-  "function periodStart() view returns (uint256)",
-  "function currentDay() view returns (uint256)",
-  "event UBIClaimed(address indexed account, uint256 amount)",
-]);
-
 const ClaimProcessorContext = createContext<ClaimProcessorType | undefined>(undefined);
 
-export function ClaimProvider({ children }: ClaimProviderProps) {
-  const account = useActiveAccount();
-  const wallet = useActiveWallet();
-  const address = account?.address;
-  const isConnected = !!address;
+export function ClaimProvider({ children }: { children: ReactNode }) {
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const publicClient = usePublicClient({ chainId });
+  const { data: walletClient } = useWalletClient({ chainId });
+  const { checkAndSponsor } = useGasSponsorship();
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [entitlement, setEntitlement] = useState<bigint | null>(null);
   const [canClaim, setCanClaim] = useState(false);
@@ -90,207 +78,121 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   const [transactionSteps, setTransactionSteps] = useState<Step[]>([]);
   const [currentOperation, setCurrentOperation] = useState<'data' | 'airtime' | null>(null);
   const [isWaitingTx, setIsWaitingTx] = useState(false);
-  const [recipient, setRecipient] = useState<string>('');
+  const [recipient, setRecipient] = useState('');
   const [claimSDK, setClaimSDK] = useState<any>(null);
-  const [checkingWhitelist, setCheckingWhitelist] = useState<boolean>(true);
-  const [isWhitelisted, setIsWhitelisted] = useState<boolean>(false);
+  const [checkingWhitelist, setCheckingWhitelist] = useState(true);
+  const [isWhitelisted, setIsWhitelisted] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [claimAmount, setClaimAmount] = useState<number | null>(null);
   const [altClaimAvailable, setAltClaimAvailable] = useState(false);
   const [altChainId, setAltChainId] = useState<SupportedChains | null>(null);
+
   const initializationAttempted = useRef(false);
   const retryCount = useRef(0);
   const MAX_RETRIES = 3;
   const closeDialogTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // Deduplication refs to prevent duplicate pending requests
   const pendingWhitelistCheckRef = useRef<Promise<boolean> | null>(null);
   const pendingEntitlementCheckRef = useRef<Promise<any> | null>(null);
   const lastCheckedAddressRef = useRef<string | null>(null);
-  const chainId = celo.id;
+
   const { sdk: identitySDK } = useIdentitySDK("production");
   const { sdk: ClaimSDK, loading: claimSDKLoading, error: claimSDKError } = useClaimSDK("production");
-  const { checkAndSponsor } = useGasSponsorship();
 
-  // Reset SDK when chain changes
+  // Reset on chain change
   useEffect(() => {
     setClaimSDK(null);
     initializationAttempted.current = false;
     retryCount.current = 0;
   }, [chainId]);
 
-  // Consolidated whitelist check with deduplication
+  // Whitelist check
   useEffect(() => {
     const checkWhitelistStatus = async () => {
-      if (!identitySDK || !address) {
-        setCheckingWhitelist(false);
-        return;
-      }
-
-      // Return cached pending request if one exists for this address
+      if (!identitySDK || !address) { setCheckingWhitelist(false); return; }
       if (lastCheckedAddressRef.current === address && pendingWhitelistCheckRef.current) {
         const result = await pendingWhitelistCheckRef.current;
-        setIsWhitelisted(result);
-        setCheckingWhitelist(false);
-        return;
+        setIsWhitelisted(result); setCheckingWhitelist(false); return;
       }
-
       lastCheckedAddressRef.current = address;
       setCheckingWhitelist(true);
-
       const promise = (async () => {
         try {
           const result = await identitySDK.getWhitelistedRoot(address as `0x${string}`);
-          const isWhitelisted = result && typeof result.isWhitelisted === 'boolean' ? result.isWhitelisted : false;
-          setIsWhitelisted(isWhitelisted);
-          return isWhitelisted;
-        } catch (error) {
-          console.error("Error checking whitelist status:", error);
-          setIsWhitelisted(false);
-          return false;
-        } finally {
-          setCheckingWhitelist(false);
-          pendingWhitelistCheckRef.current = null;
-        }
+          const whitelisted = result?.isWhitelisted === true;
+          setIsWhitelisted(whitelisted);
+          return whitelisted;
+        } catch { setIsWhitelisted(false); return false; }
+        finally { setCheckingWhitelist(false); pendingWhitelistCheckRef.current = null; }
       })();
-
       pendingWhitelistCheckRef.current = promise;
       await promise;
     };
-
     checkWhitelistStatus();
   }, [identitySDK, address]);
 
-  // Reset state when wallet disconnects
+  // Reset on disconnect
   useEffect(() => {
     if (!isConnected) {
       initializationAttempted.current = false;
-      setClaimSDK(null);
-      setEntitlement(null);
-      setCanClaim(false);
-      setClaimAmount(null);
-      setAltClaimAvailable(false);
-      setAltChainId(null);
+      setClaimSDK(null); setEntitlement(null); setCanClaim(false);
+      setClaimAmount(null); setAltClaimAvailable(false); setAltChainId(null);
     }
   }, [isConnected]);
 
-  // Initialize ClaimSDK - following the documentation pattern with deduplication
+  // Initialize ClaimSDK
   useEffect(() => {
     const initializeSDK = async () => {
-      // Skip if prerequisites not met
-      if (
-        isInitializing ||
-        initializationAttempted.current ||
-        claimSDKLoading ||
-        !ClaimSDK ||
-        !chainId ||
-        !isConnected ||
-        !address
-      ) {
-        return;
-      }
-
-      // Return cached pending request if one exists
-      if (pendingEntitlementCheckRef.current) {
-        await pendingEntitlementCheckRef.current;
-        return;
-      }
-
+      if (isInitializing || initializationAttempted.current || claimSDKLoading || !ClaimSDK || !chainId || !isConnected || !address || !publicClient || !walletClient) return;
+      if (pendingEntitlementCheckRef.current) { await pendingEntitlementCheckRef.current; return; }
       setIsInitializing(true);
       initializationAttempted.current = true;
-
       const promise = (async () => {
         try {
-          // Validate chain is supported
-          if (!isSupportedChain(chainId)) {
-            throw new Error(`Unsupported chain id: ${chainId}`);
-          }
-
-          // Check entitlement - this is the correct way per documentation
-          const { amount, altClaimAvailable, altChainId: altChain } =
-            await ClaimSDK.checkEntitlement();
-
+          if (!isSupportedChain(chainId)) throw new Error(`Unsupported chain: ${chainId}`);
+          const { amount, altClaimAvailable, altChainId: altChain } = await ClaimSDK.checkEntitlement();
           setEntitlement(amount);
-
-          // Get decimals for the current chain
           const decimals = CHAIN_DECIMALS[chainId as SupportedChains];
-
-          // Format the amount for display
-          const formattedAmount = formatUnits(amount, decimals);
-          const rounded = Math.round((Number(formattedAmount) + Number.EPSILON) * 100) / 100;
-
+          const formatted = formatUnits(amount, decimals);
+          const rounded = Math.round((Number(formatted) + Number.EPSILON) * 100) / 100;
           setClaimAmount(rounded);
           setAltClaimAvailable(altClaimAvailable);
           setAltChainId(altClaimAvailable ? (altChain ?? null) : null);
-
-          // Set the SDK instance for later use in handleClaim
           setClaimSDK(ClaimSDK);
-
-          // Determine if user can claim
           setCanClaim(amount > BigInt(0));
-
         } catch (error) {
           console.error("Error initializing ClaimSDK:", error);
           retryCount.current += 1;
           if (retryCount.current < MAX_RETRIES) {
-            // Allow retry with exponential backoff
             initializationAttempted.current = false;
-            const delay = Math.pow(2, retryCount.current) * 1000;
-            setTimeout(() => setIsInitializing(false), delay);
-            return; // Don't setIsInitializing(false) immediately
+            setTimeout(() => setIsInitializing(false), Math.pow(2, retryCount.current) * 1000);
+            return;
           }
-          // Max retries reached — stop retrying
-          console.warn(`ClaimSDK initialization failed after ${MAX_RETRIES} attempts`);
-          setClaimAmount(null);
-          setCanClaim(false);
+          setClaimAmount(null); setCanClaim(false);
         } finally {
           setIsInitializing(false);
           pendingEntitlementCheckRef.current = null;
         }
       })();
-
       pendingEntitlementCheckRef.current = promise;
       await promise;
     };
+    if (claimSDKError) { 
+      console.error("ClaimSDK error:", claimSDKError); 
+      setIsInitializing(false); }
+    else if (!claimSDKLoading && ClaimSDK) initializeSDK();
+  }, [isConnected, address, publicClient, walletClient, chainId, ClaimSDK, claimSDKLoading, claimSDKError]);
 
-    if (claimSDKError) {
-      console.error("ClaimSDK error:", claimSDKError);
-      setIsInitializing(false);
-    } else if (!claimSDKLoading && ClaimSDK) {
-      initializeSDK();
-    }
-  }, [
-    isConnected,
-    address,
-    chainId,
-    ClaimSDK,
-    claimSDKLoading,
-    claimSDKError
-  ]);
-
-  // Cleanup timeout on unmount
   useEffect(() => {
-    return () => {
-      if (closeDialogTimeoutRef.current) {
-        clearTimeout(closeDialogTimeoutRef.current);
-      }
-    };
+    return () => { if (closeDialogTimeoutRef.current) clearTimeout(closeDialogTimeoutRef.current); };
   }, []);
 
   const handleVerification = useCallback(async () => {
     try {
-      const currentUrl = window.location.href;
-      const fvLink = await identitySDK.generateFVLink(false, currentUrl);
-      // Track successful attempt
+      const fvLink = await identitySDK.generateFVLink(false, window.location.href);
       try {
         await fetch('/api/verification/track', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            address,
-            timestamp: new Date().toISOString(),
-            success: true,
-            extra: { redirectedTo: fvLink }
-          })
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address, timestamp: new Date().toISOString(), success: true, extra: { redirectedTo: fvLink } })
         });
       } catch { }
       window.location.href = fvLink;
@@ -301,555 +203,261 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
   }, [identitySDK, address]);
 
   const updateStepStatus = useCallback((stepId: string, status: StepStatus, errorMessage?: string) => {
-    setTransactionSteps(prevSteps => {
-      // Only update if the status actually changed
-      const step = prevSteps.find(s => s.id === stepId);
-      if (step && step.status === status && step.errorMessage === errorMessage) {
-        return prevSteps; // Return same reference to prevent unnecessary re-renders
-      }
-      return prevSteps.map(s =>
-        s.id === stepId
-          ? { ...s, status, ...(errorMessage ? { errorMessage } : {}) }
-          : s
-      );
+    setTransactionSteps(prev => {
+      const step = prev.find(s => s.id === stepId);
+      if (step?.status === status && step?.errorMessage === errorMessage) return prev;
+      return prev.map(s => s.id === stepId ? { ...s, status, ...(errorMessage ? { errorMessage } : {}) } : s);
     });
   }, []);
 
+  // ── handleClaim ───────────────────────────────────────────────────────────
   const handleClaim = useCallback(async () => {
     if (!isConnected || !address) {
       toast.error("Wallet not connected");
       return { success: false, error: new Error("Wallet not connected") };
     }
-
-    setIsProcessing(true);
-    setIsWaitingTx(true);
-
+    setIsProcessing(true); setIsWaitingTx(true);
     try {
       toast.info("Claiming your UBI...");
 
-      // Prepare claim transaction using the UBI Scheme V2 contract
-      const claimData = encodeFunctionData({
-        abi: ubiSchemeV2ABI,
-        functionName: 'claim',
-        args: []
-      });
-
-      if (!wallet || !account) {
-        throw new Error('Wallet not connected');
-      }
-
-      const { waitForReceipt } = await import('thirdweb');
-      const { client, activeChain } = await import('@/lib/thirdweb');
-
-
-      // Sponsor gas for claim
+      // Gas sponsorship
       try {
-        const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
+        const s = await checkAndSponsor(address as `0x${string}`, {
           contractAddress: ubiSchemeV2Address as `0x${string}`,
-          abi: ubiSchemeV2ABI,
-          functionName: 'claim',
-          args: [],
+          abi: ubiSchemeV2ABI, functionName: 'claim', args: [],
         });
-
-        if (sponsorshipResult.gasSponsored) {
-          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} ${sponsorshipResult.sponsoredToken || 'CELO'}`);
-          await new Promise(resolve => setTimeout(resolve, 3000));
-        }
-      } catch (gasError) {
-        console.error("Gas sponsorship failed:", gasError);
-      }
-
-      let claimTxHash: `0x${string}`;
+        if (s.gasSponsored) { toast.success(`Gas sponsored: ${s.amountSponsored} ${s.sponsoredToken || 'CELO'}`); await new Promise(r => setTimeout(r, 3000)); }
+      } catch { /* continue */ }
 
       const tx = await claimSDK.claim();
-      claimTxHash = tx.transactionHash;
+      const claimTxHash: `0x${string}` = tx.transactionHash;
 
-      // Wait for confirmation
-      const receipt = await waitForReceipt({
-        client,
-        chain: activeChain,
-        transactionHash: claimTxHash,
-      });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: claimTxHash });
+      if (receipt.status !== 'success') throw new Error("Transaction failed");
 
-      if (receipt.status !== 'success') {
-        throw new Error("Transaction failed");
-      }
-
-      // Track UBI claim in database and ensure user record exists
       try {
         await fetch('/api/ubi-claim', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            walletAddress: address,
-            token: 'G$',
-          }),
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ walletAddress: address, token: 'G$' }),
         });
-      } catch (trackErr) {
-        console.error('Failed to track UBI claim:', trackErr);
-      }
-      // Reset claim amount after successful claim
-      setClaimAmount(null);
-      setEntitlement(BigInt(0));
-      setCanClaim(false);
+      } catch { }
 
+      setClaimAmount(null); setEntitlement(BigInt(0)); setCanClaim(false);
       toast.success("Successfully claimed G$ tokens!");
-
-      return { success: true, transactionHash: tx.transactionHash };
+      return { success: true, transactionHash: claimTxHash };
     } catch (error) {
       console.error("Error during claim:", error);
-      toast.error(error instanceof Error ? error.message : "There was an error processing your claim.");
+      toast.error(error instanceof Error ? error.message : "Error processing your claim.");
       return { success: false, error };
     } finally {
-      setIsProcessing(false);
-      setIsWaitingTx(false);
+      setIsProcessing(false); setIsWaitingTx(false);
     }
-  }, [isConnected, address, wallet, account, claimSDK, checkAndSponsor]);
+  }, [isConnected, address, claimSDK, checkAndSponsor, publicClient, walletClient]);
 
-
-  const processDataTopUp = useCallback(async (
-    values: any,
-    selectedPrice: number,
-    availablePlans: any[],
-    networks: any[]
-  ) => {
-    if (!values || !values.phoneNumber || !values.country || !values.network) {
-      toast.error("Please ensure all required fields are filled out.");
-      return { success: false };
-    }
-
-    try {
-      const cleanPhoneNumber = values.phoneNumber.replace(/[\s\-\+]/g, '');
-
-      const response = await fetch('/api/topup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          operatorId: values.network,
-          amount: selectedPrice.toString(),
-          customId: values.customId,
-          transactionHash: values.transactionHash,
-          expectedAmount: values.expectedAmount,
-          paymentToken: values.paymentToken,
-          serviceType: 'data',
-          recipientPhone: {
-            country: values.country,
-            phoneNumber: cleanPhoneNumber
-          },
-          email: values.email,
-          isFreeClaim: true
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        const selectedPlan = availablePlans[0];
-        toast.success(`Successfully topped up ${values.phoneNumber} with ${selectedPlan?.name || 'your selected plan'}.`);
-        return { success: true };
-      } else {
-        console.error("Top-up API Error:", data);
-        toast.error(data.error || "There was an issue processing your top-up. Our team has been notified.");
-        return { success: false, error: data.error };
-      }
-    } catch (error) {
-      console.error("Error during top-up:", error);
-      toast.error("There was an error processing your top-up. Our team has been notified and will resolve this shortly.");
-      return { success: false, error };
-    }
-  }, []);
-
-  const processAirtimeTopUp = useCallback(async (values: any, selectedPrice: number) => {
-    if (!values || !values.phoneNumber || !values.country || !values.network) {
-      toast.error("Please ensure all required fields are filled out.");
-      return { success: false };
-    }
-
-    try {
-      const cleanPhoneNumber = values.phoneNumber.replace(/[\s\-\+]/g, '');
-
-      const response = await fetch('/api/topup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          operatorId: values.network,
-          amount: selectedPrice.toString(),
-          customId: values.customId,
-          transactionHash: values.transactionHash,
-          expectedAmount: values.expectedAmount,
-          paymentToken: values.paymentToken,
-          serviceType: 'airtime',
-          recipientPhone: {
-            country: values.country,
-            phoneNumber: cleanPhoneNumber
-          },
-          email: values.email,
-          isFreeClaim: true
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        toast.success(`Successfully topped up ${values.phoneNumber} with ₦${selectedPrice}.`);
-        return { success: true };
-      } else {
-        console.error("Top-up API Error:", data);
-        toast.error(data.error || "There was an issue processing your top-up. Our team has been notified.");
-        return { success: false, error: data.error };
-      }
-    } catch (error) {
-      console.error("Error during top-up:", error);
-      toast.error("There was an error processing your top-up. Our team has been notified and will resolve this shortly.");
-      return { success: false, error };
-    }
-  }, []);
-
+  // ── processPayment (wagmi/viem only) ──────────────────────────────────────
   const processPayment = useCallback(async () => {
-    if (!isConnected || !address) {
-      throw new Error("Wallet not connected");
-    }
-    if (!entitlement || entitlement <= BigInt(0)) {
-      throw new Error("No entitlement available");
-    }
+    if (!isConnected || !address || !walletClient || !publicClient) throw new Error("Wallet not connected");
+    if (!entitlement || entitlement <= BigInt(0)) throw new Error("No entitlement available");
 
     const selectedToken = "G$";
-    const tokenAddress = getTokenAddress(selectedToken, TOKENS);
+    const tokenAddress = getTokenAddress(selectedToken, TOKENS) as `0x${string}`;
 
     const erc20Abi = parseAbi([
       "function transfer(address to, uint256 value) returns (bool)",
       "function approve(address spender, uint256 value) returns (bool)",
       "function allowance(address owner, address spender) view returns (uint256)"
     ]);
-    console.log("Processing payment for address:", address);
 
     toast.info("Processing payment for data bundle...");
+
     try {
       setIsWaitingTx(true);
-      if (!wallet || !account) throw new Error('Wallet not connected');
 
-      const { sendTransaction, prepareTransaction, readContract, getContract } = await import('thirdweb');
-      const { client, activeChain } = await import('@/lib/thirdweb');
-
-      // Check allowance for PaymentVault
-      const tokenContract = getContract({
-        client,
-        chain: activeChain,
-        address: tokenAddress as `0x${string}`,
+      // Check allowance
+      const currentAllowance = await publicClient.readContract({
+        address: tokenAddress,
+        abi: erc20Abi,
+        functionName: 'allowance',
+        args: [address as `0x${string}`, payAddress as `0x${string}`],
+        authorizationList: undefined
       });
 
-      const currentAllowance = await readContract({
-        contract: tokenContract,
-        method: "function allowance(address owner, address spender) view returns (uint256)",
-        params: [address as `0x${string}`, payAddress as `0x${string}`],
-      });
+      if ((currentAllowance as bigint) < entitlement) {
+        const approveAmount = entitlement * BigInt(100);
 
-      console.log('[processPayment] Current allowance:', currentAllowance, 'Entitlement:', entitlement);
+        // Gas sponsorship for approval
+        try {
+          const s = await checkAndSponsor(address as `0x${string}`, {
+            contractAddress: tokenAddress,
+            abi: erc20Abi, functionName: 'approve',
+            args: [payAddress as `0x${string}`, approveAmount],
+          });
+          if (s.gasSponsored) { toast.success(`Gas sponsored for approval: ${s.amountSponsored} ${s.sponsoredToken || 'CELO'}`); await new Promise(r => setTimeout(r, 6000)); }
+        } catch { /* continue */ }
 
-      // If allowance insufficient, approve x100
-      if (currentAllowance < (entitlement as bigint)) {
-        const approveAmount = (entitlement as bigint) * BigInt(100);
-
-        const approveData = encodeFunctionData({
+        const approveTxHash = await walletClient.writeContract({
+          address: tokenAddress,
           abi: erc20Abi,
           functionName: 'approve',
           args: [payAddress as `0x${string}`, approveAmount],
+          account: address as `0x${string}`,
+          chain: celo,
         });
-
-        // Sponsor gas for approval
-        try {
-          const approvalSponsor = await checkAndSponsor(address as `0x${string}`, {
-            contractAddress: tokenAddress as `0x${string}`,
-            abi: erc20Abi,
-            functionName: 'approve',
-            args: [payAddress as `0x${string}`, approveAmount],
-          });
-
-          if (approvalSponsor.gasSponsored) {
-            toast.success(`Gas sponsored for approval: ${approvalSponsor.amountSponsored} ${approvalSponsor.sponsoredToken || 'CELO'}`);
-            await new Promise(resolve => setTimeout(resolve, 6000));
-          }
-        } catch (gasError) {
-          console.error('[ClaimProvider] Approval gas sponsorship failed', gasError);
-        }
-
-        let approveTxHash: `0x${string}`;
-
-        if (typeof window !== 'undefined' && (window as any).ethereum) {
-          console.log('[processPayment] Using window.ethereum for approve() to optimize gas');
-          approveTxHash = await (window as any).ethereum.request({
-            method: 'eth_sendTransaction',
-            params: [{
-              from: address,
-              to: tokenAddress,
-              data: approveData,
-            }],
-          });
-        } else {
-          console.log('[processPayment] Fallback to thirdweb for approve()');
-          const approveTx = await prepareTransaction({
-            to: tokenAddress as `0x${string}`,
-            data: approveData as `0x${string}`,
-            client,
-            chain: activeChain,
-          });
-          const approveResult = await sendTransaction({ account, transaction: approveTx });
-          approveTxHash = approveResult.transactionHash;
-        }
-
-        // Wait for approval to be confirmed on-chain before proceeding
-        const { waitForReceipt: waitForApprovalReceipt } = await import('thirdweb');
-        await waitForApprovalReceipt({
-          client,
-          chain: activeChain,
-          transactionHash: approveTxHash,
-        });
-        console.log('[processPayment] Approval confirmed');
+        await publicClient.waitForTransactionReceipt({ hash: approveTxHash });
         toast.success('Token approval confirmed');
       }
 
-      // Encode the pay function on PaymentVault
-      const payData = encodeFunctionData({
+      // Gas sponsorship for pay
+      try {
+        const s = await checkAndSponsor(address as `0x${string}`, {
+          contractAddress: payAddress as `0x${string}`,
+          abi: payABI, functionName: 'pay',
+          args: [tokenAddress, entitlement],
+        });
+        if (s.gasSponsored) { toast.success(`Gas sponsored: ${s.amountSponsored} ${s.sponsoredToken || 'CELO'}`); await new Promise(r => setTimeout(r, 6000)); }
+      } catch { /* continue */ }
+
+      const txHash = await walletClient.writeContract({
+        address: payAddress as `0x${string}`,
         abi: payABI,
         functionName: 'pay',
-        args: [tokenAddress as `0x${string}`, entitlement as bigint],
+        args: [tokenAddress, entitlement],
+        account: address as `0x${string}`,
+        chain: celo,
       });
 
-      // Sponsor gas for payment
-      try {
-        const sponsorshipResult = await checkAndSponsor(address as `0x${string}`, {
-          contractAddress: payAddress as `0x${string}`,
-          abi: payABI,
-          functionName: 'pay',
-          args: [tokenAddress as `0x${string}`, entitlement],
-        });
-
-        if (sponsorshipResult.gasSponsored) {
-          toast.success(`Gas sponsored: ${sponsorshipResult.amountSponsored} ${sponsorshipResult.sponsoredToken || 'CELO'}`);
-          await new Promise(resolve => setTimeout(resolve, 6000));
-        }
-      } catch (gasError) {
-        console.error("Gas sponsorship failed:", gasError);
-      }
-
-      let txHash: `0x${string}`;
-
-      if (typeof window !== 'undefined' && (window as any).ethereum) {
-        console.log('[processPayment] Using window.ethereum for pay() to optimize gas');
-        txHash = await (window as any).ethereum.request({
-          method: 'eth_sendTransaction',
-          params: [{
-            from: address,
-            to: payAddress,
-            data: payData,
-          }],
-        });
-      } else {
-        console.log('[processPayment] Fallback to thirdweb for pay()');
-        const transaction = await prepareTransaction({
-          to: payAddress as `0x${string}`,
-          data: payData as `0x${string}`,
-          client,
-          chain: activeChain,
-        });
-
-        const tx = await sendTransaction({
-          account,
-          transaction,
-        });
-        txHash = tx.transactionHash;
-      }
-
-      // Wait for on-chain confirmation before proceeding to top-up
-      const { waitForReceipt } = await import('thirdweb');
-      const receipt = await waitForReceipt({
-        client,
-        chain: activeChain,
-        transactionHash: txHash,
-      });
-
+      await publicClient.waitForTransactionReceipt({ hash: txHash });
       toast.success("Payment confirmed on-chain. Processing data top-up...");
 
-      // Convert entitlement from wei to human-readable format (G$ has 18 decimals)
-      const { formatUnits } = await import('viem');
       const convertedAmount = formatUnits(entitlement, 18);
-
-      return {
-        transactionHash: txHash,
-        convertedAmount,
-        paymentToken: selectedToken
-      };
+      return { transactionHash: txHash, convertedAmount, paymentToken: selectedToken };
     } catch (error) {
       console.error("Payment transaction failed:", error);
       toast.error("Payment transaction failed. Please try again.");
-
-      const loadingStepIndex = transactionSteps.findIndex(step => step.status === 'loading');
-      if (loadingStepIndex !== -1) {
-        updateStepStatus(
-          transactionSteps[loadingStepIndex].id,
-          'error',
-          error instanceof Error ? error.message : 'Unknown error'
-        );
-      }
+      const failing = transactionSteps.find(s => s.status === 'loading');
+      if (failing) updateStepStatus(failing.id, 'error', error instanceof Error ? error.message : 'Unknown error');
       throw error;
     } finally {
       setIsWaitingTx(false);
     }
-  }, [isConnected, address, entitlement, wallet, account, transactionSteps, updateStepStatus]);
+  }, [isConnected, address, walletClient, publicClient, entitlement, transactionSteps, updateStepStatus, checkAndSponsor]);
 
-  const getDialogTitle = useCallback(() => {
-    switch (currentOperation) {
-      case 'data':
-        return 'Purchase Data Bundle';
-      case 'airtime':
-        return 'Purchase Airtime';
-      default:
-        return 'Transaction';
+  // ── processDataTopUp / processAirtimeTopUp ────────────────────────────────
+  const processDataTopUp = useCallback(async (values: any, selectedPrice: number, availablePlans: any[], networks: any[]) => {
+    if (!values?.phoneNumber || !values?.country || !values?.network) {
+      toast.error("Please ensure all required fields are filled out."); return { success: false };
     }
-  }, [currentOperation]);
+    try {
+      const res = await fetch('/api/topup', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          operatorId: values.network, amount: selectedPrice.toString(),
+          customId: values.customId, transactionHash: values.transactionHash,
+          expectedAmount: values.expectedAmount, paymentToken: values.paymentToken,
+          serviceType: 'data', recipientPhone: { country: values.country, phoneNumber: values.phoneNumber.replace(/[\s\-\+]/g, '') },
+          email: values.email, isFreeClaim: true
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(`Successfully topped up ${values.phoneNumber} with ${availablePlans[0]?.name || 'your selected plan'}.`);
+        return { success: true };
+      }
+      toast.error(data.error || "There was an issue processing your top-up.");
+      return { success: false, error: data.error };
+    } catch (error) {
+      toast.error("Error processing your top-up.");
+      return { success: false, error };
+    }
+  }, []);
 
+  const processAirtimeTopUp = useCallback(async (values: any, selectedPrice: number) => {
+    if (!values?.phoneNumber || !values?.country || !values?.network) {
+      toast.error("Please ensure all required fields are filled out."); return { success: false };
+    }
+    try {
+      const res = await fetch('/api/topup', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          operatorId: values.network, amount: selectedPrice.toString(),
+          customId: values.customId, transactionHash: values.transactionHash,
+          expectedAmount: values.expectedAmount, paymentToken: values.paymentToken,
+          serviceType: 'airtime', recipientPhone: { country: values.country, phoneNumber: values.phoneNumber.replace(/[\s\-\+]/g, '') },
+          email: values.email, isFreeClaim: true
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(`Successfully topped up ${values.phoneNumber} with ₦${selectedPrice}.`);
+        return { success: true };
+      }
+      toast.error(data.error || "There was an issue processing your top-up.");
+      return { success: false, error: data.error };
+    } catch (error) {
+      toast.error("Error processing your top-up.");
+      return { success: false, error };
+    }
+  }, []);
+
+  // ── Dialog helpers ────────────────────────────────────────────────────────
   const openTransactionDialog = useCallback((operation: 'data' | 'airtime', recipientValue: string) => {
     setCurrentOperation(operation);
     setRecipient(recipientValue);
     setIsTransactionDialogOpen(true);
 
-    let steps: Step[] = [];
-    if (operation === 'data') {
-      steps = [
-        {
-          id: 'verify-phone',
-          title: 'Verify Phone Number',
-          description: `Verifying phone number for ${recipientValue}`,
-          status: 'inactive'
-        },
-        {
-          id: 'claim-ubi',
-          title: 'Claim UBI',
-          description: `Claiming Universal Basic Income`,
-          status: 'inactive'
-        },
-        {
-          id: 'payment',
-          title: 'Payment',
-          description: 'Waiting for on-chain confirmation...',
-          status: 'inactive'
-        },
-        {
-          id: 'top-up',
-          title: 'Perform Top Up',
-          description: `Confirming data purchase for ${recipientValue}`,
-          status: 'inactive'
-        }
-      ];
-    } else if (operation === 'airtime') {
-      steps = [
-        {
-          id: 'verify-phone',
-          title: 'Verify Phone Number',
-          description: `Verifying phone number for ${recipientValue}`,
-          status: 'inactive'
-        },
-        {
-          id: 'claim-ubi',
-          title: 'Claim UBI',
-          description: `Claiming Universal Basic Income`,
-          status: 'inactive'
-        },
-        {
-          id: 'payment',
-          title: 'Payment',
-          description: 'Waiting for on-chain confirmation...',
-          status: 'inactive'
-        },
-        {
-          id: 'top-up',
-          title: 'Perform Top Up',
-          description: `Confirming airtime purchase for ${recipientValue}`,
-          status: 'inactive'
-        }
-      ];
-    }
+    const inactive = (id: string, title: string, description: string): Step => ({ id, title, description, status: 'inactive' });
+    const steps: Step[] = [
+      inactive('verify-phone', 'Verify Phone Number', `Verifying phone number for ${recipientValue}`),
+      inactive('claim-ubi', 'Claim UBI', 'Claiming Universal Basic Income'),
+      inactive('payment', 'Payment', 'Waiting for on-chain confirmation...'),
+      inactive('top-up', 'Perform Top Up', `Confirming ${operation} purchase for ${recipientValue}`),
+    ];
     setTransactionSteps(steps);
   }, []);
 
   const closeTransactionDialog = useCallback(() => {
     setIsTransactionDialogOpen(false);
     setCurrentOperation(null);
-
-    if (closeDialogTimeoutRef.current) {
-      clearTimeout(closeDialogTimeoutRef.current);
-    }
-
-    closeDialogTimeoutRef.current = setTimeout(() => {
-      setTransactionSteps([]);
-      setRecipient('');
-    }, 300);
+    if (closeDialogTimeoutRef.current) clearTimeout(closeDialogTimeoutRef.current);
+    closeDialogTimeoutRef.current = setTimeout(() => { setTransactionSteps([]); setRecipient(''); }, 300);
   }, []);
 
-  const allStepsCompleted = transactionSteps.every(step => step.status === 'success');
-  const hasError = transactionSteps.some(step => step.status === 'error');
+  const getDialogTitle = useCallback(() => {
+    switch (currentOperation) {
+      case 'data': return 'Purchase Data Bundle';
+      case 'airtime': return 'Purchase Airtime';
+      default: return 'Transaction';
+    }
+  }, [currentOperation]);
 
-  const value = {
-    isProcessing,
-    setIsProcessing,
-    entitlement,
-    canClaim,
-    handleClaim,
-    processDataTopUp,
-    processAirtimeTopUp,
-    processPayment,
-    TOKENS,
-    setTransactionSteps,
-    setCurrentOperation,
-    setIsTransactionDialogOpen,
-    isTransactionDialogOpen,
-    isWaitingTx,
-    setIsWaitingTx,
-    closeTransactionDialog,
-    openTransactionDialog,
-    transactionSteps,
-    currentOperation,
-    updateStepStatus,
-    handleVerification,
-    isWhitelisted,
-    checkingWhitelist,
-    claimAmount,
-    altClaimAvailable,
-    altChainId,
+  const allStepsCompleted = transactionSteps.every(s => s.status === 'success');
+  const hasError = transactionSteps.some(s => s.status === 'error');
+
+  const value: ClaimProcessorType = {
+    isProcessing, setIsProcessing, entitlement, canClaim,
+    handleClaim, processDataTopUp, processAirtimeTopUp, processPayment,
+    TOKENS, setTransactionSteps, setCurrentOperation, setIsTransactionDialogOpen,
+    isTransactionDialogOpen, isWaitingTx, setIsWaitingTx,
+    closeTransactionDialog, openTransactionDialog,
+    transactionSteps, currentOperation, updateStepStatus,
+    handleVerification, isWhitelisted, checkingWhitelist,
+    claimAmount, altClaimAvailable, altChainId,
   };
 
   return (
     <ClaimProcessorContext.Provider value={value}>
       {children}
-
-      <Dialog
-        open={isTransactionDialogOpen}
-        onOpenChange={(open) => !isWaitingTx && !open && closeTransactionDialog()}
-      >
+      <Dialog open={isTransactionDialogOpen} onOpenChange={(open) => !isWaitingTx && !open && closeTransactionDialog()}>
         <DialogContent className="sm:max-w-md border rounded-lg">
           <DialogHeader>
-            <DialogTitle className='text-black/90 dark:text-white/90'>
-              {getDialogTitle()}
-            </DialogTitle>
+            <DialogTitle className="text-black/90 dark:text-white/90">{getDialogTitle()}</DialogTitle>
             <DialogDescription>
-              {currentOperation === 'data' && recipient && (
-                `Processing data top-up for ${recipient}`
-              )}
+              {currentOperation === 'data' && recipient ? `Processing data top-up for ${recipient}` : ''}
             </DialogDescription>
           </DialogHeader>
-
           <TransactionSteps steps={transactionSteps} />
-
           <DialogFooter className="flex justify-between text-black/90 dark:text-white/90">
-            <Button
-              variant="outline"
-              onClick={closeTransactionDialog}
-              disabled={isWaitingTx && !hasError}
-            >
+            <Button variant="outline" onClick={closeTransactionDialog} disabled={isWaitingTx && !hasError}>
               {hasError ? 'Close' : allStepsCompleted ? 'Done' : 'Cancel'}
             </Button>
           </DialogFooter>
@@ -861,8 +469,6 @@ export function ClaimProvider({ children }: ClaimProviderProps) {
 
 export function useClaimProcessor(): ClaimProcessorType {
   const context = useContext(ClaimProcessorContext);
-  if (!context) {
-    throw new Error("useClaimProcessor must be used within a ClaimProvider");
-  }
+  if (!context) throw new Error("useClaimProcessor must be used within a ClaimProvider");
   return context;
 }

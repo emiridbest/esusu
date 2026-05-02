@@ -157,7 +157,6 @@ export async function POST(
           appName: 'Esusu App',
           appUrl: appUrl
         });
-        console.log(`📧 Email notification queued for ${body.email}`);
       } catch (emailErr) {
         console.error('Failed to send email notification:', emailErr);
       }

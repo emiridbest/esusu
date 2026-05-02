@@ -1,18 +1,13 @@
-import { createConfig, http, webSocket, fallback } from 'wagmi'
+import { createConfig, http } from 'wagmi'
 import { celo } from 'viem/chains'
 import { injected, metaMask } from 'wagmi/connectors'
-import { inAppWalletConnector } from '@thirdweb-dev/wagmi-adapter'
-import { client } from '@/lib/thirdweb'
 
-// Create wagmi config with Thirdweb integration and multiple RPC endpoints
-// Note: WebSocket transport doesn't work reliably in browser environments
-// Using HTTP with proper timeouts and multiple fallbacks for reliability
+
 export const config = createConfig({
   chains: [celo],
   connectors: [
-    inAppWalletConnector({
-      client,
-    }),
+    injected(),   // browser extension wallets (MetaMask, Rabby, etc.)
+    metaMask(),   // explicit MetaMask deeplink on mobile
   ],
   transports: {
     [celo.id]: http('https://forno.celo.org', {
@@ -20,6 +15,7 @@ export const config = createConfig({
       retryCount: 3,
     }),
   },
+  ssr: true,      // required for Next.js App Router
 })
 
 declare module 'wagmi' {

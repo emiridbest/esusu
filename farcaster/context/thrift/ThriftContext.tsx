@@ -177,9 +177,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (!finalTokenAddress) {
         try {
-          console.log('Fetching supported tokens...');
           const supportedTokens: string[] = await readOnlyContract.getSupportedTokens();
-          console.log('Supported tokens:', supportedTokens);
 
           if (!supportedTokens || supportedTokens.length === 0) {
             const msg = 'No supported tokens configured on the contract. Please contact the admin to add supported tokens.';
@@ -199,7 +197,6 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           finalTokenAddress = (supportedTokens.find(a => a.toLowerCase() === preferredEnv)
             || supportedTokens.find(a => a.toLowerCase() === CUSD_TOKEN_ADDRESS.toLowerCase())
             || supportedTokens[0]) as string;
-          console.log('Selected token address:', finalTokenAddress);
         } catch (err) {
           console.error('Error fetching supported tokens:', err);
           const msg = 'Failed to fetch supported tokens from contract. Please try again.';
@@ -212,9 +209,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // Validate chosen token
       try {
-        console.log('Validating token:', finalTokenAddress);
         const valid = await readOnlyContract.isValidToken(finalTokenAddress);
-        console.log('Token validation result:', valid);
 
         if (!valid) {
           const msg = `Chosen token ${finalTokenAddress} is not supported by the contract.`;
@@ -267,16 +262,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       }
 
-      // Log all parameters before calling contract
-      console.log('=== createThriftGroup parameters ===', {
-        amount: amount.toString(),
-        startTimestamp,
-        isPublic,
-        finalTokenAddress,
-        decimals,
-        depositAmount,
-        account
-      });
+
 
       // WORKAROUND: Farcaster wallet doesn't support eth_estimateGas
       // We need to manually build and send the transaction
@@ -287,8 +273,6 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isPublic,
         finalTokenAddress
       ]);
-
-      console.log('Encoded transaction data:', data);
 
       // Use public RPC to estimate gas (Farcaster wallet doesn't support eth_estimateGas)
       let gasEstimate: bigint;

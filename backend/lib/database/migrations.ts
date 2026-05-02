@@ -143,6 +143,57 @@ export class MigrationService {
           validator: {}
         });
       }
+    },
+    {
+      version: '1.2.1',
+      description: 'Fix G$ and CELO utility_payment amounts stored as USD instead of token units',
+      up: async () => {
+        console.log('📦 Running migration v1.2.1 - Fixing G$/CELO utility payment amounts...');
+
+        // 1 G$ = $0.0001167 USD  →  correct_G$ = stored_USD / 0.0001167
+        const GD_USD_PRICE = 0.0001167;
+        // 1 CELO = $0.1 USD  →  correct_CELO = stored_USD / 0.1
+        const CELO_USD_PRICE = 0.1;
+
+        const db = mongoose.connection.db;
+        if (!db) throw new Error('Database connection not available');
+
+        // Fix G$ records: amount < 10 means it was stored as USD cents
+        const gdResult = await db.collection('transactions').updateMany(
+          { type: 'utility_payment', token: 'G$', amount: { $gt: 0, $lt: 10 } },
+          [{ $set: { amount: { $divide: ['$amount', GD_USD_PRICE] } } }]
+        );
+        console.log(`✅ Fixed ${gdResult.modifiedCount} G$ transaction(s)`);
+
+        // Fix CELO records: same criterion
+        const celoResult = await db.collection('transactions').updateMany(
+          { type: 'utility_payment', token: 'CELO', amount: { $gt: 0, $lt: 10 } },
+          [{ $set: { amount: { $divide: ['$amount', CELO_USD_PRICE] } } }]
+        );
+        console.log(`✅ Fixed ${celoResult.modifiedCount} CELO transaction(s)`);
+      },
+      down: async () => {
+        console.log('🔄 Reverting migration v1.2.1 - Restoring G$/CELO amounts to USD values...');
+
+        const GD_USD_PRICE = 0.0001167;
+        const CELO_USD_PRICE = 0.1;
+
+        const db = mongoose.connection.db;
+        if (!db) throw new Error('Database connection not available');
+
+        // Reverse: corrected token amounts are large (>10), USD originals were tiny (<10)
+        await db.collection('transactions').updateMany(
+          { type: 'utility_payment', token: 'G$', amount: { $gte: 10 } },
+          [{ $set: { amount: { $multiply: ['$amount', GD_USD_PRICE] } } }]
+        );
+
+        await db.collection('transactions').updateMany(
+          { type: 'utility_payment', token: 'CELO', amount: { $gte: 10 } },
+          [{ $set: { amount: { $multiply: ['$amount', CELO_USD_PRICE] } } }]
+        );
+
+        console.log('✅ Revert complete');
+      }
     }
   ];
 

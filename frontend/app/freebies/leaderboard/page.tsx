@@ -14,7 +14,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { ChevronLeft, ChevronRight, Trophy, Copy, Check } from 'lucide-react';
-import { useActiveAccount } from "thirdweb/react";
+import { useAccount } from "wagmi";
 
 interface LeaderboardEntry {
     rank: number;
@@ -49,8 +49,7 @@ function RankDisplay({ rank }: { rank: number }) {
 }
 
 export default function LeaderboardPage() {
-    const account = useActiveAccount();
-    const connectedWallet = account?.address?.toLowerCase() || '';
+    const { address: walletAddress, isConnected } = useAccount();
 
     const [weekOffset, setWeekOffset] = useState(0);
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -85,7 +84,7 @@ export default function LeaderboardPage() {
         setLoading(true);
         try {
             const params = new URLSearchParams({ week: String(offset) });
-            if (connectedWallet) params.set('wallet', connectedWallet);
+            if (walletAddress) params.set('wallet', walletAddress);
 
             const res = await fetch(`/api/leaderboard?${params}`);
             const data = await res.json();
@@ -100,7 +99,7 @@ export default function LeaderboardPage() {
         } finally {
             setLoading(false);
         }
-    }, [connectedWallet]);
+    }, [walletAddress]);
 
     useEffect(() => {
         fetchLeaderboard(weekOffset);
@@ -109,8 +108,8 @@ export default function LeaderboardPage() {
     const isCurrentPeriod = weekOffset === 0;
 
     // Check if the connected user is in the top 20
-    const connectedInTop20 = connectedWallet
-        ? leaderboard.some((e) => e.walletAddress.toLowerCase() === connectedWallet)
+    const connectedInTop20 = walletAddress
+        ? leaderboard.some((e) => e.walletAddress.toLowerCase() === walletAddress.toLowerCase())
         : false;
 
     return (
@@ -128,7 +127,6 @@ export default function LeaderboardPage() {
                         ) : (
                             <Copy className="h-4 w-4" />
                         )}
-                        <span>Copy for multisend</span>
                     </button>
                 </div>
             )}
@@ -172,7 +170,7 @@ export default function LeaderboardPage() {
             </div>
 
             {/* Connected user's position (if outside top 20) */}
-            {connectedWallet && currentUser && !connectedInTop20 && (
+            {walletAddress && currentUser && !connectedInTop20 && (
                 <Card className="border border-neutral-900 dark:border-neutral-100">
                     <CardContent className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -231,7 +229,7 @@ export default function LeaderboardPage() {
                             </TableHeader>
                             <TableBody>
                                 {leaderboard.map((entry) => {
-                                    const isMe = connectedWallet && entry.walletAddress.toLowerCase() === connectedWallet;
+                                    const isMe = walletAddress && entry.walletAddress.toLowerCase() === walletAddress.toLowerCase();
                                     return (
                                         <TableRow
                                             key={entry.walletAddress}

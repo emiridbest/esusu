@@ -32,7 +32,7 @@ const FeatureCard = ({
       viewport={{ once: true }}
       onClick={() => router.push(path)}
     >
-      <article className="glass-card h-full p-6 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] cursor-pointer">
+      <article className="glass-card h-full p-6 transition-all duration-300  hover:scale-[1.02] cursor-pointer">
         <Image 
           src={image} 
           alt={title}
@@ -70,7 +70,7 @@ const Section = ({
 }) => (
   <section className={cn(
     "py-16 px-4",
-    glassBg && `bg-gradient-to-br ${accentColor} backdrop-blur-lg`
+    glassBg && ` ${accentColor}`
   )}>
     <div className={cn(
       "max-w-screen-lg mx-auto",
@@ -84,7 +84,7 @@ const Section = ({
           transition={{ duration: 0.7 }}
           viewport={{ once: true }}
         >
-          <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-200/50 dark:border-gray-700/50 group relative">
+          <div className="rounded-2xl overflow-hidden border border-gray-200/50 dark:border-gray-700/50 group relative">
             <div className="absolute inset-0 "></div>
             <Image 
               src={image} 
@@ -156,7 +156,7 @@ const Hero: React.FC = () => {
   return (
     <>
       {/* Hero Section - Simplified */}
-      <section className="relative pt-10 pb-20 overflow-hidden bg-gradient-radial dark:bg-black">
+      <section className="relative pt-10 pb-20 overflow-hidden  dark:bg-black">
         <div className="max-w-screen-xl mx-auto px-4">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
             <motion.div 
@@ -199,7 +199,7 @@ const Hero: React.FC = () => {
                   {[...Array(3)].map((_, i) => (
                     <div 
                       key={i} 
-                      className="w-8 h-8 rounded-full bg-white dark:black border-2 border-white dark:border-gray-800 shadow-lg overflow-hidden -ml-2 first:ml-0"
+                      className="w-8 h-8 rounded-full bg-white dark:black border-2 border-white dark:border-gray-800 overflow-hidden -ml-2 first:ml-0"
                       style={{ zIndex: 3 - i }}
                     >
                       <Image src="/esusu.png" alt="User" width={32} height={32} priority />
@@ -220,7 +220,7 @@ const Hero: React.FC = () => {
             >
               {/* App preview with fewer nested divs */}
               <figure className="relative">
-                <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-full blur-xl opacity-70 animate-pulse"></div>
+                <div className="absolute -inset-4 from-primary/20 to-purple-500/20 rounded-full blur-xl opacity-70 animate-pulse"></div>
                 <div className="glass-card p-2 rounded-3xl overflow-hidden">
                   <Image 
                     src="/ui.png" 

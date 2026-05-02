@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useActiveAccount } from "thirdweb/react";
+import { useAccount } from "wagmi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,8 +40,7 @@ const typeIcon = (type: ReceiptTx["type"], subType?: ReceiptTx["subType"]) => {
 };
 
 export default function ReceiptsMini() {
-  const account = useActiveAccount();
-  const address = account?.address;
+  const { address: walletAddress, isConnected } = useAccount();
   const [items, setItems] = useState<ReceiptTx[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,13 +52,13 @@ export default function ReceiptsMini() {
     const controller = new AbortController();
 
     const fetchData = async () => {
-      if (!address) {
+      if (!walletAddress) {
         setLoading(false);
         return;
       }
       try {
         setLoading(true);
-        const res = await fetch(`/api/transactions?wallet=${address}&limit=8`, {
+        const res = await fetch(`/api/transactions?wallet=${walletAddress}&limit=8`, {
           cache: "no-store",
           signal: controller.signal,
         });
@@ -86,7 +85,7 @@ export default function ReceiptsMini() {
       active = false;
       controller.abort();
     };
-  }, [address]);
+  }, [walletAddress]);
 
   return (
     <Card className="border-0 shadow-none">
@@ -97,7 +96,7 @@ export default function ReceiptsMini() {
         </div>
       </CardHeader>
       <CardContent className="px-2 pb-2">
-        {!address ? (
+        {!walletAddress ? (
           <div className="p-4 text-sm text-gray-600">Connect your wallet to view receipts.</div>
         ) : loading ? (
           <div className="space-y-2 p-2">
@@ -133,8 +132,8 @@ export default function ReceiptsMini() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-semibold">
-                      {tx.amount} {tx.token}
+                    <div className="text-xs font-semibold">
+                      {tx.amount.toFixed(3)} {tx.token}
                     </div>
                     <div className={cn("text-xs font-medium", statusColor(tx.status))}>
                       {tx.status}

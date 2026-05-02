@@ -5,7 +5,6 @@ import { contractAddress, MiniSafeAave } from '@/utils/abi';
 import { getTokenByAddress, TOKENS } from '@/utils/tokens';
 import { BrowserProvider, formatUnits, parseUnits, Contract, JsonRpcProvider } from "ethers";
 import { parseAbi } from 'viem';
-import { useActiveAccount } from 'thirdweb/react';
 import useGasSponsorship from '@/hooks/useGasSponsorship';
 
 // Define the type for thrift group data (updated to match contract structure)

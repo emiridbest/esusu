@@ -36,7 +36,6 @@ export function UserCampaigns() {
         return;
       }
 
-      console.log('Loading members for', userGroups.length, 'groups');
       setLoadingMembers(true);
 
       try {
@@ -44,10 +43,8 @@ export function UserCampaigns() {
 
         for (const group of userGroups) {
           try {
-            console.log(`Fetching members for group ${group.id}`);
             const members = await getThriftGroupMembers(group.id);
             membersMap[group.id] = members;
-            console.log(`Loaded ${members.length} members for group ${group.id}`);
           } catch (error) {
             console.error(`Failed to fetch members for group ${group.id}:`, error);
             // Continue loading other groups even if one fails
@@ -55,7 +52,6 @@ export function UserCampaigns() {
           }
         }
 
-        console.log('Setting group members:', Object.keys(membersMap).length, 'groups');
         setGroupMembers(membersMap);
       } catch (error) {
         console.error('Error loading members:', error);

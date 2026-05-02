@@ -17,7 +17,7 @@ export default function Footer() {
   const isActive = (path: string) => pathname === path;
 
   return (
-    <footer className="sm:hidden fixed bottom-0 w-full z-40 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md border-t border-gray-100 dark:border-neutral-800">
+    <footer className="sm:hidden fixed bottom-0 w-full z-40 bg-white/80 dark:bg-neutral-950/80 border-t border-gray-100 dark:border-neutral-800">
       <div className="flex items-stretch justify-around px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -40,18 +40,14 @@ export default function Footer() {
 
               {/* Icon container */}
               <div
-                className={cn(
-                  "flex items-center justify-center w-10 h-9 rounded-2xl transition-all duration-200",
-                  active
-                    ? "bg-primary/10 dark:bg-primary/15"
-                    : "group-hover:bg-gray-100 dark:group-hover:bg-neutral-800"
-                )}
+                className="flex items-center justify-center w-10 h-9 rounded-2xl transition-all duration-200"
+                
               >
                 <Icon
                   className={cn(
                     "h-5 w-5 transition-all duration-200",
                     active
-                      ? "text-primary stroke-[2px]"
+                      ? "text-black dark:text-white stroke-[2px]"
                       : "text-gray-400 dark:text-gray-500 stroke-[1.5px] group-hover:text-gray-600 dark:group-hover:text-gray-300"
                   )}
                 />
@@ -62,7 +58,7 @@ export default function Footer() {
                 className={cn(
                   "text-[10px] leading-none transition-colors duration-200 whitespace-nowrap",
                   active
-                    ? "text-primary font-semibold"
+                    ? "text-black dark:text-white font-semibold"
                     : "text-gray-400 dark:text-gray-500 font-normal group-hover:text-gray-600 dark:group-hover:text-gray-300"
                 )}
               >

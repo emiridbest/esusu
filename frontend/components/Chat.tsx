@@ -2,17 +2,13 @@
 
 import { useState } from "react";
 import { useChat } from "ai/react";
-import { prepareTransaction, defineChain } from "thirdweb";
-import { TransactionButton } from "thirdweb/react";
-import { useActiveAccount } from "thirdweb/react";
-import { client } from "@/lib/thirdweb";
+import { useAccount, useSendTransaction } from "wagmi";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Send, User, Bot, Sparkles, RotateCcw, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
-import { EsusuDeposit } from "@/components/Agent/AgentTrigger";
 import { FeedbackForm } from "@/components/Agent/FeedbackForm";
 import { v4 as uuidv4 } from "uuid";
 import type { Message } from "ai";
@@ -21,7 +17,7 @@ import type { Message } from "ai";
 const CHAT_ID = uuidv4();
 
 export default function Chat() {
-    const account = useActiveAccount();
+    const { address: walletAddress, isConnected } = useAccount();
     const [showDepositForm, setShowDepositForm] = useState(false);
     const [showFeedbackForm, setShowFeedbackForm] = useState(false);
     const [waitingForFeedback, setWaitingForFeedback] = useState(false);
@@ -29,7 +25,7 @@ export default function Chat() {
 
     const { messages, input, setInput, handleSubmit, isLoading, append } = useChat({
         api: "/api/chat",
-        body: { userAddress: account?.address },
+        body: { userAddress: walletAddress },
         id: CHAT_ID,
         onFinish: (message) => {
             const text = message.content?.toLowerCase() || "";
@@ -156,17 +152,7 @@ export default function Chat() {
                 </div>
             </div>
 
-            {/* Deposit Modal */}
-            {showDepositForm && (
-                <Modal title="Deposit to Earn Yield" onClose={() => setShowDepositForm(false)}>
-                    <EsusuDeposit
-                        onSuccess={() => {
-                            setShowDepositForm(false);
-                            setTimeout(() => setWaitingForFeedback(true), 2000);
-                        }}
-                    />
-                </Modal>
-            )}
+
 
             {/* Feedback Modal */}
             {showFeedbackForm && (

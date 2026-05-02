@@ -28,6 +28,7 @@
         "db:health": "cd backend && npm run db:health"
     },
     "devDependencies": {
+        "@react-native-async-storage/async-storage": "^3.0.2",
         "@types/node": "^22.15.3",
         "@types/react": "^18.3.1",
         "@types/react-dom": "^18.3.1",
@@ -37,6 +38,10 @@
         "@tanstack/react-query": "^5.83.0",
         "@testing-library/react": "^16.3.0",
         "@wagmi/core": "^1.4.13",
+        "@web3auth/base": "^9.7.0",
+        "@web3auth/ethereum-provider": "^9.7.0",
+        "@web3auth/modal": "^10.16.0",
+        "@web3auth/web3auth-wagmi-connector": "^7.0.0",
         "es-abstract": "^1.24.0",
         "eslint-plugin-react": "^7.37.5",
         "ethers": "^6.15.0",

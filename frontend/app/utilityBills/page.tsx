@@ -25,11 +25,7 @@ function MainContent() {
   return (
     <div className="container mx-auto">
       {/* Main Utility Bills Card */}
-      <Card className="bg-white/50 dark:bg-black/40 backdrop-blur-md border border-gray-100 dark:border-gray-800 shadow-lg shadow-primary/5">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold">Utility Bills</CardTitle>
-          <CardDescription>Pay your utility bills with crypto securely across Africa</CardDescription>
-        </CardHeader>
+
         <CardContent>
           <Tabs defaultValue="mobile-data" onValueChange={handleTabChange} className="space-y-6">
             <TabsList className="grid w-full grid-cols-3 gap-2 bg-muted/50 p-1">
@@ -69,7 +65,7 @@ function MainContent() {
 
           </Tabs>
         </CardContent>
-      </Card>
+
     </div>
   );
 }

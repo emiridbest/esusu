@@ -3,13 +3,7 @@
 import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { parseUnits, encodeFunctionData, parseAbi } from "viem";
-import { ethers } from 'ethers';
-import {
-  useActiveAccount,
-  useActiveWallet,
-  useActiveWalletChain,
-} from "thirdweb/react";
-import { client, activeChain } from "@/lib/thirdweb";
+import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { CountryData } from '@/utils/countryData';
 import { celo } from 'wagmi/chains';
 import { useGasSponsorship } from '@/hooks/useGasSponsorship';
@@ -112,11 +106,9 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [countryData, setCountryData] = useState<CountryData | null>(null);
-  const account = useActiveAccount();
-  const wallet = useActiveWallet();
-  const chain = useActiveWalletChain();
-  
-  const address = account?.address;
+  const { address, isConnected } = useAccount();
+  const publicClient = usePublicClient();
+  const { data: walletClient } = useWalletClient();
   const { checkAndSponsor } = useGasSponsorship();
 
   const convertCurrency = async (
@@ -265,6 +257,9 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         console.log('[handleTransaction] Transaction memo:', memo);
 
         // Parse amount with correct decimals
+        // actualTokenAmount tracks the human-readable token units (G$, CELO, etc.)
+        // rather than the USD equivalent, so the DB records the correct token amount.
+        let actualTokenAmount = Number(convertedAmount); // stables: USD ≈ token units
         let paymentAmount = parseUnits(convertedAmount.toString(), decimals);
         console.log('[handleTransaction] Payment amount (parsed):', paymentAmount);
 
@@ -272,12 +267,14 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         if (token === 'G$') {
           // Convert USD to G$ using cached rate
           const gDollarAmount = Number(convertedAmount) / goodDollarUsdPrice;
+          actualTokenAmount = gDollarAmount;
           paymentAmount = parseUnits(gDollarAmount.toString(), decimals);
           console.log('[handleTransaction] G$ conversion applied:', paymentAmount);
         }
         if (token === 'CELO') {
           // Convert USD to CELO using cached rate
           const celoAmount = Number(convertedAmount) / celoUsdPrice;
+          actualTokenAmount = celoAmount;
           paymentAmount = parseUnits(celoAmount.toString(), decimals);
           console.log('[handleTransaction] CELO conversion applied:', paymentAmount);
         }
@@ -289,35 +286,22 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           "function allowance(address owner, address spender) view returns (uint256)"
         ]);
 
-        // Check allowance for PaymentVault contract
-        const { readContract } = await import('thirdweb');
-        const { getContract } = await import('thirdweb');
-        const tokenContract = getContract({
-          client,
-          chain: activeChain,
+        // Read allowance using viem
+        const currentAllowance = await publicClient.readContract({
           address: tokenAddress as `0x${string}`,
-        });
-
-        const currentAllowance = await readContract({
-          contract: tokenContract,
-          method: "function allowance(address owner, address spender) view returns (uint256)",
-          params: [address as `0x${string}`, payAddress as `0x${string}`],
+          abi: erc20Abi,
+          functionName: "allowance",
+          args: [address as `0x${string}`, payAddress as `0x${string}`],
+          authorizationList: undefined
         });
 
         console.log('[handleTransaction] Current allowance:', currentAllowance, 'Payment amount:', paymentAmount);
 
         // If allowance is insufficient, approve x100 the payment amount
-        if (currentAllowance < paymentAmount) {
+        if (typeof currentAllowance === 'bigint' && currentAllowance < paymentAmount) {
           const approveAmount = paymentAmount * BigInt(100);
           console.log('[handleTransaction] Approving x100:', approveAmount);
-
-          const approveData = encodeFunctionData({
-            abi: erc20Abi,
-            functionName: 'approve',
-            args: [payAddress as `0x${string}`, approveAmount],
-          });
-
-          // Sponsor gas for approval
+          // Sponsor gas for approval (optional, keep if you have this logic)
           try {
             const approvalSponsor = await checkAndSponsor(address as `0x${string}`, {
               contractAddress: tokenAddress as `0x${string}`,
@@ -325,7 +309,6 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
               functionName: 'approve',
               args: [payAddress as `0x${string}`, approveAmount],
             });
-
             if (approvalSponsor.gasSponsored) {
               toast.success(`Gas sponsored for approval: ${approvalSponsor.amountSponsored} ${approvalSponsor.sponsoredToken || 'CELO'}`);
               await new Promise(resolve => setTimeout(resolve, 6000));
@@ -333,40 +316,16 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           } catch (gasError) {
             console.error('[UtilityContext] Approval gas sponsorship failed', gasError);
           }
-
-          const { sendTransaction: sendTx, prepareTransaction: prepareTx, waitForReceipt: waitForApprovalReceipt } = await import('thirdweb');
-          
-          let approveTxHash: `0x${string}`;
-
-          if (typeof window !== 'undefined' && (window as any).ethereum) {
-            console.log('[handleTransaction] Using window.ethereum for approve() to optimize gas');
-            approveTxHash = await (window as any).ethereum.request({
-              method: 'eth_sendTransaction',
-              params: [{
-                from: address,
-                to: tokenAddress,
-                data: approveData,
-              }],
-            });
-          } else {
-            console.log('[handleTransaction] Fallback to thirdweb for approve()');
-            const approveTx = await prepareTx({
-              to: tokenAddress as `0x${string}`,
-              data: approveData as `0x${string}`,
-              client,
-              chain: activeChain,
-            });
-            const approveResult = await sendTx({ account: account!, transaction: approveTx });
-            approveTxHash = approveResult.transactionHash as `0x${string}`;
-          }
-
-          // Wait for approval to be confirmed on-chain before proceeding
-          await waitForApprovalReceipt({
-            client,
-            chain: activeChain,
-            transactionHash: approveTxHash,
+          // Send approve transaction using viem
+          const approveHash = await walletClient.writeContract({
+            address: tokenAddress as `0x${string}`,
+            abi: erc20Abi,
+            functionName: 'approve',
+            args: [payAddress as `0x${string}`, approveAmount],
+            account: address as `0x${string}`,
+            chain: celo,
           });
-          console.log('[handleTransaction] Approval confirmed');
+          await publicClient.waitForTransactionReceipt({ hash: approveHash });
           toast.success('Token approval confirmed');
         }
 
@@ -398,49 +357,21 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
         // Send the pay transaction to PaymentVault
         setIsWaitingTx(true);
-        
-        if (!wallet || !account) {
-          console.error('[handleTransaction] Wallet or account not connected:', { wallet, account });
+        if (!isConnected || !address) {
+          console.error('[handleTransaction] Wallet/account not connected');
           throw new Error('Wallet not connected');
         }
-        // Send transaction using Thirdweb v5 pattern
-        const { sendTransaction, prepareTransaction, waitForReceipt } = await import('thirdweb');
         let txHash: `0x${string}`;
         try {
-          if (typeof window !== 'undefined' && (window as any).ethereum) {
-            console.log('[handleTransaction] Using window.ethereum for pay() to optimize gas');
-            txHash = await (window as any).ethereum.request({
-              method: 'eth_sendTransaction',
-              params: [{
-                from: address,
-                to: payAddress,
-                data: payData,
-              }],
-            });
-            console.log('[handleTransaction] Transaction sent via window.ethereum:', txHash);
-          } else {
-            console.log('[handleTransaction] Fallback to thirdweb for pay()');
-            const transaction = await prepareTransaction({
-              to: payAddress as `0x${string}`,
-              data: payData as `0x${string}`,
-              client,
-              chain: activeChain,
-            });
-            console.log('[handleTransaction] Transaction prepared:', transaction);
-            const txResult = await sendTransaction({
-              account,
-              transaction,
-            });
-            txHash = txResult.transactionHash as `0x${string}`;
-            console.log('[handleTransaction] Transaction sent via thirdweb:', txResult);
-          }
-
-          // Ensure we wait for receipt for stability
-          await waitForReceipt({
-            client,
-            chain: activeChain,
-            transactionHash: txHash,
+          txHash = await walletClient.writeContract({
+            address: payAddress as `0x${string}`,
+            abi: payABI,
+            functionName: 'pay',
+            args: [tokenAddress as `0x${string}`, paymentAmount],
+            account: address as `0x${string}`,
+            chain: celo,
           });
+          await publicClient.waitForTransactionReceipt({ hash: txHash });
         } catch (txError) {
           console.error('[handleTransaction] Transaction preparation/sending failed:', txError);
           throw txError;
@@ -465,7 +396,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         return { 
           success: true, 
           transactionHash: tx.hash, 
-          convertedAmount: convertedAmount.toString(),
+          convertedAmount: actualTokenAmount.toString(),
           paymentToken: token 
         };
       } else {

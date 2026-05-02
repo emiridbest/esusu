@@ -2,9 +2,8 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import {
-  useActiveAccount,
-  useActiveWallet,
-} from "thirdweb/react";
+  useAccount
+} from "wagmi";
 import { toast } from 'sonner';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,10 +41,7 @@ const formSchema = z.object({
 });
 
 export const useFreebiesLogic = () => {
-    const account = useActiveAccount();
-    const wallet = useActiveWallet();
-    const address = account?.address;
-    const isConnected = !!account && !!wallet;
+    const { address: walletAddress, isConnected } = useAccount();
     const {
         updateStepStatus,
         openTransactionDialog,
@@ -291,7 +287,7 @@ export const useFreebiesLogic = () => {
         }
 
         // Generate unique transaction ID for idempotency
-        const transactionId = `${address}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const transactionId = `${walletAddress}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         setIsProcessing(true);
         let hasClaimedSuccessfully = false;

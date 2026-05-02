@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useContext } from "react";
 import { ethers } from "ethers";
+import { useWeb3AuthConnect, useWeb3AuthDisconnect, useWalletUI, useSwap, useCheckout } from "@web3auth/modal/react";
+import { useAccount } from "wagmi";
 import { contractAddress, abi } from "../utils/abi";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -36,10 +38,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import ReceiptsMini from "@/components/receipts/ReceiptsMini";
-import { ConnectButton } from "thirdweb/react";
-import { inAppWallet, createWallet } from "thirdweb/wallets";
-import { client, activeChain } from "../lib/thirdweb";
-import { useActiveAccount } from "thirdweb/react";
+
 import {
   HomeIcon,
   DatabaseIcon,
@@ -56,12 +55,12 @@ import {
   ChevronRightIcon,
 } from "lucide-react";
 import { link } from "fs/promises";
+import { toast } from "sonner";
 
 const hardcodedAdmin = "0x5b2e388403b60972777873e359a5D04a832836b3".toLowerCase();
 
 const navLinks = [
   { title: "Data & Airtime", href: "/utilityBills", icon: DatabaseIcon },
-  { title: "Swap", href: "/swap", icon: ArrowLeftRightIcon },
   { title: "Freebies", href: "/freebies", icon: GiftIcon },
   { title: "Beta", href: "/betaFeatures", icon: FlaskConicalIcon },
   { title: "Chat", href: "/chat", icon: MessageCircleIcon },
@@ -72,16 +71,19 @@ const aboutMenuItems = [
   { title: "Contact Us", href: "/contact", icon: PhoneIcon },
   { title: "FAQ", href: "/faq", icon: HelpCircleIcon },
   { title: "Jobs", href: "/jobs", icon: BriefcaseIcon },
-  { title: "Profile", href: "/profile", icon: UserIcon },
 ];
 
 export default function Header() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
-  const account = useActiveAccount();
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-  const walletAddress = account?.address || null;
+  const { connect, loading: isConnecting } = useWeb3AuthConnect();
+  const { disconnect, loading: isDisconnecting } = useWeb3AuthDisconnect();
+  const { address: walletAddress, isConnected } = useAccount();
+  const { showWalletUI } = useWalletUI();
+  const { showSwap } = useSwap();
+  const { showCheckout } = useCheckout();
   const router = useRouter();
   const pathname = usePathname();
   const { darkMode } = useContext(ThemeContext);
@@ -117,7 +119,7 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/80 dark:bg-black/80 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+    <header className="sticky top-0 z-40 w-full  bg-white/80 dark:bg-black/80 border-b border-gray-200 dark:border-gray-800 ">
       <div className="container mx-auto px-4">
         <div className="h-16 flex items-center justify-between">
           {/* Logo */}
@@ -142,7 +144,7 @@ export default function Header() {
                         href={link.href}
                         className={cn(
                           navigationMenuTriggerStyle(),
-                          "dark:text-primary hover:bg-primary/10 hover:text-primary transition-all duration-300",
+                          "dark:text-primary hover:border-primary/10 hover:text-black transition-all duration-300",
                           pathname === link.href && "text-primary border-b-2 border-primary"
                         )}
                       >
@@ -218,26 +220,41 @@ export default function Header() {
               )}
             </div>
 
-            <ConnectButton
-              client={client}
-              chain={activeChain}
-              wallets={[
-                inAppWallet({ auth: { options: ["google", "discord", "telegram", "email", "phone"] } }),
-                createWallet("io.metamask"),
-                createWallet("com.coinbase.wallet"),
-                createWallet("me.rainbow"),
-                createWallet("io.rabby"),
-                createWallet("com.trustwallet.app"),
-              ]}
-              connectModal={{
-                size: "wide",
-                title: "Connect to Esusu",
-                welcomeScreen: {
-                  title: "Welcome to Esusu",
-                  subtitle: "Connect your wallet or create a new one to get started",
-                },
-              }}
-            />
+            {/* Web3Auth Connect/Disconnect Button */}
+            {isConnected && walletAddress ? (
+              <div className="flex text-xs items-center gap-2 dark:text-white">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="text-xs px-3 py-2 cursor-pointer">
+                      {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-44 p-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => router.push("/wallet")}
+                      className="w-full justify-start"
+                    >
+                      My Wallet
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => disconnect()}
+                      disabled={isDisconnecting}
+                      className="w-full justify-start text-red-500 hover:text-red-600"
+                    >
+                      Disconnect
+                    </Button>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            ) : (
+              <Button variant="default" onClick={() => connect()} className="text-xs px-3 py-2" disabled={isConnecting}>
+                {isConnecting ? "Connecting..." : "Connect"}
+              </Button>
+            )}
 
             {/* Bell */}
             <Popover>
@@ -305,7 +322,7 @@ export default function Header() {
                           className={cn(
                             "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group",
                             active
-                              ? "bg-primary/10 text-primary"
+                              ? "border-primary/10 text-black dark:text-white"
                               : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-900 hover:text-gray-900 dark:hover:text-white"
                           )}
                         >
