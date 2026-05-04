@@ -10,7 +10,7 @@ const config = {
     privateKey: process.env.BACKEND_WALLET_PRIVATE_KEY,
     rpcUrl: process.env.CELO_RPC_URL || 'https://forno.celo.org',
     dailyLimitPerUser: parseInt(process.env.GAS_SPONSORSHIP_DAILY_LIMIT_PER_USER || '5'),
-    maxAmountCELO: parseFloat(process.env.GAS_SPONSORSHIP_MAX_AMOUNT_CELO || '0.3'),
+    maxAmountCELO: parseFloat(process.env.GAS_SPONSORSHIP_MAX_AMOUNT_CELO || '0.9'),
     cooldownMinutes: parseInt(process.env.GAS_SPONSORSHIP_COOLDOWN_MINUTES || '0'),
     lowBalanceThreshold: parseFloat(process.env.GAS_SPONSORSHIP_LOW_BALANCE_THRESHOLD || '0'),
     celoUsdPrice: parseFloat(process.env.CELO_USD_PRICE || '0.4'),
