@@ -37,7 +37,7 @@ export default function CampaignDetailsPage() {
   const campaignId = typeof id === 'string' ? parseInt(id) : -1;
 
   const { userGroups, allGroups, joinThriftGroup, checkJoinStatus, checkGroupStatus, makeContribution, distributePayout, getThriftGroupMembers, getContributionHistory, generateShareLink, activateThriftGroup, setPayoutOrder, emergencyWithdraw, addMemberToPrivateGroup, refreshGroups, loading, error } = useThrift();
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, status: walletStatus } = useAccount();
 
 
 
@@ -190,8 +190,8 @@ export default function CampaignDetailsPage() {
         } finally {
           setIsStatusChecking(false);
         }
-      } else if (campaign && !address) {
-        // Not connected — stop checking
+      } else if (campaign && walletStatus === 'disconnected') {
+        // Definitively not connected — stop checking (not just reconnecting)
         setIsStatusChecking(false);
       } else if (!campaign && !loading) {
         // Groups have finished loading but this campaign wasn't found
@@ -199,7 +199,7 @@ export default function CampaignDetailsPage() {
       }
     };
     checkStatus();
-  }, [campaign, address, loading, checkJoinStatus]);
+  }, [campaign, address, walletStatus, loading, checkJoinStatus]);
 
   // Test checkGroupStatus function availability and check group status
   useEffect(() => {
