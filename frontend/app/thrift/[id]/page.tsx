@@ -114,6 +114,7 @@ export default function CampaignDetailsPage() {
     transactionHash: string;
   }>>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [isStatusChecking, setIsStatusChecking] = useState(true);
 
   // Find the campaign in user campaigns or all campaigns
   useEffect(() => {
@@ -179,17 +180,26 @@ export default function CampaignDetailsPage() {
   useEffect(() => {
     const checkStatus = async () => {
       if (campaign && address) {
+        setIsStatusChecking(true);
         try {
           const status = await checkJoinStatus(campaign.id);
           setJoinStatus(status);
           setIsUserMember(status.isMember);
         } catch (error) {
           console.error('Failed to check join status:', error);
+        } finally {
+          setIsStatusChecking(false);
         }
+      } else if (campaign && !address) {
+        // Not connected — stop checking
+        setIsStatusChecking(false);
+      } else if (!campaign && !loading) {
+        // Groups have finished loading but this campaign wasn't found
+        setIsStatusChecking(false);
       }
     };
     checkStatus();
-  }, [campaign, address, checkJoinStatus]);
+  }, [campaign, address, loading, checkJoinStatus]);
 
   // Test checkGroupStatus function availability and check group status
   useEffect(() => {
@@ -590,7 +600,7 @@ export default function CampaignDetailsPage() {
     }
   };
 
-  if (loading) {
+  if (loading || isStatusChecking) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
