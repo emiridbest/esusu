@@ -30,9 +30,11 @@ import {
 import { useSearchParams } from 'next/navigation'
 import { useIdentitySDK } from "@goodsdks/react-hooks"
 
-interface InviteReward {
-  invitedWallet: string
-  rewardAmount: string
+interface ReferredUser {
+  walletAddress: string
+  claimed: boolean
+  rewardAmount?: string   // filled from blockchain events if claimed
+  createdAt?: string
 }
 // Configuration constants - using the SDK constants as per integration guide
 const APP_ADDRESS = ENGAGEMENT_CONFIG.APP_ADDRESS
@@ -91,7 +93,8 @@ const RewardsClaimCard = () => {
   const { sdk: identitySDK } = useIdentitySDK()
   const [inviteLink, setInviteLink] = useState<string>("")
   const [isCopied, setIsCopied] = useState(false)
-  const [inviteRewards, setInviteRewards] = useState<InviteReward[]>([])
+  const [referredUsers, setReferredUsers] = useState<ReferredUser[]>([])
+  const [loadingReferrals, setLoadingReferrals] = useState(false)
   const [rewardAmount, setRewardAmount] = useState<bigint>(BigInt(0))
   const [inviterShare, setInviterShare] = useState<number>(0)
   const [isClaimable, setIsClaimable] = useState(false)
@@ -153,20 +156,32 @@ const RewardsClaimCard = () => {
           //,{inviter: userAddress,}
         )
 
-        // Filter and map events where this wallet was the inviter
-        const inviterEvents = events
-          .filter(
-            (event) =>
-              event.inviter?.toLowerCase() === userAddress.toLowerCase(),
-          )
-          .map((event) => ({
-            invitedWallet: event.user || "Unknown",
-            rewardAmount: formatAmount(
-              BigInt(event.inviterAmount || 0),
-            ).toString(),
-          }))
+        // Build a map of wallet -> reward amount from blockchain events (inviter's side)
+        const rewardMap = new Map<string, string>()
+        events
+          .filter((event) => event.inviter?.toLowerCase() === userAddress.toLowerCase())
+          .forEach((event) => {
+            if (event.user) {
+              rewardMap.set(
+                event.user.toLowerCase(),
+                formatAmount(BigInt(event.inviterAmount || 0)).toString(),
+              )
+            }
+          })
 
-        setInviteRewards(inviterEvents)
+        // Merge blockchain data into referredUsers.
+        // DB is the source of truth for the list; blockchain events are the
+        // source of truth for who has actually claimed (rewardMap key present = claimed on-chain).
+        setReferredUsers((prev) =>
+          prev.map((u) => {
+            const earned = rewardMap.get(u.walletAddress.toLowerCase())
+            return {
+              ...u,
+              claimed: earned !== undefined ? true : u.claimed,
+              rewardAmount: earned,
+            }
+          })
+        )
       } catch (err) {
         console.error("Error fetching reward details:", err)
         toast.error("Failed to load reward details")
@@ -176,6 +191,30 @@ const RewardsClaimCard = () => {
     fetchRewardDetails()
   }, [engagementRewards, userAddress])
 
+  // Fetch all wallets this user has referred from DB
+  useEffect(() => {
+    if (!userAddress) {
+      setReferredUsers([])
+      return
+    }
+    setLoadingReferrals(true)
+    fetch(`/api/invites?inviter=${encodeURIComponent(userAddress)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) {
+          setReferredUsers(
+            (data.referrals ?? []).map((r: any) => ({
+              walletAddress: r.walletAddress,
+              claimed: r.claimed,
+              createdAt: r.createdAt,
+            }))
+          )
+        }
+      })
+      .catch((err) => console.error('Failed to load referrals:', err))
+      .finally(() => setLoadingReferrals(false))
+  }, [userAddress])
+
   // Store inviter in DB from URL param & load stored inviter from DB
   useEffect(() => {
     if (!userAddress) {
@@ -184,7 +223,7 @@ const RewardsClaimCard = () => {
     }
 
     const baseUrl = "https://esusuafrica.com"
-    setInviteLink(`${baseUrl}/freebies?inviterAddress=${userAddress}`)
+    setInviteLink(`${baseUrl}/freebies/rewards?inviterAddress=${userAddress}`)
 
     // If URL has an inviter, persist it to DB (first inviter wins on backend)
     if (inviterFromUrl) {
@@ -468,42 +507,6 @@ const RewardsClaimCard = () => {
     <div className="container py-8 bg-gradient-to-br min-h-screen">
       <div className="max-w-md mx-auto">
         <div className="space-y-6">
-          {/* Voting Promotion Block */}
-          <Card className="border-2 border-purple-400 shadow-lg bg-gradient-to-br from-purple-50 to-purple-50 dark:from-purple-950/50 dark:to-purple-900/50">
-            <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-t-lg">
-              <div className="flex flex-col space-y-2 text-white">
-                <CardTitle className="text-2xl font-bold"> 💸 Round 2 Voting Live!</CardTitle>
-                <CardDescription className="text-black/90">Vote for Esusu & Earn 3000 G$</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-6">
-              <div className="bg-white dark:bg-purple-950 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
-                <p className="text-sm font-semibold text-purple-900 dark:text-purple-100 mb-3"> How to Vote:</p>
-                <ol className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
-                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">1.</span> Complete Face Verification by clicking Get Verified above</li>
-                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">2.</span> Go to <a href="https://flowstate.network/flow-councils/42220/0xfabef1abae4998146e8a8422813eb787caa26ec2" target="_blank" rel="noopener noreferrer" className="text-purple-600 dark:text-purple-400 font-semibold hover:underline"> Flow State Voting</a> </li>
-                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">3.</span> Click Connect Wallet on the top right corner</li>
-                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">4.</span> Click Check Voter Eligibility</li>
-                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">5.</span> Look for Esusu  and click Add to Ballot</li>
-                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">6.</span> Give MAXIMUM VOTES to Esusu</li>
-                  <li className="flex items-start"><span className="font-bold mr-2 text-purple-600">7.</span> After voting, send your wallet address to claim your 3000 G$ via our telegram group</li>
-                </ol>
-              </div>
-
-              <div className="bg-gradient-to-r from-purple-100 to-purple-50 dark:from-purple-900/30 dark:to-purple-800/30 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
-                <p className="text-xs font-semibold text-purple-900 dark:text-purple-100 mb-2"> Refer Friends & Earn More:</p>
-                <p className="text-xs text-slate-700 dark:text-slate-300 mb-3">Share with your friends, and once they vote, share their wallet addresses too. You both earn!</p>
-                <a 
-                  href="https://t.me/+kYeSswiKgB9lMjZk" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-all duration-200 text-sm"
-                >
-                  Join Our Telegram 
-                </a>
-              </div>
-            </CardContent>
-          </Card>
 
           <Card className="border shadow-lg dark:bg-black">
             <CardHeader className="bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-t-lg">
@@ -687,30 +690,66 @@ const RewardsClaimCard = () => {
 
               <Card className="border">
                 <CardHeader>
-                  <CardTitle className="text-lg">Your Recent Rewards</CardTitle>
+                  <CardTitle className="text-lg">Your Referrals</CardTitle>
                   <CardDescription>
-                    Track the invitations you have rewarded recently.
+                    Everyone you've referred —{' '}
+                    <span className="font-semibold text-green-600">
+                      {referredUsers.filter((u) => u.claimed).length} claimed
+                    </span>
+                    {' '}/ {referredUsers.length} total
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {inviteRewards.length > 0 ? (
-                    <div className="space-y-4">
-                      {inviteRewards.map((reward, index) => (
+                  {loadingReferrals ? (
+                    <div className="flex items-center justify-center py-6 gap-2 text-slate-500">
+                      <div className="animate-spin w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full" />
+                      Loading referrals…
+                    </div>
+                  ) : referredUsers.length > 0 ? (
+                    <div className="space-y-3">
+                      {referredUsers.map((user, index) => (
                         <div
                           key={index}
-                          className="flex justify-between items-center rounded-lg border bg-yellow-50/70 p-4"
+                          className={`flex items-center justify-between rounded-lg border p-3 ${
+                            user.claimed
+                              ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800'
+                              : 'bg-yellow-50/60 border-yellow-200 dark:bg-black dark:border-yellow-800/40'
+                          }`}
                         >
-                          <div>
-                            <p className="font-medium text-slate-900">Invited: {reward.invitedWallet}</p>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                              user.claimed ? 'bg-green-500' : 'bg-yellow-400'
+                            }`} />
+                            <div>
+                              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                                {formatAddress(user.walletAddress)}
+                              </p>
+                              {user.createdAt && (
+                                <p className="text-xs text-slate-500">
+                                  Referred {new Date(user.createdAt).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                          <p className="font-semibold text-slate-900">{reward.rewardAmount} G$</p>
+                          <div className="text-right">
+                            {user.claimed ? (
+                              <>
+                                <span className="text-xs font-semibold text-green-600 dark:text-green-400 block">Claimed ✓</span>
+                                {user.rewardAmount && (
+                                  <span className="text-xs text-slate-600 dark:text-slate-400">+{user.rewardAmount} G$ earned</span>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Pending</span>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-center text-slate-600">
+                    <p className="text-center text-sm text-slate-500 py-4">
                       {isWhitelisted
-                        ? 'No rewards yet. Share your invite link to start earning!'
+                        ? 'No referrals yet. Share your invite link to start earning!'
                         : 'Get verified to start earning rewards.'}
                     </p>
                   )}

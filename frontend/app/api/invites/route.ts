@@ -2,23 +2,43 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@esusu/backend/lib/database/connection';
 import { Invite } from '@esusu/backend/lib/database/schemas';
 
-// GET /api/invites?wallet=0x...  — get the stored inviter for a wallet
+// GET /api/invites?wallet=0x...       — get the stored inviter for a wallet
+// GET /api/invites?inviter=0x...      — get all wallets referred by this inviter
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const walletAddress = searchParams.get('wallet');
+    const inviterAddress = searchParams.get('inviter');
 
-    if (!walletAddress) {
+    if (!walletAddress && !inviterAddress) {
       return NextResponse.json(
-        { success: false, error: 'Wallet address is required' },
+        { success: false, error: 'wallet or inviter query param is required' },
         { status: 400 }
       );
     }
 
     await dbConnect();
 
+    // Return all referrals made by this inviter
+    if (inviterAddress) {
+      // @ts-ignore - Mongoose union type compatibility issue
+      const invites = await Invite.find({ inviterAddress: inviterAddress.toLowerCase() })
+        .sort({ createdAt: -1 })
+        .lean();
+
+      return NextResponse.json({
+        success: true,
+        referrals: invites.map((inv: any) => ({
+          walletAddress: inv.walletAddress,
+          claimed: inv.claimed,
+          createdAt: inv.createdAt,
+        })),
+      });
+    }
+
+    // Return the stored inviter for a given wallet
     // @ts-ignore - Mongoose union type compatibility issue
-    const invite = await Invite.findOne({ walletAddress: walletAddress.toLowerCase() });
+    const invite = await Invite.findOne({ walletAddress: walletAddress!.toLowerCase() });
 
     return NextResponse.json({
       success: true,
