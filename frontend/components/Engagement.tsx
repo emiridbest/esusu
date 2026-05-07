@@ -692,7 +692,7 @@ const RewardsClaimCard = () => {
                 <CardHeader>
                   <CardTitle className="text-lg">Your Referrals</CardTitle>
                   <CardDescription>
-                    Everyone you've referred —{' '}
+                    Referrals:{' '}
                     <span className="font-semibold text-green-600">
                       {referredUsers.filter((u) => u.claimed).length} claimed
                     </span>
