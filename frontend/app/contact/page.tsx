@@ -8,7 +8,7 @@ import * as React from "react";
 import { ExternalLink, MessageCircle, Users, Clock, Headphones } from "lucide-react";
 
 export default function ContactPage() {
-  const telegramLink = "https://t.me/+kYeSswiKgB9lMjZk";
+  const telegramLink = "https://chat.whatsapp.com/DVzl5QGvfj098tNb85sew4";
   
   return (
         <div className="container py-8 bg-gradient-to-br min-h-screen">
@@ -21,7 +21,7 @@ export default function ContactPage() {
             >
               <CardTitle className="text-2xl font-bold flex items-center gap-2">
                 <Headphones className="w-10 h-10 text-black" />
-                Contact us on Telegram
+                Contact us on Whatsapp
               </CardTitle>
               <CardDescription className="flex items-center text-black/90 dark:text-black/90">
                 🕐 Response within 5 minutes
