@@ -11,7 +11,8 @@ import {
     ArrowDownLeft,
     Smartphone,
     Wifi,
-    Tv
+    Tv,
+    Gift
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 
 export interface ReceiptTx {
     transactionHash: string;
-    type: "savings" | "withdrawal" | "utility_payment" | "group_contribution" | "group_payout";
+    type: "savings" | "withdrawal" | "utility_payment" | "group_contribution" | "group_payout" | "cashback";
     subType?: "airtime" | "data" | "electricity" | "cable";
     amount: number;
     token: string;
@@ -31,6 +32,7 @@ export function ReceiptCard({ transaction }: { transaction: ReceiptTx }) {
     const { type, subType, amount, token, status, createdAt } = transaction;
 
     const getIcon = () => {
+        if (type === "cashback") return <Gift className="h-5 w-5" />;
         if (type === "utility_payment") {
             if (subType === "electricity") return <Zap className="h-5 w-5" />;
             if (subType === "airtime") return <Smartphone className="h-5 w-5" />;
@@ -45,6 +47,7 @@ export function ReceiptCard({ transaction }: { transaction: ReceiptTx }) {
     };
 
     const getTitle = () => {
+        if (type === "cashback") return "Cashback Reward";
         if (type === "utility_payment") {
             const service = subType ? subType.charAt(0).toUpperCase() + subType.slice(1) : "Utility";
             return `${service}`;
