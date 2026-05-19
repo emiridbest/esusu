@@ -217,6 +217,36 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
 
 
 
+  /**
+   * Fire-and-forget: requests the backend to disburse Esusu's 10% G$ cashback
+   * and trigger G$ to match the other 10% (20% total). Shows a toast on success.
+   */
+  const triggerCashback = async (params: {
+    sourceTxHash: string;
+    userAddress: string;
+    paymentAmountGD: number;
+    utilityType: 'airtime' | 'data' | 'electricity' | 'cable';
+  }) => {
+    try {
+      const res = await fetch('/api/cashback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+      const data = await res.json();
+      if (res.ok && data.success && !data.alreadyProcessed) {
+        const { cashbackAmountGD } = data.cashback;
+        toast.success(
+          `🎉 You earned ${Number(cashbackAmountGD).toFixed(2)} G$ cashback!`,
+          { duration: 6000 }
+        );
+      }
+    } catch (err) {
+      // Non-critical — cashback failure should never block the user
+      console.error('[UtilityContext] Cashback trigger failed:', err);
+    }
+  };
+
   // Enhanced transaction handler for all utility types
   const handleTransaction = async ({ type, amount, token, recipient, metadata }: TransactionParams): Promise<TransactionResult> => {
 
@@ -393,6 +423,17 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
             break;
         }
         toast.success(successMessage);
+
+        // --- Cashback reward for G$ payments ---
+        if (token === 'G$' && tx.hash) {
+          triggerCashback({
+            sourceTxHash: tx.hash,
+            userAddress: address,
+            paymentAmountGD: actualTokenAmount,
+            utilityType: type as 'airtime' | 'data' | 'electricity' | 'cable',
+          });
+        }
+
         return { 
           success: true, 
           transactionHash: tx.hash, 
