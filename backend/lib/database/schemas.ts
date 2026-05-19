@@ -166,8 +166,8 @@ const GroupSchema = new Schema<IGroup>({
   name: { type: String, required: true },
   description: String,
   members: [{
-    user: { type: Schema.Types.Mixed, required: true }, // Can be ObjectId or wallet address string
-    userName: { type: String }, // Optional display name
+    user: { type: Schema.Types.Mixed, required: true }, 
+    userName: { type: String },
     joinedAt: { type: Date, default: Date.now },
     role: { type: String, enum: ['admin', 'member', 'creator'], default: 'member' },
     isActive: { type: Boolean, default: true }
@@ -337,6 +337,48 @@ export const Notification = models.Notification || model<INotification>('Notific
 export const Analytics = models.Analytics || model<IAnalytics>('Analytics', AnalyticsSchema);
 export const PaymentHash = models.PaymentHash || model<IPaymentHash>('PaymentHash', PaymentHashSchema);
 export const Invite = models.Invite || model<IInvite>('Invite', InviteSchema);
+
+// Cashback Schema — records every G$ cashback event (20% of G$ utility payment)
+export interface ICashback extends Document {
+  sourceTxHash: string;
+  userAddress: string;
+  paymentAmountGD: number;
+  cashbackAmountGD: number;
+  utilityType: 'airtime' | 'data' | 'electricity' | 'cable';
+  cashbackTxHash?: string;
+  status: 'pending' | 'sent' | 'failed';
+  errorMessage?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const CashbackSchema = new Schema<ICashback>({
+  sourceTxHash: { type: String, required: true, unique: true, index: true },
+  userAddress: { type: String, required: true, index: true },
+  paymentAmountGD: { type: Number, required: true },
+  cashbackAmountGD: { type: Number, required: true },
+  utilityType: {
+    type: String,
+    required: true,
+    enum: ['airtime', 'data', 'electricity', 'cable'],
+  },
+  cashbackTxHash: { type: String },
+  status: {
+    type: String,
+    required: true,
+    enum: ['pending', 'sent', 'failed'],
+    default: 'pending',
+    index: true,
+  },
+  errorMessage: { type: String },
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+  bufferCommands: false,
+});
+
+export const Cashback = models.Cashback || model<ICashback>('Cashback', CashbackSchema);
 
 // UBIClaim Schema - Track daily G$ UBI claims per wallet
 export interface IUBIClaim extends Document {
