@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models, Document, Types } from 'mongoose';
+import mongoose, { Schema, model, models, Model, Document, Types } from 'mongoose';
 
 // Ensure schemas do not buffer operations waiting for connection
 // This avoids 10s "buffering timed out" errors and surfaces connection issues early
@@ -378,7 +378,7 @@ const CashbackSchema = new Schema<ICashback>({
   bufferCommands: false,
 });
 
-export const Cashback = (models.Cashback || model<ICashback>('Cashback', CashbackSchema)) as ReturnType<typeof model<ICashback>>;
+export const Cashback = (models.Cashback || model<ICashback>('Cashback', CashbackSchema)) as Model<ICashback>;
 
 // UBIClaim Schema - Track daily G$ UBI claims per wallet
 export interface IUBIClaim extends Document {
