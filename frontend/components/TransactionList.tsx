@@ -71,6 +71,15 @@ const TOKEN_ADDRESSES: { [key: string]: { symbol: string; decimals: number } } =
     },
   };
 
+// Descriptive labels for known Esusu-related contract addresses
+const KNOWN_CONTRACTS: Record<string, string> = {
+  "0x7ade783f709bcd51a0fb28d00f0f1935dc4101f9": "Cashback",
+  "0x43d72ff17701b2da814620735c39c620ce0ea4a1": "Claim G$",
+  "0x800ab0e9b190af8308c66a8e600a2b3b043ffb69": "AI Gas",
+  "0xc88773154198e2f831bc1ecd1bb3b8f33493bbed": "Gas Sponsor",
+  "0x593fb76f8ce669360d1d3662548277d7b7adf373": "Pay",
+};
+
 const truncateAddress = (address: string, short = false): string => {
   if (!address) return "";
   return short
@@ -129,40 +138,56 @@ export default function TransactionList() {
           { signal }
         ).then(r => r.json());
 
-        if (Array.isArray(data.result)) {
-          const txs = data.result.map((tx: any, i: number) => {
-            let fn = "";
-            try {
-              const d = decodeFunctionData({
-                abi: stableTokenABI,
-                data: tx.input,
-              });
-              fn = d?.functionName || "Transfer";
-            } catch {
-              fn = tx.input === "0x" ? "Transfer" : "Contract";
-            }
+        const tokenData = await fetch(
+          `/api/celo/proxy?module=account&action=tokentx&address=${address}&startblock=${start.result}&endblock=${end.result}&page=${page}&offset=10&sort=desc`,
+          { signal }
+        ).then(r => r.json());
 
-            return {
-              args: {
-                from: tx.from,
-                to: tx.to,
-                value: tx.tokenValue || tx.value,
-                functionName: fn,
-              },
-              transactionHash: tx.hash,
-              timestamp: tx.timeStamp,
-              key: `${tx.hash}-${i}`,
-              status: tx.isError === "0",
-              tokenSymbol: tx.tokenName || "CELO",
-              tokenAddress: tx.to,
-            };
-          });
+        const mapTx = (tx: any, i: number, preferToken = false) => {
+          let fn = "";
+          try {
+            const d = decodeFunctionData({ abi: stableTokenABI, data: tx.input });
+            fn = d?.functionName || "Transfer";
+          } catch {
+            fn = tx.input === "0x" ? "Transfer" : "Contract";
+          }
+          return {
+            args: {
+              from: tx.from,
+              to: tx.to,
+              value: tx.value || tx.tokenValue || "0",
+              functionName: fn,
+            },
+            transactionHash: tx.hash,
+            timestamp: tx.timeStamp,
+            key: `${tx.hash}-${i}`,
+            status: tx.isError !== "1",
+            tokenSymbol: tx.tokenSymbol || tx.tokenName || "CELO",
+            tokenAddress: tx.contractAddress || tx.to,
+          };
+        };
 
-          setTransactions(prev => {
+        const nativeTxs: Transaction[] = Array.isArray(data.result)
+          ? data.result.map((tx: any, i: number) => mapTx(tx, i))
+          : [];
+
+        const tokenTxs: Transaction[] = Array.isArray(tokenData.result)
+          ? tokenData.result.map((tx: any, i: number) => mapTx(tx, i, true))
+          : [];
+
+        // Merge: prefer tokentx entries (richer token metadata) when same hash
+        const byHash = new Map<string, Transaction>();
+        for (const tx of nativeTxs) byHash.set(tx.transactionHash, tx);
+        for (const tx of tokenTxs) byHash.set(tx.transactionHash, tx); // overwrites with token data
+
+        const merged = Array.from(byHash.values()).sort(
+          (a, b) => parseInt(b.timestamp ?? "0") - parseInt(a.timestamp ?? "0")
+        );
+
+        setTransactions(prev => {
             const seen = new Set(prev.map(t => t.transactionHash));
-            return [...prev, ...txs.filter(t => !seen.has(t.transactionHash))];
+            return [...prev, ...merged.filter(t => !seen.has(t.transactionHash))];
           });
-        }
       } catch {
         //
       } finally {
@@ -229,6 +254,10 @@ export default function TransactionList() {
           filtered.map(tx => {
             const isSent = tx.args.from.toLowerCase() === address?.toLowerCase();
             const amount = formatValue(tx.args.value, tx.tokenSymbol);
+            const contractName =
+              KNOWN_CONTRACTS[tx.args.to?.toLowerCase()] ??
+              KNOWN_CONTRACTS[tx.args.from?.toLowerCase()];
+            const label = contractName ?? (isSent ? "Sent" : "Received");
 
             return (
               <div
@@ -246,7 +275,7 @@ export default function TransactionList() {
 
                   <div>
                     <div className="flex items-center gap-1 text-sm font-medium">
-                      {isSent ? "Sent" : "Received"}
+                      {label}
                       {tx.status ? (
                         <CheckCircleIcon className="h-4 w-4 text-gray-400" />
                       ) : (
