@@ -7,11 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { Zap, Banknote, Users, ReceiptText } from "lucide-react";
+import { Zap, Banknote, Users, ReceiptText, Gift } from "lucide-react";
 
 interface ReceiptTx {
   transactionHash: string;
-  type: "savings" | "withdrawal" | "utility_payment" | "group_contribution" | "group_payout";
+  type: "savings" | "withdrawal" | "utility_payment" | "group_contribution" | "group_payout" | "cashback";
   subType?: "airtime" | "data" | "electricity" | "cable" | "aave_deposit" | "aave_withdrawal";
   amount: number;
   token: string;
@@ -33,6 +33,7 @@ const statusColor = (status: ReceiptTx["status"]) => {
 };
 
 const typeIcon = (type: ReceiptTx["type"], subType?: ReceiptTx["subType"]) => {
+  if (type === "cashback") return <Gift className="h-4 w-4 text-primary" />;
   if (type === "utility_payment") return <Zap className="h-4 w-4 text-primary" />;
   if (type === "group_contribution" || type === "group_payout") return <Users className="h-4 w-4 text-primary" />;
   if (type === "savings" || subType?.startsWith("aave")) return <Banknote className="h-4 w-4 text-primary" />;
@@ -58,18 +59,31 @@ export default function ReceiptsMini() {
       }
       try {
         setLoading(true);
-        const res = await fetch(`/api/transactions?wallet=${walletAddress}&limit=8`, {
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        const json = await res.json();
+        const [txRes, cbRes] = await Promise.all([
+          fetch(`/api/transactions?wallet=${walletAddress}&limit=8`, {
+            cache: "no-store",
+            signal: controller.signal,
+          }),
+          fetch(`/api/cashback?wallet=${walletAddress}&limit=8`, {
+            cache: "no-store",
+            signal: controller.signal,
+          }),
+        ]);
         if (!active) return;
-        if (!res.ok || !json?.success) {
-          setError(json?.error || "Failed to load receipts");
+        const txJson = await txRes.json();
+        const cbJson = cbRes.ok ? await cbRes.json() : { transactions: [] };
+        if (!txRes.ok || !txJson?.success) {
+          setError(txJson?.error || "Failed to load receipts");
           setLoading(false);
           return;
         }
-        setItems(json.transactions || []);
+        const merged: ReceiptTx[] = [
+          ...(txJson.transactions || []),
+          ...(cbJson.transactions || []),
+        ].sort((a, b) =>
+          new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
+        );
+        setItems(merged);
         setLoading(false);
       } catch (e: any) {
         if (!active) return;
@@ -125,7 +139,11 @@ export default function ReceiptsMini() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
-                      {tx.subType ? tx.subType.replace("_", " ") : tx.type}
+                      {tx.type === "cashback"
+                        ? "Cashback Reward"
+                        : tx.subType
+                        ? tx.subType.replace("_", " ")
+                        : tx.type}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
                       {new Date(tx.createdAt || Date.now()).toLocaleString()}
