@@ -378,7 +378,7 @@ const CashbackSchema = new Schema<ICashback>({
   bufferCommands: false,
 });
 
-export const Cashback = models.Cashback || model<ICashback>('Cashback', CashbackSchema);
+export const Cashback = (models.Cashback || model<ICashback>('Cashback', CashbackSchema)) as ReturnType<typeof model<ICashback>>;
 
 // UBIClaim Schema - Track daily G$ UBI claims per wallet
 export interface IUBIClaim extends Document {
