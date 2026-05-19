@@ -10,7 +10,8 @@ import {
   IUser,
   ITransaction,
   Invite,
-  UBIClaim 
+  UBIClaim,
+  Cashback
 } from './schemas';
 import { FaceVerificationLog } from './faceVerificationLog';
 
@@ -57,7 +58,8 @@ export class DatabaseInitializer {
         this._ensureCollectionExists('thriftgroupmetadatas'),
         this._ensureCollectionExists('faceverificationlogs'),
         this._ensureCollectionExists('invites'),
-        this._ensureCollectionExists('ubiclaims')
+        this._ensureCollectionExists('ubiclaims'),
+        this._ensureCollectionExists('cashbacks')
       ]);
 
       // Step 3: Create indexes (parallel for performance)
@@ -72,6 +74,7 @@ export class DatabaseInitializer {
         this._createFaceVerificationLogIndexes(),
         this._createInviteIndexes(),
         this._createUBIClaimIndexes(),
+        this._createCashbackIndexes(),
       ]);
 
       // Step 4: Run database migrations
@@ -111,6 +114,20 @@ export class DatabaseInitializer {
       console.log('🔍 Invite indexes created');
     } catch (error) {
       console.warn('⚠️ Invite indexes may already exist:', (error as Error).message);
+    }
+  }
+
+  private static async _createCashbackIndexes(): Promise<void> {
+    try {
+      await Cashback.collection.createIndexes([
+        { key: { sourceTxHash: 1 }, unique: true, background: true },
+        { key: { userAddress: 1, createdAt: -1 }, background: true },
+        { key: { status: 1 }, background: true },
+        { key: { createdAt: -1 }, background: true }
+      ]);
+      console.log('🔍 Cashback indexes created');
+    } catch (error) {
+      console.warn('⚠️ Cashback indexes may already exist:', (error as Error).message);
     }
   }
 
@@ -378,7 +395,8 @@ export class DatabaseInitializer {
         Group.countDocuments().limit(1),
         Notification.countDocuments().limit(1),
         Analytics.countDocuments().limit(1),
-        PaymentHash.countDocuments().limit(1)
+        PaymentHash.countDocuments().limit(1),
+        Cashback.countDocuments().limit(1)
       ]);
       
       // Check if any critical collections failed
