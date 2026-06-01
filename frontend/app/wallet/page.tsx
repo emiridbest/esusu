@@ -321,7 +321,7 @@ export default function WalletPage() {
             {
               label: "Swap",
               icon: ArrowRightLeftIcon,
-              href: "https://app.mento.finance",
+              href: "https://app.mento.org/swap/celo",
             },
             {
               label: "Buy",
