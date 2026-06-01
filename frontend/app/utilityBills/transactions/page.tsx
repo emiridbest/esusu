@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 
 
 const ADMIN_WALLETS = [
-  "0x4d4cc2e0c5cbc9737a0dec28d7c2510e2bef5a0",
+  "0x4d4cc2e0c5cbc9737a0dec28d7c2510e2bef5a09",
   "0xb8c198e8f563096c9df0067e7e64a4da8c129d5a",
 ];
 
