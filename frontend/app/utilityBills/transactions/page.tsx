@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 
 
 const ADMIN_WALLETS = [
-  "0x4d4cC2E0c5cBC9737A0dEc28d7C2510E2BEF5A09",
+  "0x4d4cc2e0c5cbc9737a0dec28d7c2510e2bef5a0",
   "0xb8c198e8f563096c9df0067e7e64a4da8c129d5a",
 ];
 
@@ -61,13 +61,13 @@ interface UtilityTx {
 
 
 function truncate(s: string, head = 8, tail = 6) {
-  if (!s) return "â€”";
+  if (!s) return "-";
   if (s.length <= head + tail + 3) return s;
-  return `${s.slice(0, head)}â€¦${s.slice(-tail)}`;
+  return `${s.slice(0, head)}...${s.slice(-tail)}`;
 }
 
 function countryName(code?: string) {
-  if (!code) return "â€”";
+  if (!code) return "-";
   try {
     return new Intl.DisplayNames(["en"], { type: "region" }).of(code.toUpperCase()) ?? code.toUpperCase();
   } catch {
@@ -106,7 +106,7 @@ function CopyBtn({ value }: { value: string }) {
 
 
 function ShortCell({ value, head, tail }: { value?: string; head?: number; tail?: number }) {
-  if (!value) return <span className="text-gray-400">â€”</span>;
+  if (!value) return <span className="text-gray-400">-</span>;
   return (
     <span className="inline-flex items-center font-mono text-xs">
       <span title={value}>{truncate(value, head, tail)}</span>
@@ -218,7 +218,7 @@ export default function UtilityAdminPage() {
             Utility Transactions
           </h1>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-            Admin Â· All users Â· {loading ? "â€¦" : `${total} records`}
+            Admin &middot; All users &middot; {loading ? "..." : `${total} records`}
           </p>
         </div>
         <Button
@@ -239,7 +239,7 @@ export default function UtilityAdminPage() {
         <div className="relative flex-1 min-w-[180px] max-w-xs">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
           <Input
-            placeholder="Hash, phone, providerâ€¦"
+            placeholder="Hash, phone, provider..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { setSearch(searchInput); } }}
@@ -321,7 +321,7 @@ export default function UtilityAdminPage() {
 
                         {/* Date */}
                         <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600 dark:text-gray-300">
-                          {tx.createdAt ? format(new Date(tx.createdAt), "dd MMM yy, HH:mm") : "â€”"}
+                          {tx.createdAt ? format(new Date(tx.createdAt), "dd MMM yy, HH:mm") : "-"}
                         </td>
 
                         {/* Wallet */}
@@ -331,23 +331,23 @@ export default function UtilityAdminPage() {
 
                         {/* Service */}
                         <td className="px-4 py-3 capitalize text-gray-700 dark:text-gray-300">
-                          {tx.subType ?? tx.type ?? "â€”"}
+                          {tx.subType ?? tx.type ?? "-"}
                         </td>
 
                         {/* Provider */}
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">
-                          {tx.utilityDetails?.provider ?? "â€”"}
+                          {tx.utilityDetails?.provider ?? "-"}
                         </td>
 
                         {/* Recipient / phone */}
                         <td className="px-4 py-3">
                           {tx.utilityDetails?.recipient ? (
-                            <span className="inline-flex items-center font-mono text-xs">
+                            <span className="inline-flex items-center font-mono text-xs text-gray-800 dark:text-gray-200">
                               {tx.utilityDetails.recipient}
                               <CopyBtn value={tx.utilityDetails.recipient} />
                             </span>
                           ) : (
-                            <span className="text-gray-400">â€”</span>
+                            <span className="text-gray-400">-</span>
                           )}
                           {email && (
                             <p className="text-[10px] text-gray-400 mt-0.5">{email}</p>
