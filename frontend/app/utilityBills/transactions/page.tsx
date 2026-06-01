@@ -325,7 +325,7 @@ export default function UtilityAdminPage() {
                         </td>
 
                         {/* Wallet */}
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                           <ShortCell value={wallet} head={6} tail={4} />
                         </td>
 
@@ -374,7 +374,7 @@ export default function UtilityAdminPage() {
                         </td>
 
                         {/* Tx Hash */}
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                           <ShortCell value={tx.transactionHash} head={8} tail={6} />
                         </td>
 
