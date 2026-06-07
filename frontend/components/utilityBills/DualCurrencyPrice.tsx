@@ -167,23 +167,13 @@ export default function DualCurrencyPrice({
         transition={{ duration: 0.3 }}
         className="space-y-1"
       >
-        <div className="text-base font-medium dark:text-black/70">
+        <div className="text-base font-medium">
           {localDisplay}
         </div>
-        <div className="text-sm text-gray-600 dark:text-gray-400">
+        <div className="text-sm text-gray-600">
           ≈ {cryptoDisplay}
         </div>
 
-        {showTotal && (
-          <>
-            <div className="text-xs text-gray-500 pt-1">
-              Gas Fee: {gasFeeDisplay}
-            </div>
-            <div className="text-sm font-medium text-black/70 pt-1">
-              Total: {totalDisplay}
-            </div>
-          </>
-        )}
       </motion.div>
     </div>
   );
