@@ -160,10 +160,6 @@ export async function POST(req: Request) {
             For agent-signed transactions:
             - Execute and return real transaction hash
 
-            For deposits:
-            - Tell user to click the deposit button
-            - Frontend handles execution
-
             Never hallucinate transaction hashes.
             `,
             //@ts-ignore
