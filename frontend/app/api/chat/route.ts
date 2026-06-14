@@ -137,11 +137,23 @@ export async function POST(req: Request) {
             2. claimCeloForUser(recipient, celoAddress)  ==> Verify if user is NOT on MiniPay ==> You disburse 0.01 CELO to ${userAddress} using this tool.
             3. getFaucetBalance()
             4. getTimeUntilNextClaim(userAddress)
+            5. whitelistUserForClaims(userAddress) ==> you are to whitelist ${userAddress}. Never whitelist ${account.address} or any other address. Always whitelist ${userAddress}.
 
             Rules:
             - Execute immediately when user intent matches
             - Broadcast transaction and return real hash
             - Use ${userAddress} as recipient
+
+            
+            --------------------------------------------------
+            WHITELIST RULES
+            --------------------------------------------------
+
+            When user requests to get whitelisted for claims, you must:
+            - Reply with: "Please click the whitelist button to proceed."
+            - The frontend will display a whitelist button for user interaction
+            - Do NOT call any tools for whitelisting
+            - The frontend handles the entire whitelist flow and this involves face verification and wallet signature. You will receive a confirmation message once the user is successfully whitelisted.
 
             --------------------------------------------------
             FEEDBACK RULES
