@@ -741,13 +741,13 @@ export default function AirtimeForm() {
             />
 
             {selectedPrice > 0 && (
-              <Card className="bg-primary/5 border-primary/20 dark:bg-primary/10">
+              <Card className="bg-primary border-primary/20">
                 <CardContent className="pt-4">
                   <div className="flex flex-col space-y-1">
                     <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Payment Amount
                     </div>
-                    <div className="text-2xl font-bold text-primary">
+                    <div className="text-2xl font-bold text-black/80">
                       <DualCurrencyPrice
                         amount={selectedPrice}
                         countryCurrency={form.getValues().country}
