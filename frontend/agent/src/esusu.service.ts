@@ -312,6 +312,7 @@ export class EsusuFaucetService {
  * Add an address to the whitelist for AI claims on the Esusu faucet.
  * First checks GoodDollar contract to confirm user is whitelisted.
  * If not whitelisted on GoodDollar, transaction is aborted.
+ */
 
     @Tool({
         name: "whitelistUser",
@@ -397,6 +398,4 @@ export class EsusuFaucetService {
             Reason: ${error?.message ?? "Unknown error"}`;
         }
     }
- */
-
 }
