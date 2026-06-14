@@ -612,13 +612,13 @@ export default function ElectricityBillForm() {
             />
 
             {amount > 0 && amountValidation.isValid && TOKENS.some(token => token.id === selectedToken) && watchCountry && watchProvider && !isLoading ? (
-              <Card className="bg-primary/5 border-primary/20 dark:bg-primary/10">
+              <Card className="bg-primary border-primary/20 ">
                 <CardContent className="pt-4">
                   <div className="flex flex-col space-y-1">
                     <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Payment Amount
                     </div>
-                    <div className="text-2xl font-bold text-primary">
+                    <div className="text-2xl font-bold text-black/80">
                       <DualCurrencyPrice
                         amount={Number(watchAmount)}
                         stablecoin={selectedToken}
