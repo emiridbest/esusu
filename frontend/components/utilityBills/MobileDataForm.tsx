@@ -647,7 +647,7 @@ export default function MobileDataForm() {
             />
 
             {selectedPrice > 0 && (
-              <Card className="bg-primary border-primary/20">
+              <Card className="bg-primary dark:bg-primary-dark border-primary/20">
                 <CardContent className="pt-4">
                   <div className="flex flex-col space-y-1">
                     <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
