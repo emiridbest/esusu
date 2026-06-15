@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import { FeedbackForm } from "@/components/Agent/FeedbackForm";
+import { FaceVerification } from "@/components/Agent/faceVerification";
 import { v4 as uuidv4 } from "uuid";
 import type { Message } from "ai";
 
@@ -18,8 +19,8 @@ const CHAT_ID = uuidv4();
 
 export default function Chat() {
     const { address: walletAddress, isConnected } = useAccount();
-    const [showDepositForm, setShowDepositForm] = useState(false);
     const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+    const [showFaceVerification, setShowFaceVerification] = useState(false);
     const [waitingForFeedback, setWaitingForFeedback] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -42,13 +43,14 @@ export default function Chat() {
                 setWaitingForFeedback(true);
             }
 
-            const depositKeywords = [
-                "would you like to deposit",
-                "ready to deposit",
-                "proceed with deposit",
+            const faceVerificationKeywords = [
+                "please complete face verification",
+                "face verification required",
+                "Please click the face verification button to proceed",
+
             ];
-            if (depositKeywords.some(k => text.includes(k))) {
-                setShowDepositForm(true);
+            if (faceVerificationKeywords.some(k => text.includes(k))) {
+                setShowFaceVerification(true);
             }
         }
     });
@@ -114,8 +116,8 @@ export default function Chat() {
                                     key={message.id}
                                     message={message}
                                     isLast={i === messages.length - 1}
-                                    onShowDeposit={() => setShowDepositForm(true)}
                                     onShowFeedback={() => setShowFeedbackForm(true)}
+                                    onShowFaceVerification={() => setShowFaceVerification(true)}
                                     onReload={() => {}} // reload not directly available in new API
                                 />
                             ))}
@@ -160,6 +162,13 @@ export default function Chat() {
                     <FeedbackForm onSuccess={() => setShowFeedbackForm(false)} />
                 </Modal>
             )}
+
+            {/* Face Verification Modal */}
+            {showFaceVerification && (
+                <Modal title="🛡️ Face Verification" onClose={() => setShowFaceVerification(false)}>
+                    <FaceVerification onSuccess={() => setShowFaceVerification(false)} />
+                </Modal>
+            )}
         </div>
     );
 }
@@ -169,20 +178,20 @@ export default function Chat() {
 function MessageRenderer({
     message,
     isLast,
-    onShowDeposit,
     onShowFeedback,
+    onShowFaceVerification,
     onReload,
 }: {
     message: Message;
     isLast: boolean;
-    onShowDeposit: () => void;
     onShowFeedback: () => void;
+    onShowFaceVerification: () => void;
     onReload: () => void;
 }) {
     const isUser = message.role === "user";
     const text = message.content || "";
-    const hasDeposit = text.toLowerCase().includes("deposit");
     const hasFeedback = text.toLowerCase().includes("feedback") || text.toLowerCase().includes("rate");
+    const hasFaceVerification = text.toLowerCase().includes("face verification button");
 
     return (
         <div className={cn("px-4 md:px-8 max-w-3xl mx-auto", isUser ? "text-gray-900 dark:text-white" : "")}>
@@ -202,13 +211,13 @@ function MessageRenderer({
                     {/* Contextual action buttons */}
                     {!isUser && (
                         <div className="flex gap-2 mt-2 flex-wrap">
-                            {hasDeposit && (
+                            {hasFaceVerification && (
                                 <Button
                                     size="sm"
                                     className="h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
-                                    onClick={onShowDeposit}
+                                    onClick={onShowFaceVerification}
                                 >
-                                    Open Deposit Form
+                                    🛡️ Face Verification Button
                                 </Button>
                             )}
                             {hasFeedback && (
