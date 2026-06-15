@@ -44,9 +44,9 @@ export function WhitelistUser({ onSuccess }: WhitelistUserProps) {
     }
     return (
         <div className="flex flex-col items-center justify-center p-8 space-y-4 bg-white rounded-lg">
-            <h3 className="text-lg font-semibold">Whitelist User</h3>
+            <h3 className="text-lg font-semibold">Complete Face Verification</h3>
             <p className="text-sm text-gray-600 text-center">
-                Click the button below to verify your identity and get whitelisted for agent rewards.
+                Click the button below to verify your identity and complete the face verification process.
             </p>
 
             <button
@@ -54,7 +54,7 @@ export function WhitelistUser({ onSuccess }: WhitelistUserProps) {
                 disabled={!userAddress}
                 className="bg-black hover:bg-gray-800 disabled:bg-gray-300 text-white px-6 py-2 rounded w-full font-semibold"
             >
-                Whitelist User
+                Complete Verification
             </button>
         </div>
     );
