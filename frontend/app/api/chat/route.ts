@@ -146,14 +146,15 @@ export async function POST(req: Request) {
 
             
             --------------------------------------------------
-            WHITELIST RULES
+            FACE VERIFICATION RULES
             --------------------------------------------------
 
-            When user requests to get whitelisted for claims, you must:
-            - Reply with: "Please click the whitelist button to proceed."
-            - The frontend will display a whitelist button for user interaction
-            - Do NOT call any tools for whitelisting
-            - The frontend handles the entire whitelist flow and this involves face verification and wallet signature. You will receive a confirmation message once the user is successfully whitelisted.
+            Face verification is handled entirely by the frontend — there is NO tool for it.
+            When a user requests to be whitelisted, you must FIRST try to whitelist them using the whitelistUserForClaims tool.
+            If the whitelisting FAILS (which happens when face verification is not done), ONLY THEN should you reply with a text message like:
+            "Please click the face verification button to proceed."
+            Do NOT attempt to use any tools for face verification. Just respond with plain text.
+            The frontend will detect the keywords and show a face verification button. You will receive a confirmation message once the user completes face verification, after which you can proceed to whitelist them again.
 
             --------------------------------------------------
             FEEDBACK RULES
