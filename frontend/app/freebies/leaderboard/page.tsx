@@ -59,11 +59,11 @@ export default function LeaderboardPage() {
     const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
     const [copiedMulti, setCopiedMulti] = useState(false);
 
-    // Compose multisend string: first 3 get 5000, rest get 3000
+    // Compose multisend string: first 3 get 3000, rest get 1000
     const getMultiSendString = () => {
         if (!leaderboard.length) return '';
         return leaderboard
-            .map((entry, idx) => `${entry.walletAddress},${idx < 3 ? 5000 : 3000}`)
+            .map((entry, idx) => `${entry.walletAddress},${idx < 3 ? 3000 : 1000}`)
             .join('\n');
     };
 
