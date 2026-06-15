@@ -4,11 +4,11 @@ import { useIdentitySDK } from "@goodsdks/react-hooks"
 import { toast } from 'sonner';
 import { useAccount } from "wagmi";
 
-interface WhitelistUserProps {
+interface FaceVerificationProps {
     onSuccess?: () => void;
 }
 
-export function WhitelistUser({ onSuccess }: WhitelistUserProps) {
+export function FaceVerification ({ onSuccess }: FaceVerificationProps) {
     const { sdk: identitySDK } = useIdentitySDK()
     const { address: userAddress } = useAccount()
 
