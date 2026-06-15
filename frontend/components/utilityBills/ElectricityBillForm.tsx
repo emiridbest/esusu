@@ -612,7 +612,7 @@ export default function ElectricityBillForm() {
             />
 
             {amount > 0 && amountValidation.isValid && TOKENS.some(token => token.id === selectedToken) && watchCountry && watchProvider && !isLoading ? (
-              <Card className="bg-primary border-primary/20 ">
+              <Card className="bg-primary dark:bg-primary-dark border-primary/20">
                 <CardContent className="pt-4">
                   <div className="flex flex-col space-y-1">
                     <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
