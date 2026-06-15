@@ -217,7 +217,7 @@ function MessageRenderer({
                                     className="h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
                                     onClick={onShowFaceVerification}
                                 >
-                                    🛡️ Face Verification Button
+                                    🛡️ Face Verification
                                 </Button>
                             )}
                             {hasFeedback && (
