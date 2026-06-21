@@ -596,7 +596,7 @@ Critical endpoints like `frontend/app/api/topup/route.ts` (airtime/data) and `fr
 To access the app via the Celo MiniPay wallet:
 1. Open the MiniPay app
 2. Navigate to the `site tester` feature
-3. Enter `http://esusu-one.vercel.app`
+3. Enter `http://esusuafrica.com`
 
 ## Screenshots
 
