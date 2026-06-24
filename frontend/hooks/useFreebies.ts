@@ -473,7 +473,7 @@ export const useFreebiesLogic = () => {
                         expectedAmount: tx.convertedAmount,
                         paymentToken: tx.paymentToken
                     },
-                    100 // Fixed amount for airtime
+                    50 // Fixed amount for airtime
                 );
 
                 if (!topUpResult.success) {
