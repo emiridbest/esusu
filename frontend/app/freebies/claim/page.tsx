@@ -197,7 +197,7 @@ export default function ClaimPage() {
                                                             : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
                                                             }`}
                                                     >
-                                                        <div className={`font-semibold text-sm ${hookServiceType === 'airtime' ? 'text-black/90' : 'text-black dark:text-white'}`}> Airtime (₦100)</div>
+                                                        <div className={`font-semibold text-sm ${hookServiceType === 'airtime' ? 'text-black/90' : 'text-black dark:text-white'}`}> Airtime (₦50)</div>
                                                     </button>
                                                 </div>
                                             </div>
