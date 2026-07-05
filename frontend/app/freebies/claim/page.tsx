@@ -125,25 +125,22 @@ export default function ClaimPage() {
                                         </label>
                                     </div>
 
-                                    <div className="flex items-center space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all"
-                                        style={{
-                                            borderColor: claimMethod === 'exchange' ? '#facc15' : '#e5e7eb',
-                                            backgroundColor: claimMethod === 'exchange' ? '#fffbeb' : 'transparent'
-                                        }}
-                                        onClick={() => setClaimMethod('exchange')}
+                                    {/* Exchange method temporarily disabled */}
+                                    <div className="flex items-center space-x-3 p-3 rounded-lg border-2 opacity-40 cursor-not-allowed transition-all"
+                                        style={{ borderColor: '#e5e7eb', backgroundColor: 'transparent' }}
                                     >
                                         <input
                                             type="radio"
                                             id="exchange"
                                             name="claimMethod"
                                             value="exchange"
-                                            checked={claimMethod === 'exchange'}
-                                            onChange={() => setClaimMethod('exchange')}
-                                            className="w-4 h-4 cursor-pointer"
+                                            checked={false}
+                                            disabled
+                                            className="w-4 h-4 cursor-not-allowed"
                                         />
-                                        <label htmlFor="exchange" className="flex-1 cursor-pointer">
-                                            <div className={`font-semibold text-sm ${claimMethod === 'exchange' ? 'text-black/90' : 'text-black dark:text-white'}`}>2. Exchange G$ for data directly</div>
-                                            <div className={`text-xs ${claimMethod === 'exchange' ? 'text-black/80' : 'text-black/60 dark:text-white/60'}`}>Exchange G$ for a data bundle sent to your phone</div>
+                                        <label htmlFor="exchange" className="flex-1 cursor-not-allowed">
+                                            <div className="font-semibold text-sm text-black dark:text-white">2. Exchange G$ for data directly <span className="text-xs font-normal text-gray-400">(coming soon)</span></div>
+                                            <div className="text-xs text-black/60 dark:text-white/60">Exchange G$ for a data bundle sent to your phone</div>
                                         </label>
                                     </div>
                                 </div>
@@ -316,23 +313,10 @@ export default function ClaimPage() {
                         disabled={
                             !isWhitelisted ||
                             !canClaimToday ||
-                            (claimMethod === 'claim'
-                                ? (!canClaim || isClaiming || isProcessing)
-                                : (
-                                    !canClaim ||
-                                    isClaiming ||
-                                    isProcessing ||
-                                    (hookServiceType === 'data' && !selectedPlan) ||
-                                    !form.watch("phoneNumber") ||
-                                    form.watch("phoneNumber").length < 10
-                                ))
+                            (!canClaim || isClaiming || isProcessing)
                         }
                         onClick={() => {
-                            if (claimMethod === 'claim') {
-                                handleClaim();
-                            } else {
-                                form.handleSubmit(onSubmit)();
-                            }
+                            handleClaim();
                         }}
                     >
                         {!canClaimToday ? (
@@ -342,14 +326,12 @@ export default function ClaimPage() {
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 Claiming...
                             </>
-                        ) : claimMethod === 'claim' ? (
+                        ) : (
                             (() => {
                                 const raw = ethers.formatUnits(entitlement ?? '0');
                                 const formatted = Number(raw).toFixed(2);
                                 return `Claim ${formatted && formatted !== '0.00' ? `${formatted} G$` : 'G$'} Now`;
                             })()
-                        ) : (
-                            hookServiceType === 'airtime' ? 'Exchange for Airtime' : 'Exchange for Data Bundle'
                         )}
                     </Button>
                 </CardFooter>
