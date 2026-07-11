@@ -21,7 +21,7 @@ import {
 
 const BalanceCard: React.FC = () => {
   const {
-    cusdBalance,
+    usdmBalance,
     usdcBalance,
     usdtBalance,
     selectedToken,
@@ -71,21 +71,21 @@ const BalanceCard: React.FC = () => {
             <>
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">CUSD Balance</div>
+                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">USDM Balance</div>
                   <Badge variant="outline" className="text-xs">Stablecoin</Badge>
                 </div>
                 <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/50 rounded-md p-3">
                   <div className="flex items-center">
                     <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mr-2">
-                      {TOKENS['CUSD']?.logoUrl ? (
-                        <img src={TOKENS['CUSD'].logoUrl} alt="CUSD" className="w-5 h-5" />
+                      {TOKENS['USDM']?.logoUrl ? (
+                        <img src={TOKENS['USDM'].logoUrl} alt="USDM" className="w-5 h-5" />
                       ) : (
                         <CoinsIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                       )}
                     </div>
-                    <span className="font-medium">CUSD</span>
+                    <span className="font-medium">USDM</span>
                   </div>
-                  <div className="text-xl font-bold">{cusdBalance ? formatBalance(formatUnits(cusdBalance || '0', 18)) : '0.00'}</div>
+                  <div className="text-xl font-bold">{usdmBalance ? formatBalance(formatUnits(usdmBalance || '0', 18)) : '0.00'}</div>
                 </div>
               </div>
 
@@ -152,7 +152,7 @@ const BalanceCard: React.FC = () => {
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {['CUSD', 'USDC', /*'USDT'*/].map((tokenSymbol) => (
+                {['USDM', 'USDC', /*'USDT'*/].map((tokenSymbol) => (
                   <SelectItem key={tokenSymbol} value={tokenSymbol}>
                     <div className="flex items-center gap-2">
                       {TOKENS[tokenSymbol]?.logoUrl && (
