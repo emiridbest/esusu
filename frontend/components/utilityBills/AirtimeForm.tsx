@@ -374,7 +374,8 @@ export default function AirtimeForm() {
               // SECURITY: Payment validation fields
               transactionHash: paymentResult.transactionHash,
               expectedAmount: paymentResult.convertedAmount,
-              paymentToken: paymentResult.paymentToken
+              paymentToken: paymentResult.paymentToken,
+              senderAddress: paymentResult.senderAddress,
             }),
           });
 

@@ -62,6 +62,7 @@ type TransactionResult = {
   transactionHash?: string;
   convertedAmount?: string;
   paymentToken?: string;
+  senderAddress?: string;
 };
 
 type UtilityProviderProps = {
@@ -443,7 +444,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           // Use formatUnits of the exact on-chain wei amount so the backend
           // parseUnits call always produces the same bigint (no float drift).
           convertedAmount: formatUnits(paymentAmount, decimals),
-          paymentToken: token 
+          paymentToken: token,
+          senderAddress: address,
         };
       } else {
         toast.error('Ethereum provider not found. Please install a Web3 wallet.');

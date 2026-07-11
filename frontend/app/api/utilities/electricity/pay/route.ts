@@ -214,7 +214,8 @@ export async function POST(request: NextRequest) {
             amount, 
             transactionHash, 
             expectedAmount, 
-            paymentToken 
+            paymentToken,
+            senderAddress,
         } = body;
 
         // Validate required fields
@@ -259,10 +260,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Extract wallet address from transaction
-        const provider = new ethers.JsonRpcProvider(CELO_RPC_URL);
-        const tx = await provider.getTransaction(transactionHash);
-        const walletAddress = tx?.from;
+        // Use senderAddress from request body; fall back to fetching tx.from if absent.
+        let walletAddress: string | undefined = senderAddress;
+        if (!walletAddress) {
+            try {
+                const provider = new ethers.JsonRpcProvider(CELO_RPC_URL);
+                const tx = await provider.getTransaction(transactionHash);
+                walletAddress = tx?.from;
+            } catch { /* ignore – will fail at the guard below */ }
+        }
 
         if (!walletAddress) {
             return NextResponse.json(

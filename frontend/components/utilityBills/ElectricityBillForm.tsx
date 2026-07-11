@@ -339,7 +339,8 @@ export default function ElectricityBillForm() {
           // SECURITY: Payment validation fields
           transactionHash: paymentResult.transactionHash,
           expectedAmount: paymentResult.convertedAmount,
-          paymentToken: paymentResult.paymentToken
+          paymentToken: paymentResult.paymentToken,
+          senderAddress: paymentResult.senderAddress,
         };
         console.log('Sending to backend:', backendRequestBody);
         const backendResponse = await fetch('/api/utilities/electricity/pay', {

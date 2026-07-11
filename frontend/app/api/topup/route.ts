@@ -392,6 +392,7 @@ export async function POST(request: NextRequest) {
       transactionHash,
       expectedAmount,
       paymentToken,
+      senderAddress,
       serviceType,
       type
     } = body;
@@ -471,21 +472,19 @@ export async function POST(request: NextRequest) {
 
     console.log('Payment validated successfully, processing top-up...');
 
-    // Extract wallet address from transaction
-    let provider;
-    let tx;
-    try {
-      provider = new ethers.JsonRpcProvider(CELO_RPC_URL);
-      tx = await provider.getTransaction(transactionHash);
-    } catch (rpcError: any) {
-      console.error('RPC error fetching transaction:', rpcError);
-      return NextResponse.json(
-        { success: false, error: `Failed to fetch transaction from blockchain: ${rpcError?.message || 'RPC error'}` },
-        { status: 503 }
-      );
+    // Use senderAddress from request body (provided by the frontend which has the
+    // connected wallet address). Fall back to fetching tx.from if not supplied.
+    if (senderAddress) {
+      walletAddress = senderAddress;
+    } else {
+      try {
+        const provider = new ethers.JsonRpcProvider(CELO_RPC_URL);
+        const tx = await provider.getTransaction(transactionHash);
+        walletAddress = tx?.from;
+      } catch (rpcError: any) {
+        console.error('RPC error fetching transaction:', rpcError);
+      }
     }
-
-    walletAddress = tx?.from;
 
     if (!walletAddress) {
       return NextResponse.json(
