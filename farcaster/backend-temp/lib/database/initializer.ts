@@ -258,7 +258,7 @@ export class DatabaseInitializer {
       type: 'utility_payment',
       subType: 'airtime',
       amount: 5.0,
-      token: 'cUSD',
+      token: 'USDm',
       status: 'completed',
       blockchainStatus: {
         confirmed: true,
@@ -279,14 +279,14 @@ export class DatabaseInitializer {
       type: 'savings',
       subType: 'aave_deposit',
       amount: 50.0,
-      token: 'cUSD',
+      token: 'USDm',
       status: 'completed',
       blockchainStatus: {
         confirmed: true,
         confirmations: 10
       },
       aaveDetails: {
-        underlyingAsset: 'cUSD',
+        underlyingAsset: 'USDm',
         apy: 4.2
       }
     });
