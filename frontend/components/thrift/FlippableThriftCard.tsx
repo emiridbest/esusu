@@ -58,7 +58,7 @@ export function FlippableThriftCard({ group, currentUserAddress, isFlipped, onSh
                             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
                             <div className="absolute bottom-3 left-3">
                                 <Badge className="bg-primary/90 text-primary-foreground hover:bg-primary font-bold tracking-wide backdrop-blur-md shadow-lg border-0">
-                                    {parseFloat(group.depositAmount)} {group.tokenSymbol || 'cUSD'}
+                                    {parseFloat(group.depositAmount)} {group.tokenSymbol || 'USDm'}
                                 </Badge>
                             </div>
                         </div>
@@ -69,7 +69,7 @@ export function FlippableThriftCard({ group, currentUserAddress, isFlipped, onSh
                             <div className="space-y-1 w-full">
                                 {!group.meta?.coverImageUrl && (
                                     <Badge variant="outline" className="mb-2 border-primary/30 text-primary bg-primary/5 dark:bg-primary/10">
-                                        {parseFloat(group.depositAmount)} {group.tokenSymbol || 'cUSD'}
+                                        {parseFloat(group.depositAmount)} {group.tokenSymbol || 'USDm'}
                                     </Badge>
                                 )}
                                 <CardTitle className="text-lg font-bold leading-tight line-clamp-1 text-foreground tracking-tight group-hover/card:text-primary transition-colors duration-300">
