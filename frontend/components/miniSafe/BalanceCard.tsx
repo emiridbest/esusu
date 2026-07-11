@@ -23,7 +23,7 @@ import {
 
 const BalanceCard: React.FC = () => {
   const {
-    cusdBalance,
+    usdmBalance,
     usdcBalance,
     usdtBalance,
     selectedToken,
@@ -88,8 +88,8 @@ const BalanceCard: React.FC = () => {
               </div>
               <div className="bg-transparent text-3xl font-bold flex items-baseline gap-1">
                 {/* Simplified total logic for display - in real app summarize all */}
-                {cusdBalance ? formatBalance(formatUnits(cusdBalance || '0', 18)) : '0.00'}
-                <span className="text-sm font-normal text-muted-foreground">cUSD</span>
+                {usdmBalance ? formatBalance(formatUnits(usdmBalance || '0', 18)) : '0.00'}
+                <span className="text-sm font-normal text-muted-foreground">USDm</span>
               </div>
             </div>
 
@@ -139,7 +139,7 @@ const BalanceCard: React.FC = () => {
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {['CUSD', 'USDC', /*'USDT'*/].map((tokenSymbol) => (
+              {['USDM', 'USDC', /*'USDT'*/].map((tokenSymbol) => (
                 <SelectItem key={tokenSymbol} value={tokenSymbol}>
                   <div className="flex items-center gap-2">
                     {TOKENS[tokenSymbol]?.logoUrl && (
