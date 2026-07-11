@@ -89,8 +89,8 @@ export default function DualCurrencyPrice({
         // Only call convertCurrency once per update
         let usdAmount = await convertCurrency(parsedAmount.toString(), countryCurrency);
 
-        // Stablecoins (cUSD, USDC, USDT) should always be 1:1 USD
-        const stablecoins = ['CUSD', 'cUSD', 'USDC', 'USDT'];
+        // Stablecoins (USDm, USDC, USDT) should always be 1:1 USD
+        const stablecoins = ['USDM', 'USDm', 'USDC', 'USDT'];
         if (stablecoin === 'G$') {
           // GoodDollar: USD to G$ using fixed price
           const gDollarPrice = 0.0001;
