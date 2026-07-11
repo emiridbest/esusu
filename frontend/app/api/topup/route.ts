@@ -334,8 +334,9 @@ async function validatePayment(validation: PaymentValidation): Promise<{ isValid
         decimals = TOKEN_DECIMALS[validation.paymentToken as keyof typeof TOKEN_DECIMALS] ?? 18;
       }
       const expectedAmountWei = ethers.parseUnits(validation.expectedAmount, decimals);
-
-      if (paymentAmount < expectedAmountWei) {
+      // Allow 0.5% tolerance to account for floating-point rounding in conversion
+      const tolerance = expectedAmountWei / 200n;
+      if (paymentAmount + tolerance < expectedAmountWei) {
         return { isValid: false, error: 'Insufficient payment amount' };
       }
 

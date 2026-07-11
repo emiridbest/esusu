@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { parseUnits, encodeFunctionData, parseAbi } from "viem";
+import { parseUnits, encodeFunctionData, parseAbi, formatUnits } from "viem";
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { CountryData } from '@/utils/countryData';
 import { celo } from 'wagmi/chains';
@@ -440,7 +440,9 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         return { 
           success: true, 
           transactionHash: tx.hash, 
-          convertedAmount: actualTokenAmount.toString(),
+          // Use formatUnits of the exact on-chain wei amount so the backend
+          // parseUnits call always produces the same bigint (no float drift).
+          convertedAmount: formatUnits(paymentAmount, decimals),
           paymentToken: token 
         };
       } else {
