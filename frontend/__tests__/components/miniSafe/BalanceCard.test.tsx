@@ -6,10 +6,10 @@ import BalanceCard from '@/components/miniSafe/BalanceCard';
 // Mock the MiniSafeContext
 const mockMiniSafeContext = {
   celoBalance: '10.5',
-  cusdBalance: '100.75',
+  usdmBalance: '100.75',
   goodDollarBalance: '50.25',
   tokenBalance: '20',
-  selectedToken: 'cUSD',
+  selectedToken: 'USDm',
   handleTokenChange: jest.fn(),
   isLoading: false,
   getBalance: jest.fn(),
@@ -50,18 +50,18 @@ describe('BalanceCard Component', () => {
     // Check if component renders with appropriate content
     expect(screen.getByText('My Savings')).toBeInTheDocument();
     expect(screen.getByText('CELO Balance')).toBeInTheDocument();
-    expect(screen.getByText('cUSD Balance')).toBeInTheDocument();
+    expect(screen.getByText('USDm Balance')).toBeInTheDocument();
     expect(screen.getByText('G$ Balance')).toBeInTheDocument();
     expect(screen.getByText('EST Tokens')).toBeInTheDocument();
     
     // Check if balances are displayed correctly
     expect(screen.getByText('10.50')).toBeInTheDocument(); // CELO balance
-    expect(screen.getByText('100.75')).toBeInTheDocument(); // cUSD balance
+    expect(screen.getByText('100.75')).toBeInTheDocument(); // USDm balance
     expect(screen.getByText('50.25')).toBeInTheDocument(); // G$ balance
     expect(screen.getByText('20')).toBeInTheDocument(); // EST tokens
   });
 
-  test('displays interest rate message when cusdBalance is greater than 0', () => {
+  test('displays interest rate message when usdmBalance is greater than 0', () => {
     render(<BalanceCard />);
     
     expect(screen.getByText(/Your assets are earning approximately 5% APY in EST tokens/)).toBeInTheDocument();
