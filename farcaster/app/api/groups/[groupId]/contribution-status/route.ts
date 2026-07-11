@@ -29,7 +29,7 @@ export async function GET(
     return Response.json({
       isDue: false,
       currentRound: 0,
-      contributionAmount: 'cUSD',
+      contributionAmount: 'USDm',
       nextPayoutDate: null,
       message: 'Contribution status check not yet implemented - requires backend database connection'
     });
