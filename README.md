@@ -81,7 +81,7 @@ Esusu is a decentralised application (DApp) built on the Celo Mainnet that moder
 
 ### 3. AI-Powered Chat Assistant
 - Intelligent conversational interface for performing on-chain transactions
-- Supports sending CELO, cUSD, and other tokens
+- Supports sending CELO, USDm, and other tokens
 - Implements dollar-cost averaging using Balmy protocol
 - Provides on-chain advice based on user data
 
@@ -359,7 +359,7 @@ npm run start
 - Updated dependency versions (viem, twilio, mongoose, etc.):
   - Ensures compatibility with latest APIs and fixes known type issues.
 - Optimized payment logic and token balance checks:
-  - All supported tokens (CUSD, USDC, USDT, CELO, G$) use correct decimals and multipliers for accurate payments.
+  - All supported tokens (USDM, USDC, USDT, CELO, G$) use correct decimals and multipliers for accurate payments.
 - Refactored UI components for consistency and mobile experience:
   - Unified form layouts, improved color contrast, and standardized feedback across all utility flows.
 - Fixed race conditions and edge cases in form validation and submission:
@@ -387,7 +387,7 @@ npm run start
   - Retry logic and error handling for backend currency conversion API (Reloadly) to improve reliability.
 - Codebase refactoring:
   - Centralized step status updates and improved context/form logic for instant UI updates and robust state management.
-- Refactored frontend currency conversion logic for utility payments (CELO, G$, cUSD, USDC, USDT)
+- Refactored frontend currency conversion logic for utility payments (CELO, G$, USDm, USDC, USDT)
 - Fixed DualCurrencyPrice to use correct token price logic (stablecoins 1:1 USD, CELO/G$ via CoinGecko)
 - Improved transaction feedback and error handling in ElectricityBillForm
 - Backend  `/api/utilities/electricity/pay` endpoints under review for Reloadly authentication issues
@@ -407,10 +407,10 @@ npm run start
   - Updated UserCampaigns table to display real payment data from blockchain instead of hardcoded values
   - Enhanced payment date calculations based on group start time and contribution intervals
 - **Token Configuration Enhancement**: 
-  - Created comprehensive token configuration system with support for CELO, cUSD, USDC, USDT, and G$
+  - Created comprehensive token configuration system with support for CELO, USDm, USDC, USDT, and G$
   - Updated thrift group creation to allow token selection from predefined list
   - Added date picker for thrift group start date selection
-  - Fixed currency display to show correct token symbols instead of defaulting to cUSD
+  - Fixed currency display to show correct token symbols instead of defaulting to USDm
 - **UI Visibility Fixes**:
   - Fixed "About Us" navigation tab visibility in both light and dark modes
   - Resolved "Clear Filters" button visibility issues with proper dark mode styling
@@ -513,7 +513,7 @@ npm run start
 
 Critical endpoints like `frontend/app/api/topup/route.ts` (airtime/data) and `frontend/app/api/utilities/electricity/pay/route.ts` enforce on‑chain payment validation before calling providers:
 - Decode the ERC20 `transfer(to, amount)` from the provided `transactionHash`.
-- Verify the token contract matches the allowed list (cUSD, USDC, USDT on Celo).
+- Verify the token contract matches the allowed list (USDm, USDC, USDT on Celo).
 - Require at least 1 confirmation and a max transaction age window (10 minutes) to limit replay.
 - Derive token decimals dynamically with fallback to ensure amount checks are accurate.
 - Enforce recipient equals `RECIPIENT_WALLET` and that `amount >= expectedAmount`.
@@ -583,7 +583,7 @@ Note: Frontend API routes import backend services thanks to `externalDir: true`.
 
 Critical endpoints like `frontend/app/api/topup/route.ts` (airtime/data) and `frontend/app/api/utilities/electricity/pay/route.ts` enforce on‑chain payment validation before calling providers:
 - Decode the ERC20 `transfer(to, amount)` from the provided `transactionHash`.
-- Verify the token contract matches the allowed list (cUSD, USDC, USDT on Celo).
+- Verify the token contract matches the allowed list (USDm, USDC, USDT on Celo).
 - Require at least 1 confirmation and a max transaction age window (10 minutes) to limit replay.
 - Derive token decimals dynamically with fallback to ensure amount checks are accurate.
 - Enforce recipient equals `RECIPIENT_WALLET` and that `amount >= expectedAmount`.
