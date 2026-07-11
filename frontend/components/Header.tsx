@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useContext } from "react";
 import { ethers } from "ethers";
-import { useWeb3AuthConnect, useWeb3AuthDisconnect, useWalletUI, useSwap, useCheckout } from "@web3auth/modal/react";
+import { useWeb3AuthConnect, useWeb3AuthDisconnect } from "@web3auth/modal/react";
 import { useAccount } from "wagmi";
 import { contractAddress, abi } from "../utils/abi";
 import { useRouter, usePathname } from "next/navigation";
@@ -81,9 +81,6 @@ export default function Header() {
   const { connect, loading: isConnecting } = useWeb3AuthConnect();
   const { disconnect, loading: isDisconnecting } = useWeb3AuthDisconnect();
   const { address: walletAddress, isConnected } = useAccount();
-  const { showWalletUI } = useWalletUI();
-  const { showSwap } = useSwap();
-  const { showCheckout } = useCheckout();
   const router = useRouter();
   const pathname = usePathname();
   const { darkMode } = useContext(ThemeContext);
