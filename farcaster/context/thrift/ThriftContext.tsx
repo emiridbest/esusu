@@ -99,7 +99,7 @@ export interface ThriftContextType {
 
 // Celo token addresses
 const CELO_TOKEN_ADDRESS = TOKENS.CELO.address;
-const CUSD_TOKEN_ADDRESS = TOKENS.CUSD.address;
+const USDM_TOKEN_ADDRESS = TOKENS.USDM.address;
 
 const ThriftContext = createContext<ThriftContextType | undefined>(undefined);
 
@@ -192,10 +192,10 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             return;
           }
 
-          // Preferred token: env override -> cUSD -> first supported
+          // Preferred token: env override -> USDm -> first supported
           const preferredEnv = (process.env.NEXT_PUBLIC_THRIFT_TOKEN_ADDRESS || '').toLowerCase();
           finalTokenAddress = (supportedTokens.find(a => a.toLowerCase() === preferredEnv)
-            || supportedTokens.find(a => a.toLowerCase() === CUSD_TOKEN_ADDRESS.toLowerCase())
+            || supportedTokens.find(a => a.toLowerCase() === USDM_TOKEN_ADDRESS.toLowerCase())
             || supportedTokens[0]) as string;
         } catch (err) {
           console.error('Error fetching supported tokens:', err);
@@ -1579,7 +1579,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           // Try to get maxMembers and token info from thriftGroups mapping
           let maxMembers = members?.length ?? 0;
           let tokenAddress = '';
-          let tokenSymbol = 'cUSD'; // Default fallback
+          let tokenSymbol = 'USDm'; // Default fallback
           let tokenDecimals = 18; // Default fallback
 
           try {
