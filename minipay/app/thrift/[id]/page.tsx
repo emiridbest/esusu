@@ -682,7 +682,7 @@ export default function CampaignDetailsPage() {
                   transition={{ duration: 0.5, delay: 0.4 }}
                 >
                   <Badge variant="secondary" className="px-3 py-1 text-sm bg-primary/10 text-primary border-primary/20">
-                    {parseFloat(campaign.depositAmount)} {campaign.tokenSymbol || 'cUSD'} / month
+                    {parseFloat(campaign.depositAmount)} {campaign.tokenSymbol || 'USDm'} / month
                   </Badge>
                 </motion.div>
               </motion.div>
@@ -751,7 +751,7 @@ export default function CampaignDetailsPage() {
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <p className="text-2xl font-bold text-primary">{campaign.depositAmount} {campaign.tokenSymbol || 'cUSD'}</p>
+                            <p className="text-2xl font-bold text-primary">{campaign.depositAmount} {campaign.tokenSymbol || 'USDm'}</p>
                           </CardContent>
                         </Card>
                       </motion.div>
@@ -929,7 +929,7 @@ export default function CampaignDetailsPage() {
                         </CardHeader>
                         <CardContent>
                           <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-                            <li>Each member contributes <strong>{campaign.depositAmount} {campaign.tokenSymbol || 'cUSD'}</strong> monthly</li>
+                            <li>Each member contributes <strong>{campaign.depositAmount} {campaign.tokenSymbol || 'USDm'}</strong> monthly</li>
                             <li>The total pool is distributed to one member each month</li>
                             <li>Order is determined when you join the group</li>
                             <li>Everyone gets a turn to receive the full pool amount</li>
@@ -1413,7 +1413,7 @@ export default function CampaignDetailsPage() {
           <div className="py-4">
             <p className="mb-4">You are requesting to join: <strong>{campaign.name}</strong></p>
             <p className="text-sm text-gray-500 mb-6">
-              Monthly contribution: {campaign.depositAmount} {campaign.tokenSymbol || 'cUSD'}
+              Monthly contribution: {campaign.depositAmount} {campaign.tokenSymbol || 'USDm'}
             </p>
 
             {!joinStatus.canJoin && joinStatus.reason && (
@@ -1516,7 +1516,7 @@ export default function CampaignDetailsPage() {
               You are about to withdraw the full pool amount:
             </p>
             <p className="text-2xl font-bold mb-6">
-              {parseFloat(campaign.depositAmount) * 5} {campaign.tokenSymbol || 'cUSD'}
+              {parseFloat(campaign.depositAmount) * 5} {campaign.tokenSymbol || 'USDm'}
             </p>
 
             <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800">
