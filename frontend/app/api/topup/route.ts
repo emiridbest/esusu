@@ -40,6 +40,33 @@ const PAYMENT_VAULT = '0x593fb76F8ce669360D1D3662548277D7B7AdF373';
 const MIN_CONFIRMATIONS = 1;
 const MAX_TRANSACTION_AGE_MINUTES = 10;
 
+// Ordered list of Celo RPC endpoints – tried in sequence on failure
+const CELO_RPC_FALLBACKS = [
+  CELO_RPC_URL,
+  'https://forno.celo.org',
+  'https://celo-json-rpc.stakely.io',
+  'https://rpc.ankr.com/celo',
+].filter((v, i, a) => a.indexOf(v) === i); // deduplicate
+
+/** Returns the first provider that can successfully fetch the transaction. */
+async function getProviderForTx(hash: string): Promise<{ provider: ethers.JsonRpcProvider; tx: ethers.TransactionResponse }> {
+  const errors: string[] = [];
+  for (const url of CELO_RPC_FALLBACKS) {
+    try {
+      const p = new ethers.JsonRpcProvider(url);
+      const tx = await Promise.race([
+        p.getTransaction(hash),
+        new Promise<null>((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000)),
+      ]) as ethers.TransactionResponse | null;
+      if (tx) return { provider: p, tx };
+      errors.push(`${url}: tx not found`);
+    } catch (e: any) {
+      errors.push(`${url}: ${e?.message ?? e}`);
+    }
+  }
+  throw new Error(`Transaction not found on any RPC. Attempts: ${errors.join(' | ')}`);
+}
+
 // Valid token addresses for payment validation
 const VALID_TOKENS = {
   'CELO': '0x471EcE3750Da237f93B8E339c536989b8978a438', // Wrapped CELO (wCELO)
@@ -222,22 +249,13 @@ async function makeTopup(params: {
 // Validate blockchain payment before processing top-up
 async function validatePayment(validation: PaymentValidation): Promise<{ isValid: boolean; error?: string }> {
   try {
-    const provider = new ethers.JsonRpcProvider(CELO_RPC_URL);
-
-    // Get transaction details with retry (RPC nodes may take a few seconds to index a new tx)
-    let tx = await provider.getTransaction(validation.transactionHash);
-    if (!tx) {
-      const TX_RETRY_ATTEMPTS = 4;      // 4 retries × 5 s = 20 s max wait
-      const TX_RETRY_INTERVAL = 5000;
-      for (let attempt = 0; attempt < TX_RETRY_ATTEMPTS; attempt++) {
-        console.log(`Transaction not found yet, retrying in ${TX_RETRY_INTERVAL / 1000}s (attempt ${attempt + 1}/${TX_RETRY_ATTEMPTS})...`);
-        await new Promise(resolve => setTimeout(resolve, TX_RETRY_INTERVAL));
-        tx = await provider.getTransaction(validation.transactionHash);
-        if (tx) break;
-      }
-      if (!tx) {
-        return { isValid: false, error: 'Transaction not found after retries' };
-      }
+    // Use multi-RPC fallback so a single node failure doesn't reject valid payments
+    let provider: ethers.JsonRpcProvider;
+    let tx: ethers.TransactionResponse;
+    try {
+      ({ provider, tx } = await getProviderForTx(validation.transactionHash));
+    } catch (rpcErr: any) {
+      return { isValid: false, error: rpcErr.message };
     }
 
     // Wait for transaction confirmation with polling (max 60 seconds)
