@@ -3,8 +3,9 @@ import React, { createContext, useState, useCallback, useContext, useEffect, use
 import { toast } from 'sonner';
 import { contractAddress, MiniSafeAave } from '@/utils/abi';
 import { getTokenByAddress, TOKENS } from '@/utils/tokens';
-import { BrowserProvider, formatUnits, parseUnits, Contract, JsonRpcProvider } from "ethers";
+import { BrowserProvider, formatUnits, parseUnits, Contract, JsonRpcProvider, JsonRpcSigner } from "ethers";
 import { parseAbi } from 'viem';
+import { useAccount, useWalletClient } from 'wagmi';
 import useGasSponsorship from '@/hooks/useGasSponsorship';
 
 // Define the type for thrift group data (updated to match contract structure)
@@ -107,11 +108,13 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [allGroups, setAllGroups] = useState<ThriftGroup[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [account, setAccount] = useState<string | null>(null);
-  const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [contract, setContract] = useState<MiniSafeAave | null>(null);
-  const [isConnected, setIsConnected] = useState<boolean>(false);
   const { checkAndSponsor } = useGasSponsorship();
+
+  // wagmi hooks – replace the old window.ethereum / BrowserProvider initialisation
+  const { address, isConnected } = useAccount();
+  const account = address ?? null;
+  const { data: walletClient } = useWalletClient();
 
   // Prevent multiple simultaneous refreshes
   const isRefreshingRef = useRef(false);
@@ -119,81 +122,32 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Custom RPC provider for event querying (fallback when wallet RPC is down)
   const customRpcProvider = new JsonRpcProvider('https://forno.celo.org');
 
-  // Initialize provider, account, and contract
-  const initialize = useCallback(async () => {
-    console.log('[initialize] Starting initialization');
-    try {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        // Initialize provider
-        const ethersProvider = new BrowserProvider(window.ethereum);
-        setProvider(ethersProvider);
+  // Helper: convert wagmi WalletClient to an ethers JsonRpcSigner (no eth_requestAccounts call)
+  const getEthersSigner = useCallback((): JsonRpcSigner | null => {
+    if (!walletClient || !walletClient.account || !walletClient.chain) return null;
+    const { account: wcAccount, chain, transport } = walletClient;
+    const network = { chainId: chain.id, name: chain.name };
+    const browserProvider = new BrowserProvider(transport as any, network);
+    return new JsonRpcSigner(browserProvider, wcAccount.address);
+  }, [walletClient]);
 
-        // Get accounts
-        const accounts = await ethersProvider.listAccounts();
-        console.log('[initialize] Got accounts:', accounts?.length ?? 0);
-
-        if (accounts && accounts.length > 0) {
-          console.log('[initialize] Setting connected state with account:', accounts[0].address.substring(0, 6) + '...');
-          setAccount(accounts[0].address);
-          setIsConnected(true);
-
-          // Initialize MiniSafeAave contract
-          const signer = await ethersProvider.getSigner();
-          const miniSafeContract = new MiniSafeAave(contractAddress, signer);
-          setContract(miniSafeContract);
-          console.log('[initialize] Contract initialized');
-        } else {
-          console.log('[initialize] No accounts found');
-          setIsConnected(false);
-          setAccount(null);
-        }
-      } else {
-        console.log('[initialize] window.ethereum not available');
-      }
-    } catch (err) {
-      console.error("Failed to initialize wallet connection:", err);
-      setError("Failed to connect to wallet. Please make sure MetaMask is installed and connected.");
-      setIsConnected(false);
-    }
-  }, []);
-
-  // Call initialize function when the component mounts
+  // Rebuild the contract instance whenever the walletClient changes
   useEffect(() => {
-    initialize();
-
-    // Setup listeners for account changes
-    if (typeof window !== 'undefined' && window.ethereum) {
-      const handleAccountsChanged = async (accounts: string[]) => {
-        if (accounts.length === 0) {
-          setIsConnected(false);
-          setAccount(null);
-          setContract(null);
-          setUserGroups([]);
-          setAllGroups([]);
-        } else {
-          // Account changed, reinitialize
-          // This will trigger initialize() which updates account, contract, and isConnected
-          // The second useEffect will then watch these changes and refresh groups
-          await initialize();
-        }
-      };
-
-      const handleChainChanged = () => {
-        // When chain changes, we need to reinitialize
-        window.location.reload();
-      };
-
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
-
-      return () => {
-        if (window.ethereum.removeListener) {
-          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-          window.ethereum.removeListener('chainChanged', handleChainChanged);
-        }
-      };
+    if (isConnected && walletClient) {
+      const signer = getEthersSigner();
+      if (signer) {
+        const miniSafeContract = new MiniSafeAave(contractAddress, signer);
+        setContract(miniSafeContract);
+        console.log('[ThriftContext] Contract initialised from wagmi wallet client');
+      }
+    } else {
+      setContract(null);
+      if (!isConnected) {
+        setUserGroups([]);
+        setAllGroups([]);
+      }
     }
-  }, [initialize]);
+  }, [isConnected, walletClient, getEthersSigner]);
 
   // Create thrift group contract interaction
   const createThriftGroup = async (name: string, description: string, depositAmount: string, maxMembers: number, isPublic: boolean, tokenAddress?: string, startDate?: Date, creatorName?: string, email?: string, phone?: string) => {
@@ -333,7 +287,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // Persist off-chain metadata (best-effort) with signature auth
       try {
-        if (newGroupId !== null && newGroupId !== undefined && provider && account) {
+        if (newGroupId !== null && newGroupId !== undefined && account) {
           const ts = Date.now();
           const msg = [
             'Esusu: Thrift Metadata Update',
@@ -346,7 +300,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             `tags=`,
             `timestamp=${ts}`,
           ].join('\n');
-          const signer = await provider.getSigner();
+          const signer = getEthersSigner();
+          if (!signer) throw new Error('Wallet not connected');
           const signature = await signer.signMessage(msg);
 
           await fetch('/api/thrift/metadata', {
@@ -557,8 +512,9 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               "function allowance(address owner, address spender) view returns (uint256)",
               "function balanceOf(address owner) view returns (uint256)"
             ];
-            const erc20Contract = new Contract(tokenAddress, erc20Abi, provider) as any;
-            const signer = await provider.getSigner();
+            const erc20Contract = new Contract(tokenAddress, erc20Abi, customRpcProvider) as any;
+            const signer = getEthersSigner();
+            if (!signer) throw new Error('Wallet not connected');
             const erc20WithSigner = erc20Contract.connect(signer);
 
             const currentAllowance = await (erc20WithSigner as any).allowance(account, contract.address);
@@ -623,13 +579,12 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         console.log('Attempting to get block timestamp from receipt:', {
           blockNumber: receipt.blockNumber,
-          provider: !!provider,
           receipt: receipt
         });
 
         // Get the block timestamp from the transaction receipt
-        if (provider && receipt.blockNumber) {
-          const block = await provider.getBlock(receipt.blockNumber);
+        if (receipt.blockNumber) {
+          const block = await customRpcProvider.getBlock(receipt.blockNumber);
           if (block && block.timestamp) {
             actualJoinDate = new Date(block.timestamp * 1000); // Convert from seconds to milliseconds
             console.log('✅ Actual join date from blockchain:', {
@@ -642,7 +597,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             console.warn('Block data missing timestamp:', block);
           }
         } else {
-          console.warn('Provider or block number missing:', { provider: !!provider, blockNumber: receipt.blockNumber });
+          console.warn('Block number missing from receipt:', receipt.blockNumber);
         }
       } catch (blockError) {
         console.error('Failed to get block timestamp:', blockError);
@@ -1002,7 +957,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
           // Use read-only contract for view functions
           const erc20ReadOnly = new Contract(tokenAddress, erc20Abi, customRpcProvider) as any;
-          const signer = await provider.getSigner();
+          const signer = getEthersSigner();
+          if (!signer) throw new Error('Wallet not connected');
           const erc20WithSigner = erc20ReadOnly.connect(signer); // Connect signer for write operations
 
           // Check decimals
@@ -1660,40 +1616,8 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [isConnected, contract]);
 
-  // Safety check: periodically verify connection state matches reality
-  // This helps catch cases where Thirdweb connects but window.ethereum events don't fire
-  // But only clear on disconnect - let ThriftWithAccountWatch handle initialize
-  useEffect(() => {
-    let lastKnownAccounts: string[] | null = null;
-
-    const interval = setInterval(async () => {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-
-          // Only react if there's actually a change
-          if (JSON.stringify(accounts) !== JSON.stringify(lastKnownAccounts)) {
-            console.log('[safetyCheck] Accounts changed:', accounts?.length ?? 0, 'accounts');
-            lastKnownAccounts = accounts;
-
-            // Only handle disconnection here - ThriftWithAccountWatch handles connection
-            if ((!accounts || accounts.length === 0) && isConnected) {
-              console.log('[safetyCheck] Wallet disconnected - clearing state');
-              setIsConnected(false);
-              setAccount(null);
-              setContract(null);
-              setUserGroups([]);
-              setAllGroups([]);
-            }
-          }
-        } catch (err) {
-          console.warn('Safety check failed:', err);
-        }
-      }
-    }, 2000); // Check every 2 seconds
-
-    return () => clearInterval(interval);
-  }, [isConnected]);
+  // Safety check: wagmi already tracks connection state reactively, so this poller is no longer needed.
+  // Disconnection is handled automatically by the useEffect that watches `isConnected` / `walletClient`.
 
   // Listen for PayoutDistributed events to update state in real-time
   useEffect(() => {
@@ -1906,10 +1830,10 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         } catch (altError) {
           console.error('Alternative event querying also failed:', altError);
 
-          // Final fallback - try wallet RPC with limited range
+          // Final fallback - try custom RPC with limited range
           try {
-            console.log('Trying wallet RPC as final fallback...');
-            const currentBlock = await provider.getBlockNumber();
+            console.log('Trying custom RPC as final fallback...');
+            const currentBlock = await customRpcProvider.getBlockNumber();
             const fromBlock = Math.max(0, currentBlock - 5000);
             const filter = contract.contract.filters.ContributionMade(groupId);
             events = await contract.contract.queryFilter(filter, fromBlock, currentBlock);
@@ -1934,15 +1858,15 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             // Try to get block timestamp, fallback to current time if RPC fails
             let contributionDate = new Date();
             try {
-              // Try wallet provider first
-              const block = await provider?.getBlock(event.blockNumber);
+              // Use custom RPC provider for block timestamps
+              const block = await customRpcProvider.getBlock(event.blockNumber);
               if (block) {
                 contributionDate = new Date(block.timestamp * 1000);
               }
             } catch (blockError) {
-              console.warn('Wallet provider failed to fetch block timestamp, trying custom RPC:', blockError);
+              console.warn('Custom RPC failed to fetch block timestamp:', blockError);
               try {
-                // Fallback to custom RPC provider
+                // Retry once
                 const block = await customRpcProvider.getBlock(event.blockNumber);
                 if (block) {
                   contributionDate = new Date(block.timestamp * 1000);
@@ -1989,14 +1913,9 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Debug function to test blockchain timestamp capture
   const testBlockchainTimestamp = async (groupId: number) => {
-    if (!provider) {
-      console.error('No provider available');
-      return;
-    }
-
     try {
       // Get the latest block to test timestamp capture
-      const latestBlock = await provider.getBlock('latest');
+      const latestBlock = await customRpcProvider.getBlock('latest');
       console.log('Latest block info:', {
         number: latestBlock.number,
         timestamp: latestBlock.timestamp,
@@ -2005,7 +1924,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // Try to get a specific block (if we know one)
       if (latestBlock.number > 0) {
-        const testBlock = await provider.getBlock(latestBlock.number - 1);
+        const testBlock = await customRpcProvider.getBlock(latestBlock.number - 1);
         console.log('Previous block info:', {
           number: testBlock.number,
           timestamp: testBlock.timestamp,
@@ -2048,7 +1967,7 @@ export const ThriftProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     loading,
     error,
     refreshGroups,
-    initialize,
+    initialize: async () => { await refreshGroups(); },
     // Expose connection state for hooks
     isConnected,
     contract
