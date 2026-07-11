@@ -226,7 +226,7 @@ export function CampaignList() {
                     )}
                   </div>
                   <Badge className="bg-primary/10 text-primary border border-primary/20">
-                    {parseFloat(group.depositAmount)} {group.tokenSymbol || 'cUSD'}
+                    {parseFloat(group.depositAmount)} {group.tokenSymbol || 'USDm'}
                   </Badge>
                 </div>
               </CardHeader>
@@ -344,11 +344,11 @@ export function CampaignList() {
           <div className="py-4">
             <p className="mb-4">You are joining: <strong>{selectedGroup?.name}</strong></p>
             <p className="text-sm text-gray-500 mb-2">
-              Deposit amount: {selectedGroup?.depositAmount} {selectedGroup?.tokenSymbol || 'cUSD'}
+              Deposit amount: {selectedGroup?.depositAmount} {selectedGroup?.tokenSymbol || 'USDm'}
             </p>
             {selectedGroup?.isPublic && (
               <p className="text-sm text-amber-600 dark:text-amber-500 mb-6 font-medium">
-                Required Collateral: {(parseFloat(selectedGroup?.depositAmount || '0') * 5).toFixed(2)} {selectedGroup?.tokenSymbol || 'cUSD'}
+                Required Collateral: {(parseFloat(selectedGroup?.depositAmount || '0') * 5).toFixed(2)} {selectedGroup?.tokenSymbol || 'USDm'}
               </p>
             )}
             <div className="grid gap-4">
