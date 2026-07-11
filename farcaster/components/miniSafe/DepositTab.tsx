@@ -48,13 +48,13 @@ const DepositTab: React.FC = () => {
               step="0.01"
               aria-label="Amount"
             />
-            {selectedToken === 'cUSD' && (
+            {selectedToken === 'USDm' && (
               <p className="text-xs text-gray-500">Approve amount before depositing</p>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            {selectedToken === 'cUSD' || 'G$' ? (
+            {selectedToken === 'USDm' || 'G$' ? (
               <>
                 <Button
                   variant={isApproved ? "outline" : "default"}
