@@ -282,7 +282,10 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
       console.log('[handleTransaction] Token address:', tokenAddress, 'Decimals:', decimals);
 
       if (address) {
-        // Prepare transaction memo based on utility type
+        if (!walletClient) {
+          toast.error('Wallet not ready. Please reconnect and try again.');
+          return { success: false };
+        }
         const memo = getTransactionMemo(type, metadata);
         console.log('[handleTransaction] Transaction memo:', memo);
 

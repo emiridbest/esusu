@@ -1,14 +1,10 @@
 import { createConfig, http } from 'wagmi'
 import { celo } from 'viem/chains'
-import { injected, metaMask } from 'wagmi/connectors'
 
 
 export const config = createConfig({
   chains: [celo],
-  connectors: [
-    injected(),   // browser extension wallets (MetaMask, Rabby, etc.)
-    metaMask(),   // explicit MetaMask deeplink on mobile
-  ],
+  connectors: [],   // Web3Auth WagmiProvider injects its own connector at runtime
   transports: {
     [celo.id]: http('https://forno.celo.org', {
       timeout: 30_000,
