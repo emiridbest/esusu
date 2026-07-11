@@ -80,7 +80,7 @@ const UtilityContext = createContext<UtilityContextType | undefined>(undefined);
 export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const usdcAddress = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
   const usdtAddress = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e";
-  const cusdAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
+  const usdmAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
   const celoAddress = "0x471EcE3750Da237f93B8E339c536989b8978a438";
   const goodDollarAddress = "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A"; // G$ token address
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
@@ -184,8 +184,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     switch (token) {
       case 'USDC':
         return usdcAddress;
-      case 'CUSD':
-        return cusdAddress;
+      case 'USDM':
+        return usdmAddress;
       case 'USDT':
         return usdtAddress;
       case 'CELO':
@@ -193,13 +193,13 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
       case 'G$':
         return goodDollarAddress;
       default:
-        return cusdAddress;
+        return usdmAddress;
     }
   };
 
   const getTokenDecimals = (token: string): number => {
     switch (token) {
-      case 'CUSD':
+      case 'USDM':
         return 18;
       case 'USDC':
       case 'USDT':
