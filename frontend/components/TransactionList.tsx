@@ -62,7 +62,7 @@ const TOKEN_ADDRESSES: { [key: string]: { symbol: string; decimals: number } } =
       decimals: 6,
     },
     ["0x765DE816845861e75A25fCA122bb6898B8B1282a".toLowerCase()]: {
-      symbol: "cUSD",
+      symbol: "USDm",
       decimals: 18,
     },
     ["0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A".toLowerCase()]: {
