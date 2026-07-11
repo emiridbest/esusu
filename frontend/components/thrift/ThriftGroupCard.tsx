@@ -39,7 +39,7 @@ export function ThriftGroupCard({ group, currentUserAddress, onJoin, onShare, on
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
                     <div className="absolute bottom-3 left-3">
                         <Badge className="bg-primary text-black font-bold tracking-wide hover:bg-primary/90 shadow-lg border-0 backdrop-blur-md">
-                            {parseFloat(group.depositAmount)} {group.tokenSymbol || 'cUSD'}
+                            {parseFloat(group.depositAmount)} {group.tokenSymbol || 'USDm'}
                         </Badge>
                     </div>
                 </div>
@@ -50,7 +50,7 @@ export function ThriftGroupCard({ group, currentUserAddress, onJoin, onShare, on
                     <div className="space-y-1">
                         {!group.meta?.coverImageUrl && (
                             <Badge variant="outline" className="mb-2 border-primary/30 text-primary bg-primary/5 dark:bg-primary/10">
-                                {parseFloat(group.depositAmount)} {group.tokenSymbol || 'cUSD'}
+                                {parseFloat(group.depositAmount)} {group.tokenSymbol || 'USDm'}
                             </Badge>
                         )}
                         <CardTitle className="text-lg font-bold leading-tight group-hover:text-primary transition-colors duration-300">{group.name}</CardTitle>
