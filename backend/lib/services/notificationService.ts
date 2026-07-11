@@ -405,7 +405,7 @@ export class NotificationService {
     if (success) {
       // Format amount with proper token symbol
       const token = details.paymentToken || 'USD';
-      const amountStr = token === 'G$' || token === 'CELO' || token === 'cUSD' || token === 'USDC' || token === 'USDT'
+      const amountStr = token === 'G$' || token === 'CELO' || token === 'USDm' || token === 'USDC' || token === 'USDT'
         ? `${details.amount.toFixed(2)} ${token}`
         : `$${details.amount.toFixed(2)}`;
 
