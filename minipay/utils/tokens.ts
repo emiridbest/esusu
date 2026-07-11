@@ -18,9 +18,9 @@ export const TOKENS: Record<string, TokenConfig> = {
     isNative: true,
     logoUrl: '/celo2.png'
   },
-  CUSD: {
+  USDM: {
     address: '0x765DE816845861e75A25fCA122bb6898B8B1282a',
-    symbol: 'cUSD',
+    symbol: 'USDm',
     name: 'Celo Dollar',
     decimals: 18,
     logoUrl: '/cusd2.png'
@@ -68,7 +68,7 @@ export function getAllTokens(): TokenConfig[] {
 // Get supported tokens for thrift groups
 export function getSupportedThriftTokens(): TokenConfig[] {
   // Only allow stablecoins for thrift groups
-  return [TOKENS.CUSD, TOKENS.USDC, TOKENS.USDT];
+  return [TOKENS.USDM, TOKENS.USDC, TOKENS.USDT];
 }
 
 // Format token amount
