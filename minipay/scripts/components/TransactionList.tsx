@@ -56,7 +56,7 @@ const TOKEN_ADDRESSES: { [key: string]: { symbol: string; decimals: number } } =
   ['0x471EcE3750Da237f93B8E339c536989b8978a438'.toLowerCase()]: { symbol: 'CELO', decimals: 18 },
   ['0xcebA9300f2b948710d2653dD7B07f33A8B32118C'.toLowerCase()]: { symbol: 'USDC', decimals: 6 },
   ['0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e'.toLowerCase()]: { symbol: 'USDT', decimals: 6 },
-  ['0x765DE816845861e75A25fCA122bb6898B8B1282a'.toLowerCase()]: { symbol: 'cUSD', decimals: 18 },
+  ['0x765DE816845861e75A25fCA122bb6898B8B1282a'.toLowerCase()]: { symbol: 'USDm', decimals: 18 },
   ['0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A'.toLowerCase()]: { symbol: 'G$', decimals: 18 },
 };
 
