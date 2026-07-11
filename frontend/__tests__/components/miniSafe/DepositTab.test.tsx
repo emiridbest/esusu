@@ -7,7 +7,7 @@ import DepositTab from '@/components/miniSafe/DepositTab';
 const mockMiniSafeContext = {
   depositAmount: 10,
   setDepositAmount: jest.fn(),
-  selectedToken: 'cUSD',
+  selectedToken: 'USDm',
   isApproved: false,
   isApproving: false,
   isWaitingTx: false,
@@ -20,7 +20,7 @@ const mockMiniSafeContext = {
   withdrawAmount: 0,
   setWithdrawAmount: jest.fn(),
   celoBalance: '',
-  cusdBalance: '',
+  usdmBalance: '',
   goodDollarBalance: '',
   tokenBalance: '',
   setSelectedToken: jest.fn(),
@@ -45,7 +45,7 @@ describe('DepositTab Component', () => {
     render(<DepositTab />);
     
     // Check if component renders with appropriate content
-    expect(screen.getByText(/Deposit cUSD/)).toBeInTheDocument();
+    expect(screen.getByText(/Deposit USDm/)).toBeInTheDocument();
     expect(screen.getByText(/Deposited assets are locked over time/)).toBeInTheDocument();
     expect(screen.getByLabelText('Amount')).toBeInTheDocument();
     expect(screen.getByText('What happens when you deposit?')).toBeInTheDocument();
@@ -68,14 +68,14 @@ describe('DepositTab Component', () => {
     expect(setDepositAmountMock).toHaveBeenCalledWith(50);
   });
 
-  test('shows approve button for cUSD token', () => {
+  test('shows approve button for USDm token', () => {
     render(<DepositTab />);
     
-    // Should show approve button when token is cUSD
+    // Should show approve button when token is USDm
     expect(screen.getByRole('button', { name: /Approve/i })).toBeInTheDocument();
   });
 
-  test('shows deposit button only for non-cUSD tokens', () => {
+  test('shows deposit button only for non-USDm tokens', () => {
     const nonCusdMock = {
       ...mockMiniSafeContext,
       selectedToken: 'CELO'
@@ -85,7 +85,7 @@ describe('DepositTab Component', () => {
     
     render(<DepositTab />);
     
-    // Should not show approve button when token is not cUSD
+    // Should not show approve button when token is not USDm
     expect(screen.queryByRole('button', { name: /Approve/i })).not.toBeInTheDocument();
     
     // Should show a single deposit button
@@ -114,7 +114,7 @@ describe('DepositTab Component', () => {
     const updatedMock = {
       ...mockMiniSafeContext,
       handleDeposit: handleDepositMock,
-      isApproved: true  // For cUSD, deposit is enabled only after approval
+      isApproved: true  // For USDm, deposit is enabled only after approval
     };
     
     jest.spyOn(require('@/context/miniSafe/MiniSafeContext'), 'useMiniSafe').mockImplementation(() => updatedMock);
@@ -127,10 +127,10 @@ describe('DepositTab Component', () => {
     expect(handleDepositMock).toHaveBeenCalledTimes(1);
   });
 
-  test('disables deposit button when not approved for cUSD', () => {
+  test('disables deposit button when not approved for USDm', () => {
     render(<DepositTab />);
     
-    // For cUSD, deposit button should be disabled when not approved
+    // For USDm, deposit button should be disabled when not approved
     const depositButton = screen.getByRole('button', { name: /^Deposit$/i });
     expect(depositButton).toBeDisabled();
   });
