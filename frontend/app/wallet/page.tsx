@@ -36,8 +36,8 @@ const TOKENS = [
     bgLight: "bg-yellow-50 dark:bg-yellow-950/30",
   },
   {
-    id: "CUSD",
-    symbol: "cUSD",
+    id: "USDM",
+    symbol: "USDm",
     name: "Celo Dollar",
     address: "0x765DE816845861e75A25fCA122bb6898B8B1282a" as `0x${string}`,
     decimals: 18,
@@ -110,7 +110,7 @@ export default function WalletPage() {
   const router = useRouter();
 
   const [balances, setBalances] = useState<Record<TokenId, bigint | null>>({
-    CELO: null, CUSD: null, USDC: null, USDT: null, GD: null,
+    CELO: null, USDM: null, USDC: null, USDT: null, GD: null,
   });
   const [celoPrice, setCeloPrice] = useState(2.8);
   const [gdPrice, setGdPrice] = useState(0.0001);
