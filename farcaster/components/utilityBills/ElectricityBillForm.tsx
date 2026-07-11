@@ -100,7 +100,7 @@ export default function ElectricityBillForm() {
       provider: '',
       amount: '',
       email: '',
-      paymentToken: 'cusd',
+      paymentToken: 'usdm',
     },
   });
 
@@ -331,7 +331,7 @@ export default function ElectricityBillForm() {
           // SECURITY: Payment validation fields
           transactionHash: txResult.transactionHash,
           expectedAmount: convertedAmount.toString(),
-          paymentToken: selectedToken || 'cusd'
+          paymentToken: selectedToken || 'usdm'
         };
 
         console.log('Sending to backend:', backendRequestBody);
