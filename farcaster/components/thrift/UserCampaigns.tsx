@@ -166,7 +166,7 @@ export function UserCampaigns() {
                         <TableCell className="max-w-xs truncate">
                           {group.description}
                         </TableCell>
-                        <TableCell>{parseFloat(group.depositAmount)} {group.tokenSymbol || 'cUSD'}</TableCell>
+                        <TableCell>{parseFloat(group.depositAmount)} {group.tokenSymbol || 'USDm'}</TableCell>
                         <TableCell>{group.totalMembers}/{group.maxMembers}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
