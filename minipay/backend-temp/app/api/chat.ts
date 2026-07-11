@@ -57,7 +57,7 @@ export async function POST(req: Request) {
 
         const result = streamText({
             model: openai("gpt-4o-mini"),
-            system: "You are a helpful agent that performs onchain transactions like sending celo,cusd, implement dolar-cost-averaging using balmy protocol, tokens etc and provides onchain advice based on data given",
+            system: "You are a helpful agent that performs onchain transactions like sending celo,usdm, implement dolar-cost-averaging using balmy protocol, tokens etc and provides onchain advice based on data given",
             tools: tools as any,
             maxSteps: 20,
             messages,
