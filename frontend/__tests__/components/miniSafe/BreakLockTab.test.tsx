@@ -5,7 +5,7 @@ import BreakLockTab from '@/components/miniSafe/BreakLockTab';
 
 // Mock the MiniSafeContext
 const mockMiniSafeContext = {
-  selectedToken: 'cUSD',
+  selectedToken: 'USDm',
   tokenBalance: '10', // Default to not enough tokens
   isWaitingTx: false,
   handleBreakLock: jest.fn(),
@@ -18,7 +18,7 @@ const mockMiniSafeContext = {
   withdrawAmount: 0,
   setWithdrawAmount: jest.fn(),
   celoBalance: '',
-  cusdBalance: '',
+  usdmBalance: '',
   goodDollarBalance: '',
   setSelectedToken: jest.fn(),
   isApproved: false,
