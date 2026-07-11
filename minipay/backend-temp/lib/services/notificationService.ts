@@ -464,7 +464,7 @@ export class NotificationService {
       const currency = details.currency || details.paymentToken || 'USD';
       
       // Currency codes that should be displayed as-is (not with $ prefix)
-      const localCurrencies = ['NGN', 'GHS', 'KES', 'UGX', 'ZAR', 'G$', 'CELO', 'cUSD', 'USDC', 'USDT'];
+      const localCurrencies = ['NGN', 'GHS', 'KES', 'UGX', 'ZAR', 'G$', 'CELO', 'USDm', 'USDC', 'USDT'];
       
       let amountStr: string;
       if (localCurrencies.includes(currency)) {
