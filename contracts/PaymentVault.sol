@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title PaymentVault
- * @notice Receives ERC-20 token payments (USDT, USDC, cUSD, CELO, USDM, G$).
+ * @notice Receives ERC-20 token payments (USDT, USDC, USDm, CELO, USDM, G$).
  *         Users send tokens directly via token.transfer(vault, amount) — no approval needed.
  *         Only the owner can withdraw collected funds.
  */
