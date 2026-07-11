@@ -65,7 +65,7 @@ const ThriftAdminPage: React.FC = () => {
               maxMembers: group.maxMembers,
               currentRound: group.currentRound,
               contributionAmount: group.depositAmount,
-              tokenSymbol: group.tokenSymbol || 'cUSD',
+              tokenSymbol: group.tokenSymbol || 'USDm',
               creator: groupInfo.admin,
               members: group.members?.map(m => typeof m === 'string' ? m : (m as any).address) || [],
               payoutOrder: [],
