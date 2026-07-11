@@ -11,9 +11,9 @@ const CELO_RPC_URL = process.env.CELO_RPC_URL || 'https://forno.celo.org';
 
 // Supported assets for Aave on Celo
 const SUPPORTED_ASSETS = {
-  'cUSD': {
+  'USDm': {
     address: '0x765DE816845861e75A25fCA122bb6898B8B1282a',
-    aToken: '0x6Eaa0e11bD0C333Fda31B2B70C8680ad54a3DE3c', // acUSD
+    aToken: '0x6Eaa0e11bD0C333Fda31B2B70C8680ad54a3DE3c', // aUSDm
     decimals: 18
   },
   'USDC': {
