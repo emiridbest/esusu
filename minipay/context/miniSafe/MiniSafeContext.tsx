@@ -30,7 +30,7 @@ import { TransactionSteps, Step, StepStatus } from '@/components/TransactionStep
 interface MiniSafeContextType {
   // Token addresses
   usdcAddress: string;
-  cusdAddress: string;
+  usdmAddress: string;
   usdtAddress: string;
 
   // State values
@@ -38,7 +38,7 @@ interface MiniSafeContextType {
   setDepositAmount: (amount: number) => void;
   withdrawAmount: number;
   setWithdrawAmount: (amount: number) => void;
-  cusdBalance: string;
+  usdmBalance: string;
   usdcBalance: string;
   usdtBalance: string;
   tokenBalance: string;
@@ -74,7 +74,7 @@ const MiniSafeContext = createContext<MiniSafeContextType | undefined>(undefined
 export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Token addresses
   const usdcAddress = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
-  const cusdAddress = "0x765de816845861e75a25fca122bb6898b8b1282a";
+  const usdmAddress = "0x765de816845861e75a25fca122bb6898b8b1282a";
   const usdtAddress = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e";
   // Reward token (EST) configuration via environment
   const rewardTokenAddressEnv = (process.env.NEXT_PUBLIC_REWARD_TOKEN_ADDRESS || '').trim();
@@ -83,7 +83,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // State values
   const [depositAmount, setDepositAmount] = useState(0);
   const [withdrawAmount, setWithdrawAmount] = useState(0);
-  const [cusdBalance, setcusdBalance] = useState('0');
+  const [usdmBalance, setusdmBalance] = useState('0');
   const [usdcBalance, setUsdcBalance] = useState('0');
   const [usdtBalance, setusdtBalance] = useState('0');
   const [tokenBalance, setTokenBalance] = useState('0');
@@ -124,16 +124,16 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       setIsLoading(true);
 
-      // Read CUSD balance using wagmi readContract
-      const cusdData = await readContract({
+      // Read USDM balance using wagmi readContract
+      const usdmData = await readContract({
         address: contractAddress as `0x${string}`,
         abi,
         functionName: "getBalance",
-        args: [address as `0x${string}`, cusdAddress as `0x${string}`],
+        args: [address as `0x${string}`, usdmAddress as `0x${string}`],
       } as any);
 
       // Set balance, ensuring we never have empty string
-      setcusdBalance(cusdData ? cusdData.toString() : '0');
+      setusdmBalance(usdmData ? usdmData.toString() : '0');
 
       // Read USDC balance
       const usdcData = await readContract({
@@ -160,12 +160,12 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching balances:', error);
-      setcusdBalance('0');
+      setusdmBalance('0');
       setUsdcBalance('0');
       setusdtBalance('0');
       setIsLoading(false);
     }
-  }, [address, publicClient, cusdAddress, usdcAddress, usdtAddress]);
+  }, [address, publicClient, usdmAddress, usdcAddress, usdtAddress]);
 
   const getTokenBalance = useCallback(async () => {
     if (!address || !publicClient || !rewardTokenAddress) {
@@ -226,8 +226,8 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     switch (token) {
       case 'USDC':
         return usdcAddress;
-      case 'CUSD':
-        return cusdAddress;
+      case 'USDM':
+        return usdmAddress;
       case 'USDT':
         return usdtAddress;
       default:
@@ -240,7 +240,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       case 'USDC':
       case 'USDT':
         return 6;
-      case 'CUSD':
+      case 'USDM':
       default:
         return 18;
     }
@@ -549,8 +549,8 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const tokenAddress = getTokenAddress(selectedToken);
 
       let withdrawalAmount: string = "0";
-      if (selectedToken === 'CUSD') {
-        withdrawalAmount = cusdBalance;
+      if (selectedToken === 'USDM') {
+        withdrawalAmount = usdmBalance;
       } else if (selectedToken === 'USDC') {
         withdrawalAmount = usdcBalance;
       } else if (selectedToken === 'USDT') {
@@ -879,7 +879,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const value = {
     // Token addresses
     usdcAddress,
-    cusdAddress,
+    usdmAddress,
     usdtAddress,
 
     // State values
@@ -887,7 +887,7 @@ export const MiniSafeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setDepositAmount,
     withdrawAmount,
     setWithdrawAmount,
-    cusdBalance,
+    usdmBalance,
     usdcBalance,
     usdtBalance,
     tokenBalance,
