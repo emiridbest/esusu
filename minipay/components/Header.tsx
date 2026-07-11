@@ -41,10 +41,10 @@ import { useFarcaster } from "../context/farcaster/FarcasterContext";
 
 export default function Header() {
   const USDC_ADDRESS = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
-  const CUSD_ADDRESS = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
+  const USDM_ADDRESS = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
   const USDT_ADDRESS = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e";
   const [usdcBalance, setUsdcBalance] = useState<Number>(0);
-  const [cusdBalance, setCusdBalance] = useState<Number>(0);
+  const [usdmBalance, setCusdBalance] = useState<Number>(0);
   const [usdtBalance, setUsdtBalance] = useState<Number>(0);
   const [celoBalance, setCeloBalance] = useState<Number>(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -72,9 +72,9 @@ export default function Header() {
   }, [switchChain, celoChainId]);
 
   // Move hooks to the component level so they're called unconditionally
-  const cusdResult = useReadContract({
+  const usdmResult = useReadContract({
     abi: stableTokenABI,
-    address: CUSD_ADDRESS,
+    address: USDM_ADDRESS,
     functionName: "balanceOf",
     args: [address ?? "0x"],
   });
@@ -131,8 +131,8 @@ export default function Header() {
       };
 
       // Update balances from hook results
-      if (cusdResult.data) {
-        setCusdBalance(Number(cusdResult.data));
+      if (usdmResult.data) {
+        setCusdBalance(Number(usdmResult.data));
       }
 
       if (usdcResult.data) {
@@ -148,7 +148,7 @@ export default function Header() {
     isConnected,
     address,
     publicClient,
-    cusdResult.data,
+    usdmResult.data,
     usdcResult.data,
     usdtResult.data
   ]);
@@ -344,7 +344,7 @@ export default function Header() {
                               {`CELO: ${celoBalance ? (Number(celoBalance) / 1e18).toFixed(4) : '0.0000'}`}
                             </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400 font-semibold">
-                              {`CUSD: ${cusdBalance ? (Number(cusdBalance) / 1e18).toFixed(4) : '0.0000'}`}
+                              {`USDM: ${usdmBalance ? (Number(usdmBalance) / 1e18).toFixed(4) : '0.0000'}`}
                             </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400 font-semibold">
                               {`USDC: ${usdcBalance ? (Number(usdcBalance) / 1e18).toFixed(4) : '0.0000'}`}
