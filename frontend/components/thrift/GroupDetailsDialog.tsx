@@ -31,7 +31,7 @@ export function GroupDetailsDialog({ group, open, onOpenChange, members, current
                     <DialogTitle className="flex items-center gap-2 text-2xl">
                         {group.name}
                         <Badge variant="outline" className="ml-2 font-normal">
-                            {group.tokenSymbol || 'cUSD'}
+                            {group.tokenSymbol || 'USDm'}
                         </Badge>
                     </DialogTitle>
                     <p className="text-muted-foreground">{group.description}</p>
