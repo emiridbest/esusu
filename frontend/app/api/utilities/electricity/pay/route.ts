@@ -167,21 +167,31 @@ async function validatePayment(validation: PaymentValidation): Promise<{ isValid
       } catch {
         decimals = TOKEN_DECIMALS[validation.paymentToken as keyof typeof TOKEN_DECIMALS] ?? 18;
       }
-      const expectedAmountWei = ethers.parseUnits(validation.expectedAmount, decimals);
+
+      // Sanitise expectedAmount: truncate to at most `decimals` decimal places
+      const [intPart, fracPart = ''] = validation.expectedAmount.split('.');
+      const safeExpected = fracPart.length > decimals
+        ? `${intPart}.${fracPart.slice(0, decimals)}`
+        : validation.expectedAmount;
+
+      const expectedAmountWei = ethers.parseUnits(safeExpected, decimals);
       // Allow 0.5% tolerance to account for floating-point rounding in conversion
       const tolerance = expectedAmountWei / 200n;
       if (paymentAmount + tolerance < expectedAmountWei) {
-        return { isValid: false, error: 'Insufficient payment amount' };
+        return { isValid: false, error: `Insufficient payment amount: got ${paymentAmount}, expected ~${expectedAmountWei}` };
       }
 
-    } catch {
-      return { isValid: false, error: 'Invalid transaction data' };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('Transaction decode/validation error:', err);
+      return { isValid: false, error: `Invalid transaction data: ${msg}` };
     }
 
     return { isValid: true };
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
     console.error('Payment validation error:', error);
-    return { isValid: false, error: 'Payment validation failed' };
+    return { isValid: false, error: msg || 'Payment validation failed' };
   }
 }
 
