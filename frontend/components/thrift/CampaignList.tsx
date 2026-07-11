@@ -317,7 +317,7 @@ export function CampaignList() {
                 <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Required Deposit:</span>
-                    <span className="font-bold">{selectedGroup?.depositAmount} {selectedGroup?.tokenSymbol || 'cUSD'}</span>
+                    <span className="font-bold">{selectedGroup?.depositAmount} {selectedGroup?.tokenSymbol || 'USDm'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Current Round:</span>
@@ -326,7 +326,7 @@ export function CampaignList() {
                   {selectedGroup?.isPublic && (
                     <div className="flex justify-between text-amber-500">
                       <span className="text-muted-foreground">Required Collateral:</span>
-                      <span className="font-bold">{(parseFloat(selectedGroup?.depositAmount || '0') * 5).toFixed(2)} {selectedGroup?.tokenSymbol || 'cUSD'}</span>
+                      <span className="font-bold">{(parseFloat(selectedGroup?.depositAmount || '0') * 5).toFixed(2)} {selectedGroup?.tokenSymbol || 'USDm'}</span>
                     </div>
                   )}
                 </div>
@@ -373,7 +373,7 @@ export function CampaignList() {
             <div className="border-l pl-8 border-border/50">
               <h3 className="text-sm font-semibold mb-4 text-muted-foreground">Estimated Returns</h3>
               <YieldCalculator
-                depositToken={selectedGroup?.tokenSymbol || 'cUSD'}
+                depositToken={selectedGroup?.tokenSymbol || 'USDm'}
                 defaultAmount={parseFloat(selectedGroup?.depositAmount || '0')}
                 APY={5 + (parseFloat(selectedGroup?.depositAmount || '0') > 100 ? 2 : 0)} // Dynamic mocked APY based on size
               />
