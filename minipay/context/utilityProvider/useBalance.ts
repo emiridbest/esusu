@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { config } from '../../components/providers/WagmiProvider';
 
 const TOKEN_ADDRESSES = {
-  CUSD: '0x765DE816845861e75A25fCA122bb6898B8B1282a',
+  USDM: '0x765DE816845861e75A25fCA122bb6898B8B1282a',
   USDC: '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
   USDT: '0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e',
   CELO: '0x471EcE3750Da237f93B8E339c536989b8978a438', // Native CELO token
@@ -17,7 +17,7 @@ export const useBalance = () => {
 
   const getTokenDecimals = (token: string): number => {
     switch (token) {
-      case 'CUSD':
+      case 'USDM':
         return 18;
       case 'USDC':
       case 'USDT':
