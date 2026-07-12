@@ -77,8 +77,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   // Cache token prices (CELO/USD, G$/USD)
   const [celoUsdPrice, setCeloUsdPrice] = useState<number>(2.8); // fallback to 2.8
   const [goodDollarUsdPrice, setGoodDollarUsdPrice] = useState<number>(0.0001); // fallback to 0.0001
-  const [kesUsdRate, setKesUsdRate] = useState<number>(130);   // KES per 1 USD
-  const [ngnUsdRate, setNgnUsdRate] = useState<number>(1600);  // NGN per 1 USD
+  const [kesUsdPrice, setKesUsdPrice] = useState<number>(0.0077);  // USD per KESm
+  const [ngnUsdPrice, setNgnUsdPrice] = useState<number>(0.00062); // USD per NGNm
 
   // Fetch token prices once per session (or on demand)
   useEffect(() => {
@@ -99,8 +99,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           fetch('/api/exchange-rate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: '1', base_currency: 'KES' }) }),
           fetch('/api/exchange-rate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: '1', base_currency: 'NGN' }) }),
         ]);
-        if (kesRes.ok) { const d = await kesRes.json(); if (d.rate) setKesUsdRate(1 / d.rate); }
-        if (ngnRes.ok) { const d = await ngnRes.json(); if (d.rate) setNgnUsdRate(1 / d.rate); }
+        if (kesRes.ok) { const d = await kesRes.json(); if (d.rate) setKesUsdPrice(d.rate); }
+        if (ngnRes.ok) { const d = await ngnRes.json(); if (d.rate) setNgnUsdPrice(d.rate); }
       } catch {
         // fallback to defaults
       }
@@ -335,21 +335,13 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
           console.log('[handleTransaction] CELO conversion applied:', paymentAmount);
         }
         if (token === 'KESm') {
-          // 1 KESm ≈ 1 KES — derive token amount from local currency, not USD
-          const currencyCode = metadata?.countryCode || '';
-          const kesAmount = currencyCode.toUpperCase() === 'KES'
-            ? Number(amount)
-            : Number(convertedAmount) * kesUsdRate;
+          const kesAmount = Number(convertedAmount) / kesUsdPrice;
           actualTokenAmount = kesAmount;
           paymentAmount = parseUnits(String(kesAmount), decimals);
           console.log('[handleTransaction] KESm conversion applied:', paymentAmount);
         }
         if (token === 'NGNm') {
-          // 1 NGNm ≈ 1 NGN — derive token amount from local currency, not USD
-          const currencyCode = metadata?.countryCode || '';
-          const ngnAmount = currencyCode.toUpperCase() === 'NGN'
-            ? Number(amount)
-            : Number(convertedAmount) * ngnUsdRate;
+          const ngnAmount = Number(convertedAmount) / ngnUsdPrice;
           actualTokenAmount = ngnAmount;
           paymentAmount = parseUnits(String(ngnAmount), decimals);
           console.log('[handleTransaction] NGNm conversion applied:', paymentAmount);

@@ -113,6 +113,19 @@ export default function DualCurrencyPrice({
             setGasFeeDisplay(`${stablecoin} ${gasFeeCelo.toFixed(2)}`);
             setTotalDisplay(`${stablecoin} ${totalWithFee.toFixed(2)}`);
           }
+        } else if (stablecoin === 'KESm' || stablecoin === 'NGNm') {
+          // Mento stablecoins: fetch price from CoinGecko and divide (same pattern as CELO/G$)
+          const cgId = stablecoin === 'KESm' ? 'celo-kenyan-shilling' : 'celo-nigerian-naira';
+          let tokenUsdPrice = stablecoin === 'KESm' ? 0.0077 : 0.00062;
+          try {
+            const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`);
+            const d = await r.json();
+            if (d[cgId]?.usd) tokenUsdPrice = d[cgId].usd;
+          } catch { /* use fallback */ }
+          const tokenAmount = usdAmount / tokenUsdPrice;
+          setUsdEquivalent(tokenAmount);
+          setCryptoDisplay(`${stablecoin} ${tokenAmount.toFixed(2)}`);
+          if (showTotal) setTotalDisplay(`${stablecoin} ${tokenAmount.toFixed(2)}`);
         } else if (stablecoins.includes(stablecoin)) {
           // Stablecoins: 1 USD = 1 token
           setUsdEquivalent(usdAmount);

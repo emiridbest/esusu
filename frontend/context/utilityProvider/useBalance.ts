@@ -38,8 +38,8 @@ const erc20BalanceAbi = [
 export const useBalance = () => {
   const [celoUsdPrice, setCeloUsdPrice] = useState<number>(2.8);
   const [goodDollarUsdPrice, setGoodDollarUsdPrice] = useState<number>(0.0001);
-  const [kesUsdRate, setKesUsdRate] = useState<number>(130);   // KES per 1 USD
-  const [ngnUsdRate, setNgnUsdRate] = useState<number>(1600);  // NGN per 1 USD
+  const [kesUsdPrice, setKesUsdPrice] = useState<number>(0.0077);  // USD per KESm
+  const [ngnUsdPrice, setNgnUsdPrice] = useState<number>(0.00062); // USD per NGNm
 
   // Fetch token prices once on mount
   useEffect(() => {
@@ -54,9 +54,9 @@ export const useBalance = () => {
         const [celoData, gdData, kesData, ngnData] = await Promise.all([celoRes.json(), gdRes.json(), kesRes.json(), ngnRes.json()]);
         if (celoData?.celo?.usd) setCeloUsdPrice(celoData.celo.usd);
         if (gdData?.gooddollar?.usd) setGoodDollarUsdPrice(gdData.gooddollar.usd);
-        // CoinGecko returns USD-per-token (e.g. 0.00770612); invert to get tokens-per-USD (~130 KES/USD)
-        if (kesData?.['celo-kenyan-shilling']?.usd) setKesUsdRate(1 / kesData['celo-kenyan-shilling'].usd);
-        if (ngnData?.['celo-nigerian-naira']?.usd) setNgnUsdRate(1 / ngnData['celo-nigerian-naira'].usd);
+        // CoinGecko returns USD-per-token — store as-is, divide like CELO/G$
+        if (kesData?.['celo-kenyan-shilling']?.usd) setKesUsdPrice(kesData['celo-kenyan-shilling'].usd);
+        if (ngnData?.['celo-nigerian-naira']?.usd) setNgnUsdPrice(ngnData['celo-nigerian-naira'].usd);
       } catch {
         // fall back to defaults
       }
@@ -125,16 +125,10 @@ export const useBalance = () => {
         const celoAmount = Number(convertedAmount) / celoUsdPrice;
         requiredAmount = parseUnits(celoAmount.toString(), decimals);
       } else if (tokenId === 'KESm') {
-        // 1 KESm ≈ 1 KES — use the local currency amount directly, avoiding USD roundtrip
-        const kesAmount = currencyCode.toUpperCase() === 'KES'
-          ? Number(amount)
-          : Number(convertedAmount) * kesUsdRate;
+        const kesAmount = Number(convertedAmount) / kesUsdPrice;
         requiredAmount = parseUnits(kesAmount.toFixed(18).replace(/\.?0+$/, '') || '0', decimals);
       } else if (tokenId === 'NGNm') {
-        // 1 NGNm ≈ 1 NGN — use the local currency amount directly
-        const ngnAmount = currencyCode.toUpperCase() === 'NGN'
-          ? Number(amount)
-          : Number(convertedAmount) * ngnUsdRate;
+        const ngnAmount = Number(convertedAmount) / ngnUsdPrice;
         requiredAmount = parseUnits(ngnAmount.toFixed(18).replace(/\.?0+$/, '') || '0', decimals);
       } else {
         requiredAmount = parseUnits(convertedAmount.toString(), decimals);
