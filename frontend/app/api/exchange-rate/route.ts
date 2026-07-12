@@ -369,10 +369,19 @@ const COUNTRY_TO_CURRENCY: Record<string, string> = {
 
 /**
  * Resolves the input to a valid ISO 4217 currency code.
- * Accepts either a currency code (e.g., "BDT") or a country code (e.g., "bd").
+ * Accepts either a currency code (e.g., "BDT"), a country code (e.g., "bd"),
+ * or a Mento/stablecoin token symbol (e.g., "KESm" -> "KES", "NGNm" -> "NGN").
  */
 function resolveCurrencyCode(input: string): string {
   const upper = input.toUpperCase();
+  // Stablecoin token → fiat mappings (must come before fiat whitelist check)
+  const TOKEN_TO_FIAT: Record<string, string> = {
+    KESM: 'KES',
+    NGNM: 'NGN',
+    USDM: 'USD',
+    'G$':  'USD', // GoodDollar pegged near USD
+  };
+  if (TOKEN_TO_FIAT[upper]) return TOKEN_TO_FIAT[upper];
   // If it's already a known fiat currency, return it
   if (FIAT_CURRENCIES.has(upper)) return upper;
   // Try to map from country code
