@@ -45,28 +45,22 @@ export const useBalance = () => {
   useEffect(() => {
     async function fetchPrices() {
       try {
-        const [celoRes, gdRes] = await Promise.all([
+        const [celoRes, gdRes, kesRes, ngnRes] = await Promise.all([
           fetch('https://api.coingecko.com/api/v3/simple/price?ids=celo&vs_currencies=usd'),
           fetch('https://api.coingecko.com/api/v3/simple/price?ids=gooddollar&vs_currencies=usd'),
+          fetch('https://api.coingecko.com/api/v3/simple/price?ids=celo-kenyan-shilling&vs_currencies=usd'),
+          fetch('https://api.coingecko.com/api/v3/simple/price?ids=celo-nigerian-naira&vs_currencies=usd')
         ]);
-        const [celoData, gdData] = await Promise.all([celoRes.json(), gdRes.json()]);
+        const [celoData, gdData, kesData, ngnData] = await Promise.all([celoRes.json(), gdRes.json(), kesRes.json(), ngnRes.json()]);
         if (celoData?.celo?.usd) setCeloUsdPrice(celoData.celo.usd);
         if (gdData?.gooddollar?.usd) setGoodDollarUsdPrice(gdData.gooddollar.usd);
+        // CoinGecko returns USD-per-token (e.g. 0.00770612); invert to get tokens-per-USD (~130 KES/USD)
+        if (kesData?.['celo-kenyan-shilling']?.usd) setKesUsdRate(1 / kesData['celo-kenyan-shilling'].usd);
+        if (ngnData?.['celo-nigerian-naira']?.usd) setNgnUsdRate(1 / ngnData['celo-nigerian-naira'].usd);
       } catch {
         // fall back to defaults
       }
 
-      // Fetch fiat FX rates for Mento stablecoins
-      try {
-        const [kesRes, ngnRes] = await Promise.all([
-          fetch('/api/exchange-rate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: '1', base_currency: 'KES' }) }),
-          fetch('/api/exchange-rate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: '1', base_currency: 'NGN' }) }),
-        ]);
-        if (kesRes.ok) { const d = await kesRes.json(); if (d.rate) setKesUsdRate(1 / d.rate); }
-        if (ngnRes.ok) { const d = await ngnRes.json(); if (d.rate) setNgnUsdRate(1 / d.rate); }
-      } catch {
-        // fall back to defaults
-      }
     }
     fetchPrices();
   }, []);;
