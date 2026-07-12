@@ -68,11 +68,13 @@ async function getProviderForTx(hash: string): Promise<{ provider: ethers.JsonRp
 
 // Valid token addresses for payment validation
 const VALID_TOKENS = {
-  'CELO': '0x471EcE3750Da237f93B8E339c536989b8978a438', // Wrapped CELO (wCELO)
+  'CELO': '0x471EcE3750Da237f93B8E339c536989b8978a438',
   'USDM': '0x765DE816845861e75A25fCA122bb6898B8B1282a',
   'USDC': '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
   'USDT': '0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e',
-  'G$': '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A' // GoodDollar on Celo mainnet
+  'G$':   '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A',
+  'KESm': '0x456a3D042C0DbD3db53D5489e98dFb038553B0d0',
+  'NGNm': '0xe2702bd97ee33c88c8f6f92da3b733608aa76f71',
 };
 
 // Token decimals mapping for accurate amount validation
@@ -81,7 +83,9 @@ const TOKEN_DECIMALS = {
   USDM: 18,
   USDC: 6,
   USDT: 6,
-  'G$': 18
+  'G$': 18,
+  KESm: 18,
+  NGNm: 18,
 } as const;
 
 interface PaymentValidation {

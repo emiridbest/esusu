@@ -10,6 +10,8 @@ const TOKEN_ADDRESSES = {
   USDT: '0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e',
   CELO: '0x471EcE3750Da237f93B8E339c536989b8978a438',
   G$:   '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A',
+  KESm: '0x456a3D042C0DbD3db53D5489e98dFb038553B0d0',
+  NGNm: '0xe2702bd97ee33c88c8f6f92da3b733608aa76f71',
 } as const;
 
 const tokenDecimals: Record<string, number> = {
@@ -19,6 +21,8 @@ const tokenDecimals: Record<string, number> = {
   USDC: 6,
   USDT: 6,
   'G$': 18,
+  KESm: 18,
+  NGNm: 18,
 };
 
 const erc20BalanceAbi = [

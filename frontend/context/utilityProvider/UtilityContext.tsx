@@ -99,6 +99,8 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   const usdtAddress = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e";
   const celoAddress = "0x471EcE3750Da237f93B8E339c536989b8978a438"; // Native CELO token
   const goodDollarAddress = "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A"; // G$ token address
+  const kesmAddress = "0x456a3D042C0DbD3db53D5489e98dFb038553B0d0"; // KESm – Kenya Shilling Mento
+  const ngnmAddress = "0xe2702bd97ee33c88c8f6f92da3b733608aa76f71"; // NGNm – Nigerian Naira Mento
   const [recipient, setRecipient] = useState<string>('');
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
   const [transactionSteps, setTransactionSteps] = useState<Step[]>([]);
@@ -160,6 +162,10 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         return celoAddress;
       case 'G$':
         return goodDollarAddress;
+      case 'KESm':
+        return kesmAddress;
+      case 'NGNm':
+        return ngnmAddress;
       default:
         return usdmAddress;
     }
@@ -172,6 +178,9 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
       case 'USDC':
       case 'USDT':
         return 6;
+      case 'KESm':
+      case 'NGNm':
+        return 18;
       default:
         return 18;
     }
