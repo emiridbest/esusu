@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useAccount, useWalletClient } from "wagmi";
+import { BrowserProvider } from "ethers";
 
 export type EditMetadataDialogProps = {
   open: boolean;
@@ -25,8 +25,6 @@ export type EditMetadataDialogProps = {
 export default function EditMetadataDialog(props: EditMetadataDialogProps) {
   const { open, onOpenChange, contractAddress, groupId, initialName, initialDescription, initialCoverImageUrl, initialCategory, initialTags, onSaved } = props;
   const { toast } = useToast();
-  const { address, chain } = useAccount();
-  const { data: walletClient } = useWalletClient();
 
   const [name, setName] = useState(initialName || "");
   const [description, setDescription] = useState(initialDescription || "");
@@ -51,12 +49,13 @@ export default function EditMetadataDialog(props: EditMetadataDialogProps) {
     if (!name) return;
     try {
       setSaving(true);
-      if (!address || !walletClient) {
-        throw new Error('Wallet not connected');
+      if (typeof window === "undefined" || !(window as any).ethereum) {
+        throw new Error("Wallet provider not available");
       }
 
-      const signerAddress = address.toLowerCase();
-      const chainId = (chain?.id ?? 42220).toString();
+      const provider = new BrowserProvider((window as any).ethereum);
+      const signer = await provider.getSigner();
+      const signerAddress = (await signer.getAddress()).toLowerCase();
 
       // 1) Try to use existing SIWE session
       const sessionRes = await fetch('/api/auth/session');
@@ -64,6 +63,7 @@ export default function EditMetadataDialog(props: EditMetadataDialogProps) {
       if (!session?.authenticated || session?.address !== signerAddress) {
         // 2) Acquire SIWE session
         const origin = window.location.origin;
+        const chainId = (await provider.getNetwork()).chainId.toString();
         const msgRes = await fetch(`/api/auth/siwe/message?address=${signerAddress}&chainId=${chainId}&domain=${encodeURIComponent(window.location.host)}&uri=${encodeURIComponent(origin)}`);
 
         let msgData;
@@ -78,7 +78,7 @@ export default function EditMetadataDialog(props: EditMetadataDialogProps) {
         if (!msgRes.ok) {
           throw new Error(msgData?.error || 'Failed to get SIWE message');
         }
-        const siweSignature = await walletClient.signMessage({ message: msgData.message });
+        const siweSignature = await signer.signMessage(msgData.message);
         const verifyRes = await fetch('/api/auth/siwe/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
