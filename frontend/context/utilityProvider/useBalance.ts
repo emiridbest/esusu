@@ -38,6 +38,8 @@ const erc20BalanceAbi = [
 export const useBalance = () => {
   const [celoUsdPrice, setCeloUsdPrice] = useState<number>(2.8);
   const [goodDollarUsdPrice, setGoodDollarUsdPrice] = useState<number>(0.0001);
+  const [kesUsdRate, setKesUsdRate] = useState<number>(130);   // KES per 1 USD
+  const [ngnUsdRate, setNgnUsdRate] = useState<number>(1600);  // NGN per 1 USD
 
   // Fetch token prices once on mount
   useEffect(() => {
@@ -53,9 +55,21 @@ export const useBalance = () => {
       } catch {
         // fall back to defaults
       }
+
+      // Fetch fiat FX rates for Mento stablecoins
+      try {
+        const [kesRes, ngnRes] = await Promise.all([
+          fetch('/api/exchange-rate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: '1', base_currency: 'KES' }) }),
+          fetch('/api/exchange-rate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: '1', base_currency: 'NGN' }) }),
+        ]);
+        if (kesRes.ok) { const d = await kesRes.json(); if (d.rate) setKesUsdRate(1 / d.rate); }
+        if (ngnRes.ok) { const d = await ngnRes.json(); if (d.rate) setNgnUsdRate(1 / d.rate); }
+      } catch {
+        // fall back to defaults
+      }
     }
     fetchPrices();
-  }, []);
+  }, []);;
 
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient({ chainId: 42220 });
@@ -116,6 +130,18 @@ export const useBalance = () => {
       } else if (tokenId === 'CELO') {
         const celoAmount = Number(convertedAmount) / celoUsdPrice;
         requiredAmount = parseUnits(celoAmount.toString(), decimals);
+      } else if (tokenId === 'KESm') {
+        // 1 KESm ≈ 1 KES — use the local currency amount directly, avoiding USD roundtrip
+        const kesAmount = currencyCode.toUpperCase() === 'KES'
+          ? Number(amount)
+          : Number(convertedAmount) * kesUsdRate;
+        requiredAmount = parseUnits(kesAmount.toFixed(18).replace(/\.?0+$/, '') || '0', decimals);
+      } else if (tokenId === 'NGNm') {
+        // 1 NGNm ≈ 1 NGN — use the local currency amount directly
+        const ngnAmount = currencyCode.toUpperCase() === 'NGN'
+          ? Number(amount)
+          : Number(convertedAmount) * ngnUsdRate;
+        requiredAmount = parseUnits(ngnAmount.toFixed(18).replace(/\.?0+$/, '') || '0', decimals);
       } else {
         requiredAmount = parseUnits(convertedAmount.toString(), decimals);
       }
