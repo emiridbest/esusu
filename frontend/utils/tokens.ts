@@ -45,7 +45,21 @@ export const TOKENS: Record<string, TokenConfig> = {
     name: 'GoodDollar',
     decimals: 18,
     logoUrl: '/gooddollar.svg'
-  }
+  },
+  NGNm: {
+    address: '0xe2702bd97ee33c88c8f6f92da3b733608aa76f71',
+    symbol: 'NGNm',
+    name: 'Naira Stablecoin',
+    decimals: 18,
+    logoUrl: '/ngnm.png'
+  },
+  KESm: {
+    address: '0x456a3D042C0DbD3db53D5489e98dFb038553B0d0',
+    symbol: 'KESm',
+    name: 'Kenya Shilling Stablecoin',
+    decimals: 18,
+    logoUrl: '/kesm.png'
+  },
 };
 
 // Get token by address
