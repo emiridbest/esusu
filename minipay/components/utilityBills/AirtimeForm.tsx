@@ -512,13 +512,19 @@ export default function AirtimeForm() {
                         <SelectValue placeholder="Select payment token" className='text-xs'>
                           {field.value && (() => {
                             const selectedTokenConfig = UTILS_TOKENS[field.value];
-                            const tokenName = TOKENS.find(t => t.id === field.value)?.name || field.value;
+                            const tokenOption = TOKENS.find(t => t.id === field.value);
+                            const tokenName = tokenOption?.name || field.value;
                             return (
                               <div className="flex items-center gap-2">
                                 {selectedTokenConfig?.logoUrl && (
                                   <img src={selectedTokenConfig.logoUrl} alt={tokenName} className="w-4 h-4" />
                                 )}
                                 <span>{tokenName}</span>
+                                {tokenOption?.badge && (
+                                  <span className="ml-1 shrink-0 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                    {tokenOption.badge}
+                                  </span>
+                                )}
                               </div>
                             );
                           })()}
@@ -538,6 +544,11 @@ export default function AirtimeForm() {
                                 <img src={logoUrl} alt={token.name} className="w-5 h-5" />
                               )}
                               <span>{token.name}</span>
+                              {token.badge && (
+                                <span className="ml-1 shrink-0 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                  {token.badge}
+                                </span>
+                              )}
                             </div>
                           </SelectItem>
                         )
