@@ -29,6 +29,7 @@ type UtilityContextType = {
   countryData: CountryData | null;
   setIsProcessing: (processing: boolean) => void;
   convertCurrency: (amount: string, base_currency: string) => Promise<number>;
+  goodDollarUsdPrice: number | null;
   handleTransaction: (params: TransactionParams) => Promise<TransactionResult>;
   getTransactionMemo: (type: 'data' | 'electricity' | 'airtime', metadata: Record<string, any>) => string;
   formatCurrencyAmount: (amount: string | number) => string;
@@ -76,7 +77,7 @@ const UtilityContext = createContext<UtilityContextType | undefined>(undefined);
 export const UtilityProvider = ({ children }: UtilityProviderProps) => {
   // Cache token prices (CELO/USD, G$/USD)
   const [celoUsdPrice, setCeloUsdPrice] = useState<number>(2.8); // fallback to 2.8
-  const [goodDollarUsdPrice, setGoodDollarUsdPrice] = useState<number>(0.0001); // fallback to 0.0001
+  const [goodDollarUsdPrice, setGoodDollarUsdPrice] = useState<number | null>(null);
   const [kesUsdPrice, setKesUsdPrice] = useState<number>(0.0077);  // USD per KESm
   const [ngnUsdPrice, setNgnUsdPrice] = useState<number>(0.00062); // USD per NGNm
 
@@ -322,6 +323,9 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
         // Apply token-specific conversion using cached rates
         if (token === 'G$') {
           // Convert USD to G$ using cached rate
+          if (!goodDollarUsdPrice || goodDollarUsdPrice <= 0) {
+            throw new Error('GoodDollar price is not available');
+          }
           const gDollarAmount = Number(convertedAmount) / goodDollarUsdPrice;
           actualTokenAmount = gDollarAmount;
           paymentAmount = parseUnits(gDollarAmount.toString(), decimals);
@@ -623,6 +627,7 @@ export const UtilityProvider = ({ children }: UtilityProviderProps) => {
     countryData,
     setIsProcessing,
     convertCurrency,
+    goodDollarUsdPrice,
     handleTransaction,
     getTransactionMemo,
     formatCurrencyAmount,

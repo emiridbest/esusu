@@ -41,7 +41,7 @@ export default function DualCurrencyPrice({
   showTotal = false,
   className = ''
 }: DualCurrencyPriceProps) {
-  const { convertCurrency } = useUtility();
+  const { convertCurrency, goodDollarUsdPrice } = useUtility();
   const [loading, setLoading] = useState(true);
   const [localDisplay, setLocalDisplay] = useState('');
   const [cryptoDisplay, setCryptoDisplay] = useState('');
@@ -92,9 +92,13 @@ export default function DualCurrencyPrice({
         // Stablecoins (USDm, USDC, USDT) should always be 1:1 USD
         const stablecoins = ['USDM', 'USDm', 'USDC', 'USDT'];
         if (stablecoin === 'G$') {
-          // GoodDollar: USD to G$ using fixed price
-          const gDollarPrice = 0.0001;
-          const gDollarAmount = usdAmount / gDollarPrice;
+          // GoodDollar: USD to G$ using the live price from the main API.
+          if (!goodDollarUsdPrice || goodDollarUsdPrice <= 0) {
+            setCryptoDisplay(`${stablecoin} --`);
+            if (showTotal) setTotalDisplay(`${stablecoin} --`);
+            return;
+          }
+          const gDollarAmount = usdAmount / goodDollarUsdPrice;
           setUsdEquivalent(gDollarAmount);
           setCryptoDisplay(`${stablecoin} ${gDollarAmount.toFixed(2)}`);
           if (showTotal) {
@@ -160,7 +164,7 @@ export default function DualCurrencyPrice({
       }
     };
     fetchPrices();
-  }, [amount, stablecoin, includeGasFee, showTotal, convertCurrency, countryCurrency, celoUsdPrice]);
+  }, [amount, stablecoin, includeGasFee, showTotal, convertCurrency, countryCurrency, celoUsdPrice, goodDollarUsdPrice]);
 
   if (loading) {
     return (
