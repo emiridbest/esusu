@@ -19,14 +19,14 @@ export async function GET(req: NextRequest) {
     
     // Prepare request to Reloadly API
     const reloadlyConfig = {
-      clientId: process.env.NEXT_CLIENT_ID,
-      clientSecret: process.env.NEXT_CLIENT_SECRET,
+      clientId: process.env.RELOADLY_CLIENT_ID,
+      clientSecret: process.env.RELOADLY_CLIENT_SECRET,
       audience: process.env.NEXT_PUBLIC_UTILITIES_AUDIENCE_URL_PRODUCTION,
       acceptHeader: process.env.NEXT_PUBLIC_ACCEPT_HEADER_BILLER
     };
     
     // Get access token
-    const authResponse = await axios.post(process.env.NEXT_PUBLIC_AUTH_URL!, {
+    const authResponse = await axios.post(process.env.RELOADLY_AUTH_URL!, {
       client_id: reloadlyConfig.clientId,
       client_secret: reloadlyConfig.clientSecret,
       grant_type: 'client_credentials',

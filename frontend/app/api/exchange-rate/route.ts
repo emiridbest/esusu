@@ -14,7 +14,7 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3, de
 import { NextRequest, NextResponse } from 'next/server';
 
 // Reloadly API configuration
-const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL;
+const AUTH_URL = process.env.RELOADLY_AUTH_URL;
 const FX_API_ENDPOINT = process.env.NEXT_PUBLIC_FX_API_URL;
 const SANDBOX_FX_API = process.env.NEXT_PUBLIC_SANDBOX_FX_API_URL;
 
@@ -117,8 +117,8 @@ async function getAccessToken(): Promise<string> {
   }
 
   try {
-    const clientId = process.env.NEXT_CLIENT_ID;
-    const clientSecret = process.env.NEXT_CLIENT_SECRET;
+    const clientId = process.env.RELOADLY_CLIENT_ID;
+    const clientSecret = process.env.RELOADLY_CLIENT_SECRET;
     const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
 
     if (!clientId || !clientSecret || !AUTH_URL) {
@@ -392,38 +392,54 @@ function resolveCurrencyCode(input: string): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { amount, base_currency } = await request.json();
+    const { amount, base_currency, from_currency, to_currency } = await request.json();
 
-    if (!amount || !base_currency) {
+    if (!amount || (!base_currency && (!from_currency || !to_currency))) {
       return NextResponse.json(
         { error: 'Missing required parameters' },
         { status: 400 }
       );
     }
 
-    // Resolve country codes (e.g., "bd") to currency codes (e.g., "BDT")
-    const resolvedCurrency = resolveCurrencyCode(base_currency);
+    // Resolve country codes (e.g., "bd") to currency codes (e.g., "BDT").
+    const resolvedCurrency = base_currency ? resolveCurrencyCode(base_currency) : null;
+    const resolvedFromCurrency = from_currency ? resolveCurrencyCode(from_currency) : null;
+    const resolvedToCurrency = to_currency ? resolveCurrencyCode(to_currency) : null;
 
     // Determine the correct conversion function based on currencies
     try {
       let convertedAmount: number;
       let rate: number;
 
-      if (resolvedCurrency === 'USD') {
+      if (resolvedFromCurrency && resolvedToCurrency) {
+        if (resolvedFromCurrency === resolvedToCurrency) {
+          convertedAmount = parseFloat(amount);
+          rate = 1;
+        } else {
+          convertedAmount = resolvedFromCurrency === 'USD'
+            ? parseFloat(amount) * await getExchangeRate('USD', resolvedToCurrency)
+            : resolvedToCurrency === 'USD'
+              ? parseFloat(amount) / await getExchangeRate(resolvedFromCurrency, 'USD')
+              : parseFloat(amount) / await getExchangeRate(resolvedFromCurrency, 'USD') * await getExchangeRate('USD', resolvedToCurrency);
+          rate = convertedAmount / parseFloat(amount);
+        }
+      } else if (resolvedCurrency === 'USD') {
         // Convert from USD to local currency
         convertedAmount = await convertFromUSD(amount, resolvedCurrency);
         rate = convertedAmount / parseFloat(amount);
-      } else {
+      } else if (resolvedCurrency) {
         // Convert from local currency to USD
         convertedAmount = await convertToUSD(amount, resolvedCurrency);
         rate = convertedAmount / parseFloat(amount);
+      } else {
+        throw new Error('Invalid currency conversion request');
       }
 
       return NextResponse.json({
         fromAmount: parseFloat(amount),
         toAmount: convertedAmount.toFixed(2),
         rate: rate,
-        fromCurrency: base_currency,
+        fromCurrency: from_currency || base_currency,
       });
     } catch (conversionError) {
       console.error('Currency conversion error:', conversionError);

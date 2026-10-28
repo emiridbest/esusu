@@ -17,12 +17,12 @@ export const config = {
   RELOADLY_UTILITIES_BASE_URL: process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true' 
     ? (process.env.NEXT_PUBLIC_SANDBOX_BILLER_API_URL || 'https://utilities-sandbox.reloadly.com')
     : (process.env.NEXT_PUBLIC_BILLER_API_URL || 'https://utilities.reloadly.com'),
-  RELOADLY_AUTH_URL: process.env.NEXT_PUBLIC_AUTH_URL || 'https://auth.reloadly.com/oauth/token',
-  RELOADLY_CLIENT_ID: process.env.NEXT_CLIENT_ID,
-  RELOADLY_CLIENT_SECRET: process.env.NEXT_CLIENT_SECRET,
+  RELOADLY_AUTH_URL: process.env.RELOADLY_AUTH_URL || 'https://auth.reloadly.com/oauth/token',
+  RELOADLY_CLIENT_ID: process.env.RELOADLY_CLIENT_ID,
+  RELOADLY_CLIENT_SECRET: process.env.RELOADLY_CLIENT_SECRET,
   RELOADLY_SANDBOX_MODE: process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true',
   RELOADLY_ACCEPT_HEADER_BILLER: process.env.NEXT_PUBLIC_ACCEPT_HEADER_BILLER || 'application/com.reloadly.utilities-v1+json',
-  RELOADLY_AUDIENCE_URL: process.env.NEXT_PUBLIC_AUDIENCE_URL,
+  RELOADLY_AUDIENCE_URL: process.env.RELOADLY_AUDIENCE_URL,
   RELOADLY_UTILITIES_AUDIENCE_URL: process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true' 
     ? (process.env.NEXT_PUBLIC_UTILITIES_AUDIENCE_URL || 'https://utilities-sandbox.reloadly.com')
     : (process.env.NEXT_PUBLIC_UTILITIES_AUDIENCE_URL_PRODUCTION || 'https://utilities.reloadly.com'),
@@ -34,7 +34,7 @@ export const config = {
   JWT_SECRET: process.env.JWT_SECRET,
   
   // External API URLs
-  NEXT_PUBLIC_AUTH_URL: process.env.NEXT_PUBLIC_AUTH_URL,
+  RELOADLY_AUTH_URL: process.env.RELOADLY_AUTH_URL,
   NEXT_PUBLIC_SANDBOX_BILLER_API_URL: process.env.NEXT_PUBLIC_SANDBOX_BILLER_API_URL,
   NEXT_PUBLIC_BILLER_API_URL: process.env.NEXT_PUBLIC_BILLER_API_URL,
   NEXT_PUBLIC_SANDBOX_MODE: process.env.NEXT_PUBLIC_SANDBOX_MODE,
@@ -44,7 +44,7 @@ export const config = {
   NEXT_PUBLIC_SANDBOX_FX_API_URL: process.env.NEXT_PUBLIC_SANDBOX_FX_API_URL,
   NEXT_PUBLIC_ACCEPT_HEADER: process.env.NEXT_PUBLIC_ACCEPT_HEADER,
   NEXT_PUBLIC_ACCEPT_HEADER_BILLER: process.env.NEXT_PUBLIC_ACCEPT_HEADER_BILLER,
-  NEXT_PUBLIC_AUDIENCE_URL: process.env.NEXT_PUBLIC_AUDIENCE_URL,
-  NEXT_CLIENT_ID: process.env.NEXT_CLIENT_ID,
-  NEXT_CLIENT_SECRET: process.env.NEXT_CLIENT_SECRET,
+  RELOADLY_AUDIENCE_URL: process.env.RELOADLY_AUDIENCE_URL,
+  RELOADLY_CLIENT_ID: process.env.RELOADLY_CLIENT_ID,
+  RELOADLY_CLIENT_SECRET: process.env.RELOADLY_CLIENT_SECRET,
 };

@@ -16,20 +16,28 @@ export async function GET(req: NextRequest) {
       );
     }
     
-    // Prepare request to Reloadly API
-    const reloadlyConfig = {
-      clientId: process.env.NEXT_CLIENT_ID,
-      clientSecret: process.env.NEXT_CLIENT_SECRET,
-      audience: process.env.NEXT_PUBLIC_AUDIENCE_URL,
-      acceptHeader: process.env.NEXT_PUBLIC_ACCEPT_HEADER
-    };
+    const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
+    const authUrl = process.env.RELOADLY_AUTH_URL;
+    const apiUrl = isSandbox
+      ? process.env.NEXT_PUBLIC_SANDBOX_API_URL
+      : process.env.NEXT_PUBLIC_API_URL;
+    const audience = isSandbox
+      ? process.env.RELOADLY_SANDBOX_AUDIENCE_URL || apiUrl
+      : process.env.RELOADLY_AUDIENCE_URL || apiUrl;
+    const clientId = process.env.RELOADLY_CLIENT_ID;
+    const clientSecret = process.env.RELOADLY_CLIENT_SECRET;
+    const acceptHeader = process.env.NEXT_PUBLIC_ACCEPT_HEADER;
+
+    if (!authUrl || !apiUrl || !audience || !clientId || !clientSecret) {
+      throw new Error('Reloadly server configuration is incomplete');
+    }
     
     // Get access token
-    const authResponse = await axios.post(process.env.NEXT_PUBLIC_AUTH_URL!, {
-      client_id: reloadlyConfig.clientId,
-      client_secret: reloadlyConfig.clientSecret,
+    const authResponse = await axios.post(authUrl, {
+      client_id: clientId,
+      client_secret: clientSecret,
       grant_type: 'client_credentials',
-      audience: reloadlyConfig.audience
+      audience
     }, {
       headers: {
         'Content-Type': 'application/json',
@@ -41,11 +49,11 @@ export async function GET(req: NextRequest) {
     
     // Fetch mobile operators that support data bundles
     const operatorsResponse = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL}/operators/countries/${country}?includeBundles=true&status=ACTIVE`,
+      `${apiUrl}/operators/countries/${encodeURIComponent(country)}?includeBundles=true&status=ACTIVE`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
-          'Accept': reloadlyConfig.acceptHeader
+          'Accept': acceptHeader
         }
       }
     );

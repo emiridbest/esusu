@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDingProducts } from '@/lib/dingConnect';
 
 // Base URLs from environment variables
-const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL;
+const AUTH_URL = process.env.RELOADLY_AUTH_URL;
 const SANDBOX_API_URL = process.env.NEXT_PUBLIC_SANDBOX_API_URL;
 const PRODUCTION_API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -34,8 +34,8 @@ async function getAccessToken(): Promise<string> {
   }
 
   try {
-    const clientId = process.env.NEXT_CLIENT_ID;
-    const clientSecret = process.env.NEXT_CLIENT_SECRET;
+    const clientId = process.env.RELOADLY_CLIENT_ID;
+    const clientSecret = process.env.RELOADLY_CLIENT_SECRET;
     const isSandbox = process.env.NEXT_PUBLIC_SANDBOX_MODE === 'true';
 
     if (!clientId || !clientSecret) {
